@@ -1,0 +1,37 @@
+{
+  "name": "testrealfront",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@arcgis/core": "^4.30.8",
+    "@element-plus/icons-vue": "^2.3.1",
+    "@tweenjs/tween.js": "^25.0.0",
+    "@vueuse/core": "^10.10.1",
+    "axios": "^1.7.2",
+    "echarts": "^5.5.1",
+    "element-plus": "^2.7.4",
+    "jsonp": "^0.2.1",
+    "jwt-decode": "^4.0.0",
+    "ol": "^10.1.0",
+    "pinia": "^2.1.7",
+    "pinia-plugin-persistedstate": "^3.2.1",
+    "qrcode": "^1.5.4",
+    "screenfull": "^6.0.2",
+    "three": "^0.177.0",
+    "typewriter-effect": "^2.22.0",
+    "uuid": "^11.1.0",
+    "vue": "^3.4.21",
+    "vue-router": "^4.3.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.0.4",
+    "sass": "^1.89.2",
+    "vite": "^5.2.8"
+  }
+}

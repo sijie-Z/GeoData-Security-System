@@ -1,0 +1,11 @@
+1.打开flask项目文件
+2.安装依赖文件:requirements.txt
+pip install -r requirements.txt
+
+
+
+
+
+
+
+

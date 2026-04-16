@@ -1,0 +1,48 @@
+import uuid
+from sqlalchemy.dialects.postgresql import UUID
+from extension.extension import db
+from datetime import datetime
+
+class RasterData(db.Model):
+    """
+    栅格数据模型，用于在数据库中存储栅格文件的元数据。
+    """
+    __tablename__ = 'RasterData'
+    __bind_key__ = 'postgres_db' 
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(255), nullable=True, unique=True)
+    alias = db.Column(db.String(255), nullable=True, unique=True)
+    
+    # 栅格数据特有字段
+    bands = db.Column(db.Integer)
+    resolution = db.Column(db.String(255))
+    
+    # 与Shp_Data模型保持一致的通用字段
+    introduction = db.Column(db.String(255))
+    datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    url = db.Column(db.String(255))
+    layer = db.Column(db.String(255))
+    file_path = db.Column(db.String(512), nullable=False)
+    uuid = db.Column(UUID(as_uuid=True), unique=True, nullable=False, default=uuid.uuid4)
+    coordinate_system = db.Column(db.String(100))
+    data_source = db.Column(db.String(255))
+
+    def to_dict(self):
+        """
+        将模型对象转换为字典格式。
+        """
+        return {
+            'data_id': self.id,
+            'uuid': str(self.uuid) if self.uuid else None,
+            'data_alias': self.alias,
+            'data_introduction': self.introduction,
+            'data_url': self.url,
+            'layer': self.layer,
+            'name': self.name,
+            'datetime': self.datetime.isoformat() if self.datetime else None,
+            'coordinate_system': self.coordinate_system,
+            'data_source': self.data_source,
+            'bands': self.bands,
+            'resolution': self.resolution
+        }

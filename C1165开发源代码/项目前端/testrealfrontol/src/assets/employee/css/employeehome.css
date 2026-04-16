@@ -1,0 +1,166 @@
+/*/* 全局样式 */
+/** {*/
+/*    margin: 0;*/
+/*    padding: 0;*/
+/*}*/
+
+/*body {*/
+/*    font-size: 14px;*/
+/*}*/
+
+/*a {*/
+/*    outline: none;*/
+/*    text-decoration: none;*/
+/*    cursor: pointer;*/
+/*}*/
+
+/*ul, li {*/
+/*    list-style-type: none;*/
+/*}*/
+
+
+body, a, ul, li {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-size: 14px;
+}
+
+a {
+    outline: none;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+ul, li {
+    list-style-type: none;
+}
+
+
+/* 管理后台首页样式 */
+.employee-home {
+    display: flex;
+    flex-direction: column; /* 容器内的元素从上至下排列 */
+    height: 100vh;
+}
+
+.employee-home .header {
+    display: flex;
+    height: 55px;
+    background: #393d49;
+}
+
+.employee-home .header .title {
+    display: flex;
+    width: 200px;
+    background: #000000;
+}
+
+.employee-home .header .title .logo {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 60px;
+}
+
+.employee-home .header .title .logo i {
+    color: lightslategray;
+    font-size: 30px;
+}
+
+.employee-home .header .title .text {
+    display: flex;
+    align-items: center;
+    flex: 1;
+}
+
+.employee-home .header .title .text a {
+    color: lightslategray;
+    font-size: 18px;
+    font-weight: bold;
+}
+
+.employee-home .header .info {
+    display: flex;
+    justify-content: flex-end;
+    flex: 1;
+
+}
+
+.employee-home .header .info {
+    display: flex;
+    color: #fff;
+    font-size: 15px;
+}
+
+.employee-home .header .info .user-info {
+    padding-right: 10px;
+    height: 55px;
+    line-height: 55px;
+    text-align: center;
+}
+
+.employee-home .header .info .user-info i {
+    color: #FF5722;
+    font-size: 13px;
+}
+
+.employee-home .header .info .logout {
+    width: 90px;
+    height: 55px;
+    line-height: 55px;
+    text-align: center;
+    background: #555c64;
+    cursor: pointer;
+}
+
+.employee-home .main {
+    display: flex;
+    height: calc(100vh - 55px); /* 减去 header 高度 */
+}
+
+.employee-home .main .side {
+    width: 200px;
+    background: #545c64;
+
+}
+
+.employee-home .main .content {
+    padding: 5px;
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 颜色类 */
+.blue {
+    color: #1e9eff;
+}
+
+.green {
+    color: #15baaa;
+}
+
+.orange {
+    color: #feb801;
+}
+
+.red {
+    color: #f75a23;
+}
+
+
+
+/* !*重写 ElementPlus 默认样式 *!*/
+/*.el-table {*/
+/*    margin-top: 7px;*/
+/*    width: 1000px;*/
+/*}*/
+
+/*.el-breadcrumb {*/
+/*    margin-bottom: 7px;*/
+/*}*/
+
+
+
