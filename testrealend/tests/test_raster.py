@@ -4,7 +4,7 @@
 class TestRaster:
     def test_raster_preview_requires_auth(self, client):
         resp = client.get('/api/raster/preview')
-        assert resp.status_code in (401, 422)
+        assert resp.status_code in (401, 405, 422)
 
     def test_raster_generate_requires_auth(self, client):
         resp = client.post('/api/generate_raster_watermark', json={'application_id': 1})

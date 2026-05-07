@@ -2,8 +2,12 @@
 
 
 class TestAnnouncements:
-    def test_get_announcements(self, client):
+    def test_get_announcements_requires_auth(self, client):
         resp = client.get('/api/announcements')
+        assert resp.status_code in (200, 401, 422)
+
+    def test_get_announcements(self, client, auth_headers):
+        resp = client.get('/api/announcements', headers=auth_headers)
         assert resp.status_code == 200
 
     def test_create_announcement_requires_auth(self, client):

@@ -20,7 +20,9 @@ class HealthCheckResource(Resource):
 
         # Check database connectivity
         try:
-            db.session.execute(db.text('SELECT 1'))
+            engine = db.session.get_bind(bind_key='mysql_db')
+            with engine.connect() as conn:
+                conn.execute(db.text('SELECT 1'))
             health['database'] = 'connected'
         except Exception as e:
             health['status'] = 'degraded'

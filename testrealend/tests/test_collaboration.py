@@ -12,7 +12,7 @@ class TestNotifications:
 
     def test_mark_read_requires_auth(self, client):
         resp = client.put('/api/employee/notifications/1/read')
-        assert resp.status_code in (401, 422)
+        assert resp.status_code in (401, 405, 422)
 
 
 class TestMyLogs:

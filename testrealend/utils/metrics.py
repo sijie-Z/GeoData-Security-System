@@ -11,9 +11,10 @@ try:
         Counter, Histogram, Gauge, Info, generate_latest, CONTENT_TYPE_LATEST, REGISTRY
     )
     _has_prometheus = True
-except ImportError:
+except (ImportError, AttributeError, Exception) as _prom_err:
     _has_prometheus = False
-    logger.warning("prometheus_client not installed, metrics disabled")
+    Counter = Histogram = Gauge = Info = None
+    logger.warning(f"prometheus_client unavailable ({_prom_err}), metrics disabled")
 
 
 # ── Request metrics ──────────────────────────────────────────────

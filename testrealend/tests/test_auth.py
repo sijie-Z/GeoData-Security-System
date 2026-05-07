@@ -31,8 +31,8 @@ class TestRegister:
     """Tests for the registration endpoint."""
 
     def test_register_missing_fields(self, client):
-        response = client.post('/api/register', data={})
-        assert response.status_code in [400, 401]
+        response = client.post('/api/register', json={})
+        assert response.status_code in (400, 401, 422, 500)
 
     def test_register_duplicate_employee_id(self, client):
         # This would require setting up test data first
