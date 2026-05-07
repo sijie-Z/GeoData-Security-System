@@ -9,7 +9,8 @@
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
 ![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=flat-square&logo=prometheus)
-![i18n](https://img.shields.io/badge/i18n-ZH%20%7C%20EN-blue?style=flat-square)
+![Grafana](https://img.shields.io/badge/Grafana-Dashboards-F46800?style=flat-square&logo=grafana)
+![i18n](https://img.shields.io/badge/i18n-1200%2B%20keys-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 **Enterprise-grade spatial data security distribution and traceability platform**
@@ -39,7 +40,8 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 - **Notification System** — Targeted and broadcast announcements
 - **Operation Audit Log** — Full activity trail with filtering by user, action type, and time range
 - **Dashboard Analytics** — Admin and employee dashboards with ECharts visualizations
-- **Internationalization (i18n)** — Chinese and English language support with runtime switching
+- **Internationalization (i18n)** — Full Chinese/English support across all 49 views (1200+ translation keys) with runtime switching
+- **Grafana Dashboards** — Auto-provisioned monitoring dashboards with 11 panels (request rate, latency, error rate, business KPIs)
 
 ### Technical Highlights
 - **Dual-database Architecture** — MySQL for business data, PostgreSQL + PostGIS for spatial data
@@ -121,8 +123,9 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 | **Database** | MySQL 8.0 | Business data (users, apps, logs) |
 | | PostgreSQL + PostGIS | Spatial data (vectors, rasters) |
 | | Redis 7 | Cache and session store |
-| **DevOps** | Docker + docker-compose | Containerized deployment (6 services) |
+| **DevOps** | Docker + docker-compose | Containerized deployment (7 services) |
 | | Prometheus | Metrics monitoring |
+| | Grafana | Dashboard visualization (auto-provisioned) |
 | | GitHub Actions | CI/CD pipeline |
 | | Ruff | Python linting |
 | | ESLint | JS/Vue linting |
@@ -188,7 +191,7 @@ Frontend starts at **http://localhost:5173**
 ```bash
 docker-compose up -d
 ```
-This starts all 6 services: frontend, backend, MySQL, PostgreSQL, Redis, Prometheus.
+This starts all 7 services: frontend, backend, MySQL, PostgreSQL, Redis, Prometheus, Grafana.
 
 ---
 
@@ -228,7 +231,7 @@ GeoData-Security-System/
 │   │   ├── utils/
 │   │   │   ├── Axios.js            # HTTP client + interceptors
 │   │   │   └── Time.js             # Time utilities
-│   │   ├── views/                  # 41 view components
+│   │   ├── views/                  # 49 view components (fully i18n)
 │   │   ├── components/             # Reusable components
 │   │   │   └── common/
 │   │   │       ├── LanguageSwitcher.vue
@@ -239,8 +242,12 @@ GeoData-Security-System/
 │   ├── package.json
 │   └── Dockerfile
 │
-├── docker-compose.yml              # Multi-container orchestration (6 services)
+├── docker-compose.yml              # Multi-container orchestration (7 services)
 ├── prometheus.yml                  # Prometheus scrape config
+├── grafana/                        # Grafana provisioning
+│   └── provisioning/
+│       ├── datasources/            # Prometheus datasource config
+│       └── dashboards/             # Dashboard JSON (11 panels)
 ├── .github/workflows/ci.yml        # GitHub Actions CI
 ├── .pre-commit-config.yaml         # Pre-commit hooks
 ├── .gitignore
@@ -287,6 +294,8 @@ The backend exposes a RESTful API. Key endpoints:
 | GET | `/metrics` | Prometheus metrics |
 | GET | `/api/admin/dashboard` | Admin dashboard stats |
 | GET | `/api/admin/logs` | System operation logs |
+| GET | `/api/admin-application/list` | Admin application list |
+| POST | `/api/admin-application/{id}/vote` | Vote on admin application |
 | POST | `/api/recall/create` | Create recall proposal |
 | POST | `/api/recall/{id}/vote` | Vote on recall |
 
@@ -303,6 +312,8 @@ docker-compose up -d --build
 
 # View logs
 docker-compose logs -f backend
+
+# Grafana dashboard (default: http://localhost:3000, admin/geodata_grafana)
 
 # Stop all services
 docker-compose down

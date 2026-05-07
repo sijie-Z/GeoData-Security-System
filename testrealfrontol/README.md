@@ -1,6 +1,14 @@
 # 空间数据追踪系统 - 前端
 
-Vue 3 + Vite + Element Plus + Pinia，用于空间数据申请、审批、水印与数据目录等功能的 Web 端。
+Vue 3 + Vite + Element Plus + Pinia + vue-i18n，用于空间数据申请、审批、水印与数据目录等功能的 Web 端。
+
+## 国际化 (i18n)
+
+系统已全面支持中英文切换，覆盖全部 49 个视图页面、1200+ 翻译键。
+
+- **中文：** `src/locales/zh-CN.js`
+- **English：** `src/locales/en-US.js`
+- **切换方式：** 页面右上角语言切换器，选择后自动保存到 localStorage
 
 ## 环境与配置
 
