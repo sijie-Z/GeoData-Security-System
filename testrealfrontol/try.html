@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoServer WMS 客户端 (OpenLayers版)</title>
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.1.0/ol.css">
+    <style>
+        
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+            text-align: center;
+        }
+
+        #mapContainer {
+            height: 600px; 
+            width: 70%;   
+            margin: 20px auto; 
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .button-container {
+            margin-bottom: 20px;
+        }
+        .button-container button {
+            margin: 5px;
+            padding: 8px 15px;
+            cursor: pointer;
+        }
+    </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.7.5/proj4.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/ol@v9.1.0/dist/ol.js"></script>
+</head>
+<body>
+    <h1>我的 GeoServer 地图 (OpenLayers 多图层版)</h1>
+
+    <div class="button-container">
+        <button id="loadLayer1Btn">加载地图 1 (海岸线)</button>
+        <button id="loadLayer2Btn">加载地图 2 (水网)</button>
+        <button id="loadLayer3Btn">加载地图 3 (建筑)</button>
+        <button id="destroyMapBtn">移除所有 GeoServer 图层</button>
+    </div>
+   
+    <div id="mapContainer"></div>
+
+    <script>
+        
+        document.addEventListener('DOMContentLoaded', function () {
+            
+            const geoserverWmsUrl = 'http://localhost:8080/geoserver/test/wms';
+                      
+            proj4.defs("EPSG:123456", "+proj=tmerc +lat_0=0 +lon_0=120.583333 +k=1.000000 +x_0=50805 +y_0=-3421129 +datum=WGS84 +units=m +no_defs");
+            
+            ol.proj.proj4.register(proj4);
+                       
+            const projections = {
+                'test:Coastline_test': {
+                    srs: 'EPSG:4326', 
+                    projection: ol.proj.get('EPSG:4326'), 
+                    center: [110, 35], 
+                    zoom: 4 
+                },
+                'test:River': {
+                    srs: 'EPSG:4326',
+                    projection: ol.proj.get('EPSG:4326'),
+                    center: [168, -77.5], 
+                    zoom: 7
+                },
+                'test:Buildings': {
+                    srs: 'EPSG:123456', 
+                    projection: ol.proj.get('EPSG:123456'), 
+                    center: [50805, -3421129], 
+                    zoom: 10
+                }
+            };
+           
+            const loadLayer1Btn = document.getElementById('loadLayer1Btn');
+            const loadLayer2Btn = document.getElementById('loadLayer2Btn');
+            const loadLayer3Btn = document.getElementById('loadLayer3Btn');
+            const destroyMapBtn = document.getElementById('destroyMapBtn');
+
+            let map; 
+        
+            function initMap() {
+                console.log('初始化地图...');
+                map = new ol.Map({
+                    target: 'mapContainer', 
+                    layers: [
+                        new ol.layer.Tile({
+                            source: new ol.source.OSM() 
+                        })
+                    ],
+                    view: new ol.View({
+                        center: ol.proj.fromLonLat([116.397428, 39.90923], 'EPSG:3857'), 
+                        zoom: 5, 
+                        projection: 'EPSG:3857' 
+                    })
+                });
+                console.log('地图初始化完成。');
+            }
+ 
+            function addLayerWithProjection(layerName) {
+                if (!map) {
+                    console.error('地图尚未初始化!');
+                    alert('错误：地图尚未初始化，请先确保地图已创建。');
+                    return;
+                }
+
+                const config = projections[layerName];
+                if (!config) {
+                    console.error(`图层 ${layerName} 没有在 'projections' 对象中找到配置信息。`);
+                    alert(`图层 ${layerName} 没有配置的投影信息，无法加载。`);
+                    return;
+                }
+
+                const { srs, projection, center, zoom } = config;
+
+                if (!projection) {
+                    console.error(`图层 ${layerName} 的投影对象 (projection) 未定义。请检查 'projections' 配置和自定义投影注册是否正确。`);
+                    alert(`图层 ${layerName} 的投影对象未定义，无法加载。`);
+                    return;
+                }
+
+                console.log(`尝试加载 WMS 图层: ${layerName} (SRS: ${srs})`);
+           
+                const wmsSource = new ol.source.ImageWMS({
+                    url: geoserverWmsUrl,
+                    params: {
+                        'LAYERS': layerName, 
+                        'SRS': srs,          
+                        'TILED': true,       
+                        'VERSION': '1.1.1'   
+                    },
+                    serverType: 'geoserver',
+                    crossOrigin: 'anonymous' 
+                });
+                                          
+                wmsSource.on('imageloaderror', function(event) {
+                    
+                    console.error(`WMS 图层 ${layerName} 图片加载失败 (SRS: ${srs})。尝试获取原始错误信息...`);
+                    let errorUrl = null;
+                    try {
+                                               
+                        if (event.image && typeof event.image.getSrc === 'function') {
+                            errorUrl = event.image.getSrc();
+                        } else {
+                            
+                            console.warn(`无法从 event.image 对象获取 src (图层: ${layerName}). Event image:`, event.image);
+                        }
+                    } catch (e) {
+                        
+                        console.error(`在 imageloaderror 处理中，尝试获取 event.image.getSrc() 时发生JS错误 (图层: ${layerName}):`, e);
+                    }
+
+                    if (errorUrl) {
+                        
+                        console.log(`尝试通过 fetch 获取错误详情: ${errorUrl}`);
+                        fetch(errorUrl)
+                            .then(response => {
+                                
+                                if (!response.ok) {
+                                    
+                                    console.warn(`Fetch 请求到 errorUrl (${errorUrl}) 失败，状态: ${response.status} ${response.statusText}`);
+                                    
+                                }
+                                return response.text(); 
+                            })
+                            .then(text => {
+                                
+                                console.error(`GeoServer 返回的原始错误信息 (图层: ${layerName}, SRS: ${srs}):\n${text}`);
+                                alert(`加载图层 ${layerName} (SRS: ${srs}) 失败。\nGeoServer 返回了错误信息 (详情请看浏览器控制台)。\n常见原因:\n1. GeoServer 端图层 '${layerName}' 配置问题 (数据源、样式、坐标系)。\n2. 自定义投影 '${srs}' 在 GeoServer 中未正确配置或不被支持。\n3. WMS 请求参数有误。\n请检查 GeoServer 日志和图层预览。`);
+                            })
+                            .catch(fetchError => {
+                                
+                                console.error(`使用 fetch 获取 GeoServer 原始错误信息失败 (图层: ${layerName}, URL: ${errorUrl}):`, fetchError);
+                                alert(`加载图层 ${layerName} (SRS: ${srs}) 失败。\n无法获取 GeoServer 的详细错误信息 (fetch 请求失败)。\n请检查网络连接、GeoServer 服务状态以及浏览器控制台中的网络请求。`);
+                            });
+                    } else {
+                        
+                        console.warn(`无法确定图层 ${layerName} (SRS: ${srs}) 的错误URL。GeoServer可能返回了错误，但无法获取详细信息。`);
+                        alert(`加载图层 ${layerName} (SRS: ${srs}) 失败。\n无法获取 GeoServer 的详细错误信息 (未能确定错误源URL)。\n请检查 GeoServer 服务状态、图层 '${layerName}' 的配置 (特别是坐标系 '${srs}') 以及 GeoServer 的日志。`);
+                    }
+                });
+               
+                const newWmsLayer = new ol.layer.Image({
+                    source: wmsSource,
+                    opacity: 0.7 
+                });
+
+                const existingLayers = map.getLayers().getArray();
+                for (let i = existingLayers.length - 1; i >= 1; i--) { 
+                    map.removeLayer(existingLayers[i]);
+                }
+               
+                map.addLayer(newWmsLayer);
+                console.log(`WMS 图层 ${layerName} 已成功加载到地图。`);
+
+                map.setView(new ol.View({
+                    center: center,       
+                    zoom: zoom,           
+                    projection: projection 
+                }));
+                console.log(`地图视图已调整到图层 ${layerName} 的区域，投影为: ${projection.getCode()}`);
+            }
+
+            function removeAllGeoserverLayers() {
+                if (!map) return;
+                console.log('尝试移除所有 GeoServer WMS 图层...');
+                const existingLayers = map.getLayers().getArray();
+                for (let i = existingLayers.length - 1; i >= 1; i--) { 
+                    map.removeLayer(existingLayers[i]);
+                }
+                console.log('所有 GeoServer WMS 图层已移除。');
+
+                map.setView(new ol.View({
+                    center: ol.proj.fromLonLat([116.397428, 39.90923], 'EPSG:3857'),
+                    zoom: 5,
+                    projection: 'EPSG:3857'
+                }));
+                console.log('地图视图已重置到默认状态。');
+            }
+
+            
+            loadLayer1Btn.addEventListener('click', function() {
+                addLayerWithProjection('test:Coastline_test');
+            });
+
+            loadLayer2Btn.addEventListener('click', function() {
+                addLayerWithProjection('test:River');
+            });
+
+            loadLayer3Btn.addEventListener('click', function() {
+                addLayerWithProjection('test:Buildings');
+            });
+
+            destroyMapBtn.addEventListener('click', removeAllGeoserverLayers);
+            
+            initMap();   
+        });
+        
+    </script>
+</body>
+</html>

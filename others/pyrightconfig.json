@@ -1,0 +1,7 @@
+{
+  "venvPath": "testrealend",
+  "venv": ".venv",
+  "stubPath": "typings",
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "warning"
+}

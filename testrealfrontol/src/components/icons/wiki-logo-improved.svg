@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- 改进版维基百科风格地球图标 - 更现代的设计 -->
+  
+  <!-- 地球外圈 - 使用渐变色增加立体感 -->
+  <defs>
+    <linearGradient id="earthGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a73e8;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 内发光效果 -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.5" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 地球主体 - 完美的圆形 -->
+  <circle cx="12" cy="12" r="10" fill="url(#earthGradient)" stroke="#0d47a1" stroke-width="0.5" filter="url(#glow)"/>
+  
+  <!-- 大陆轮廓 - 更真实的形状 -->
+  <g fill="#e8f4f8" opacity="0.8">
+    <!-- 非洲大陆 -->
+    <path d="M 8 6 Q 9 4 11 5 Q 12 7 11 9 Q 10 11 9 10 Q 8 8 8 6 Z"/>
+    
+    <!-- 欧亚大陆 -->
+    <path d="M 12 4 Q 14 3 16 4 Q 17 6 15 7 Q 13 6 12 4 Z"/>
+    
+    <!-- 美洲大陆 -->
+    <path d="M 4 7 Q 5 5 7 6 Q 6 8 5 9 Q 4 8 4 7 Z"/>
+    
+    <!-- 澳洲 -->
+    <path d="M 15 12 Q 16 11 17 12 Q 16 13 15 12 Z"/>
+  </g>
+  
+  <!-- 经线 - 更精确的弧度 -->
+  <g stroke="#ffffff" stroke-width="0.3" fill="none" opacity="0.6">
+    <!-- 中央经线 -->
+    <line x1="12" y1="2" x2="12" y2="22"/>
+    
+    <!-- 左右经线 -->
+    <path d="M 8 3 Q 12 2 16 3 L 16 21 Q 12 22 8 21 Z"/>
+    <path d="M 6 5 Q 12 3 18 5 L 18 19 Q 12 21 6 19 Z"/>
+    
+    <!-- 最外侧经线 -->
+    <path d="M 4 8 Q 12 4 20 8 L 20 16 Q 12 20 4 16 Z"/>
+  </g>
+  
+  <!-- 纬线 - 更自然的弧度 -->
+  <g stroke="#ffffff" stroke-width="0.3" fill="none" opacity="0.6">
+    <!-- 北极圈 -->
+    <path d="M 4 6 Q 12 4 20 6"/>
+    
+    <!-- 北回归线 -->
+    <path d="M 3 9 Q 12 7 21 9"/>
+    
+    <!-- 赤道 -->
+    <ellipse cx="12" cy="12" rx="10" ry="3"/>
+    
+    <!-- 南回归线 -->
+    <path d="M 3 15 Q 12 17 21 15"/>
+    
+    <!-- 南极圈 -->
+    <path d="M 4 18 Q 12 20 20 18"/>
+  </g>
+  
+  <!-- 高光效果 - 增加立体感 -->
+  <ellipse cx="8" cy="6" rx="3" ry="2" fill="white" opacity="0.2"/>
+  
+  <!-- 外层光晕 - 增加科技感 -->
+  <circle cx="12" cy="12" r="10.5" stroke="#1a73e8" stroke-width="0.2" opacity="0.4" fill="none"/>
+</svg>

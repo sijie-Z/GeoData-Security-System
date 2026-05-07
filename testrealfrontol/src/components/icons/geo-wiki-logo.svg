@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- 地理空间维基风格Logo - 融合地球与数据概念 -->
+  
+  <!-- 渐变定义 - 现代科技感 -->
+  <defs>
+    <!-- 主地球渐变 -->
+    <linearGradient id="wikiEarthGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#357ABD;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#2E5C8A;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- 数据节点渐变 -->
+    <radialGradient id="dataNodeGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FF6B6B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF6B6B;stop-opacity:0.6" />
+    </radialGradient>
+    
+    <!-- 高光效果 -->
+    <filter id="wikiGlow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="0.5" result="blur"/>
+      <feOffset in="blur" dx="0" dy="0" result="offsetBlur"/>
+      <feFlood flood-color="#ffffff" flood-opacity="0.3" result="glowColor"/>
+      <feComposite in="glowColor" in2="offsetBlur" operator="in" result="glow"/>
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- 外圈 - 维基风格的拼图感 -->
+  <circle cx="12" cy="12" r="11" fill="none" stroke="#4A90E2" stroke-width="0.8" opacity="0.8"/>
+  <circle cx="12" cy="12" r="10.5" fill="none" stroke="#357ABD" stroke-width="0.4" opacity="0.6"/>
+  
+  <!-- 地球主体 -->
+  <circle cx="12" cy="12" r="9" fill="url(#wikiEarthGradient)" filter="url(#wikiGlow)"/>
+  
+  <!-- 大陆轮廓 - 更简洁现代 -->
+  <g fill="#E8F4FD" opacity="0.85">
+    <!-- 非洲和欧洲 -->
+    <path d="M 9 5.5 Q 10.5 4 12.5 5 Q 13 7 12 8.5 Q 11 9.5 10 8.5 Q 9 7 9 5.5 Z"/>
+    
+    <!-- 亚洲 -->
+    <path d="M 13 4.5 Q 15 3.5 16.5 5 Q 16 6.5 15 7 Q 14 6 13 4.5 Z"/>
+    
+    <!-- 美洲 -->
+    <path d="M 5 6 Q 6.5 4.5 8 6 Q 7.5 8 6.5 9 Q 5.5 8.5 5 7 Q 4.5 6.5 5 6 Z"/>
+    
+    <!-- 澳洲 -->
+    <path d="M 15 13 Q 16 12.5 16.5 13.5 Q 16 14 15.5 14 Q 15 13.5 15 13 Z"/>
+  </g>
+  
+  <!-- 经纬线 - 维基风格的简洁 -->
+  <g stroke="#FFFFFF" stroke-width="0.25" fill="none" opacity="0.7">
+    <!-- 主要经线 -->
+    <line x1="12" y1="3" x2="12" y2="21"/>
+    <path d="M 7 4 Q 12 2.5 17 4 L 17 20 Q 12 21.5 7 20 Z"/>
+    <path d="M 5 7 Q 12 4.5 19 7 L 19 17 Q 12 19.5 5 17 Z"/>
+    
+    <!-- 主要纬线 -->
+    <ellipse cx="12" cy="12" rx="9" ry="2.2"/>
+    <path d="M 4 8 Q 12 6.5 20 8"/>
+    <path d="M 4 16 Q 12 17.5 20 16"/>
+  </g>
+  
+  <!-- 数据节点 - 表示地理空间数据 -->
+  <g fill="url(#dataNodeGradient)">
+    <!-- 主要数据点 -->
+    <circle cx="8" cy="7" r="0.8"/>
+    <circle cx="16" cy="9" r="0.8"/>
+    <circle cx="12" cy="15" r="0.8"/>
+    
+    <!-- 次要数据点 -->
+    <circle cx="6" cy="12" r="0.6"/>
+    <circle cx="18" cy="13" r="0.6"/>
+    <circle cx="10" cy="10" r="0.5"/>
+    <circle cx="14" cy="6" r="0.5"/>
+  </g>
+  
+  <!-- 数据连接线 - 表示数据关联 -->
+  <g stroke="#FF6B6B" stroke-width="0.15" fill="none" opacity="0.6">
+    <line x1="8" y1="7" x2="10" y2="10"/>
+    <line x1="10" y1="10" x2="12" y2="15"/>
+    <line x1="12" y1="15" x2="16" y2="9"/>
+    <line x1="16" y1="9" x2="18" y2="13"/>
+  </g>
+  
+  <!-- 中心核心 - 表示系统核心 -->
+  <g fill="#FFFFFF">
+    <circle cx="12" cy="12" r="1.2"/>
+    <circle cx="12" cy="12" r="0.7" fill="#4A90E2"/>
+  </g>
+  
+  <!-- 外层装饰环 -->
+  <circle cx="12" cy="12" r="9.3" fill="none" stroke="#FFFFFF" stroke-width="0.2" opacity="0.4"/>
+  
+  <!-- 顶部高光 - 增加立体感 -->
+  <ellipse cx="9" cy="6" rx="2" ry="1" fill="#FFFFFF" opacity="0.15"/>
+</svg>

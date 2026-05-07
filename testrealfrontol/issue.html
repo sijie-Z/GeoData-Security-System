@@ -1,0 +1,686 @@
+Access to XMLHttpRequest at 'http://localhost:5001/api/dashboard/stats' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+first_home.vue:326 获取统计数据失败: AxiosError {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}code: "ERR_NETWORK"config: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}message: "Network Error"name: "AxiosError"request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}stack: "AxiosError: Network Error\n    at XMLHttpRequest.handleError (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:1592:14)\n    at Axios.request (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:2078:41)\n    at async fetchStats (http://localhost:5173/src/views/first_home.vue:202:22)"[[Prototype]]: Error
+fetchStats @ first_home.vue:326
+await in fetchStats (async)
+(anonymous) @ first_home.vue:367
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home.vue:319 
+        
+        
+       GET http://localhost:5001/api/dashboard/stats net::ERR_FAILED 500 (INTERNAL SERVER ERROR)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchStats @ first_home.vue:319
+(anonymous) @ first_home.vue:367
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:337 
+        
+        
+       GET http://localhost:5001/api/announcements 404 (NOT FOUND)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchAnnouncements @ first_home.vue:337
+(anonymous) @ first_home.vue:368
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:342 获取系统公告失败: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+fetchAnnouncements @ first_home.vue:342
+await in fetchAnnouncements (async)
+(anonymous) @ first_home.vue:368
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+index.js:169 
+        
+        
+       GET http://localhost:5173/src/views/register.vue net::ERR_ABORTED 500 (Internal Server Error)
+component @ index.js:169
+extractComponentsGuards @ vue-router.js?v=8847b323:1403
+(anonymous) @ vue-router.js?v=8847b323:2416
+Promise.then (async)
+navigate @ vue-router.js?v=8847b323:2414
+pushWithRedirect @ vue-router.js?v=8847b323:2317
+push @ vue-router.js?v=8847b323:2253
+register_button @ first_home.vue:158
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 8 more frames
+Show less
+first_home.vue:158 [Vue Router warn]: uncaught error during route navigation:
+warn @ vue-router.js?v=8847b323:44
+triggerError @ vue-router.js?v=8847b323:2541
+(anonymous) @ vue-router.js?v=8847b323:2326
+Promise.catch (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2317
+push @ vue-router.js?v=8847b323:2253
+register_button @ first_home.vue:158
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 8 more frames
+Show less
+first_home.vue:158 TypeError: Failed to fetch dynamically imported module: http://localhost:5173/src/views/register.vue
+triggerError @ vue-router.js?v=8847b323:2543
+(anonymous) @ vue-router.js?v=8847b323:2326
+Promise.catch (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2317
+push @ vue-router.js?v=8847b323:2253
+register_button @ first_home.vue:158
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 7 more frames
+Show less
+chunk-VDFR5PMD.js?v=8847b323:1512 [Vue warn]: Unhandled error during execution of native event handler 
+  at <FirstHome onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< Proxy(Object) {__v_skip: true}[[Handler]]: Object[[Target]]: Proxy(Object)[[IsRevoked]]: false > > 
+  at <RouterView> 
+  at <App>
+warn$1 @ chunk-VDFR5PMD.js?v=8847b323:1512
+logError @ chunk-VDFR5PMD.js?v=8847b323:1724
+handleError @ chunk-VDFR5PMD.js?v=8847b323:1716
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:1669
+Promise.catch (async)
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1668
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 6 more frames
+Show less
+first_home:1 Uncaught (in promise) TypeError: Failed to fetch dynamically imported module: http://localhost:5173/src/views/register.vue
+Promise.catch (async)
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1668
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 2 more frames
+Show less
+content.js:297 detectPageLang: 6020.694091796875 ms
+first_home.vue:157 [Vue Router warn]: uncaught error during route navigation:
+warn @ vue-router.js?v=8847b323:44
+triggerError @ vue-router.js?v=8847b323:2541
+(anonymous) @ vue-router.js?v=8847b323:2326
+Promise.catch (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2317
+push @ vue-router.js?v=8847b323:2253
+login_button @ first_home.vue:157
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 8 more frames
+Show less
+first_home.vue:157 SyntaxError: The requested module '/node_modules/.vite/deps/@element-plus_icons-vue.js?v=8847b323' does not provide an export named 'Shield' (at login.vue:108:123)
+triggerError @ vue-router.js?v=8847b323:2543
+(anonymous) @ vue-router.js?v=8847b323:2326
+Promise.catch (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2317
+push @ vue-router.js?v=8847b323:2253
+login_button @ first_home.vue:157
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 7 more frames
+Show less
+chunk-VDFR5PMD.js?v=8847b323:1512 [Vue warn]: Unhandled error during execution of native event handler 
+  at <FirstHome onVnodeUnmounted=fn<onVnodeUnmounted> ref=Ref< Proxy(Object) {__v_skip: true}[[Handler]]: Object[[Target]]: Proxy(Object)[[IsRevoked]]: false > > 
+  at <RouterView> 
+  at <App>
+warn$1 @ chunk-VDFR5PMD.js?v=8847b323:1512
+logError @ chunk-VDFR5PMD.js?v=8847b323:1724
+handleError @ chunk-VDFR5PMD.js?v=8847b323:1716
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:1669
+Promise.catch (async)
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1668
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 6 more frames
+Show less
+login.vue:108 Uncaught (in promise) SyntaxError: The requested module '/node_modules/.vite/deps/@element-plus_icons-vue.js?v=8847b323' does not provide an export named 'Shield' (at login.vue:108:123)
+Promise.catch (async)
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1668
+invoker @ chunk-VDFR5PMD.js?v=8847b323:10297
+Show 2 more frames
+Show less
+first_home.vue:337 
+        
+        
+       GET http://localhost:5001/api/announcements 404 (NOT FOUND)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchAnnouncements @ first_home.vue:337
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:342 获取系统公告失败: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}code: "ERR_BAD_REQUEST"config: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}message: "Request failed with status code 404"name: "AxiosError"request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}response: {data: '<!doctype html>\n<html lang=en>\n<title>404 Not Foun…ly please check your spelling and try again.</p>\n', status: 404, statusText: 'NOT FOUND', headers: AxiosHeaders, config: {…}, …}stack: "AxiosError: Request failed with status code 404\n    at settle (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:1216:12)\n    at XMLHttpRequest.onloadend (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:1562:7)\n    at Axios.request (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:2078:41)\n    at async fetchAnnouncements (http://localhost:5173/src/views/first_home.vue:220:22)"[[Prototype]]: Error
+fetchAnnouncements @ first_home.vue:342
+await in fetchAnnouncements (async)
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home:1 Access to XMLHttpRequest at 'http://localhost:5001/api/dashboard/stats' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+first_home.vue:326 获取统计数据失败: AxiosError {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}
+fetchStats @ first_home.vue:326
+await in fetchStats (async)
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home.vue:319 
+        
+        
+       GET http://localhost:5001/api/dashboard/stats net::ERR_FAILED 500 (INTERNAL SERVER ERROR)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchStats @ first_home.vue:319
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:337 
+        
+        
+       GET http://localhost:5001/api/announcements 404 (NOT FOUND)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchAnnouncements @ first_home.vue:337
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:342 获取系统公告失败: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+fetchAnnouncements @ first_home.vue:342
+await in fetchAnnouncements (async)
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home:1 Access to XMLHttpRequest at 'http://localhost:5001/api/dashboard/stats' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+first_home.vue:326 获取统计数据失败: AxiosError {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}code: "ERR_NETWORK"config: {transitional: {…}, adapter: Array(3), transformRequest: Array(1), transformResponse: Array(1), timeout: 0, …}message: "Network Error"name: "AxiosError"request: XMLHttpRequest {onreadystatechange: null, readyState: 4, timeout: 0, withCredentials: false, upload: XMLHttpRequestUpload, …}stack: "AxiosError: Network Error\n    at XMLHttpRequest.handleError (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:1592:14)\n    at Axios.request (http://localhost:5173/node_modules/.vite/deps/axios.js?v=8847b323:2078:41)\n    at async fetchStats (http://localhost:5173/src/views/first_home.vue:202:22)"[[Prototype]]: Error
+fetchStats @ first_home.vue:326
+await in fetchStats (async)
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home.vue:319 
+        
+        
+       GET http://localhost:5001/api/dashboard/stats net::ERR_FAILED 500 (INTERNAL SERVER ERROR)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchStats @ first_home.vue:319
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:337 
+        
+        
+       GET http://localhost:5001/api/announcements 404 (NOT FOUND)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchAnnouncements @ first_home.vue:337
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less
+first_home.vue:342 获取系统公告失败: AxiosError {message: 'Request failed with status code 404', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpRequest, …}
+fetchAnnouncements @ first_home.vue:342
+await in fetchAnnouncements (async)
+(anonymous) @ first_home.vue:376
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home:1 Access to XMLHttpRequest at 'http://localhost:5001/api/dashboard/stats' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource.
+first_home.vue:326 获取统计数据失败: AxiosError {message: 'Network Error', name: 'AxiosError', code: 'ERR_NETWORK', config: {…}, request: XMLHttpRequest, …}
+fetchStats @ first_home.vue:326
+await in fetchStats (async)
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 20 more frames
+Show less
+first_home.vue:319 
+        
+        
+       GET http://localhost:5001/api/dashboard/stats net::ERR_FAILED 500 (INTERNAL SERVER ERROR)
+dispatchXhrRequest @ axios.js?v=8847b323:1646
+xhr @ axios.js?v=8847b323:1529
+dispatchRequest @ axios.js?v=8847b323:1968
+_request @ axios.js?v=8847b323:2173
+request @ axios.js?v=8847b323:2074
+Axios.<computed> @ axios.js?v=8847b323:2192
+wrap @ axios.js?v=8847b323:8
+fetchStats @ first_home.vue:319
+(anonymous) @ first_home.vue:375
+setInterval (async)
+(anonymous) @ first_home.vue:374
+await in (anonymous) (async)
+(anonymous) @ chunk-VDFR5PMD.js?v=8847b323:4328
+callWithErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1659
+callWithAsyncErrorHandling @ chunk-VDFR5PMD.js?v=8847b323:1666
+hook.__weh.hook.__weh @ chunk-VDFR5PMD.js?v=8847b323:4308
+flushPostFlushCbs @ chunk-VDFR5PMD.js?v=8847b323:1841
+flushJobs @ chunk-VDFR5PMD.js?v=8847b323:1879
+Promise.then (async)
+queueFlush @ chunk-VDFR5PMD.js?v=8847b323:1782
+queuePostFlushCb @ chunk-VDFR5PMD.js?v=8847b323:1802
+queueEffectWithSuspense @ chunk-VDFR5PMD.js?v=8847b323:3222
+scheduler @ chunk-VDFR5PMD.js?v=8847b323:3431
+resetScheduling @ chunk-VDFR5PMD.js?v=8847b323:517
+triggerEffects @ chunk-VDFR5PMD.js?v=8847b323:561
+triggerRefValue @ chunk-VDFR5PMD.js?v=8847b323:1316
+set value @ chunk-VDFR5PMD.js?v=8847b323:1361
+finalizeNavigation @ vue-router.js?v=8847b323:2449
+(anonymous) @ vue-router.js?v=8847b323:2359
+Promise.then (async)
+pushWithRedirect @ vue-router.js?v=8847b323:2327
+push @ vue-router.js?v=8847b323:2253
+install @ vue-router.js?v=8847b323:2605
+use @ chunk-VDFR5PMD.js?v=8847b323:5301
+(anonymous) @ main.js:28
+Show 27 more frames
+Show less

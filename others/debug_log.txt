@@ -1,0 +1,30 @@
+[DEBUG] 接收到注册请求 - Content-Type: application/json
+[DEBUG] 验证字段 - name: 张三, employeeId: test_new_001, id_number: 110105199003078888, phone_number: 13812345678, password: 123456
+[DEBUG] 开始插入员工信息
+[DEBUG] 员工信息插入成功
+[DEBUG] 开始插入员工账号
+[DEBUG] 员工账号插入成功
+[DEBUG] 接收到注册请求 - Content-Type: application/json
+[DEBUG] 验证字段 - name: 李四, employeeId: emp_test_2024, id_number: 110105199003079999, phone_number: 13912345678, password: 123456
+[DEBUG] 开始插入员工信息
+[DEBUG] 员工信息插入成功
+[DEBUG] 开始插入员工账号
+[DEBUG] 员工账号插入成功
+[DEBUG] 接收到注册请求 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryJwc4aQnqBAd4Py2u
+[DEBUG] 验证字段 - name: 曾思杰, employeeId: 23200214126, id_number: 510683200505064211, phone_number: 19150649985, password: 123456
+[DEBUG] 接收到注册请求 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryAZhCVUB6TZukY9Wp
+[DEBUG] 验证字段 - name: 曾思杰, employeeId: 23200214127, id_number: 510683200505064211, phone_number: 19150649985, password: 123456
+[DEBUG] 接收到注册请求 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundarynRzB8RfEK8F9hqkk
+[DEBUG] 验证字段 - name: 曾思杰, employeeId: 12345678945, id_number: 510683200505064211, phone_number: 19150649985, password: 123456
+[DEBUG] 接收到注册请求 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryt30s5V9qBjDChgmC
+[DEBUG] 验证字段 - name: 曾思杰, employeeId: 12345678945, id_number: 510683200505064211, phone_number: 18156498856, password: 123456
+[DEBUG] 开始插入员工信息
+[DEBUG] 员工信息插入成功
+[DEBUG] 开始插入员工账号
+[DEBUG] 员工账号插入成功
+[DEBUG] 接收到注册请求 - Content-Type: multipart/form-data; boundary=----WebKitFormBoundaryeUzei0MtDghRRBSx
+[DEBUG] 验证字段 - name: 曾思杰, employeeId: 22200214135, id_number: 789456123654789456, phone_number: 18168990743, password: 123456
+[DEBUG] 开始插入员工信息
+[DEBUG] 员工信息插入成功
+[DEBUG] 开始插入员工账号
+[DEBUG] 员工账号插入成功

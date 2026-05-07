@@ -1,0 +1,11 @@
+GeoScene帐户名/密码:geoscene/geoscene
+
+Server用户名/密码:siteadmin/gisdev2025
+Server原生地址:https://gis.dev.local:6443/geoscene/manager
+Server代理后地址:
+
+Data Store地址:https://gis.dev.local:2443/geoscene/datastore/
+
+Portal用户名/密码:
+Portal原生地址:
+Portal代理后地址:

@@ -1,0 +1,26 @@
+flask
+flask-restful
+flask-sqlalchemy
+flask-jwt-extended
+flask-migrate
+flask-cors
+flask-limiter
+flasgger
+mysqlclient
+psycopg2-binary
+geopandas
+numpy
+pillow
+werkzeug
+pandas
+python-dotenv
+shapetree
+pyproj
+shapely
+fiona
+pyogrio
+rtree
+gdal
+pyzbar
+qrcode
+backports.zoneinfo; python_version < '3.9'

@@ -1,0 +1,37 @@
+{
+  "include": [
+    "testrealend",
+    "others"
+  ],
+  "exclude": [
+    "**/.venv",
+    "**/__pycache__",
+    "**/node_modules",
+    "testrealend/model/backup",
+    "Remote_sensing_image_algorithm_debug"
+  ],
+  "typeCheckingMode": "basic",
+  "venvPath": "testrealend",
+  "venv": ".venv",
+  "reportMissingTypeStubs": false,
+  "reportUnknownParameterType": false,
+  "reportUnknownMemberType": false,
+  "reportAny": false,
+  "reportUnknownVariableType": false,
+  "reportUnknownArgumentType": false,
+  "reportMissingParameterType": false,
+  "reportPrivateLocalImportUsage": false,
+  "reportUnusedCallResult": false,
+  "reportUnusedImport": "warning",
+  "reportUnusedVariable": "warning",
+  "reportDuplicateImport": "warning",
+  "reportUnnecessaryIsInstance": false,
+  "reportMissingTypeArgument": false,
+  "reportAttributeAccessIssue": false,
+  "reportImplicitRelativeImport": false,
+  "reportCallIssue": false,
+  "reportOperatorIssue": false,
+  "reportIndexIssue": false,
+  "reportArgumentType": false,
+  "reportPossiblyUnboundVariable": false
+}
