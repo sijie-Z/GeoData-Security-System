@@ -2,31 +2,31 @@
   <div class="employee-dashboard" v-loading="loading">
     <section class="hero glass">
       <div>
-        <h1>数据工作台 · {{ greeting }}，{{ userStore.user_name || '员工' }}</h1>
-        <p>申请、下载与个人活跃情况一屏掌控。</p>
-        <div class="meta">今日访问：{{ todayVisits }} · 最后登录：{{ lastLoginTime }}</div>
+        <h1>{{ $t('empDashboard.title') }} · {{ greeting }}，{{ userStore.user_name || $t('empDashboard.defaultEmployee') }}</h1>
+        <p>{{ $t('empDashboard.subtitle') }}</p>
+        <div class="meta">{{ $t('empDashboard.todayVisits') }}：{{ todayVisits }} · {{ $t('empDashboard.lastLogin') }}：{{ lastLoginTime }}</div>
       </div>
       <div class="hero-actions">
-        <el-button type="primary" @click="refreshNow">刷新数据</el-button>
-        <el-button @click="goTo('/employee/data_viewing')">进入数据目录</el-button>
+        <el-button type="primary" @click="refreshNow">{{ $t('empDashboard.refreshData') }}</el-button>
+        <el-button @click="goTo('/employee/data_viewing')">{{ $t('empDashboard.enterDataCatalog') }}</el-button>
       </div>
     </section>
 
     <section class="kpi-grid">
       <div class="kpi glass">
-        <span>总申请数</span>
+        <span>{{ $t('empDashboard.totalApplications') }}</span>
         <h2>{{ metrics.totalApplications }}</h2>
       </div>
       <div class="kpi glass warn">
-        <span>待审批申请</span>
+        <span>{{ $t('empDashboard.pendingApplications') }}</span>
         <h2>{{ metrics.pendingApplications }}</h2>
       </div>
       <div class="kpi glass ok">
-        <span>可下载数据</span>
+        <span>{{ $t('empDashboard.downloadableData') }}</span>
         <h2>{{ metrics.downloadableData }}</h2>
       </div>
       <div class="kpi glass info">
-        <span>我的下载次数</span>
+        <span>{{ $t('empDashboard.myDownloads') }}</span>
         <h2>{{ metrics.myDownloads }}</h2>
       </div>
     </section>
@@ -35,46 +35,46 @@
       <el-card class="glass" shadow="never">
         <template #header>
           <div class="panel-header">
-            <h3>近14天申请与下载趋势</h3>
-            <el-tag type="info" effect="light">数据库聚合</el-tag>
+            <h3>{{ $t('empDashboard.trendTitle') }}</h3>
+            <el-tag type="info" effect="light">{{ $t('empDashboard.dbAggregation') }}</el-tag>
           </div>
         </template>
         <div ref="trendChartRef" class="chart"></div>
       </el-card>
 
       <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>申请状态分布</h3></div></template>
+        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.statusDistribution') }}</h3></div></template>
         <div ref="statusChartRef" class="chart small"></div>
       </el-card>
 
       <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>数据类型偏好</h3></div></template>
+        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.dataTypePreference') }}</h3></div></template>
         <div ref="dataTypeChartRef" class="chart small"></div>
       </el-card>
     </section>
 
     <section class="grid">
       <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>快捷动作</h3></div></template>
+        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.quickActions') }}</h3></div></template>
         <div class="action-grid">
           <div class="action-card" @click="goTo('/employee/data_viewing')">
-            <b>数据目录</b>
-            <span>浏览可申请资源</span>
+            <b>{{ $t('empDashboard.dataCatalog') }}</b>
+            <span>{{ $t('empDashboard.browseResources') }}</span>
           </div>
           <div class="action-card" @click="goTo('/employee/data_application')">
-            <b>我的申请</b>
-            <span>查看申请进度</span>
+            <b>{{ $t('empDashboard.myApplications') }}</b>
+            <span>{{ $t('empDashboard.viewProgress') }}</span>
           </div>
           <div class="action-card" @click="goTo('/employee/data_download')">
-            <b>已批准下载</b>
-            <span>获取授权数据</span>
+            <b>{{ $t('empDashboard.approvedDownloads') }}</b>
+            <span>{{ $t('empDashboard.getAuthorizedData') }}</span>
           </div>
         </div>
       </el-card>
 
       <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>系统公告</h3></div></template>
-        <div v-if="announcements.length === 0" class="empty">暂无公告</div>
+        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.systemAnnouncements') }}</h3></div></template>
+        <div v-if="announcements.length === 0" class="empty">{{ $t('empDashboard.noAnnouncements') }}</div>
         <div v-else class="announcement-list">
           <div v-for="a in announcements" :key="a.id" class="announcement-item">
             <div>
@@ -91,11 +91,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
 import axios from '@/utils/Axios';
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(true);
@@ -118,9 +120,9 @@ const applicationStatusDist = ref({ pending: 0, approved: 0, rejected: 0 });
 
 const greeting = computed(() => {
   const h = new Date().getHours();
-  if (h < 12) return '早上好';
-  if (h < 18) return '下午好';
-  return '晚上好';
+  if (h < 12) return t('empDashboard.greetingMorning');
+  if (h < 18) return t('empDashboard.greetingAfternoon');
+  return t('empDashboard.greetingEvening');
 });
 
 const fetchDashboard = async () => {
@@ -156,12 +158,12 @@ const renderCharts = () => {
     trendIns = echarts.init(trendChartRef.value);
     trendIns.setOption({
       tooltip: { trigger: 'axis' },
-      legend: { data: ['申请次数', '下载次数'] },
+      legend: { data: [t('empDashboard.applicationCount'), t('empDashboard.downloadCount')] },
       xAxis: { type: 'category', data: chartData.value.map(i => i.date) },
       yAxis: { type: 'value' },
       series: [
-        { name: '申请次数', type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
-        { name: '下载次数', type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
+        { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
+        { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
       ]
     });
   }
@@ -175,9 +177,9 @@ const renderCharts = () => {
         type: 'pie',
         radius: ['40%', '70%'],
         data: [
-          { value: applicationStatusDist.value.pending || 0, name: '待审批' },
-          { value: applicationStatusDist.value.approved || 0, name: '已通过' },
-          { value: applicationStatusDist.value.rejected || 0, name: '已拒绝' }
+          { value: applicationStatusDist.value.pending || 0, name: t('empDashboard.pending') },
+          { value: applicationStatusDist.value.approved || 0, name: t('empDashboard.approved') },
+          { value: applicationStatusDist.value.rejected || 0, name: t('empDashboard.rejected') }
         ]
       }]
     });
@@ -192,8 +194,8 @@ const renderCharts = () => {
         type: 'pie',
         radius: ['40%', '70%'],
         data: [
-          { value: dataTypePreference.value.vector || 0, name: '矢量' },
-          { value: dataTypePreference.value.raster || 0, name: '栅格' }
+          { value: dataTypePreference.value.vector || 0, name: t('empDashboard.vector') },
+          { value: dataTypePreference.value.raster || 0, name: t('empDashboard.raster') }
         ]
       }]
     });

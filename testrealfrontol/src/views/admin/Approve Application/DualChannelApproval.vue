@@ -4,21 +4,21 @@
     <el-card class="header-card" shadow="never">
       <div class="header-content">
         <div class="title-section">
-          <h1 class="page-title">双通道数据审核</h1>
-          <p class="page-subtitle">矢量和遥感数据分别审核，确保数据质量</p>
+          <h1 class="page-title">{{ $t('approval.dualChannelTitle') }}</h1>
+          <p class="page-subtitle">{{ $t('approval.dualChannelSubtitle') }}</p>
         </div>
         <div class="stats-section">
           <div class="stat-item">
             <div class="stat-number">{{ pendingVectorCount }}</div>
-            <div class="stat-label">待审矢量</div>
+            <div class="stat-label">{{ $t('approval.pendingVector') }}</div>
           </div>
           <div class="stat-item">
             <div class="stat-number">{{ pendingRasterCount }}</div>
-            <div class="stat-label">待审遥感</div>
+            <div class="stat-label">{{ $t('approval.pendingRaster') }}</div>
           </div>
           <div class="stat-item">
             <div class="stat-number">{{ totalProcessed }}</div>
-            <div class="stat-label">已处理</div>
+            <div class="stat-label">{{ $t('approval.processed') }}</div>
           </div>
         </div>
       </div>
@@ -30,18 +30,18 @@
         <el-radio-group v-model="activeDataType" size="large" class="data-type-selector">
           <el-radio-button value="vector">
             <el-icon><Location /></el-icon>
-            矢量数据 ({{ vectorApplications.length }})
+            {{ $t('approval.vectorData') }} ({{ vectorApplications.length }})
           </el-radio-button>
           <el-radio-button value="raster">
             <el-icon><Picture /></el-icon>
-            遥感数据 ({{ rasterApplications.length }})
+            {{ $t('approval.rasterData') }} ({{ rasterApplications.length }})
           </el-radio-button>
         </el-radio-group>
-        
+
         <div class="filter-controls">
           <el-input
             v-model="searchKeyword"
-            placeholder="搜索申请人、数据名称或编号"
+            :placeholder="$t('approval.searchApplicantPlaceholder')"
             style="width: 300px"
             clearable
           >
@@ -49,13 +49,13 @@
               <el-icon><Search /></el-icon>
             </template>
           </el-input>
-          
-          <el-select v-model="statusFilter" placeholder="审核状态" style="width: 120px">
-            <el-option label="全部" value="" />
-            <el-option label="待一审" value="pending_first" />
-            <el-option label="待二审" value="pending_second" />
-            <el-option label="已通过" value="approved" />
-            <el-option label="已拒绝" value="rejected" />
+
+          <el-select v-model="statusFilter" :placeholder="$t('approval.reviewStatus')" style="width: 120px">
+            <el-option :label="$t('approval.all')" value="" />
+            <el-option :label="$t('approval.pendingFirst')" value="pending_first" />
+            <el-option :label="$t('approval.pendingSecond')" value="pending_second" />
+            <el-option :label="$t('approval.approved')" value="approved" />
+            <el-option :label="$t('approval.rejected')" value="rejected" />
           </el-select>
         </div>
       </div>
@@ -67,17 +67,17 @@
         <div class="card-header">
           <h3 class="card-title">
             <el-icon><component :is="activeDataType === 'vector' ? 'Location' : 'Picture'" /></el-icon>
-            {{ activeDataType === 'vector' ? '矢量数据' : '遥感数据' }} 审核列表
+            {{ activeDataType === 'vector' ? $t('approval.vectorData') : $t('approval.rasterData') }} {{ $t('approval.reviewList') }}
           </h3>
           <div class="header-actions">
-            <el-button type="primary" :icon="Refresh" @click="refreshData">刷新</el-button>
+            <el-button type="primary" :icon="Refresh" @click="refreshData">{{ $t('approval.refresh') }}</el-button>
           </div>
         </div>
       </template>
 
-      <el-table 
+      <el-table
         :data="paginatedApplications"
-        border 
+        border
         style="width: 100%"
         v-loading="loading"
       >
@@ -85,27 +85,27 @@
           <template #default="props">
             <div class="application-detail">
               <el-descriptions :column="2" border>
-                <el-descriptions-item label="申请编号">{{ props.row.id }}</el-descriptions-item>
-                <el-descriptions-item label="申请时间">{{ props.row.application_time }}</el-descriptions-item>
-                <el-descriptions-item label="数据类型">{{ getDataTypeText(props.row.data_type) }}</el-descriptions-item>
-                <el-descriptions-item label="数据大小">{{ props.row.data_size || '未知' }}</el-descriptions-item>
-                <el-descriptions-item label="申请理由" :span="2">{{ props.row.reason }}</el-descriptions-item>
-                <el-descriptions-item label="使用目的" :span="2">{{ props.row.purpose || '未填写' }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.applyId')">{{ props.row.id }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.applyTime')">{{ props.row.application_time }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.dataType')">{{ getDataTypeText(props.row.data_type) }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.dataSize')">{{ props.row.data_size || $t('approval.unknown') }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.applyReason')" :span="2">{{ props.row.reason }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.purpose')" :span="2">{{ props.row.purpose || $t('approval.notFilled') }}</el-descriptions-item>
               </el-descriptions>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="id" label="申请编号" width="100" />
-        <el-table-column prop="data_alias" label="数据名称" min-width="150" />
-        <el-table-column prop="data_id" label="数据编号" width="120" />
-        <el-table-column prop="applicant_name" label="申请人" width="120" />
-        <el-table-column prop="applicant_user_number" label="用户编号" width="100" />
-        
-        <el-table-column label="审核状态" width="120" align="center">
+        <el-table-column prop="id" :label="$t('approval.applyId')" width="100" />
+        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="150" />
+        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="120" />
+        <el-table-column prop="applicant_name" :label="$t('approval.applicant')" width="120" />
+        <el-table-column prop="applicant_user_number" :label="$t('approval.userId')" width="100" />
+
+        <el-table-column :label="$t('approval.reviewStatus')" width="120" align="center">
           <template #default="scope">
-            <el-tag 
-              :type="getStatusType(scope.row)" 
+            <el-tag
+              :type="getStatusType(scope.row)"
               size="large"
               effect="dark"
             >
@@ -114,7 +114,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="一审信息" width="150" align="center">
+        <el-table-column :label="$t('approval.firstReviewInfo')" width="150" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getFirstReviewClass(scope.row)">
@@ -130,7 +130,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="二审信息" width="150" align="center">
+        <el-table-column :label="$t('approval.secondReviewInfo')" width="150" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getSecondReviewClass(scope.row)">
@@ -146,61 +146,61 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        <el-table-column :label="$t('approval.operation')" width="180" align="center" fixed="right">
           <template #default="scope">
             <div class="action-buttons">
-              <el-button 
+              <el-button
                 v-if="canFirstReview(scope.row)"
-                type="success" 
-                size="small" 
+                type="success"
+                size="small"
                 :icon="Check"
                 @click="handleFirstApprove(scope.row)"
               >
-                一审通过
+                {{ $t('approval.firstReviewPass') }}
               </el-button>
-              <el-button 
+              <el-button
                 v-if="canFirstReview(scope.row)"
-                type="danger" 
-                size="small" 
+                type="danger"
+                size="small"
                 :icon="Close"
                 @click="handleFirstReject(scope.row)"
               >
-                一审拒绝
+                {{ $t('approval.firstReviewReject') }}
               </el-button>
-              <el-button 
+              <el-button
                 v-if="canSecondReview(scope.row)"
-                type="success" 
-                size="small" 
+                type="success"
+                size="small"
                 :icon="Check"
                 @click="handleSecondApprove(scope.row)"
               >
-                二审通过
+                {{ $t('approval.secondReviewPass') }}
               </el-button>
-              <el-button 
+              <el-button
                 v-if="canSecondReview(scope.row)"
-                type="danger" 
-                size="small" 
+                type="danger"
+                size="small"
                 :icon="Close"
                 @click="handleSecondReject(scope.row)"
               >
-                二审拒绝
+                {{ $t('approval.secondReviewReject') }}
               </el-button>
-              <el-button 
+              <el-button
                 v-if="canAdditionalReview(scope.row)"
-                type="warning" 
+                type="warning"
                 size="small"
                 @click="handleAdditionalReview(scope.row)"
               >
-                附加审议
+                {{ $t('approval.additionalReview') }}
               </el-button>
-              <el-button 
+              <el-button
                 v-if="scope.row.status === 'approved' || scope.row.status === 'adm2_approved'"
-                type="info" 
-                size="small" 
+                type="info"
+                size="small"
                 :icon="View"
                 @click="viewApplicationDetail(scope.row)"
               >
-                查看详情
+                {{ $t('approval.viewDetail') }}
               </el-button>
             </div>
           </template>
@@ -226,9 +226,12 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import axios from '@/utils/Axios'
 import { useUserStore } from '@/stores/userStore.js'
 import { Location, Picture, Search, Check, Close, View, Refresh } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 const userStore = useUserStore()
 
@@ -283,10 +286,10 @@ const paginatedApplications = computed(() => {
 // 方法定义
 const getDataTypeText = (type) => {
   const typeMap = {
-    'vector': '矢量数据',
-    'raster': '遥感数据',
-    'shp': '矢量数据',
-    'raster_data': '遥感数据'
+    'vector': t('approval.vectorData'),
+    'raster': t('approval.rasterData'),
+    'shp': t('approval.vectorData'),
+    'raster_data': t('approval.rasterData')
   }
   return typeMap[type] || type
 }
@@ -314,10 +317,10 @@ const getStatusType = (row) => {
 const getStatusText = (row) => {
   const status = getStatusValue(row)
   const textMap = {
-    'pending_first': '待一审',
-    'pending_second': '待二审',
-    'approved': '已通过',
-    'rejected': '已拒绝'
+    'pending_first': t('approval.pendingFirst'),
+    'pending_second': t('approval.pendingSecond'),
+    'approved': t('approval.approved'),
+    'rejected': t('approval.rejected')
   }
   return textMap[status] || status
 }
@@ -331,11 +334,11 @@ const getFirstReviewClass = (row) => {
 }
 
 const getFirstReviewText = (row) => {
-  if (row.status === 'pending') return '待审核'
-  if (row.status === 'adm1_approved') return '已通过'
-  if (row.status === 'adm1_rejected') return '已拒绝'
-  if (row.status === 'adm2_approved' || row.status === 'adm2_rejected') return '已通过'
-  return '未开始'
+  if (row.status === 'pending') return t('approval.pending')
+  if (row.status === 'adm1_approved') return t('approval.approved')
+  if (row.status === 'adm1_rejected') return t('approval.rejected')
+  if (row.status === 'adm2_approved' || row.status === 'adm2_rejected') return t('approval.approved')
+  return t('approval.notStarted')
 }
 
 const getSecondReviewClass = (row) => {
@@ -346,10 +349,10 @@ const getSecondReviewClass = (row) => {
 }
 
 const getSecondReviewText = (row) => {
-  if (row.status === 'adm2_approved') return '已通过'
-  if (row.status === 'adm2_rejected') return '已拒绝'
-  if (row.status === 'adm1_approved') return '待审核'
-  return '未开始'
+  if (row.status === 'adm2_approved') return t('approval.approved')
+  if (row.status === 'adm2_rejected') return t('approval.rejected')
+  if (row.status === 'adm1_approved') return t('approval.pending')
+  return t('approval.notStarted')
 }
 
 const currentAdminRole = computed(() => {
@@ -380,71 +383,71 @@ const formatTime = (time) => {
 // 审核操作
 const handleFirstApprove = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要通过一审吗？', '一审审核', {
-      confirmButtonText: '通过',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('approval.confirmFirstApprove'), t('approval.firstReviewApproval'), {
+      confirmButtonText: t('approval.approve'),
+      cancelButtonText: t('approval.cancel'),
       type: 'info'
     })
-    
+
     const response = await axios.post(`/api/adm1_pass`, {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber
     })
-    
+
     if (response.data.status) {
-      ElMessage.success('一审通过成功')
+      ElMessage.success(t('approval.firstApproveSuccess'))
       await refreshData()
     } else {
-      ElMessage.error(response.data.msg || '审核失败')
+      ElMessage.error(response.data.msg || t('approval.reviewFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('审核操作失败')
+      ElMessage.error(t('approval.reviewOperationFailed'))
     }
   }
 }
 
 const handleFirstReject = async (row) => {
   try {
-    const { value: reason } = await ElMessageBox.prompt('请输入拒绝理由', '一审拒绝', {
-      confirmButtonText: '拒绝',
-      cancelButtonText: '取消',
+    const { value: reason } = await ElMessageBox.prompt(t('approval.enterRejectReason'), t('approval.firstRejectTitle'), {
+      confirmButtonText: t('approval.reject'),
+      cancelButtonText: t('approval.cancel'),
       inputPattern: /^[\s\S]{5,}$/,
-      inputErrorMessage: '拒绝理由至少需要5个字符'
+      inputErrorMessage: t('approval.rejectReasonMinLength')
     })
-    
+
     const response = await axios.post(`/api/adm1_fail`, {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber,
       reason: reason
     })
-    
+
     if (response.data.status) {
-      ElMessage.success('一审拒绝成功')
+      ElMessage.success(t('approval.firstRejectSuccess'))
       await refreshData()
     } else {
-      ElMessage.error(response.data.msg || '拒绝失败')
+      ElMessage.error(response.data.msg || t('approval.rejectFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('拒绝操作失败')
+      ElMessage.error(t('approval.rejectOperationFailed'))
     }
   }
 }
 
 const handleSecondApprove = async (row) => {
   try {
-    await ElMessageBox.confirm('确定要通过二审吗？', '二审审核', {
-      confirmButtonText: '通过',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm(t('approval.confirmSecondApprove'), t('approval.secondReviewApproval'), {
+      confirmButtonText: t('approval.approve'),
+      cancelButtonText: t('approval.cancel'),
       type: 'info'
     })
-    
+
     const loadingInstance = ElLoading.service({
       lock: true,
-      text: '正在处理，请稍候...',
+      text: t('approval.processing'),
       background: 'rgba(0, 0, 0, 0.7)',
     })
 
@@ -454,59 +457,59 @@ const handleSecondApprove = async (row) => {
         user_name: userStore.userName,
         user_number: userStore.userNumber
       })
-      
+
       if (response.data.status) {
-        ElMessage.success('审核通过并已自动生成嵌入文件')
+        ElMessage.success(t('approval.reviewPassed'))
         await refreshData()
       } else {
-        ElMessage.error(response.data.msg || '审核失败')
+        ElMessage.error(response.data.msg || t('approval.reviewFailed'))
       }
     } finally {
       loadingInstance.close()
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('审核操作失败')
+      ElMessage.error(t('approval.reviewOperationFailed'))
     }
   }
 }
 
 const handleSecondReject = async (row) => {
   try {
-    const { value: reason } = await ElMessageBox.prompt('请输入拒绝理由', '二审拒绝', {
-      confirmButtonText: '拒绝',
-      cancelButtonText: '取消',
+    const { value: reason } = await ElMessageBox.prompt(t('approval.enterRejectReason'), t('approval.secondRejectTitle'), {
+      confirmButtonText: t('approval.reject'),
+      cancelButtonText: t('approval.cancel'),
       inputPattern: /^[\s\S]{5,}$/,
-      inputErrorMessage: '拒绝理由至少需要5个字符'
+      inputErrorMessage: t('approval.rejectReasonMinLength')
     })
-    
+
     const response = await axios.post(`/api/adm2_fail`, {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber,
       reason: reason
     })
-    
+
     if (response.data.status) {
-      ElMessage.success('二审拒绝成功')
+      ElMessage.success(t('approval.secondRejectSuccess'))
       await refreshData()
     } else {
-      ElMessage.error(response.data.msg || '拒绝失败')
+      ElMessage.error(response.data.msg || t('approval.rejectFailed'))
     }
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('拒绝操作失败')
+      ElMessage.error(t('approval.rejectOperationFailed'))
     }
   }
 }
 
 const handleAdditionalReview = async (row) => {
   try {
-    const { value } = await ElMessageBox.prompt('请输入附加审议意见（必填）', '附加审议', {
-      confirmButtonText: '提交不通过',
-      cancelButtonText: '取消',
+    const { value } = await ElMessageBox.prompt(t('approval.enterAdditionalReviewOpinion'), t('approval.additionalReviewTitle'), {
+      confirmButtonText: t('approval.submitReject'),
+      cancelButtonText: t('approval.cancel'),
       inputPattern: /^[\s\S]{5,}$/,
-      inputErrorMessage: '附加审议意见至少5个字符'
+      inputErrorMessage: t('approval.additionalReviewMinLength')
     })
 
     const response = await axios.post(`/api/adm3_additional_review`, {
@@ -518,13 +521,13 @@ const handleAdditionalReview = async (row) => {
     })
 
     if (response.data?.status) {
-      ElMessage.success('附加审议已提交，已标记为不通过')
+      ElMessage.success(t('approval.additionalReviewSubmitted'))
       await refreshData()
     } else {
-      ElMessage.error(response.data?.msg || '附加审议提交失败')
+      ElMessage.error(response.data?.msg || t('approval.additionalReviewFailed'))
     }
   } catch (error) {
-    if (error !== 'cancel') ElMessage.error('附加审议提交失败')
+    if (error !== 'cancel') ElMessage.error(t('approval.additionalReviewFailed'))
   }
 }
 
@@ -540,15 +543,15 @@ const fetchVectorApplications = async () => {
     const response = await axios.get(`/api/adm1_get_shp_applications`, {
       params: { page: 1, pageSize: 100 }
     })
-    
+
     if (response.data && response.data.status) {
       vectorApplications.value = response.data.application_data || []
-      pendingVectorCount.value = vectorApplications.value.filter(item => 
+      pendingVectorCount.value = vectorApplications.value.filter(item =>
         item.status === 'pending' || item.status === 'adm1_approved'
       ).length
     }
   } catch (error) {
-    ElMessage.error('获取矢量数据申请失败')
+    ElMessage.error(t('approval.fetchVectorFailed'))
     console.error('获取矢量数据申请失败:', error)
   } finally {
     loading.value = false
@@ -561,15 +564,15 @@ const fetchRasterApplications = async () => {
     const response = await axios.get(`/api/adm1_get_raster_applications`, {
       params: { page: 1, pageSize: 100 }
     })
-    
+
     if (response.data && response.data.status) {
       rasterApplications.value = response.data.application_data || []
-      pendingRasterCount.value = rasterApplications.value.filter(item => 
+      pendingRasterCount.value = rasterApplications.value.filter(item =>
         item.status === 'pending' || item.status === 'adm1_approved'
       ).length
     }
   } catch (error) {
-    ElMessage.error('获取遥感数据申请失败')
+    ElMessage.error(t('approval.fetchRasterFailed'))
     console.error('获取遥感数据申请失败:', error)
   } finally {
     loading.value = false
@@ -789,12 +792,12 @@ onMounted(() => {
     gap: 20px;
     text-align: center;
   }
-  
+
   .filter-content {
     flex-direction: column;
     gap: 16px;
   }
-  
+
   .filter-controls {
     width: 100%;
     justify-content: center;
@@ -805,15 +808,15 @@ onMounted(() => {
   .dual-channel-approval {
     padding: 12px;
   }
-  
+
   .stats-section {
     gap: 20px;
   }
-  
+
   .stat-number {
     font-size: 24px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
   }

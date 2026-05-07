@@ -2,8 +2,8 @@
   <div class="data-viewing-page">
 
     <div class="page-header">
-      <h1 class="page-title">数据目录检索</h1>
-      <p class="page-subtitle">专业的地理空间数据管理与服务平台</p>
+      <h1 class="page-title">{{ $t('empDataView.pageTitle') }}</h1>
+      <p class="page-subtitle">{{ $t('empDataView.pageSubtitle') }}</p>
     </div>
 
     <!-- 数据统计卡片 -->
@@ -14,7 +14,7 @@
         </div>
         <div class="stat-content">
           <h3>{{ totalVector }}</h3>
-          <p>矢量数据集</p>
+          <p>{{ $t('empDataView.vectorDatasets') }}</p>
         </div>
       </div>
       <div class="stat-card raster">
@@ -23,7 +23,7 @@
         </div>
         <div class="stat-content">
           <h3>{{ totalRaster }}</h3>
-          <p>栅格数据集</p>
+          <p>{{ $t('empDataView.rasterDatasets') }}</p>
         </div>
       </div>
       <div class="stat-card total">
@@ -32,7 +32,7 @@
         </div>
         <div class="stat-content">
           <h3>{{ total }}</h3>
-          <p>总数据量</p>
+          <p>{{ $t('empDataView.totalData') }}</p>
         </div>
       </div>
     </div>
@@ -44,7 +44,7 @@
         <div class="search-main">
           <el-input
             v-model="keyword"
-            placeholder="搜索数据名称、标识或来源..."
+            :placeholder="$t('empDataView.searchPlaceholder')"
             :prefix-icon="Search"
             size="large"
             clearable
@@ -53,40 +53,40 @@
             class="search-input"
           />
           <el-button type="primary" size="large" :icon="Search" @click="handleSearch" class="search-btn">
-            搜索
+            {{ $t('empDataView.search') }}
           </el-button>
         </div>
         <div class="search-filters">
-          <el-select v-model="dataSourceFilter" placeholder="数据来源" clearable size="large" class="filter-select">
-            <el-option label="自然资源部" value="自然资源部" />
-            <el-option label="中科院" value="中科院" />
-            <el-option label="测绘局" value="测绘局" />
+          <el-select v-model="dataSourceFilter" :placeholder="$t('empDataView.dataSource')" clearable size="large" class="filter-select">
+            <el-option :label="$t('empDataView.sourceNaturalResources')" value="自然资源部" />
+            <el-option :label="$t('empDataView.sourceCAS')" value="中科院" />
+            <el-option :label="$t('empDataView.sourceSurveyBureau')" value="测绘局" />
           </el-select>
-          <el-select v-model="timeFilter" placeholder="时间范围" clearable size="large" class="filter-select">
-            <el-option label="最近一周" value="week" />
-            <el-option label="最近一月" value="month" />
-            <el-option label="最近一年" value="year" />
+          <el-select v-model="timeFilter" :placeholder="$t('empDataView.timeRange')" clearable size="large" class="filter-select">
+            <el-option :label="$t('empDataView.recentWeek')" value="week" />
+            <el-option :label="$t('empDataView.recentMonth')" value="month" />
+            <el-option :label="$t('empDataView.recentYear')" value="year" />
           </el-select>
         </div>
       </div>
       <!-- 数据类型切换 - 专业风格 -->
       <div class="data-type-toggle-pro">
         <div class="toggle-header">
-          <h3>数据类型</h3>
+          <h3>{{ $t('empDataView.dataType') }}</h3>
           <div class="toggle-switch">
-            <button 
-              :class="['toggle-btn', { active: activeDataType === 'vector' }]" 
+            <button
+              :class="['toggle-btn', { active: activeDataType === 'vector' }]"
               @click="activeDataType = 'vector'"
             >
               <el-icon><Location /></el-icon>
-              矢量数据
+              {{ $t('empDataView.vectorData') }}
             </button>
-            <button 
-              :class="['toggle-btn', { active: activeDataType === 'raster' }]" 
+            <button
+              :class="['toggle-btn', { active: activeDataType === 'raster' }]"
               @click="activeDataType = 'raster'"
             >
               <el-icon><Picture /></el-icon>
-              栅格数据
+              {{ $t('empDataView.rasterData') }}
             </button>
           </div>
         </div>
@@ -95,13 +95,13 @@
       <!-- 数据表格区域 - 专业风格 -->
       <div class="table-container-pro">
         <div class="table-header">
-          <h3>{{ activeDataType === 'vector' ? '矢量数据' : '栅格数据' }}列表</h3>
+          <h3>{{ activeDataType === 'vector' ? $t('empDataView.vectorData') : $t('empDataView.rasterData') }}{{ $t('empDataView.listSuffix') }}</h3>
           <div class="table-actions">
             <el-button :icon="Refresh" @click="fetchData" circle size="small" />
             <el-button :icon="Download" @click="exportData" circle size="small" />
           </div>
         </div>
-        
+
         <el-table :data="data.list" style="width: 100%" class="custom-table-pro" v-loading="loading" stripe>
           <el-table-column type="selection" width="55" align="center" />
           <el-table-column prop="data_id" label="ID" width="80" align="center">
@@ -109,7 +109,7 @@
               <span class="data-id">{{ scope.row.data_id }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="data_alias" label="数据名称" min-width="160" align="left" show-overflow-tooltip>
+          <el-table-column prop="data_alias" :label="$t('empDataView.dataName')" min-width="160" align="left" show-overflow-tooltip>
             <template #default="scope">
               <div class="data-name-cell">
                 <el-icon :class="activeDataType === 'vector' ? 'vector-icon' : 'raster-icon'">
@@ -120,71 +120,71 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="uuid" label="数据标识" min-width="200" align="left" show-overflow-tooltip>
+          <el-table-column prop="uuid" :label="$t('empDataView.dataIdentifier')" min-width="200" align="left" show-overflow-tooltip>
             <template #default="scope">
               <span class="uuid-text">{{ scope.row.uuid }}</span>
             </template>
           </el-table-column>
-          <el-table-column prop="data_source" label="数据来源" min-width="120" align="center" show-overflow-tooltip>
+          <el-table-column prop="data_source" :label="$t('empDataView.dataSource')" min-width="120" align="center" show-overflow-tooltip>
             <template #default="scope">
               <el-tag size="small" type="info">{{ scope.row.data_source || 'N/A' }}</el-tag>
             </template>
           </el-table-column>
-          
+
           <!-- 矢量数据专用列 -->
-          <el-table-column v-if="activeDataType === 'vector'" prop="geomtype" label="几何类型" width="120" align="center">
+          <el-table-column v-if="activeDataType === 'vector'" prop="geomtype" :label="$t('empDataView.geomType')" width="120" align="center">
             <template #default="scope">
               <el-tag size="small" :type="getGeomTypeColor(scope.row.geomtype)">
                 {{ scope.row.geomtype }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column v-if="activeDataType === 'vector'" prop="coordinate_system" label="坐标系" width="140" align="center" show-overflow-tooltip>
+          <el-table-column v-if="activeDataType === 'vector'" prop="coordinate_system" :label="$t('empDataView.coordSystem')" width="140" align="center" show-overflow-tooltip>
             <template #default="scope">
               <span class="coord-system">{{ scope.row.coordinate_system || 'N/A' }}</span>
             </template>
           </el-table-column>
 
           <!-- 栅格数据专用列 -->
-          <el-table-column v-if="activeDataType === 'raster'" prop="band_count" label="波段数" width="100" align="center">
+          <el-table-column v-if="activeDataType === 'raster'" prop="band_count" :label="$t('empDataView.bandCount')" width="100" align="center">
             <template #default="scope">
-              <el-tag size="small" type="warning">{{ scope.row.band_count }}波段</el-tag>
+              <el-tag size="small" type="warning">{{ scope.row.band_count }}{{ $t('empDataView.bands') }}</el-tag>
             </template>
           </el-table-column>
-          <el-table-column v-if="activeDataType === 'raster'" prop="pixel_type" label="像元类型" width="130" align="center">
+          <el-table-column v-if="activeDataType === 'raster'" prop="pixel_type" :label="$t('empDataView.pixelType')" width="130" align="center">
             <template #default="scope">
               <span class="pixel-type">{{ scope.row.pixel_type }}</span>
             </template>
           </el-table-column>
 
-          <el-table-column label="操作" width="200" align="center" fixed="right">
+          <el-table-column :label="$t('empDataView.actions')" width="200" align="center" fixed="right">
             <template #default="scope">
               <div class="action-buttons">
-                <el-button 
-                  link 
-                  type="primary" 
+                <el-button
+                  link
+                  type="primary"
                   @click="openMapDialog(scope.row)"
                   class="action-btn"
                 >
                   <el-icon><View /></el-icon>
-                  查看
+                  {{ $t('empDataView.view') }}
                 </el-button>
                 <el-divider direction="vertical" />
-                <el-button 
-                  link 
-                  type="success" 
+                <el-button
+                  link
+                  type="success"
                   @click="openRequestDialog(scope.row)"
                   class="action-btn"
                 >
                   <el-icon><Download /></el-icon>
-                  申请
+                  {{ $t('empDataView.apply') }}
                 </el-button>
               </div>
             </template>
           </el-table-column>
         </el-table>
       </div>
-      
+
 
       <div class="pagination-wrapper">
         <el-pagination
@@ -205,14 +205,14 @@
     custom-class="preview-dialog rounded-dialog"
     :show-close="false"
     top="13vh"
-    draggable 
+    draggable
     :overflow="true"
     @closed="destroyMapView"
   >
     <template #header="{ close }">
       <div class="dialog-header-custom">
-        <h4 class="header-main-title">数据查看</h4>
-        <el-button text circle :icon="Close" @click="close" class="header-close-btn" title="关闭"></el-button>
+        <h4 class="header-main-title">{{ $t('empDataView.dataView') }}</h4>
+        <el-button text circle :icon="Close" @click="close" class="header-close-btn" :title="$t('empDataView.close')"></el-button>
       </div>
     </template>
     <div class="dialog-layout">
@@ -222,12 +222,12 @@
           :icon="ArrowLeftBold"
           class="map-back-btn"
           @click="viewDataVisible = false"
-          title="返回"
+          :title="$t('empDataView.back')"
         />
         <div class="map-search-bar" v-if="isVectorData">
           <el-input
             v-model="mapSearchKeyword"
-            placeholder="搜索地图上的地点..."
+            :placeholder="$t('empDataView.mapSearchPlaceholder')"
             :prefix-icon="Search"
             clearable
             @keydown.enter="handleMapSearch"
@@ -240,13 +240,13 @@
             circle
           />
           <el-button
-            title="撤销视图"
+            :title="$t('empDataView.undoView')"
             @click="undoMapView"
             class="search-btn-custom"
             circle
           >↶</el-button>
           <el-button
-            title="重做视图"
+            :title="$t('empDataView.redoView')"
             @click="redoMapView"
             class="search-btn-custom"
             circle
@@ -257,14 +257,14 @@
           <el-segmented
             v-model="currentBaseType"
             :options="[
-              { label: '矢量底图', value: 'vec' },
-              { label: '影像底图', value: 'img' }
+              { label: $t('empDataView.vectorBaseMap'), value: 'vec' },
+              { label: $t('empDataView.imageBaseMap'), value: 'img' }
             ]"
             @change="switchBaseMap"
           />
-          <el-button class="map-mini-btn" @click="resetMapView">重置视图</el-button>
+          <el-button class="map-mini-btn" @click="resetMapView">{{ $t('empDataView.resetView') }}</el-button>
           <div v-if="!isVectorData" class="raster-opacity-wrap">
-            <span>栅格透明度</span>
+            <span>{{ $t('empDataView.rasterOpacity') }}</span>
             <el-slider v-model="rasterOpacity" :min="0.2" :max="1" :step="0.05" @input="updateRasterOpacity" />
           </div>
         </div>
@@ -277,66 +277,66 @@
         <div class="info-content-scroll">
           <p class="info-description">{{ selectedData.data_introduction }}</p>
           <el-divider style="margin: 24px 0;" />
-          <h4 class="details-subtitle">详细信息</h4>
+          <h4 class="details-subtitle">{{ $t('empDataView.details') }}</h4>
           <ul class="meta-list">
-            <li v-if="isVectorData"><span>坐标系</span><strong>{{ selectedData.coordinate_system || 'N/A' }}</strong></li>
-            <li v-if="isVectorData"><span>几何类型</span><strong>{{ selectedData.geomtype || 'N/A' }}</strong></li>
-            <li v-if="!isVectorData"><span>波段数</span><strong>{{ selectedData.band_count || 'N/A' }}</strong></li>
-            <li v-if="!isVectorData"><span>像元类型</span><strong>{{ selectedData.pixel_type || 'N/A' }}</strong></li>
-            <li><span>数据来源</span><strong>{{ selectedData.data_source || 'N/A' }}</strong></li>
-            <li class="meta-uuid"><span>唯一标识</span><strong>{{ selectedData.uuid }}</strong></li>
+            <li v-if="isVectorData"><span>{{ $t('empDataView.coordSystem') }}</span><strong>{{ selectedData.coordinate_system || 'N/A' }}</strong></li>
+            <li v-if="isVectorData"><span>{{ $t('empDataView.geomType') }}</span><strong>{{ selectedData.geomtype || 'N/A' }}</strong></li>
+            <li v-if="!isVectorData"><span>{{ $t('empDataView.bandCount') }}</span><strong>{{ selectedData.band_count || 'N/A' }}</strong></li>
+            <li v-if="!isVectorData"><span>{{ $t('empDataView.pixelType') }}</span><strong>{{ selectedData.pixel_type || 'N/A' }}</strong></li>
+            <li><span>{{ $t('empDataView.dataSource') }}</span><strong>{{ selectedData.data_source || 'N/A' }}</strong></li>
+            <li class="meta-uuid"><span>{{ $t('empDataView.uniqueIdentifier') }}</span><strong>{{ selectedData.uuid }}</strong></li>
           </ul>
         </div>
         <div class="info-footer-flex">
           <el-button type="primary" size="large" class="apply-btn" @click="openRequestDialog(selectedData)">
-            申请使用此数据
+            {{ $t('empDataView.applyForData') }}
           </el-button>
         </div>
       </div>
     </div>
   </el-dialog>
-  
+
 
   <el-dialog
     v-model="requestDataVisible"
-    title="申请使用数据"
+    :title="$t('empDataView.applyForData')"
     width="600px"
     draggable
     custom-class="rounded-dialog"
     :before-close="(done) => handleClose('request', done)"
   >
-    <el-form 
-      ref="requestFormRef" 
-      :model="requestInformation" 
-      :rules="rules" 
+    <el-form
+      ref="requestFormRef"
+      :model="requestInformation"
+      :rules="rules"
       label-width="100px"
       style="padding-right: 30px;"
     >
-      <el-form-item label="数据编号" required>
+      <el-form-item :label="$t('empDataView.dataId')" required>
         <el-input v-model="requestInformation.data_id" disabled />
       </el-form-item>
-      <el-form-item label="数据名称" required>
+      <el-form-item :label="$t('empDataView.dataName')" required>
         <el-input v-model="requestInformation.data_alias" disabled />
       </el-form-item>
-      <el-form-item label="申请人姓名" prop="applicant">
-        <el-input v-model="requestInformation.applicant" placeholder="请输入申请人姓名" />
+      <el-form-item :label="$t('empDataView.applicantName')" prop="applicant">
+        <el-input v-model="requestInformation.applicant" :placeholder="$t('empDataView.enterApplicantName')" />
       </el-form-item>
-      <el-form-item label="员工编号" prop="user_number">
-        <el-input v-model="requestInformation.user_number" placeholder="请输入员工编号" />
+      <el-form-item :label="$t('empDataView.employeeNumber')" prop="user_number">
+        <el-input v-model="requestInformation.user_number" :placeholder="$t('empDataView.enterEmployeeNumber')" />
       </el-form-item>
-      <el-form-item label="申请理由" prop="reason">
-        <el-input 
-          v-model="requestInformation.reason" 
-          type="textarea" 
-          :rows="4" 
-          placeholder="请填写理由" 
+      <el-form-item :label="$t('empDataView.applyReason')" prop="reason">
+        <el-input
+          v-model="requestInformation.reason"
+          type="textarea"
+          :rows="4"
+          :placeholder="$t('empDataView.enterReason')"
         />
       </el-form-item>
     </el-form>
     <template #footer>
       <div class="dialog-footer-left">
-        <el-button type="primary" @click="submitForm">提交申请</el-button>
-        <el-button @click="resetForm">重置</el-button>
+        <el-button type="primary" @click="submitForm">{{ $t('empDataView.submitApplication') }}</el-button>
+        <el-button @click="resetForm">{{ $t('empDataView.reset') }}</el-button>
       </div>
     </template>
   </el-dialog>
@@ -345,6 +345,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, computed, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Search, Close, ArrowLeftBold, Location, Picture, DataAnalysis, View, Download, Refresh } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
 import axios from '@/utils/Axios';
@@ -356,6 +357,8 @@ import OlView from 'ol/View';
 import TileLayer from 'ol/layer/Tile';
 import { TileWMS, XYZ } from 'ol/source';
 import { ScaleLine, Rotate, defaults as defaultControls } from 'ol/control';
+
+const { t } = useI18n();
 
 const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '11ac7f190ef74ee4bd64081fe7ae419c';
 
@@ -398,11 +401,11 @@ const selectedData = reactive({ data_id: '', uuid: '', data_alias: '', data_intr
 const initialRequestInformation = { data_id: '', data_alias: '', applicant: '', user_number: '', reason: '', uuid: '', data_url: '', layer: '' };
 const requestInformation = reactive({ ...initialRequestInformation });
 
-const rules = {
-  applicant: [{ required: true, message: '请填写申请人姓名', trigger: 'blur' }],
-  user_number: [{ required: true, message: '请填写员工编号', trigger: 'blur' }],
-  reason: [{ required: true, message: '请填写申请理由', trigger: 'blur' }],
-};
+const rules = computed(() => ({
+  applicant: [{ required: true, message: t('empDataView.rulesApplicant'), trigger: 'blur' }],
+  user_number: [{ required: true, message: t('empDataView.rulesUserNumber'), trigger: 'blur' }],
+  reason: [{ required: true, message: t('empDataView.rulesReason'), trigger: 'blur' }],
+}));
 
 // 获取几何类型颜色
 const getGeomTypeColor = (type) => {
@@ -419,60 +422,60 @@ const getGeomTypeColor = (type) => {
 
 // 导出数据
 const exportData = () => {
-  ElMessage.success('数据导出功能开发中...');
+  ElMessage.success(t('empDataView.exportInDevelopment'));
 };
 
 const fetchData = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/data_viewing`, { 
-      params: { 
-        page: page.value, 
-        pageSize: pageSize.value, 
-        keyword: keyword.value || undefined, 
+    const response = await axios.get(`/api/data_viewing`, {
+      params: {
+        page: page.value,
+        pageSize: pageSize.value,
+        keyword: keyword.value || undefined,
         dataType: activeDataType.value,
         dataSource: dataSourceFilter.value || undefined,
         timeRange: timeFilter.value || undefined
-      } 
+      }
     });
     const result = response.data;
     if (result && result.data && Array.isArray(result.data.list)) {
       data.list = result.data.list.sort((a, b) => a.data_id - b.data_id);
       total.value = result.data.pages.total;
-      
+
       // 更新统计数据
       if (result.data.stats) {
         totalVector.value = result.data.stats.vectorCount || 0;
         totalRaster.value = result.data.stats.rasterCount || 0;
       }
     } else {
-      data.list = []; 
+      data.list = [];
       total.value = 0;
-      ElMessage.error('数据获取失败或响应格式错误');
+      ElMessage.error(t('empDataView.fetchDataFailed'));
     }
   } catch (error) {
     console.error('Error fetching data:', error);
-    data.list = []; 
+    data.list = [];
     total.value = 0;
-    ElMessage.error('数据获取异常');
+    ElMessage.error(t('empDataView.fetchDataError'));
   } finally {
     loading.value = false;
   }
 };
 // 监听筛选条件变化
-watch([activeDataType, dataSourceFilter, timeFilter], () => { 
-  page.value = 1; 
-  fetchData(); 
+watch([activeDataType, dataSourceFilter, timeFilter], () => {
+  page.value = 1;
+  fetchData();
 });
 
-const pageChanged = (newPage) => { 
-  page.value = newPage; 
-  fetchData(); 
+const pageChanged = (newPage) => {
+  page.value = newPage;
+  fetchData();
 };
 
-const handleSearch = () => { 
-  page.value = 1; 
-  fetchData(); 
+const handleSearch = () => {
+  page.value = 1;
+  fetchData();
 };
 
 const openMapDialog = (row) => {
@@ -490,7 +493,7 @@ const openRequestDialog = (dataToApply) => {
 };
 
 const handleClose = (dialogType, done) => {
-  ElMessageBox.confirm('您填写的内容将不会被保存，确认关闭吗？').then(() => {
+  ElMessageBox.confirm(t('empDataView.confirmClose')).then(() => {
     done();
     if (dialogType === 'request') resetForm();
   }).catch(() => {});
@@ -502,13 +505,13 @@ const submitForm = () => {
       // 发送包含了所有后端所需字段的 requestInformation 对象
       axios.post(`/api/submit_application`, requestInformation)
         .then(() => {
-            ElMessage.success('申请提交成功');
+            ElMessage.success(t('empDataView.submitSuccess'));
             requestDataVisible.value = false;
         })
         .catch(error => {
             // 这里的 console.error 会捕获并打印详细的 400 错误信息
             console.error('Error submitting application:', error);
-            const errorMsg = error.response?.data?.message || '申请提交失败，请检查网络或联系管理员';
+            const errorMsg = error.response?.data?.message || t('empDataView.submitFailed');
             ElMessage.error(errorMsg);
         });
     }
@@ -531,7 +534,7 @@ const pushCurrentViewToHistory = () => {
 
 const undoMapView = () => {
   if (!mapView.value || mapViewHistory.value.length < 2) {
-    ElMessage.info('没有可撤销的地图视图');
+    ElMessage.info(t('empDataView.noUndoView'));
     return;
   }
   const current = mapViewHistory.value.pop();
@@ -544,7 +547,7 @@ const undoMapView = () => {
 
 const redoMapView = () => {
   if (!mapView.value || mapViewFuture.value.length === 0) {
-    ElMessage.info('没有可重做的地图视图');
+    ElMessage.info(t('empDataView.noRedoView'));
     return;
   }
   const next = mapViewFuture.value.pop();
@@ -580,7 +583,7 @@ const resetForm = () => {
 };
 
 const handleMapSearch = async () => {
-  if (!mapSearchKeyword.value.trim() || !mapView.value) { if (!mapSearchKeyword.value.trim()) ElMessage.warning('请输入搜索关键词。'); return; }
+  if (!mapSearchKeyword.value.trim() || !mapView.value) { if (!mapSearchKeyword.value.trim()) ElMessage.warning(t('empDataView.enterSearchKeyword')); return; }
   try {
     const response = await axios.get(`/api/geocoding/search`, { params: { keyword: mapSearchKeyword.value.trim() } });
     const results = response.data?.data?.results || [];
@@ -591,10 +594,10 @@ const handleMapSearch = async () => {
       mapViewFuture.value = [];
       mapView.value.getView().animate({ center: lonlat, zoom: 14, duration: 1000 });
       mapViewHistory.value.push({ center: lonlat, zoom: 14 });
-    } else { ElMessage.warning(`在地图上未能找到"${mapSearchKeyword.value}"`); }
+    } else { ElMessage.warning(t('empDataView.mapSearchNotFound', { keyword: mapSearchKeyword.value })); }
   } catch (error) {
     console.error('地图搜索失败 (通过后端代理):', error);
-    const errorMsg = error.response?.data?.message || '地图搜索服务异常，请稍后重试。';
+    const errorMsg = error.response?.data?.message || t('empDataView.mapSearchError');
     ElMessage.error(errorMsg);
   }
 };
@@ -658,7 +661,7 @@ const initializeMapView = async (url, fullLayerName) => {
           // ... (WMS GetCapabilities logic) ...
         } catch (error) {
           console.error('Error loading WMS layer:', error);
-          ElMessage.error('加载WMS图层失败');
+          ElMessage.error(t('empDataView.loadWmsFailed'));
         }
       } else if (!isVectorData.value && selectedData.data_id) {
         // 添加XYZ瓦片图层用于栅格数据
@@ -1447,71 +1450,71 @@ onMounted(fetchData);
   .data-viewing-page {
     padding: 16px 20px;
   }
-  
+
   .stats-cards {
     grid-template-columns: 1fr;
     gap: 16px;
   }
-  
+
   .stat-card {
     padding: 20px 16px;
   }
-  
+
   .stat-content h3 {
     font-size: 24px;
   }
-  
+
   .content-panel-pro {
     padding: 20px;
     border-radius: 16px;
   }
-  
+
   .search-main {
     flex-direction: column;
   }
-  
+
   .search-filters {
     flex-direction: column;
   }
-  
+
   .filter-select {
     width: 100%;
   }
-  
+
   .toggle-header {
     flex-direction: column;
     gap: 16px;
     align-items: flex-start;
   }
-  
+
   .table-header {
     flex-direction: column;
     gap: 12px;
     align-items: flex-start;
   }
-  
+
   .dialog-layout {
     flex-direction: column;
     height: 80vh;
   }
-  
+
   .map-view {
     flex: 1;
     border-right: none;
     border-bottom: 1px solid rgba(233, 236, 239, 0.5);
     border-radius: 0 0 0 16px;
   }
-  
+
   .info-view {
     flex: 1;
     border-radius: 0 0 16px 16px;
   }
-  
+
   .map-search-bar {
     width: 90%;
     max-width: none;
   }
-  
+
   .dialog-footer-left {
     flex-direction: column;
   }

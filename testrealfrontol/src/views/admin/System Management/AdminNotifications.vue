@@ -1,42 +1,42 @@
 <template>
   <div class="admin-notify-page">
     <div class="page-header">
-      <h1 class="page-title">个人消息发送</h1>
-      <p class="page-desc">向指定员工或全体员工发送个人消息（进入员工“我的通知”）</p>
+      <h1 class="page-title">{{ $t('adminNotify.title') }}</h1>
+      <p class="page-desc">{{ $t('adminNotify.description') }}</p>
     </div>
 
     <el-card class="notify-card" shadow="hover">
       <el-form :model="form" label-width="96px" class="notify-form">
-        <el-form-item label="通知标题" required>
-          <el-input v-model="form.title" maxlength="80" show-word-limit placeholder="请输入通知标题" />
+        <el-form-item :label="$t('adminNotify.titleLabel')" required>
+          <el-input v-model="form.title" maxlength="80" show-word-limit :placeholder="$t('adminNotify.titlePlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="通知内容" required>
+        <el-form-item :label="$t('adminNotify.contentLabel')" required>
           <el-input
             v-model="form.content"
             type="textarea"
             :rows="5"
             maxlength="2000"
             show-word-limit
-            placeholder="请输入通知内容"
+            :placeholder="$t('adminNotify.contentPlaceholder')"
           />
         </el-form-item>
 
-        <el-form-item label="发送对象">
+        <el-form-item :label="$t('adminNotify.sendTarget')">
           <el-radio-group v-model="sendMode">
-            <el-radio value="all">全体员工</el-radio>
-            <el-radio value="specified">指定员工</el-radio>
+            <el-radio value="all">{{ $t('adminNotify.allEmployees') }}</el-radio>
+            <el-radio value="specified">{{ $t('adminNotify.specifiedEmployees') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="sendMode === 'specified'" label="员工编号">
+        <el-form-item v-if="sendMode === 'specified'" :label="$t('adminNotify.employeeNumber')">
           <el-select
             v-model="form.user_numbers"
             multiple
             filterable
             clearable
             default-first-option
-            placeholder="请选择或输入员工编号"
+            :placeholder="$t('adminNotify.selectEmployee')"
             style="width: 100%"
           >
             <el-option
@@ -49,8 +49,8 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" :loading="sending" @click="sendNotification">发送通知</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button type="primary" :loading="sending" @click="sendNotification">{{ $t('adminNotify.sendNotification') }}</el-button>
+          <el-button @click="resetForm">{{ $t('adminNotify.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -59,8 +59,11 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import Axios from '@/utils/Axios'
+
+const { t } = useI18n()
 
 const sending = ref(false)
 const sendMode = ref('all')
@@ -89,15 +92,15 @@ const sendNotification = async () => {
   const title = (form.title || '').trim()
   const content = (form.content || '').trim()
   if (!title) {
-    ElMessage.warning('请输入通知标题')
+    ElMessage.warning(t('adminNotify.enterTitle'))
     return
   }
   if (!content) {
-    ElMessage.warning('请输入通知内容')
+    ElMessage.warning(t('adminNotify.enterContent'))
     return
   }
   if (sendMode.value === 'specified' && (!form.user_numbers || form.user_numbers.length === 0)) {
-    ElMessage.warning('请选择至少一个员工')
+    ElMessage.warning(t('adminNotify.selectAtLeastOne'))
     return
   }
 
@@ -110,13 +113,13 @@ const sendNotification = async () => {
     }
     const { data } = await Axios.post(`/api/admin/notifications/send`, payload)
     if (data?.status) {
-      ElMessage.success(data?.msg || '发送成功')
+      ElMessage.success(data?.msg || t('adminNotify.sendSuccess'))
       resetForm()
     } else {
-      ElMessage.error(data?.msg || '发送失败')
+      ElMessage.error(data?.msg || t('adminNotify.sendFailed'))
     }
   } catch (e) {
-    ElMessage.error(e?.response?.data?.msg || '发送失败')
+    ElMessage.error(e?.response?.data?.msg || t('adminNotify.sendFailed'))
   } finally {
     sending.value = false
   }

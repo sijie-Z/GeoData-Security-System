@@ -1,22 +1,22 @@
 <template>
   <div class="log-viewer-page">
     <div class="page-header">
-      <h1 class="page-title">系统操作日志</h1>
-      <p class="page-desc">查看全部用户操作记录，支持按用户编号、姓名、操作类型筛选</p>
+      <h1 class="page-title">{{ $t('adminLogViewer.title') }}</h1>
+      <p class="page-desc">{{ $t('adminLogViewer.description') }}</p>
     </div>
 
     <el-card class="log-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span class="card-title">日志列表</span>
-          <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" title="刷新" />
+          <span class="card-title">{{ $t('adminLogViewer.logList') }}</span>
+          <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
         </div>
       </template>
 
       <div class="filter-bar">
         <el-input
           v-model="filters.user_number"
-          placeholder="按用户编号精确筛选"
+          :placeholder="$t('adminLogViewer.filterByNumber')"
           clearable
           class="filter-input"
           style="width: 180px;"
@@ -29,7 +29,7 @@
         </el-input>
         <el-input
           v-model="filters.username"
-          placeholder="按操作人姓名搜索"
+          :placeholder="$t('adminLogViewer.filterByName')"
           clearable
           class="filter-input"
           style="width: 180px;"
@@ -42,31 +42,31 @@
         </el-input>
         <el-select
           v-model="filters.action"
-          placeholder="操作类型"
+          :placeholder="$t('adminLogViewer.actionType')"
           clearable
           class="filter-select"
           style="width: 200px;"
           @change="handleFilterSearch"
         >
-          <el-option label="全部类型" value="" />
-          <el-option label="用户登录" value="用户登录" />
-          <el-option label="提交数据申请" value="提交数据申请" />
-          <el-option label="审批数据申请" value="审批数据申请" />
-          <el-option label="生成水印" value="生成水印" />
-          <el-option label="嵌入水印" value="嵌入水印" />
-          <el-option label="数据上传" value="数据上传" />
-          <el-option label="用户权限修改" value="用户权限修改" />
-          <el-option label="数据备份" value="数据备份" />
-          <el-option label="提取水印" value="提取水印" />
-          <el-option label="用户登出" value="用户登出" />
-          <el-option label="安全策略更新" value="安全策略更新" />
-          <el-option label="下载数据" value="下载数据" />
-          <el-option label="生成报告" value="生成报告" />
-          <el-option label="删除用户" value="删除用户" />
-          <el-option label="系统参数配置" value="系统参数配置" />
+          <el-option :label="$t('adminLogViewer.allTypes')" value="" />
+          <el-option :label="$t('adminLogViewer.userLogin')" value="用户登录" />
+          <el-option :label="$t('adminLogViewer.submitDataRequest')" value="提交数据申请" />
+          <el-option :label="$t('adminLogViewer.approveDataRequest')" value="审批数据申请" />
+          <el-option :label="$t('adminLogViewer.generateWatermark')" value="生成水印" />
+          <el-option :label="$t('adminLogViewer.embedWatermark')" value="嵌入水印" />
+          <el-option :label="$t('adminLogViewer.dataUpload')" value="数据上传" />
+          <el-option :label="$t('adminLogViewer.userPermissionChange')" value="用户权限修改" />
+          <el-option :label="$t('adminLogViewer.dataBackup')" value="数据备份" />
+          <el-option :label="$t('adminLogViewer.extractWatermark')" value="提取水印" />
+          <el-option :label="$t('adminLogViewer.userLogout')" value="用户登出" />
+          <el-option :label="$t('adminLogViewer.securityPolicyUpdate')" value="安全策略更新" />
+          <el-option :label="$t('adminLogViewer.downloadData')" value="下载数据" />
+          <el-option :label="$t('adminLogViewer.generateReport')" value="生成报告" />
+          <el-option :label="$t('adminLogViewer.deleteUser')" value="删除用户" />
+          <el-option :label="$t('adminLogViewer.systemParamConfig')" value="系统参数配置" />
         </el-select>
-        <el-button type="primary" :icon="Search" @click="handleFilterSearch">查询</el-button>
-        <el-button :icon="RefreshLeft" @click="resetFilters">重置</el-button>
+        <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('adminLogViewer.search') }}</el-button>
+        <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('adminLogViewer.reset') }}</el-button>
       </div>
 
       <el-table
@@ -79,19 +79,19 @@
         :header-cell-style="{ background: '#f5f7fa' }"
       >
         <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="timestamp" label="操作时间" width="172" sortable />
-        <el-table-column prop="user_number" label="用户编号" width="120" show-overflow-tooltip />
-        <el-table-column prop="username" label="操作人" width="110" show-overflow-tooltip />
-        <el-table-column prop="ip_address" label="IP 地址" width="130" show-overflow-tooltip />
-        <el-table-column prop="action" label="操作类型" width="130" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="88" align="center">
+        <el-table-column prop="timestamp" :label="$t('adminLogViewer.timestamp')" width="172" sortable />
+        <el-table-column prop="user_number" :label="$t('adminLogViewer.userNumber')" width="120" show-overflow-tooltip />
+        <el-table-column prop="username" :label="$t('adminLogViewer.operator')" width="110" show-overflow-tooltip />
+        <el-table-column prop="ip_address" :label="$t('adminLogViewer.ipAddress')" width="130" show-overflow-tooltip />
+        <el-table-column prop="action" :label="$t('adminLogViewer.actionType')" width="130" show-overflow-tooltip />
+        <el-table-column prop="status" :label="$t('adminLogViewer.status')" width="88" align="center">
           <template #default="scope">
             <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
               {{ scope.row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="详情" min-width="240">
+        <el-table-column :label="$t('adminLogViewer.details')" min-width="240">
           <template #default="scope">
             <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
           </template>
@@ -115,25 +115,28 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
-import { Search, RefreshRight, RefreshLeft, User, UserFilled } from '@element-plus/icons-vue';
-import { ElMessage } from 'element-plus';
-import axios from '@/utils/Axios';
+import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { Search, RefreshRight, RefreshLeft, User, UserFilled } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import axios from '@/utils/Axios'
 
-const loading = ref(false);
-const logList = ref([]);
-const total = ref(0);
-const currentPage = ref(1);
-const pageSize = ref(10);
+const { t } = useI18n()
+
+const loading = ref(false)
+const logList = ref([])
+const total = ref(0)
+const currentPage = ref(1)
+const pageSize = ref(10)
 
 const filters = reactive({
   username: '',
   user_number: '',
   action: ''
-});
+})
 
 const fetchLogs = async () => {
-  loading.value = true;
+  loading.value = true
   try {
     const response = await axios.get(`/api/admin/logs`, {
       params: {
@@ -151,13 +154,13 @@ const fetchLogs = async () => {
     } else {
       logList.value = [];
       total.value = 0;
-      ElMessage.error(result?.msg || '获取日志失败');
+      ElMessage.error(result?.msg || t('adminLogViewer.fetchFailed'));
     }
   } catch (err) {
     console.error('fetchLogs error', err);
     logList.value = [];
     total.value = 0;
-    ElMessage.error(err.response?.data?.msg || err.message || '网络错误');
+    ElMessage.error(err.response?.data?.msg || err.message || t('adminLogViewer.networkError'));
   } finally {
     loading.value = false;
   }

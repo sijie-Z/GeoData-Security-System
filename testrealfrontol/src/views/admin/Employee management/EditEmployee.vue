@@ -3,8 +3,10 @@ import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Back, User as UserIcon, Plus as PlusIcon } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import Axios from '@/utils/Axios.js';
 
+const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const formRef = ref(null);
@@ -25,8 +27,8 @@ const photoFileList = ref([]);
 
 // 编辑时，密码不是必填项，只有在输入时才校验
 const rules = reactive({
-  employee_number: [{ required: true, message: '员工编号不能为空', trigger: 'blur' }],
-  name: [{ required: true, message: '姓名不能为空', trigger: 'blur' }],
+  employee_number: [{ required: true, message: () => t('employeeMgmt.employeeNumberRequired'), trigger: 'blur' }],
+  name: [{ required: true, message: () => t('employeeMgmt.nameRequired'), trigger: 'blur' }],
   // ... 其他校验规则可以根据需要调整 ...
 });
 
@@ -44,10 +46,10 @@ const fetchEmployeeData = async (employeeNumber) => {
         photoFileList.value = [{ name: 'current_photo.jpg', url: formData.current_photo_url }];
       }
     } else {
-      ElMessage.error('获取员工信息失败');
+      ElMessage.error(t('employeeMgmt.fetchEmployeeFailed'));
     }
   } catch (error) {
-    ElMessage.error('获取员工信息失败，请检查网络');
+    ElMessage.error(t('employeeMgmt.fetchEmployeeFailedCheckNetwork'));
   }
 };
 
@@ -76,18 +78,18 @@ const submitForm = async () => {
       if (formData.photo) {
         submitData.append('photo', formData.photo);
       }
-      
+
       try {
         // 后端需要一个 PUT /api/employee/{id} 接口来更新员工信息
         const response = await Axios.put(`/api/employee/${formData.employee_number}`, submitData);
         if (response.data && response.data.status) {
-          ElMessage.success('员工信息更新成功！');
+          ElMessage.success(t('employeeMgmt.updateSuccess'));
           router.push('/admin/employee_management/information_list');
         } else {
-          ElMessage.error(response.data.msg || '更新失败');
+          ElMessage.error(response.data.msg || t('employeeMgmt.updateFailed'));
         }
       } catch (error) {
-        ElMessage.error(error.response?.data?.msg || '请求失败');
+        ElMessage.error(error.response?.data?.msg || t('employeeMgmt.requestFailed'));
       } finally {
         submitLoading.value = false;
       }
@@ -105,37 +107,37 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <el-page-header :icon="Back" title="返回列表" @back="handleBack">
-      <template #content><span class="page-title">编辑员工信息</span></template>
+    <el-page-header :icon="Back" :title="$t('employeeMgmt.backToList')" @back="handleBack">
+      <template #content><span class="page-title">{{ $t('employeeMgmt.editEmployeeInfo') }}</span></template>
     </el-page-header>
     <el-divider />
     <div class="form-wrapper">
       <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" style="max-width: 700px;">
-        <h3 class="form-section-title">基本信息</h3>
-        <el-form-item label="员工编号" prop="employee_number">
+        <h3 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h3>
+        <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
           <el-input v-model="formData.employee_number" disabled />
         </el-form-item>
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item label="姓名" prop="name"><el-input v-model="formData.name" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item label="工号" prop="job_number"><el-input v-model="formData.job_number" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('employeeMgmt.name')" prop="name"><el-input v-model="formData.name" /></el-form-item></el-col>
+          <el-col :span="12"><el-form-item :label="$t('employeeMgmt.jobNumber')" prop="job_number"><el-input v-model="formData.job_number" /></el-form-item></el-col>
         </el-row>
-        <el-form-item label="身份证号" prop="id_number"><el-input v-model="formData.id_number" /></el-form-item>
-        <el-form-item label="手机号码" prop="phone_number"><el-input v-model="formData.phone_number" /></el-form-item>
-        <el-form-item label="住址" prop="address"><el-input v-model="formData.address" type="textarea" :rows="2" /></el-form-item>
-        
-        <h3 class="form-section-title">员工照片</h3>
-        <el-form-item label="更新照片" prop="photo">
+        <el-form-item :label="$t('employeeMgmt.idNumber')" prop="id_number"><el-input v-model="formData.id_number" /></el-form-item>
+        <el-form-item :label="$t('employeeMgmt.phoneNumber')" prop="phone_number"><el-input v-model="formData.phone_number" /></el-form-item>
+        <el-form-item :label="$t('employeeMgmt.address')" prop="address"><el-input v-model="formData.address" type="textarea" :rows="2" /></el-form-item>
+
+        <h3 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h3>
+        <el-form-item :label="$t('employeeMgmt.updatePhoto')" prop="photo">
           <el-upload
             v-model:file-list="photoFileList" action="#" list-type="picture-card"
             :limit="1" :auto-upload="false" :on-change="handleFileChange" :on-remove="handleRemove">
             <el-icon><PlusIcon /></el-icon>
-            <template #tip><div class="el-upload__tip">如需更换照片请上传，否则将保留原照片。</div></template>
+            <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.updatePhotoTip') }}</div></template>
           </el-upload>
         </el-form-item>
-        
+
         <el-divider />
         <el-form-item>
-          <el-button type="primary" :loading="submitLoading" @click="submitForm">保存修改</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="submitForm">{{ $t('employeeMgmt.saveChanges') }}</el-button>
         </el-form-item>
       </el-form>
     </div>

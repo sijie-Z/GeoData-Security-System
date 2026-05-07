@@ -3,122 +3,122 @@
     <el-card class="guide-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <h2>管理员上手指南</h2>
-          <el-tag type="success">新手必读</el-tag>
+          <h2>{{ $t('adminGuide.title') }}</h2>
+          <el-tag type="success">{{ $t('adminGuide.beginner') }}</el-tag>
         </div>
       </template>
 
       <el-collapse v-model="activeSection">
         <!-- 系统概述 -->
-        <el-collapse-item title="一、系统概述" name="overview">
+        <el-collapse-item :title="$t('adminGuide.overview')" name="overview">
           <div class="section-content">
-            <p>本系统是<strong>空间数据跟踪系统</strong>，用于管理矢量/栅格数据的申请、审批、水印处理和分发。</p>
+            <p>{{ $t('adminGuide.overviewDescPrefix') }}<strong>{{ $t('adminGuide.overviewDescBold') }}</strong>{{ $t('adminGuide.overviewDescSuffix') }}</p>
             <el-alert type="info" :closable="false" style="margin-top: 12px">
               <template #title>
-                您当前身份：<strong>{{ adminRoleName }}</strong>，拥有以下权限
+                {{ $t('adminGuide.currentIdentityPrefix') }}<strong>{{ adminRoleName }}</strong>{{ $t('adminGuide.currentIdentitySuffix') }}
               </template>
             </el-alert>
           </div>
         </el-collapse-item>
 
         <!-- 管理员角色 -->
-        <el-collapse-item title="二、管理员角色分工" name="roles">
+        <el-collapse-item :title="$t('adminGuide.roles')" name="roles">
           <div class="section-content">
             <el-table :data="roleData" border style="margin-top: 12px">
-              <el-table-column prop="role" label="角色" width="100" />
-              <el-table-column prop="permission" label="主要职责" />
-              <el-table-column prop="watermark" label="水印权限" width="150" />
+              <el-table-column prop="role" :label="$t('adminGuide.role')" width="100" />
+              <el-table-column prop="permission" :label="$t('adminGuide.mainDuties')" />
+              <el-table-column prop="watermark" :label="$t('adminGuide.watermarkPermission')" width="150" />
             </el-table>
           </div>
         </el-collapse-item>
 
         <!-- 审批流程 -->
-        <el-collapse-item title="三、审批流程" name="approval">
+        <el-collapse-item :title="$t('adminGuide.approvalProcess')" name="approval">
           <div class="section-content">
             <div class="flow-diagram">
               <div class="flow-item">
-                <div class="flow-box">员工提交申请</div>
+                <div class="flow-box">{{ $t('adminGuide.employeeSubmit') }}</div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box primary">管理员1 一审</div>
+                <div class="flow-box primary">{{ $t('adminGuide.admin1Review') }}</div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box success">管理员2 二审</div>
+                <div class="flow-box success">{{ $t('adminGuide.admin2Review') }}</div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box warning">水印处理</div>
+                <div class="flow-box warning">{{ $t('adminGuide.watermarkProcess') }}</div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box info">数据分发</div>
+                <div class="flow-box info">{{ $t('adminGuide.dataDistribution') }}</div>
               </div>
             </div>
             <el-divider />
-            <h4>审批操作步骤：</h4>
+            <h4>{{ $t('adminGuide.approvalSteps') }}</h4>
             <ol>
-              <li>进入【审批管理】-【待一审/待二审】</li>
-              <li>查看申请详情，包括申请理由、数据信息</li>
-              <li>点击【通过】或【拒绝】，拒绝需填写理由</li>
-              <li>二审通过后，系统自动处理水印</li>
+              <li>{{ $t('adminGuide.step1') }}</li>
+              <li>{{ $t('adminGuide.step2') }}</li>
+              <li>{{ $t('adminGuide.step3') }}</li>
+              <li>{{ $t('adminGuide.step4') }}</li>
             </ol>
           </div>
         </el-collapse-item>
 
         <!-- 水印流程 -->
-        <el-collapse-item title="四、水印处理流程" name="watermark">
+        <el-collapse-item :title="$t('adminGuide.watermarkFlow')" name="watermark">
           <div class="section-content">
             <el-steps :active="3" finish-status="success" simple style="margin-bottom: 20px">
-              <el-step title="生成" description="管理员1" />
-              <el-step title="嵌入" description="管理员2" />
-              <el-step title="提取" description="管理员3" />
+              <el-step :title="$t('adminGuide.generate')" :description="$t('adminGuide.admin1')" />
+              <el-step :title="$t('adminGuide.embed')" :description="$t('adminGuide.admin2')" />
+              <el-step :title="$t('adminGuide.extract')" :description="$t('adminGuide.admin3')" />
             </el-steps>
             <el-alert type="warning" :closable="false">
-              每个水印步骤由对应管理员负责，需按顺序操作。嵌入后的数据会自动添加追踪信息。
+              {{ $t('adminGuide.watermarkNote') }}
             </el-alert>
           </div>
         </el-collapse-item>
 
         <!-- 数据回收 -->
-        <el-collapse-item title="五、数据回收审议" name="recall">
+        <el-collapse-item :title="$t('adminGuide.dataRecall')" name="recall">
           <div class="section-content">
-            <p>当已分发的数据需要收回时（如发现违规使用），可通过回收审议流程：</p>
+            <p>{{ $t('adminGuide.recallDesc') }}</p>
             <ol>
-              <li>任何管理员可发起回收提议</li>
-              <li>其他管理员进行投票（支持/反对/弃权）</li>
-              <li>超过50%的管理员反对，数据将被收回</li>
-              <li>用户会收到通知，无法继续下载</li>
+              <li>{{ $t('adminGuide.recallStep1') }}</li>
+              <li>{{ $t('adminGuide.recallStep2') }}</li>
+              <li>{{ $t('adminGuide.recallStep3') }}</li>
+              <li>{{ $t('adminGuide.recallStep4') }}</li>
             </ol>
           </div>
         </el-collapse-item>
 
         <!-- 在线沟通 -->
-        <el-collapse-item title="六、在线沟通" name="chat">
+        <el-collapse-item :title="$t('adminGuide.onlineChat')" name="chat">
           <div class="section-content">
-            <p>管理员可与员工或其他管理员实时沟通：</p>
-            <el-button type="primary" @click="goToChat">进入在线沟通</el-button>
+            <p>{{ $t('adminGuide.chatDesc') }}</p>
+            <el-button type="primary" @click="goToChat">{{ $t('adminGuide.enterChat') }}</el-button>
             <el-divider direction="vertical" />
-            <span class="hint">支持查看所有用户列表，直接发起对话</span>
+            <span class="hint">{{ $t('adminGuide.chatHint') }}</span>
           </div>
         </el-collapse-item>
 
         <!-- 常见问题 -->
-        <el-collapse-item title="七、常见问题" name="faq">
+        <el-collapse-item :title="$t('adminGuide.faq')" name="faq">
           <div class="section-content">
             <el-collapse>
-              <el-collapse-item title="Q: 忘记密码怎么办？" name="q1">
-                <p>A: 联系系统管理员重置密码。</p>
+              <el-collapse-item :title="$t('adminGuide.faq1Q')" name="q1">
+                <p>{{ $t('adminGuide.faq1A') }}</p>
               </el-collapse-item>
-              <el-collapse-item title="Q: 如何查看操作记录？" name="q2">
-                <p>A: 进入【系统设置】-【操作日志】，可查看所有操作记录。</p>
+              <el-collapse-item :title="$t('adminGuide.faq2Q')" name="q2">
+                <p>{{ $t('adminGuide.faq2A') }}</p>
               </el-collapse-item>
-              <el-collapse-item title="Q: 如何发送系统公告？" name="q3">
-                <p>A: 进入【系统设置】-【系统公告】，发布公告后所有用户可见。</p>
+              <el-collapse-item :title="$t('adminGuide.faq3Q')" name="q3">
+                <p>{{ $t('adminGuide.faq3A') }}</p>
               </el-collapse-item>
-              <el-collapse-item title="Q: 审批时看不懂数据怎么办？" name="q4">
-                <p>A: 可通过【在线沟通】联系申请人了解详情，或拒绝并注明疑问。</p>
+              <el-collapse-item :title="$t('adminGuide.faq4Q')" name="q4">
+                <p>{{ $t('adminGuide.faq4A') }}</p>
               </el-collapse-item>
             </el-collapse>
           </div>
@@ -129,13 +129,13 @@
     <!-- 快捷入口 -->
     <el-card class="shortcuts-card" shadow="hover" style="margin-top: 16px">
       <template #header>
-        <span>快捷入口</span>
+        <span>{{ $t('adminGuide.shortcuts') }}</span>
       </template>
       <div class="shortcuts">
-        <el-button type="primary" @click="goTo('/admin/approve_application/not_approved')">待审批</el-button>
-        <el-button type="success" @click="goTo('/admin/employee_management/information_list')">员工列表</el-button>
-        <el-button type="warning" @click="goTo('/admin/system/chat')">在线沟通</el-button>
-        <el-button type="info" @click="goTo('/admin/logs')">操作日志</el-button>
+        <el-button type="primary" @click="goTo('/admin/approve_application/not_approved')">{{ $t('adminGuide.pendingApproval') }}</el-button>
+        <el-button type="success" @click="goTo('/admin/employee_management/information_list')">{{ $t('adminGuide.employeeList') }}</el-button>
+        <el-button type="warning" @click="goTo('/admin/system/chat')">{{ $t('adminGuide.onlineChatBtn') }}</el-button>
+        <el-button type="info" @click="goTo('/admin/logs')">{{ $t('adminGuide.operationLog') }}</el-button>
       </div>
     </el-card>
   </div>
@@ -143,10 +143,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/userStore'
 import { ArrowRight } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -154,17 +156,17 @@ const activeSection = ref(['overview'])
 
 const adminRoleName = computed(() => {
   const num = (userStore.userNumber || '').toLowerCase()
-  if (num.includes('admin1') || num.includes('adm1') || num === '22200214135') return '管理员1（一审）'
-  if (num.includes('admin2') || num.includes('adm2') || num === '33300214135') return '管理员2（二审）'
-  if (num.includes('admin3') || num.includes('adm3') || num === '44400214135') return '管理员3（提取）'
-  return '管理员'
+  if (num.includes('admin1') || num.includes('adm1') || num === '22200214135') return t('adminGuide.admin1Role')
+  if (num.includes('admin2') || num.includes('adm2') || num === '33300214135') return t('adminGuide.admin2Role')
+  if (num.includes('admin3') || num.includes('adm3') || num === '44400214135') return t('adminGuide.admin3Role')
+  return t('adminGuide.adminDefault')
 })
 
-const roleData = [
-  { role: '管理员1', permission: '一审审批、水印生成', watermark: '生成' },
-  { role: '管理员2', permission: '二审审批、水印嵌入', watermark: '嵌入' },
-  { role: '管理员3', permission: '水印提取、附加审议', watermark: '提取' },
-]
+const roleData = computed(() => [
+  { role: t('adminGuide.role1'), permission: t('adminGuide.role1Duty'), watermark: t('adminGuide.watermarkGenerate') },
+  { role: t('adminGuide.role2'), permission: t('adminGuide.role2Duty'), watermark: t('adminGuide.watermarkEmbed') },
+  { role: t('adminGuide.role3'), permission: t('adminGuide.role3Duty'), watermark: t('adminGuide.watermarkExtract') },
+])
 
 const goTo = (path) => router.push(path)
 const goToChat = () => router.push('/admin/system/chat')

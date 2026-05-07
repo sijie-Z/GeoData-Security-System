@@ -12,6 +12,9 @@
 
   import * as echarts from 'echarts';
   import { onMounted, onBeforeUnmount } from 'vue';
+  import { useI18n } from 'vue-i18n';
+
+  const { t } = useI18n();
 
   let myChart = null;
 
@@ -41,7 +44,7 @@
 
       legend: {
 
-        data:['数量']
+        data:[t('echarts.quantity')]
 
       },
       grid: {
@@ -54,7 +57,7 @@
       xAxis: [
         {
           type: 'time',
-          name: '日期',
+          name: t('echarts.date'),
           nameLocation: 'middle',
           nameTextStyle: {
             color: '#333',
@@ -74,7 +77,7 @@
       yAxis: [
         {
           type: 'value',
-          name: '数量',
+          name: t('echarts.quantity'),
           nameLocation: 'end',
           nameTextStyle: {
             color: '#333',
@@ -113,5 +116,4 @@
 
 
 </style>
-
 

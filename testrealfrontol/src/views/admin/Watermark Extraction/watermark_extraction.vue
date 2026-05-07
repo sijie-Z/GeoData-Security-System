@@ -1,50 +1,50 @@
 <template>
   <div class="watermark-extraction-container">
     <div class="input-section">
-      <el-input v-model="GetIdInput" style="width: 250px" placeholder="请输入疑似泄露数据对应的数据编号" clearable/>
-      <el-button size="default" type="primary" @click="click_extract">选择文件并提取水印</el-button>
+      <el-input v-model="GetIdInput" style="width: 250px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
+      <el-button size="default" type="primary" @click="click_extract">{{ $t('wmExtract.selectAndExtract') }}</el-button>
     </div>
 
     <el-card class="watermark-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span>从数据中提取出的水印</span>
+          <span>{{ $t('wmExtract.extractedWatermarkTitle') }}</span>
         </div>
       </template>
       <div v-if="extractedWatermarkBase64" class="watermark-image-wrapper">
         <img :src="`data:image/png;base64,${extractedWatermarkBase64}`" alt="Extracted Watermark" class="watermark-image"/>
       </div>
       <div v-else class="watermark-placeholder">
-        <el-empty description="提取出的水印将在此处显示"></el-empty>
+        <el-empty :description="$t('wmExtract.watermarkPlaceholder')"></el-empty>
       </div>
     </el-card>
 
     <el-card v-if="decodedInfo" class="decode-card" shadow="never" style="margin-top: 16px;">
       <template #header>
-        <div class="card-header"><span>在线解码信息</span></div>
+        <div class="card-header"><span>{{ $t('wmExtract.decodeInfoTitle') }}</span></div>
       </template>
       <el-alert
-        :title="decodedInfo.verify?.message || '二维码校验信息不可用'"
+        :title="decodedInfo.verify?.message || $t('wmExtract.verifyUnavailable')"
         :type="decodedInfo.verify?.digest_ok === false || decodedInfo.verify?.signature_ok === false ? 'error' : 'success'"
         :closable="false"
         style="margin-bottom: 10px;"
       />
       <el-descriptions :column="2" border>
-        <el-descriptions-item label="申请编号">{{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请流水号">{{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请状态">{{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="数据类型">{{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请人">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请人编号">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="一审管理员">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="二审管理员">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="提交时间">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="二维码生成时间">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="申请原因" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicationId')">{{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicationNumber')">{{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicationStatus')">{{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descDataType')">{{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicant')">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicantId')">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1')">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2')">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descSubmittedAt')">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descGeneratedAt')">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descReason')" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
-    <el-dialog title="上传数据" v-model="ExtractVisible" width="50%" :before-close="(done) => handleClose('send', done)">
+    <el-dialog :title="$t('wmExtract.uploadDialogTitle')" v-model="ExtractVisible" width="50%" :before-close="(done) => handleClose('send', done)">
       <div class="upload-dialog-content">
         <el-upload
           class="send_file_uploader"
@@ -60,11 +60,11 @@
         >
           <el-icon class="el-icon--upload"><UploadFilled/></el-icon>
           <div class="el-upload__text">
-            将文件拖放到此处或 <em>点击上传</em>
+            {{ $t('wmExtract.uploadText') }} <em>{{ $t('wmExtract.uploadClick') }}</em>
           </div>
           <template #tip>
             <div class="el-upload__tip">
-              支持 .zip（矢量）与 .png/.jpg/.tif（栅格）格式文件。
+              {{ $t('wmExtract.uploadTip') }}
             </div>
           </template>
         </el-upload>
@@ -76,8 +76,11 @@
 <script setup>
 import { UploadFilled } from "@element-plus/icons-vue";
 import { ref, watch } from "vue";
+import { useI18n } from 'vue-i18n';
 import axios from "@/utils/Axios";
 import { ElMessage, ElMessageBox } from "element-plus";
+
+const { t } = useI18n();
 
 // State and refs
 const ExtractVisible = ref(false);
@@ -103,14 +106,14 @@ watch(GetIdInput, (newValue) => {
 // Handlers
 const click_extract = () => {
   if (!GetIdInput.value) {
-    ElMessage.error('请先填写数据编号');
+    ElMessage.error(t('wmExtract.fillDataIdFirst'));
     return;
   }
   ExtractVisible.value = true;
 };
 
 const handleUploadSuccess = (response, file) => {
-  ElMessage.success(`文件 ${file.name} 上传成功！`);
+  ElMessage.success(t('wmExtract.uploadSuccess', { name: file.name }));
   ExtractVisible.value = false;
 
   const extracted = response?.watermark_base64 || response?.extracted_watermark_base64 || response?.base64;
@@ -118,17 +121,17 @@ const handleUploadSuccess = (response, file) => {
     extractedWatermarkBase64.value = extracted;
     decodedInfo.value = response?.data?.decoded_info || null;
     if (decodedInfo.value) {
-      ElMessage.success('二维码已在线解码');
+      ElMessage.success(t('wmExtract.qrDecoded'));
     }
   } else {
-    ElMessage.error('文件上传成功但未提取出水印');
+    ElMessage.error(t('wmExtract.noWatermarkExtracted'));
   }
 };
 
 const handleUploadError = (err, file) => {
-  let errorMessage = `文件 ${file.name} 上传失败！`;
+  let errorMessage = t('wmExtract.uploadFailed', { name: file.name });
   if (err.response && err.response.data && err.response.data.error) {
-    errorMessage += ` 错误信息: ${err.response.data.error}`;
+    errorMessage += ` ${t('wmExtract.errorInfo')}: ${err.response.data.error}`;
   }
   ElMessage.error(errorMessage);
   console.error("Error during file upload:", err);
@@ -136,7 +139,7 @@ const handleUploadError = (err, file) => {
 
 const beforeUpload = (file) => {
   if (!GetIdInput.value) {
-    ElMessage.error('请先填写数据编号');
+    ElMessage.error(t('wmExtract.fillDataIdFirst'));
     return false;
   }
 
@@ -145,15 +148,15 @@ const beforeUpload = (file) => {
   const isAllowed = allowedExtensions.some(ext => fileName.endsWith(ext));
 
   if (!isAllowed) {
-    ElMessage.error('仅支持 .zip, .png, .jpg, .tif 等格式文件');
+    ElMessage.error(t('wmExtract.unsupportedFormat'));
     return false;
   }
-  
+
   return true;
 };
 
 const handleClose = (dialogType, done) => {
-  ElMessageBox.confirm('确认关闭？').then(() => {
+  ElMessageBox.confirm(t('wmExtract.confirmClose')).then(() => {
     done();
     if (dialogType === 'send') {
       resetForm();

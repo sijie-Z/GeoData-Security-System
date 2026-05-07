@@ -6,75 +6,69 @@
       :collapse="isCollapse"
       class="sidebar-menu"
     >
-      <!-- 仪表板 -->
       <el-menu-item index="/admin">
         <el-icon><HomeFilled /></el-icon>
-        <template #title>仪表板</template>
+        <template #title>{{ $t('sidebar.admin.dashboard') }}</template>
       </el-menu-item>
 
-      <!-- 审批管理 -->
       <el-sub-menu index="approval">
         <template #title>
           <el-icon><DocumentChecked /></el-icon>
-          <span>审批管理</span>
+          <span>{{ $t('sidebar.admin.approval') }}</span>
         </template>
-        <el-menu-item index="/admin/approve_application/not_approved">待一审</el-menu-item>
-        <el-menu-item index="/admin/approve_application/approved">待二审</el-menu-item>
-        <el-menu-item index="/admin/approve_application/dual_channel">双通道审批</el-menu-item>
-        <el-menu-item index="/admin/recall">数据回收审议</el-menu-item>
-        <el-menu-item index="/admin/admin-application">管理员申请审批</el-menu-item>
+        <el-menu-item index="/admin/approve_application/not_approved">{{ $t('sidebar.admin.firstReview') }}</el-menu-item>
+        <el-menu-item index="/admin/approve_application/approved">{{ $t('sidebar.admin.secondReview') }}</el-menu-item>
+        <el-menu-item index="/admin/approve_application/dual_channel">{{ $t('sidebar.admin.dualChannel') }}</el-menu-item>
+        <el-menu-item index="/admin/recall">{{ $t('sidebar.admin.dataRecall') }}</el-menu-item>
+        <el-menu-item index="/admin/admin-application">{{ $t('sidebar.admin.adminAppApproval') }}</el-menu-item>
       </el-sub-menu>
 
-      <!-- 水印流程 -->
       <el-sub-menu index="watermark">
         <template #title>
           <el-icon><Picture /></el-icon>
-          <span>水印流程</span>
+          <span>{{ $t('sidebar.admin.watermark') }}</span>
         </template>
         <el-sub-menu index="vector-wm">
-          <template #title>矢量数据</template>
-          <el-menu-item index="/admin/watermark_generation">生成</el-menu-item>
-          <el-menu-item index="/admin/watermark_embedding">嵌入</el-menu-item>
-          <el-menu-item index="/admin/watermark_extraction">提取</el-menu-item>
+          <template #title>{{ $t('sidebar.admin.vectorData') }}</template>
+          <el-menu-item index="/admin/watermark_generation">{{ $t('sidebar.admin.generate') }}</el-menu-item>
+          <el-menu-item index="/admin/watermark_embedding">{{ $t('sidebar.admin.embed') }}</el-menu-item>
+          <el-menu-item index="/admin/watermark_extraction">{{ $t('sidebar.admin.extract') }}</el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="raster-wm">
-          <template #title>栅格数据</template>
-          <el-menu-item index="/admin/raster_watermark_generation">生成</el-menu-item>
-          <el-menu-item index="/admin/raster_watermark_embedding">嵌入</el-menu-item>
-          <el-menu-item index="/admin/raster_watermark_extraction">提取</el-menu-item>
+          <template #title>{{ $t('sidebar.admin.rasterData') }}</template>
+          <el-menu-item index="/admin/raster_watermark_generation">{{ $t('sidebar.admin.generate') }}</el-menu-item>
+          <el-menu-item index="/admin/raster_watermark_embedding">{{ $t('sidebar.admin.embed') }}</el-menu-item>
+          <el-menu-item index="/admin/raster_watermark_extraction">{{ $t('sidebar.admin.extract') }}</el-menu-item>
         </el-sub-menu>
       </el-sub-menu>
 
-      <!-- 数据管理 -->
       <el-sub-menu index="data">
         <template #title>
           <el-icon><Folder /></el-icon>
-          <span>数据管理</span>
+          <span>{{ $t('sidebar.admin.dataMgmt') }}</span>
         </template>
-        <el-menu-item index="/admin/data/upload">数据上传</el-menu-item>
+        <el-menu-item index="/admin/data/upload">{{ $t('sidebar.admin.dataUpload') }}</el-menu-item>
       </el-sub-menu>
 
-      <!-- 员工管理 -->
       <el-sub-menu index="employee">
         <template #title>
           <el-icon><User /></el-icon>
-          <span>员工管理</span>
+          <span>{{ $t('sidebar.admin.employeeMgmt') }}</span>
         </template>
-        <el-menu-item index="/admin/employee_management/information_list">员工列表</el-menu-item>
-        <el-menu-item index="/admin/employee_management/information_add">添加员工</el-menu-item>
-        <el-menu-item index="/admin/system/chat">在线沟通</el-menu-item>
+        <el-menu-item index="/admin/employee_management/information_list">{{ $t('sidebar.admin.employeeList') }}</el-menu-item>
+        <el-menu-item index="/admin/employee_management/information_add">{{ $t('sidebar.admin.addEmployee') }}</el-menu-item>
+        <el-menu-item index="/admin/system/chat">{{ $t('sidebar.admin.onlineChat') }}</el-menu-item>
       </el-sub-menu>
 
-      <!-- 系统设置 -->
       <el-sub-menu index="system">
         <template #title>
           <el-icon><Setting /></el-icon>
-          <span>系统设置</span>
+          <span>{{ $t('sidebar.admin.systemSettings') }}</span>
         </template>
-        <el-menu-item index="/admin/logs">操作日志</el-menu-item>
-        <el-menu-item index="/admin/system/announcements">系统公告</el-menu-item>
-        <el-menu-item index="/admin/system/notifications">消息发送</el-menu-item>
-        <el-menu-item index="/admin/guide">上手指南</el-menu-item>
+        <el-menu-item index="/admin/logs">{{ $t('sidebar.admin.operationLogs') }}</el-menu-item>
+        <el-menu-item index="/admin/system/announcements">{{ $t('sidebar.admin.systemAnnouncement') }}</el-menu-item>
+        <el-menu-item index="/admin/system/notifications">{{ $t('sidebar.admin.messageSend') }}</el-menu-item>
+        <el-menu-item index="/admin/guide">{{ $t('sidebar.admin.guide') }}</el-menu-item>
       </el-sub-menu>
     </el-menu>
   </div>
@@ -120,7 +114,6 @@ defineProps({
   width: 200px;
 }
 
-/* 菜单项样式 */
 :deep(.el-menu-item),
 :deep(.el-sub-menu__title) {
   height: 46px;
@@ -142,7 +135,6 @@ defineProps({
   border-left: 3px solid #409EFF;
 }
 
-/* 子菜单背景 */
 :deep(.el-menu--inline) {
   background-color: #1f2d3d !important;
 }
@@ -154,13 +146,11 @@ defineProps({
   line-height: 42px;
 }
 
-/* 图标 */
 .el-icon {
   font-size: 17px;
   margin-right: 8px;
 }
 
-/* 滚动条 */
 .sidebar::-webkit-scrollbar {
   width: 4px;
 }

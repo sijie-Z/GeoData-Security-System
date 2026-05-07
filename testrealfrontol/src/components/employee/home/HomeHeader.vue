@@ -83,6 +83,7 @@ const logout = async () => {
  import { ref, computed, onMounted, nextTick, watch } from 'vue';
  import { useUserStore } from "@/stores/userStore";
  import { useRouter, useRoute } from "vue-router";
+ import { useI18n } from 'vue-i18n';
  import { ElMessage } from "element-plus";
  import {
    UserFilled, SwitchButton, ArrowDown,
@@ -91,6 +92,8 @@ const logout = async () => {
  import Axios from "@/utils/Axios";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
+
+const { t } = useI18n();
  
  const userStore = useUserStore();
  const router = useRouter();
@@ -123,13 +126,13 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
          avatarUrl.value = URL.createObjectURL(response.data);
        } else {
          avatarUrl.value = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg';
-         ElMessage.warning("未能加载用户头像，使用默认头像。");
+         ElMessage.warning(t('header.avatarLoadFailed'));
        }
      } catch (error) {
        console.error("获取用户头像失败:", error);
        // 404错误是正常情况，不显示错误消息
        if (error.response?.status !== 404) {
-         ElMessage.warning("获取用户头像时发生错误。");
+         ElMessage.warning(t('header.avatarError'));
        }
        avatarUrl.value = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg';
      }
@@ -148,7 +151,7 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
          ...userStore.currentUser,
          user_number: userData.user_number,
          role: userData.role,
-         userName: userData.user_name || '员工',
+         userName: userData.user_name || t('header.employee'),
        });
      } else {
        console.warn('Protected API 未返回预期的用户数据。');
@@ -179,10 +182,10 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
  const logout = async () => {
    try {
      await Axios.post('/api/logout');
-     ElMessage.success('已退出登录');
+     ElMessage.success(t('header.logoutSuccess'));
    } catch (err) {
-     console.error('登出请求失败', err);
-     ElMessage.warning('登出请求失败，但会继续清除本地信息');
+     console.error('Logout failed', err);
+     ElMessage.warning(t('header.logoutFailed'));
    } finally {
      userStore.clearUserInfo();
      if (avatarUrl.value.startsWith('blob:')) {
@@ -216,7 +219,7 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
        />
        <!-- 使用新的维基风格地理空间logo -->
      <img src="@/components/icons/geo-wiki-logo.svg" alt="Logo" class="wiki-logo" />
-       <span class="system-title">空间数据跟踪系统</span>
+       <span class="system-title">{{ $t('header.systemTitle') }}</span>
      </div>
  
      <div class="header-right">
@@ -232,10 +235,10 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
          active-text-color="#409EFF"
          :default-active="$route.path"
        >
-         <el-menu-item index="/employee">首页</el-menu-item>
-         <el-menu-item index="/employee/data_viewing">数据目录</el-menu-item>
-         <el-menu-item index="/employee/data_application">我的申请</el-menu-item>
-         <el-menu-item index="/employee/data_download">数据下载</el-menu-item>
+         <el-menu-item index="/employee">{{ $t('header.home') }}</el-menu-item>
+         <el-menu-item index="/employee/data_viewing">{{ $t('header.dataCatalog') }}</el-menu-item>
+         <el-menu-item index="/employee/data_application">{{ $t('header.myApplications') }}</el-menu-item>
+         <el-menu-item index="/employee/data_download">{{ $t('header.dataDownload') }}</el-menu-item>
        </el-menu>
  
        <el-dropdown trigger="click" @command="handleCommand">
@@ -243,15 +246,15 @@ import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
            <el-avatar :size="36" :src="avatarUrl" class="user-avatar" @error="handleAvatarError">
              <img src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg" alt="默认头像" />
            </el-avatar>
-           <span class="user-name">{{ userName || '员工' }}</span>
+           <span class="user-name">{{ userName || $t('header.employee') }}</span>
            <el-icon class="el-icon--right"><arrow-down /></el-icon>
          </span>
          <template #dropdown>
            <el-dropdown-menu>
-             <el-dropdown-item command="profile" :icon="UserFilled">个人中心</el-dropdown-item>
-             <el-dropdown-item command="help" :icon="QuestionFilled">系统帮助</el-dropdown-item>
-             <el-dropdown-item command="about" :icon="InfoFilled">关于系统</el-dropdown-item>
-             <el-dropdown-item divided command="logout" :icon="SwitchButton">退出登录</el-dropdown-item>
+             <el-dropdown-item command="profile" :icon="UserFilled">{{ $t('header.profile') }}</el-dropdown-item>
+             <el-dropdown-item command="help" :icon="QuestionFilled">{{ $t('header.systemHelp') }}</el-dropdown-item>
+             <el-dropdown-item command="about" :icon="InfoFilled">{{ $t('header.aboutSystem') }}</el-dropdown-item>
+             <el-dropdown-item divided command="logout" :icon="SwitchButton">{{ $t('header.logout') }}</el-dropdown-item>
            </el-dropdown-menu>
          </template>
        </el-dropdown>

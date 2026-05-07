@@ -3,7 +3,7 @@
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
-        <span>已批准数据下载</span>
+        <span>{{ $t('empDataDownload.title') }}</span>
         <el-button :icon="Refresh" circle @click="get_applications" :loading="loading" />
       </div>
     </template>
@@ -15,33 +15,33 @@
           <!-- 左侧信息区 -->
           <div class="info-section">
             <el-descriptions :column="1" size="small">
-              <el-descriptions-item label="申请 ID">#{{ item.application_id }}</el-descriptions-item>
-              <el-descriptions-item label="数据名称"><strong>{{ item.data_alias }}</strong></el-descriptions-item>
-              <el-descriptions-item label="矢量数据 ID">{{ item.data_id }}</el-descriptions-item>
-              <el-descriptions-item label="数据提供方">{{ item.send_file_person_user_number }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.applicationId')">#{{ item.application_id }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.dataName')"><strong>{{ item.data_alias }}</strong></el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.vectorDataId')">{{ item.data_id }}</el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.dataProvider')">{{ item.send_file_person_user_number }}</el-descriptions-item>
             </el-descriptions>
           </div>
           <!-- 右侧操作区 -->
           <div class="action-section">
-            <el-button 
-              type="primary" 
-              size="large" 
+            <el-button
+              type="primary"
+              size="large"
               :icon="Download"
               @click="download(item)"
               :loading="downloadingStatus[item.application_id]"
             >
-              下载数据
+              {{ $t('empDataDownload.downloadData') }}
             </el-button>
           </div>
         </div>
       </el-card>
     </div>
-    
+
     <!-- 加载状态 -->
     <div v-if="loading" v-loading="loading" class="loading-placeholder"></div>
 
     <!-- 空状态 -->
-    <el-empty v-if="!loading && data.list.length === 0" description="暂无已批准的可下载数据" />
+    <el-empty v-if="!loading && data.list.length === 0" :description="$t('empDataDownload.emptyDescription')" />
 
     <!-- 分页器 -->
     <div v-if="total > 0" class="pagination-container">
@@ -61,9 +61,12 @@
 // [新增] 导入 Refresh 和 Download 图标
 import { Refresh, Download } from "@element-plus/icons-vue";
 import { reactive, onMounted, ref, watch, computed } from "vue";
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from "element-plus";
 import Axios from "@/utils/Axios";
 import { useUserStore } from "@/stores/userStore.js";
+
+const { t } = useI18n();
 
 const userStore = useUserStore();
 const userNumber = computed(() => userStore.userNumber);
@@ -100,7 +103,7 @@ const get_applications = async () => {
       return;
     }
     if (response?.data?.status === false) {
-      ElMessage.error(response?.data?.msg || '获取失败');
+      ElMessage.error(response?.data?.msg || t('empDataDownload.fetchFailed'));
       data.list = [];
       total.value = 0;
       return;
@@ -109,7 +112,7 @@ const get_applications = async () => {
     total.value = response?.data?.pages?.total ?? 0;
   } catch (err) {
     console.error("Error", err);
-    ElMessage.error("获取记录失败");
+    ElMessage.error(t('empDataDownload.fetchRecordsFailed'));
   } finally {
     loading.value = false;
   }
@@ -166,7 +169,7 @@ const download = async (row) => {
     window.URL.revokeObjectURL(url); // [优化] 释放内存
   } catch (error) {
     console.error('Download error:', error);
-    ElMessage.error('下载失败，请稍后重试');
+    ElMessage.error(t('empDataDownload.downloadFailed'));
   } finally {
     downloadingStatus[row.application_id] = false; // 结束下载，恢复按钮状态
   }

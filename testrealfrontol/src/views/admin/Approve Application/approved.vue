@@ -1,33 +1,33 @@
 <template>
   <div class="approval-page">
     <div class="page-header">
-      <h1 class="page-title">待二审申请</h1>
-      <p class="page-desc">仅管理员2处理：显示一审已通过、二审待处理记录。</p>
+      <h1 class="page-title">{{ $t('approval.secondReviewTitle') }}</h1>
+      <p class="page-desc">{{ $t('approval.secondReviewDescription') }}</p>
     </div>
 
     <el-card class="table-card" shadow="hover">
       <div class="toolbar">
-        <el-input v-model="filters.keyword" placeholder="按申请编号/数据名/申请人搜索" clearable style="width: 300px;" />
+        <el-input v-model="filters.keyword" :placeholder="$t('approval.searchPlaceholder')" clearable style="width: 300px;" />
       </div>
 
-      <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table" empty-text="暂无待二审记录">
-        <el-table-column prop="id" label="申请编号" width="90" align="center" />
-        <el-table-column prop="data_alias" label="数据名称" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="data_id" label="数据编号" width="100" align="center" />
-        <el-table-column prop="applicant_user_number" label="申请人编号" width="130" align="center" />
-        <el-table-column prop="applicant_name" label="申请人姓名" width="110" align="center" />
-        <el-table-column prop="reason" label="申请理由" min-width="180" show-overflow-tooltip />
+      <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table" :empty-text="$t('approval.noSecondReview')">
+        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
+        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="140" show-overflow-tooltip />
+        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
+        <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="130" align="center" />
+        <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="110" align="center" />
+        <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="180" show-overflow-tooltip />
 
-        <el-table-column label="一审状态" width="100" align="center">
+        <el-table-column :label="$t('approval.firstReviewStatus')" width="100" align="center">
           <template #default="scope">
             {{ getStatusText(scope.row.first_statu) }}
           </template>
         </el-table-column>
 
-        <el-table-column label="操作" width="230" align="center" fixed="right">
+        <el-table-column :label="$t('approval.operation')" width="230" align="center" fixed="right">
           <template #default="scope">
-            <el-button size="small" type="primary" @click="review(scope.row, true)">二审通过</el-button>
-            <el-button size="small" @click="review(scope.row, false)">二审不通过</el-button>
+            <el-button size="small" type="primary" @click="review(scope.row, true)">{{ $t('approval.secondReviewApprove') }}</el-button>
+            <el-button size="small" @click="review(scope.row, false)">{{ $t('approval.secondReviewReject') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -49,8 +49,11 @@
 <script setup>
 import { reactive, onMounted, ref, computed, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { useI18n } from 'vue-i18n';
 import axios from '@/utils/Axios';
 import { useUserStore } from "@/stores/userStore.js";
+
+const { t } = useI18n();
 
 const userStore = useUserStore();
 const userNumber = computed(() => userStore.userNumber);
@@ -86,9 +89,9 @@ watch(page, (newValue, oldValue) => {
 });
 
 const getStatusText = (status) => {
-  if (status === true) return '通过';
-  if (status === false) return '不通过';
-  if (status === null || status === undefined) return '待审核';
+  if (status === true) return t('approval.passed');
+  if (status === false) return t('approval.failed');
+  if (status === null || status === undefined) return t('approval.pending');
   return '';
 };
 
@@ -101,13 +104,13 @@ const admin2_get_approved = async () => {
     if (!response.data?.status) {
       data.list = [];
       total.value = 0;
-      ElMessage.error(response.data?.msg || '获取记录失败');
+      ElMessage.error(response.data?.msg || t('approval.fetchFailed'));
       return;
     }
     data.list = response.data.approved_application_data || [];
     total.value = response.data.pages?.total ?? 0;
   } catch (err) {
-    ElMessage.error('获取记录失败');
+    ElMessage.error(t('approval.fetchFailed'));
   } finally {
     loading.value = false;
   }
@@ -115,14 +118,14 @@ const admin2_get_approved = async () => {
 
 const review = async (row, pass) => {
   if (!isAdm2.value) {
-    ElMessage.error('仅管理员2可执行二审');
+    ElMessage.error(t('approval.notAdmin2'));
     return;
   }
   try {
-    await ElMessageBox.confirm(`确认将申请 ${row.id} 二审${pass ? '通过' : '不通过'}？`, '二审确认', {
+    await ElMessageBox.confirm(t('approval.secondReviewConfirm', { id: row.id, action: pass ? t('approval.approve') : t('approval.reject') }), t('approval.secondReview'), {
       type: 'warning',
-      confirmButtonText: '确认',
-      cancelButtonText: '取消'
+      confirmButtonText: t('approval.confirm'),
+      cancelButtonText: t('approval.cancel')
     });
     const resp = await axios.post(`/api/admin/re_review`, {
       id: row.id,
@@ -132,10 +135,10 @@ const review = async (row, pass) => {
       user_number: userNumber.value
     });
     if (!resp.data?.status) {
-      ElMessage.error(resp.data?.msg || '二审失败');
+      ElMessage.error(resp.data?.msg || t('approval.secondReviewFailed'));
       return;
     }
-    ElMessage.success('二审结果已提交');
+    ElMessage.success(t('approval.secondReviewSubmitted'));
     await admin2_get_approved();
   } catch (_e) {
     // cancel ignore
@@ -146,7 +149,7 @@ onMounted(() => {
   if (!isAdm2.value) {
     data.list = [];
     total.value = 0;
-    ElMessage.warning('当前账号不是管理员2，待二审页不可操作');
+    ElMessage.warning(t('approval.notAdmin2Warning'));
     return;
   }
   admin2_get_approved();

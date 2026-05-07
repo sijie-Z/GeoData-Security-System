@@ -62,7 +62,7 @@ const handleFileChange = (uploadFile, uploadFiles) => {
     photoFileList.value = uploadFiles.filter(f => f.uid !== uploadFile.uid); // 从UI移除不合格文件
     return;
   }
-  
+
   // 校验通过，存储文件对象
   formData.photo = rawFile;
   // 手动触发照片字段的校验，以清除可能存在的错误提示
@@ -90,7 +90,7 @@ const submitForm = async () => {
             submitData.append(key, value);
           }
         }
-        
+
         // ========================================================
         // === 这里是与后端交互的核心，现在它会失败 ===
         const response = await Axios.post('/api/adm/add_employee', submitData);
@@ -140,7 +140,7 @@ const resetForm = () => {
           <el-col :span="12"><el-form-item label="手机号码" prop="phone_number"><el-input v-model="formData.phone_number" /></el-form-item></el-col>
         </el-row>
         <el-form-item label="住址" prop="address"><el-input v-model="formData.address" type="textarea" :rows="2" /></el-form-item>
-        
+
         <h3 class="form-section-title">员工照片</h3>
         <el-form-item label="上传照片" prop="photo">
           <el-upload
@@ -157,7 +157,7 @@ const resetForm = () => {
             <template #tip><div class="el-upload__tip">请上传JPG/PNG格式照片, 大小不超过5MB。</div></template>
           </el-upload>
         </el-form-item>
-        
+
         <el-divider />
         <el-form-item>
           <el-button type="primary" :loading="submitLoading" @click="submitForm">确认添加</el-button>
@@ -179,16 +179,15 @@ const resetForm = () => {
 
 
 
-
-
-
 <script setup>
 import { ref, reactive } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Back, Plus as PlusIcon } from '@element-plus/icons-vue';
+import { useI18n } from 'vue-i18n';
 import Axios from '@/utils/Axios.js';
 
+const { t } = useI18n();
 const router = useRouter();
 const formRef = ref(null);
 const photoFileList = ref([]);
@@ -206,14 +205,14 @@ const formData = reactive({
 });
 
 const rules = reactive({
-  employee_number: [{ required: true, message: '请输入员工编号', trigger: 'blur' }],
-  name: [{ required: true, message: '请输入姓名', trigger: 'blur' }],
-  job_number: [{ required: true, message: '请输入工号', trigger: 'blur' }],
-  id_number: [{ required: true, message: '请输入18位身份证号', trigger: 'blur' }, { len: 18, message: '身份证号必须为18位', trigger: 'blur' }],
-  phone_number: [{ required: true, message: '请输入手机号码', trigger: 'blur' }, { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号码', trigger: 'blur' }],
-  address: [{ required: true, message: '请输入住址', trigger: 'blur' }],
-  photo: [{ required: true, message: '必须上传一张员工照片', trigger: 'change' }],
-  password: [{ required: true, message: '必须为新员工设置初始密码', trigger: 'blur' }],
+  employee_number: [{ required: true, message: () => t('employeeMgmt.enterEmployeeNumber'), trigger: 'blur' }],
+  name: [{ required: true, message: () => t('employeeMgmt.enterName'), trigger: 'blur' }],
+  job_number: [{ required: true, message: () => t('employeeMgmt.enterJobNumber'), trigger: 'blur' }],
+  id_number: [{ required: true, message: () => t('employeeMgmt.enterIdNumber'), trigger: 'blur' }, { len: 18, message: () => t('employeeMgmt.idNumberLength'), trigger: 'blur' }],
+  phone_number: [{ required: true, message: () => t('employeeMgmt.enterPhoneNumber'), trigger: 'blur' }, { pattern: /^1[3-9]\d{9}$/, message: () => t('employeeMgmt.validPhoneNumber'), trigger: 'blur' }],
+  address: [{ required: true, message: () => t('employeeMgmt.enterAddress'), trigger: 'blur' }],
+  photo: [{ required: true, message: () => t('employeeMgmt.photoRequired'), trigger: 'change' }],
+  password: [{ required: true, message: () => t('employeeMgmt.passwordRequired'), trigger: 'blur' }],
 });
 
 const handleBack = () => router.back();
@@ -224,12 +223,12 @@ const handleFileChange = (uploadFile, uploadFiles) => {
   const isLt5M = rawFile.size / 1024 / 1024 < 5;
 
   if (!isJpgOrPng) {
-    ElMessage.error('照片只支持 JPG/PNG 格式!');
+    ElMessage.error(t('employeeMgmt.photoFormatError'));
     photoFileList.value = uploadFiles.filter(f => f.uid !== uploadFile.uid);
     return;
   }
   if (!isLt5M) {
-    ElMessage.error('照片大小不能超过 5MB!');
+    ElMessage.error(t('employeeMgmt.photoSizeError'));
     photoFileList.value = uploadFiles.filter(f => f.uid !== uploadFile.uid);
     return;
   }
@@ -238,7 +237,7 @@ const handleFileChange = (uploadFile, uploadFiles) => {
 };
 
 const handleRemove = () => formData.photo = null;
-const handleExceed = () => ElMessage.warning('只能上传一张员工照片');
+const handleExceed = () => ElMessage.warning(t('employeeMgmt.onlyOnePhoto'));
 
 const submitForm = async () => {
   if (!formRef.value) return;
@@ -252,23 +251,23 @@ const submitForm = async () => {
             submitData.append(key, value);
           }
         }
-        
+
         const response = await Axios.post('/api/adm/add_employee', submitData);
 
         if (response.data && response.data.status) {
-          ElMessage.success(response.data.msg || '新员工添加成功！');
+          ElMessage.success(response.data.msg || t('employeeMgmt.addSuccess'));
           router.push('/admin/employee_management/information_list');
         } else {
-          ElMessage.error(response.data.msg || '添加失败');
+          ElMessage.error(response.data.msg || t('employeeMgmt.addFailed'));
         }
       } catch (error) {
-        const backendMessage = error.response?.data?.msg || '请检查网络或联系管理员';
-        ElMessage.error(`添加失败: ${backendMessage}`);
+        const backendMessage = error.response?.data?.msg || t('employeeMgmt.networkError');
+        ElMessage.error(t('employeeMgmt.addFailedWithMessage', { message: backendMessage }));
       } finally {
         submitLoading.value = false;
       }
     } else {
-      ElMessage.error('表单信息填写不完整，请检查红色提示项');
+      ElMessage.error(t('employeeMgmt.formIncomplete'));
     }
   });
 };
@@ -282,70 +281,70 @@ const resetForm = () => {
 
 <template>
   <div class="page-container">
-    <el-page-header :icon="Back" title="返回" @back="handleBack">
-      <template #content><span class="page-title">添加新员工</span></template>
+    <el-page-header :icon="Back" :title="$t('employeeMgmt.back')" @back="handleBack">
+      <template #content><span class="page-title">{{ $t('employeeMgmt.addNewEmployee') }}</span></template>
     </el-page-header>
     <el-divider />
     <div class="form-wrapper">
-      <el-form 
-        ref="formRef" 
-        :model="formData" 
-        :rules="rules" 
-        label-width="100px" 
+      <el-form
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="100px"
         style="max-width: 700px;"
       >
-        <h3 class="form-section-title">基本信息</h3>
+        <h3 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h3>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="员工编号" prop="employee_number">
-              <el-input v-model="formData.employee_number" placeholder="例如: employee3" />
+            <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
+              <el-input v-model="formData.employee_number" :placeholder="$t('employeeMgmt.employeeNumberPlaceholder')" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="姓名" prop="name">
-              <el-input v-model="formData.name" placeholder="请输入真实姓名" />
+            <el-form-item :label="$t('employeeMgmt.name')" prop="name">
+              <el-input v-model="formData.name" :placeholder="$t('employeeMgmt.namePlaceholder')" />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item label="工号" prop="job_number">
-              <el-input v-model="formData.job_number" placeholder="请输入员工工号" />
+            <el-form-item :label="$t('employeeMgmt.jobNumber')" prop="job_number">
+              <el-input v-model="formData.job_number" :placeholder="$t('employeeMgmt.jobNumberPlaceholder')" />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item label="手机号码" prop="phone_number">
-              <el-input v-model="formData.phone_number" placeholder="请输入11位手机号" />
+            <el-form-item :label="$t('employeeMgmt.phoneNumber')" prop="phone_number">
+              <el-input v-model="formData.phone_number" :placeholder="$t('employeeMgmt.phonePlaceholder')" />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item label="身份证号" prop="id_number">
-          <el-input v-model="formData.id_number" placeholder="请输入18位身份证号" />
+        <el-form-item :label="$t('employeeMgmt.idNumber')" prop="id_number">
+          <el-input v-model="formData.id_number" :placeholder="$t('employeeMgmt.idNumberPlaceholder')" />
         </el-form-item>
-        <el-form-item label="住址" prop="address">
-          <el-input v-model="formData.address" type="textarea" :rows="2" placeholder="请输入联系地址" />
-        </el-form-item>
-        
-        <h3 class="form-section-title">账户与安全</h3>
-        <el-form-item label="初始密码" prop="password">
-          <el-input v-model="formData.password" type="password" show-password placeholder="为员工设置登录密码" />
+        <el-form-item :label="$t('employeeMgmt.address')" prop="address">
+          <el-input v-model="formData.address" type="textarea" :rows="2" :placeholder="$t('employeeMgmt.addressPlaceholder')" />
         </el-form-item>
 
-        <h3 class="form-section-title">员工照片</h3>
-        <el-form-item label="上传照片" prop="photo">
+        <h3 class="form-section-title">{{ $t('employeeMgmt.accountAndSecurity') }}</h3>
+        <el-form-item :label="$t('employeeMgmt.initialPassword')" prop="password">
+          <el-input v-model="formData.password" type="password" show-password :placeholder="$t('employeeMgmt.passwordPlaceholder')" />
+        </el-form-item>
+
+        <h3 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h3>
+        <el-form-item :label="$t('employeeMgmt.uploadPhoto')" prop="photo">
           <el-upload
             v-model:file-list="photoFileList" action="#" list-type="picture-card"
             :limit="1" :auto-upload="false" :on-change="handleFileChange"
             :on-remove="handleRemove" @exceed="handleExceed">
             <el-icon><PlusIcon /></el-icon>
-            <template #tip><div class="el-upload__tip">请上传JPG/PNG格式照片, 大小不超过5MB。</div></template>
+            <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.uploadPhotoTip') }}</div></template>
           </el-upload>
         </el-form-item>
-        
+
         <el-divider />
         <el-form-item>
-          <el-button type="primary" :loading="submitLoading" @click="submitForm">确认添加</el-button>
-          <el-button @click="resetForm">重置所有</el-button>
+          <el-button type="primary" :loading="submitLoading" @click="submitForm">{{ $t('employeeMgmt.confirmAdd') }}</el-button>
+          <el-button @click="resetForm">{{ $t('employeeMgmt.resetAll') }}</el-button>
         </el-form-item>
       </el-form>
     </div>

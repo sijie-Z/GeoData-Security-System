@@ -3,9 +3,9 @@
     <el-card class="chat-card" shadow="hover">
       <template #header>
         <div class="chat-header">
-          <h2>在线沟通</h2>
+          <h2>{{ $t('empChat.title') }}</h2>
           <div class="header-actions">
-            <el-button @click="loadConversations" :loading="loadingConversations">刷新会话</el-button>
+            <el-button @click="loadConversations" :loading="loadingConversations">{{ $t('empChat.refreshConversations') }}</el-button>
           </div>
         </div>
       </template>
@@ -13,34 +13,34 @@
       <div class="chat-layout">
         <aside class="conversation-list" v-loading="loadingConversations">
           <div class="tool-row">
-            <el-input v-model="searchKeyword" placeholder="按账号/姓名搜索" clearable @keyup.enter="searchUsers">
+            <el-input v-model="searchKeyword" :placeholder="$t('empChat.searchPlaceholder')" clearable @keyup.enter="searchUsers">
               <template #append>
-                <el-button @click="searchUsers">搜索</el-button>
+                <el-button @click="searchUsers">{{ $t('empChat.search') }}</el-button>
               </template>
             </el-input>
           </div>
 
           <div class="search-result" v-if="searchResults.length">
-            <div class="result-title">搜索结果</div>
+            <div class="result-title">{{ $t('empChat.searchResults') }}</div>
             <div class="result-item" v-for="u in searchResults" :key="`${u.role}-${u.number}`">
               <div>
                 <b>{{ u.name }}</b>
                 <span class="sub">{{ u.number }} / {{ roleText(u.role) }}</span>
               </div>
-              <el-button size="small" type="primary" link @click="addFriend(u)">申请好友</el-button>
+              <el-button size="small" type="primary" link @click="addFriend(u)">{{ $t('empChat.addFriend') }}</el-button>
             </div>
           </div>
 
           <div class="search-result" v-if="friendRequests.length">
-            <div class="result-title">收到的好友申请</div>
+            <div class="result-title">{{ $t('empChat.friendRequests') }}</div>
             <div class="result-item" v-for="r in friendRequests" :key="r.id">
               <div>
                 <b>{{ r.owner_name }}</b>
                 <span class="sub">{{ r.owner_number }} / {{ roleText(r.owner_role) }}</span>
               </div>
               <div>
-                <el-button size="small" type="success" link @click="respondFriend(r, 'accept')">同意</el-button>
-                <el-button size="small" type="danger" link @click="respondFriend(r, 'reject')">拒绝</el-button>
+                <el-button size="small" type="success" link @click="respondFriend(r, 'accept')">{{ $t('empChat.accept') }}</el-button>
+                <el-button size="small" type="danger" link @click="respondFriend(r, 'reject')">{{ $t('empChat.reject') }}</el-button>
               </div>
             </div>
           </div>
@@ -57,17 +57,17 @@
               <span class="time">{{ item.last_time || '' }}</span>
             </div>
             <div class="bottom-row">
-              <span class="last">{{ item.last_message || '暂无消息' }}</span>
+              <span class="last">{{ item.last_message || $t('empChat.noMessages') }}</span>
               <el-badge v-if="item.unread_count > 0" :value="item.unread_count" class="badge" />
             </div>
           </div>
 
-          <el-empty v-if="!conversations.length && !loadingConversations" description="暂无会话" :image-size="80" />
+          <el-empty v-if="!conversations.length && !loadingConversations" :description="$t('empChat.noConversations')" :image-size="80" />
         </aside>
 
         <section class="message-panel">
           <div v-if="!activePeer" class="empty-wrap">
-            <el-empty description="请选择左侧会话，或搜索并添加联系人" />
+            <el-empty :description="$t('empChat.selectConversation')" />
           </div>
 
           <template v-else>
@@ -76,7 +76,7 @@
                 <b>{{ activePeer.peer_name || activePeer.peer_number }}</b>
                 <span class="sub">（{{ roleText(activePeer.peer_role) }}）</span>
               </div>
-              <el-button size="small" @click="loadMessages">刷新消息</el-button>
+              <el-button size="small" @click="loadMessages">{{ $t('empChat.refreshMessages') }}</el-button>
             </div>
 
             <div class="message-list" ref="messageListRef" v-loading="loadingMessages">
@@ -84,7 +84,7 @@
                 <div class="bubble">{{ msg.content }}</div>
                 <div class="meta">{{ msg.created_at }}</div>
               </div>
-              <el-empty v-if="!messages.length && !loadingMessages" description="暂无消息" :image-size="70" />
+              <el-empty v-if="!messages.length && !loadingMessages" :description="$t('empChat.noMessages')" :image-size="70" />
             </div>
 
             <div class="composer">
@@ -94,11 +94,11 @@
                 :rows="3"
                 maxlength="3000"
                 show-word-limit
-                placeholder="请输入消息内容"
+                :placeholder="$t('empChat.inputMessage')"
                 @keydown.ctrl.enter="sendMessage"
               />
               <div class="composer-actions">
-                <el-button type="primary" :loading="sending" @click="sendMessage">发送（Ctrl+Enter）</el-button>
+                <el-button type="primary" :loading="sending" @click="sendMessage">{{ $t('empChat.send') }}</el-button>
               </div>
             </div>
           </template>
@@ -110,8 +110,11 @@
 
 <script setup>
 import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import Axios from '@/utils/Axios'
+
+const { t } = useI18n()
 
 const conversations = ref([])
 const messages = ref([])
@@ -128,7 +131,7 @@ const messageListRef = ref(null)
 
 let pollTimer = null
 
-const roleText = (role) => (role === 'admin' ? '管理员' : '员工')
+const roleText = (role) => (role === 'admin' ? t('empChat.admin') : t('empChat.employee'))
 
 const scrollBottom = async () => {
   await nextTick()
@@ -210,13 +213,13 @@ const addFriend = async (u) => {
       friend_role: u.role
     })
     if (data?.status) {
-      ElMessage.success(data?.msg || '申请已发送')
+      ElMessage.success(data?.msg || t('empChat.requestSent'))
       await loadConversations()
     } else {
-      ElMessage.error(data?.msg || '申请失败')
+      ElMessage.error(data?.msg || t('empChat.requestFailed'))
     }
   } catch (_e) {
-    ElMessage.error('申请失败')
+    ElMessage.error(t('empChat.requestFailed'))
   }
 }
 
@@ -236,25 +239,25 @@ const respondFriend = async (r, action) => {
       action
     })
     if (data?.status) {
-      ElMessage.success(data?.msg || '操作成功')
+      ElMessage.success(data?.msg || t('empChat.operationSuccess'))
       await loadFriendRequests()
       await loadConversations()
     } else {
-      ElMessage.error(data?.msg || '操作失败')
+      ElMessage.error(data?.msg || t('empChat.operationFailed'))
     }
   } catch (_e) {
-    ElMessage.error('操作失败')
+    ElMessage.error(t('empChat.operationFailed'))
   }
 }
 
 const sendMessage = async () => {
   if (!activePeer.value) {
-    ElMessage.warning('请先选择会话')
+    ElMessage.warning(t('empChat.selectConversationFirst'))
     return
   }
   const content = (draft.value || '').trim()
   if (!content) {
-    ElMessage.warning('消息不能为空')
+    ElMessage.warning(t('empChat.messageEmpty'))
     return
   }
   sending.value = true
@@ -269,10 +272,10 @@ const sendMessage = async () => {
       await loadMessages()
       await loadConversations()
     } else {
-      ElMessage.error(data?.msg || '发送失败')
+      ElMessage.error(data?.msg || t('empChat.sendFailed'))
     }
   } catch (_e) {
-    ElMessage.error('发送失败')
+    ElMessage.error(t('empChat.sendFailed'))
   } finally {
     sending.value = false
   }

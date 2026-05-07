@@ -1,14 +1,14 @@
 <template>
   <div class="my-history-page">
     <div class="page-header">
-      <h1 class="page-title">我的操作历史</h1>
-      <p class="page-desc">查看您在本系统中的操作记录，支持按操作类型筛选</p>
+      <h1 class="page-title">{{ $t('empHistory.title') }}</h1>
+      <p class="page-desc">{{ $t('empHistory.description') }}</p>
     </div>
 
     <el-card class="history-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <span class="card-title">操作记录</span>
+          <span class="card-title">{{ $t('empHistory.operationRecords') }}</span>
           <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" title="刷新" />
         </div>
       </template>
@@ -16,21 +16,21 @@
       <div class="filter-bar">
         <el-select
           v-model="filters.action"
-          placeholder="操作类型"
+          :placeholder="$t('empHistory.operationType')"
           clearable
           style="width: 200px;"
           @change="handleFilterSearch"
         >
-          <el-option label="全部类型" value="" />
-          <el-option label="用户登录" value="用户登录" />
-          <el-option label="提交数据申请" value="提交数据申请" />
-          <el-option label="下载数据" value="下载数据" />
-          <el-option label="修改密码" value="修改密码" />
-          <el-option label="修改个人信息" value="修改个人信息" />
-          <el-option label="用户登出" value="用户登出" />
+          <el-option :label="$t('empHistory.allTypes')" value="" />
+          <el-option :label="$t('empHistory.userLogin')" value="用户登录" />
+          <el-option :label="$t('empHistory.submitApplication')" value="提交数据申请" />
+          <el-option :label="$t('empHistory.downloadData')" value="下载数据" />
+          <el-option :label="$t('empHistory.changePassword')" value="修改密码" />
+          <el-option :label="$t('empHistory.editProfile')" value="修改个人信息" />
+          <el-option :label="$t('empHistory.userLogout')" value="用户登出" />
         </el-select>
-        <el-button type="primary" :icon="Search" @click="handleFilterSearch">查询</el-button>
-        <el-button :icon="RefreshLeft" @click="resetFilters">重置</el-button>
+        <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('empHistory.search') }}</el-button>
+        <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('empHistory.reset') }}</el-button>
       </div>
 
       <el-table
@@ -43,17 +43,17 @@
         :header-cell-style="{ background: '#f5f7fa' }"
       >
         <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="timestamp" label="操作时间" width="172" />
-        <el-table-column prop="ip_address" label="IP 地址" width="140" show-overflow-tooltip />
-        <el-table-column prop="action" label="操作类型" width="140" show-overflow-tooltip />
-        <el-table-column prop="status" label="状态" width="88" align="center">
+        <el-table-column prop="timestamp" :label="$t('empHistory.operationTime')" width="172" />
+        <el-table-column prop="ip_address" :label="$t('empHistory.ipAddress')" width="140" show-overflow-tooltip />
+        <el-table-column prop="action" :label="$t('empHistory.operationType')" width="140" show-overflow-tooltip />
+        <el-table-column prop="status" :label="$t('empHistory.status')" width="88" align="center">
           <template #default="scope">
             <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
               {{ scope.row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="详情" min-width="260">
+        <el-table-column :label="$t('empHistory.details')" min-width="260">
           <template #default="scope">
             <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
           </template>
@@ -78,9 +78,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Search, RefreshRight, RefreshLeft } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import axios from '@/utils/Axios';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const logList = ref([]);
@@ -106,13 +109,13 @@ const fetchLogs = async () => {
     } else {
       logList.value = [];
       total.value = 0;
-      ElMessage.error(result?.msg || '获取记录失败');
+      ElMessage.error(result?.msg || t('empHistory.fetchFailed'));
     }
   } catch (err) {
     console.error('fetchLogs error', err);
     logList.value = [];
     total.value = 0;
-    ElMessage.error(err.response?.data?.msg || err.message || '网络错误');
+    ElMessage.error(err.response?.data?.msg || err.message || t('empHistory.networkError'));
   } finally {
     loading.value = false;
   }

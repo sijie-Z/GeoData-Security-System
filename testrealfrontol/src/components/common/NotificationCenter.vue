@@ -15,17 +15,17 @@
 
     <div class="notification-panel">
       <div class="panel-header">
-        <span class="panel-title">通知中心</span>
+        <span class="panel-title">{{ $t('notification.center') }}</span>
         <el-button type="primary" link size="small" @click="goToChat" v-if="unreadMessages > 0">
-          {{ unreadMessages }} 条新消息
+          {{ $t('notification.newMessages', { count: unreadMessages }) }}
         </el-button>
       </div>
 
       <el-tabs v-model="activeTab" class="notification-tabs">
-        <el-tab-pane label="消息" name="messages">
+        <el-tab-pane :label="$t('notification.messages')" name="messages">
           <div class="notification-list" v-loading="loading">
             <div v-if="messageNotifications.length === 0" class="empty-state">
-              暂无新消息
+              {{ $t('notification.noMessages') }}
             </div>
             <div
               v-for="item in messageNotifications"
@@ -40,17 +40,17 @@
                   <span class="sender">{{ item.peer_name || item.peer_number }}</span>
                   <span class="time">{{ formatTime(item.last_time) }}</span>
                 </div>
-                <div class="preview">{{ item.last_message || '点击查看详情' }}</div>
+                <div class="preview">{{ item.last_message || $t('notification.clickToView') }}</div>
               </div>
               <el-badge v-if="item.unread_count > 0" :value="item.unread_count" class="item-badge" />
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="系统通知" name="system">
+        <el-tab-pane :label="$t('notification.systemNotifications')" name="system">
           <div class="notification-list" v-loading="loading">
             <div v-if="systemNotifications.length === 0" class="empty-state">
-              暂无系统通知
+              {{ $t('notification.noSystemNotifications') }}
             </div>
             <div
               v-for="item in systemNotifications"
@@ -82,10 +82,12 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { Bell, DocumentChecked, Warning } from '@element-plus/icons-vue'
 import Axios from '@/utils/Axios'
 import { useUserStore } from '@/stores/userStore'
 
+const { t } = useI18n()
 const router = useRouter()
 const userStore = useUserStore()
 
@@ -109,9 +111,9 @@ const formatTime = (timeStr) => {
   const date = new Date(timeStr)
   const now = new Date()
   const diff = now - date
-  if (diff < 60000) return '刚刚'
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}分钟前`
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}小时前`
+  if (diff < 60000) return t('notification.justNow')
+  if (diff < 3600000) return t('notification.minutesAgo', { n: Math.floor(diff / 60000) })
+  if (diff < 86400000) return t('notification.hoursAgo', { n: Math.floor(diff / 3600000) })
   return timeStr.slice(5, 16)
 }
 
@@ -122,7 +124,7 @@ const loadConversations = async () => {
       messageNotifications.value = (data.data || []).filter(c => c.unread_count > 0).slice(0, 10)
     }
   } catch (e) {
-    console.error('加载会话失败:', e)
+    console.error('Failed to load conversations:', e)
   }
 }
 
@@ -137,13 +139,11 @@ const loadSystemNotifications = async () => {
       systemNotifications.value = data.data?.list || []
     }
   } catch (e) {
-    // 管理员暂无独立通知接口
     systemNotifications.value = []
   }
 }
 
 const markAllAsRead = () => {
-  // 打开面板时标记系统通知已读
   systemNotifications.value.forEach(n => n.read = true)
 }
 
@@ -169,7 +169,6 @@ const goToMessage = (item) => {
 
 const handleSystemNotification = (item) => {
   showPopover.value = false
-  // 根据通知类型跳转
   if (item.type === 'approval') {
     router.push('/admin/approve_application/not_approved')
   } else if (item.type === 'recall') {
@@ -184,7 +183,6 @@ let pollTimer = null
 onMounted(() => {
   loadConversations()
   loadSystemNotifications()
-  // 每60秒检查一次
   pollTimer = setInterval(() => {
     if (document.visibilityState === 'visible') {
       loadConversations()

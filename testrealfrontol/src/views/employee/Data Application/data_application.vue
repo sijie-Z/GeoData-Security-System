@@ -3,23 +3,23 @@
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
-        <span>我的申请记录</span>
+        <span>{{ $t('empDataApp.title') }}</span>
         <el-button :icon="Refresh" circle @click="get_applications" />
       </div>
     </template>
 
     <!-- 表格区域 -->
     <el-table :data="data.list" style="width: 100%" stripe v-loading="loading">
-      <el-table-column prop="id" label="申请ID" width="100" align="center">
+      <el-table-column prop="id" :label="$t('empDataApp.applicationId')" width="100" align="center">
          <template #default="{ row }">
           <strong>#{{ row.id }}</strong>
         </template>
       </el-table-column>
-      <el-table-column prop="data_alias" label="申请数据名称" show-overflow-tooltip />
-      <el-table-column prop="data_id" label="矢量数据ID" width="120" align="center"/>
-      <el-table-column prop="reason" label="申请理由" show-overflow-tooltip />
+      <el-table-column prop="data_alias" :label="$t('empDataApp.applicationDataName')" show-overflow-tooltip />
+      <el-table-column prop="data_id" :label="$t('empDataApp.vectorDataId')" width="120" align="center"/>
+      <el-table-column prop="reason" :label="$t('empDataApp.applicationReason')" show-overflow-tooltip />
 
-      <el-table-column label="一审状态" width="120" align="center">
+      <el-table-column :label="$t('empDataApp.firstReviewStatus')" width="120" align="center">
         <template #default="{ row }">
           <el-tag :type="getStatusTagType(row.first_statu)">
             {{ getStatusText(row.first_statu) }}
@@ -27,10 +27,10 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="二审状态" width="120" align="center">
+      <el-table-column :label="$t('empDataApp.secondReviewStatus')" width="120" align="center">
         <template #default="{ row }">
           <div v-if="row.first_statu === false">
-            <el-tag type="info">未开始</el-tag>
+            <el-tag type="info">{{ $t('empDataApp.notStarted') }}</el-tag>
           </div>
           <div v-else>
             <el-tag :type="getStatusTagType(row.second_statu)">
@@ -40,9 +40,9 @@
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="120" align="center">
+      <el-table-column :label="$t('empDataApp.actions')" width="120" align="center">
         <template #default>
-          <el-button type="primary" link size="small">查看详情</el-button>
+          <el-button type="primary" link size="small">{{ $t('empDataApp.viewDetails') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -65,9 +65,12 @@
 // [新增] 导入 Refresh 图标
 import { Refresh } from "@element-plus/icons-vue";
 import { reactive, onMounted, ref, watch, computed } from "vue";
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from "element-plus";
 import axios from '@/utils/Axios';
 import { useUserStore } from "@/stores/userStore.js";
+
+const { t } = useI18n();
 
 // [新增] 加载状态，提升用户体验
 const loading = ref(true);
@@ -102,9 +105,9 @@ const getStatusTagType = (status) => {
 };
 
 const getStatusText = (status) => {
-  if (status === true) return '已通过';
-  if (status === false) return '未通过';
-  if (status === null) return '待审核';
+  if (status === true) return t('empDataApp.statusApproved');
+  if (status === false) return t('empDataApp.statusRejected');
+  if (status === null) return t('empDataApp.statusPending');
   return 'N/A';
 };
 
@@ -130,7 +133,7 @@ const get_applications = async () => {
     total.value = response.data.pages.total;
   } catch (err) {
     console.error("Error", err);
-    ElMessage.error("获取申请记录失败，请稍后重试");
+    ElMessage.error(t('empDataApp.fetchFailed'));
   } finally {
     loading.value = false; // 结束加载
   }

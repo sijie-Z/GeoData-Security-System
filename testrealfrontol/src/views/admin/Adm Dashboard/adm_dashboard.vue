@@ -4,11 +4,11 @@
     <section class="hero-section">
       <div class="hero-content">
         <h1>{{ greeting }}，{{ adminRoleLabel }}</h1>
-        <p>实时掌握审批、数据资产与系统运行状态 | 更新时间：{{ lastUpdate }}</p>
+        <p>{{ $t('adminDashboard.heroSubtitle') }}{{ lastUpdate }}</p>
       </div>
       <div class="hero-actions">
-        <el-button type="primary" @click="refreshNow" :icon="RefreshRight">刷新数据</el-button>
-        <el-button @click="exportSnapshot" :icon="Download">导出报告</el-button>
+        <el-button type="primary" @click="refreshNow" :icon="RefreshRight">{{ $t('adminDashboard.refreshData') }}</el-button>
+        <el-button @click="exportSnapshot" :icon="Download">{{ $t('adminDashboard.exportReport') }}</el-button>
       </div>
     </section>
 
@@ -30,9 +30,9 @@
         <div class="kpi-body">
           <div class="kpi-icon blue"><el-icon><User /></el-icon></div>
           <div class="kpi-info">
-            <span class="kpi-label">注册用户</span>
+            <span class="kpi-label">{{ $t('adminDashboard.registeredUsers') }}</span>
             <h2 class="kpi-value">{{ metrics.totalUsers }}</h2>
-            <small>管理员 {{ metrics.totalAdmins }} 人</small>
+            <small>{{ $t('adminDashboard.adminCount', { count: metrics.totalAdmins }) }}</small>
           </div>
         </div>
       </el-card>
@@ -40,9 +40,9 @@
         <div class="kpi-body">
           <div class="kpi-icon orange"><el-icon><Clock /></el-icon></div>
           <div class="kpi-info">
-            <span class="kpi-label">待审批申请</span>
+            <span class="kpi-label">{{ $t('adminDashboard.pendingApplications') }}</span>
             <h2 class="kpi-value">{{ metrics.pendingApprovals }}</h2>
-            <small>累计 {{ metrics.totalApplications }} 条</small>
+            <small>{{ $t('adminDashboard.totalCount', { count: metrics.totalApplications }) }}</small>
           </div>
         </div>
       </el-card>
@@ -50,9 +50,9 @@
         <div class="kpi-body">
           <div class="kpi-icon green"><el-icon><FolderOpened /></el-icon></div>
           <div class="kpi-info">
-            <span class="kpi-label">数据资产</span>
+            <span class="kpi-label">{{ $t('adminDashboard.dataAssets') }}</span>
             <h2 class="kpi-value">{{ dataTypeStats.vector + dataTypeStats.raster }}</h2>
-            <small>矢量 {{ dataTypeStats.vector }} · 栅格 {{ dataTypeStats.raster }}</small>
+            <small>{{ $t('adminDashboard.vectorRasterBreakdown', { vector: dataTypeStats.vector, raster: dataTypeStats.raster }) }}</small>
           </div>
         </div>
       </el-card>
@@ -60,9 +60,9 @@
         <div class="kpi-body">
           <div class="kpi-icon cyan"><el-icon><TrendCharts /></el-icon></div>
           <div class="kpi-info">
-            <span class="kpi-label">今日活跃 / 总下载</span>
+            <span class="kpi-label">{{ $t('adminDashboard.todayActiveTotalDownloads') }}</span>
             <h2 class="kpi-value">{{ todayStats.activeUsers }} / {{ metrics.totalDownloads }}</h2>
-            <small>登录 {{ todayStats.logins }} 次</small>
+            <small>{{ $t('adminDashboard.loginTimes', { count: todayStats.logins }) }}</small>
           </div>
         </div>
       </el-card>
@@ -71,37 +71,37 @@
     <!-- 快捷入口 -->
     <section class="quick-actions">
       <el-card shadow="hover">
-        <template #header><span>快捷待办</span></template>
+        <template #header><span>{{ $t('adminDashboard.quickTodo') }}</span></template>
         <div class="action-grid">
           <div class="action-item" @click="goTo('/admin/approve_application/not_approved')">
             <el-badge :value="metrics.pendingApprovals" :hidden="metrics.pendingApprovals === 0">
               <el-icon :size="24"><Document /></el-icon>
             </el-badge>
-            <span>待审批</span>
+            <span>{{ $t('adminDashboard.pendingApproval') }}</span>
           </div>
           <div class="action-item" @click="goTo('/admin/recall')">
             <el-badge :value="recallStats.voting" :hidden="recallStats.voting === 0">
               <el-icon :size="24"><RefreshRight /></el-icon>
             </el-badge>
-            <span>回收审议</span>
+            <span>{{ $t('adminDashboard.recallReview') }}</span>
           </div>
           <div class="action-item" @click="goTo('/admin/admin-application')">
             <el-badge :value="adminAppStats.pending + adminAppStats.voting" :hidden="adminAppStats.pending + adminAppStats.voting === 0">
               <el-icon :size="24"><UserFilled /></el-icon>
             </el-badge>
-            <span>管理员申请</span>
+            <span>{{ $t('adminDashboard.adminApplication') }}</span>
           </div>
           <div class="action-item" @click="goTo('/admin/data/upload')">
             <el-icon :size="24"><Upload /></el-icon>
-            <span>数据上传</span>
+            <span>{{ $t('adminDashboard.dataUpload') }}</span>
           </div>
           <div class="action-item" @click="goTo('/admin/logs')">
             <el-icon :size="24"><List /></el-icon>
-            <span>系统日志</span>
+            <span>{{ $t('adminDashboard.systemLogs') }}</span>
           </div>
           <div class="action-item" @click="goTo('/admin/system/chat')">
             <el-icon :size="24"><ChatDotRound /></el-icon>
-            <span>在线沟通</span>
+            <span>{{ $t('adminDashboard.onlineChat') }}</span>
           </div>
         </div>
       </el-card>
@@ -110,11 +110,11 @@
     <!-- 图表区域 -->
     <section class="charts-grid">
       <el-card shadow="hover">
-        <template #header><span>14天申请与下载趋势</span></template>
+        <template #header><span>{{ $t('adminDashboard.trendChart') }}</span></template>
         <div ref="trendChartRef" class="chart-container"></div>
       </el-card>
       <el-card shadow="hover">
-        <template #header><span>申请状态分布</span></template>
+        <template #header><span>{{ $t('adminDashboard.statusDistribution') }}</span></template>
         <div ref="statusChartRef" class="chart-container"></div>
       </el-card>
     </section>
@@ -122,17 +122,17 @@
     <!-- 底部统计 -->
     <section class="bottom-grid">
       <el-card shadow="hover">
-        <template #header><span>本周统计对比</span></template>
+        <template #header><span>{{ $t('adminDashboard.weeklyComparison') }}</span></template>
         <div class="stats-row">
           <div class="stat-item">
-            <span class="stat-label">本周申请</span>
+            <span class="stat-label">{{ $t('adminDashboard.thisWeekApplications') }}</span>
             <span class="stat-value">{{ weeklyComparison.thisWeekApplications }}</span>
             <el-tag size="small" :type="weeklyComparison.applicationGrowth >= 0 ? 'success' : 'danger'">
               {{ weeklyComparison.applicationGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.applicationGrowth }}%
             </el-tag>
           </div>
           <div class="stat-item">
-            <span class="stat-label">本周下载</span>
+            <span class="stat-label">{{ $t('adminDashboard.thisWeekDownloads') }}</span>
             <span class="stat-value">{{ weeklyComparison.thisWeekDownloads }}</span>
             <el-tag size="small" :type="weeklyComparison.downloadGrowth >= 0 ? 'success' : 'danger'">
               {{ weeklyComparison.downloadGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.downloadGrowth }}%
@@ -142,25 +142,25 @@
       </el-card>
 
       <el-card shadow="hover">
-        <template #header><span>热门数据 TOP 5</span></template>
+        <template #header><span>{{ $t('adminDashboard.hotDataTop5') }}</span></template>
         <div class="hot-list">
           <div v-for="(item, idx) in hotData.slice(0, 5)" :key="idx" class="hot-item">
             <span class="rank" :class="{ top: idx < 3 }">{{ idx + 1 }}</span>
             <span class="name">{{ item.name }}</span>
             <el-tag size="small" :type="item.type === 'vector' ? 'primary' : 'success'">
-              {{ item.type === 'vector' ? '矢量' : '栅格' }}
+              {{ item.type === 'vector' ? $t('adminDashboard.vector') : $t('adminDashboard.raster') }}
             </el-tag>
-            <span class="count">{{ item.downloads }} 次</span>
+            <span class="count">{{ item.downloads }} {{ $t('adminDashboard.timesUnit') }}</span>
           </div>
-          <div v-if="hotData.length === 0" class="empty-tip">暂无下载数据</div>
+          <div v-if="hotData.length === 0" class="empty-tip">{{ $t('adminDashboard.noDownloadData') }}</div>
         </div>
       </el-card>
 
       <el-card shadow="hover">
         <template #header>
           <div style="display:flex;justify-content:space-between;align-items:center">
-            <span>最近操作日志</span>
-            <el-button text type="primary" size="small" @click="goTo('/admin/logs')">查看全部</el-button>
+            <span>{{ $t('adminDashboard.recentLogs') }}</span>
+            <el-button text type="primary" size="small" @click="goTo('/admin/logs')">{{ $t('adminDashboard.viewAll') }}</el-button>
           </div>
         </template>
         <div class="log-list">
@@ -169,7 +169,7 @@
             <span class="log-user">{{ log.username }}</span>
             <span class="log-time">{{ log.timestamp }}</span>
           </div>
-          <div v-if="recentLogs.length === 0" class="empty-tip">暂无日志</div>
+          <div v-if="recentLogs.length === 0" class="empty-tip">{{ $t('adminDashboard.noLogs') }}</div>
         </div>
       </el-card>
     </section>
@@ -178,6 +178,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
@@ -187,6 +188,7 @@ import {
   Document, UserFilled, List, ChatDotRound, Upload
 } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(false);
@@ -210,17 +212,17 @@ const alerts = ref([]);
 
 const greeting = computed(() => {
   const h = new Date().getHours();
-  if (h < 12) return '早上好';
-  if (h < 18) return '下午好';
-  return '晚上好';
+  if (h < 12) return t('adminDashboard.goodMorning');
+  if (h < 18) return t('adminDashboard.goodAfternoon');
+  return t('adminDashboard.goodEvening');
 });
 
 const adminRoleLabel = computed(() => {
   const num = (userStore.userNumber || '').toString().toLowerCase();
-  if (num.includes('admin1') || num.includes('adm1')) return '管理员1';
-  if (num.includes('admin2') || num.includes('adm2')) return '管理员2';
-  if (num.includes('admin3') || num.includes('adm3')) return '管理员3';
-  return '管理员';
+  if (num.includes('admin1') || num.includes('adm1')) return t('adminDashboard.adminRole1');
+  if (num.includes('admin2') || num.includes('adm2')) return t('adminDashboard.adminRole2');
+  if (num.includes('admin3') || num.includes('adm3')) return t('adminDashboard.adminRole3');
+  return t('adminDashboard.adminRole');
 });
 
 const getLogType = (action) => {
@@ -279,8 +281,8 @@ const renderCharts = () => {
       xAxis: { type: 'category', data: chartData.value.map(i => i.date), axisLine: { lineStyle: { color: '#e0e0e0' } } },
       yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
       series: [
-        { name: '申请数', type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0), itemStyle: { color: '#409EFF' }, areaStyle: { opacity: 0.1 } },
-        { name: '下载数', type: 'bar', barMaxWidth: 20, data: chartData.value.map(i => i.downloads || 0), itemStyle: { color: '#67C23A' } }
+        { name: t('adminDashboard.chartApplications'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0), itemStyle: { color: '#409EFF' }, areaStyle: { opacity: 0.1 } },
+        { name: t('adminDashboard.chartDownloads'), type: 'bar', barMaxWidth: 20, data: chartData.value.map(i => i.downloads || 0), itemStyle: { color: '#67C23A' } }
       ]
     });
   }
@@ -295,9 +297,9 @@ const renderCharts = () => {
       series: [{
         type: 'pie', radius: ['40%', '65%'], center: ['50%', '45%'],
         data: [
-          { value: statusDistribution.value.pending, name: '待审批', itemStyle: { color: '#E6A23C' } },
-          { value: statusDistribution.value.approved, name: '已通过', itemStyle: { color: '#67C23A' } },
-          { value: statusDistribution.value.rejected, name: '已拒绝', itemStyle: { color: '#F56C6C' } }
+          { value: statusDistribution.value.pending, name: t('adminDashboard.pendingApproval'), itemStyle: { color: '#E6A23C' } },
+          { value: statusDistribution.value.approved, name: t('adminDashboard.approved'), itemStyle: { color: '#67C23A' } },
+          { value: statusDistribution.value.rejected, name: t('adminDashboard.rejected'), itemStyle: { color: '#F56C6C' } }
         ]
       }]
     });

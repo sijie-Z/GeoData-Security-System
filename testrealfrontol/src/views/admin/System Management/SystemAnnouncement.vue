@@ -1,15 +1,18 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue'
 import Axios from '@/utils/Axios'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const list = ref([])
 const pages = reactive({ page: 1, pageSize: 10, total: 0, pages: 0 })
 
 const formVisible = ref(false)
-const formTitle = ref('发布系统公告')
+const formTitle = ref(t('adminAnnounce.publishTitle'))
 const form = reactive({
   id: null,
   title: '',
@@ -19,7 +22,7 @@ const form = reactive({
   icon: 'InfoFilled'
 })
 
-// 说明：个人消息发送已独立到“个人消息发送”页面，公告页仅处理公共公告
+// 说明：个人消息发送已独立到"个人消息发送"页面，公告页仅处理公共公告
 
 const fetchAnnouncements = async () => {
   loading.value = true
@@ -35,7 +38,7 @@ const fetchAnnouncements = async () => {
       pages.total = 0
     }
   } catch (e) {
-    ElMessage.error('获取公告失败')
+    ElMessage.error(t('adminAnnounce.fetchFailed'))
   } finally {
     loading.value = false
   }
@@ -45,7 +48,7 @@ const fetchAnnouncements = async () => {
 // 小白说明：打开发布或编辑弹窗
 const openForm = (row = null) => {
   if (row) {
-    formTitle.value = '编辑系统公告'
+    formTitle.value = t('adminAnnounce.editTitle')
     Object.assign(form, {
       id: row.id,
       title: row.title,
@@ -55,7 +58,7 @@ const openForm = (row = null) => {
       icon: row.icon || 'InfoFilled'
     })
   } else {
-    formTitle.value = '发布系统公告'
+    formTitle.value = t('adminAnnounce.publishTitle')
     Object.assign(form, { id: null, title: '', content: '', tag: '重要', tag_color: '#F59E0B', icon: 'InfoFilled' })
   }
   formVisible.value = true
@@ -65,32 +68,32 @@ const openForm = (row = null) => {
 const submitForm = async () => {
   try {
     if (!form.title || !form.content) {
-      ElMessage.warning('标题和内容不能为空')
+      ElMessage.warning(t('adminAnnounce.titleContentRequired'))
       return
     }
     if (form.id) {
       await Axios.put('/api/admin/announcements', form)
-      ElMessage.success('更新成功')
+      ElMessage.success(t('adminAnnounce.updateSuccess'))
     } else {
       await Axios.post('/api/admin/announcements', form)
-      ElMessage.success('发布成功')
+      ElMessage.success(t('adminAnnounce.publishSuccess'))
     }
     formVisible.value = false
     fetchAnnouncements()
   } catch (e) {
-    ElMessage.error('保存失败，请检查权限或网络')
+    ElMessage.error(t('adminAnnounce.saveFailed'))
   }
 }
 
 // 小白说明：删除公告（逻辑删除）
 const removeAnnouncement = async (row) => {
   try {
-    await ElMessageBox.confirm(`确定删除「${row.title}」吗？`, '提示', { type: 'warning' })
+    await ElMessageBox.confirm(t('adminAnnounce.confirmDelete', { title: row.title }), t('adminAnnounce.tip'), { type: 'warning' })
     await Axios.delete('/api/admin/announcements', { params: { id: row.id } })
-    ElMessage.success('已移除')
+    ElMessage.success(t('adminAnnounce.removed'))
     fetchAnnouncements()
   } catch (e) {
-    if (e !== 'cancel') ElMessage.error('删除失败')
+    if (e !== 'cancel') ElMessage.error(t('adminAnnounce.deleteFailed'))
   }
 }
 
@@ -103,78 +106,78 @@ onMounted(fetchAnnouncements)
 <template>
   <div class="announcement-admin">
     <div class="header">
-      <h2>系统公告（公共广播）</h2>
+      <h2>{{ $t('adminAnnounce.title') }}</h2>
       <div class="header-actions">
-        <el-button type="primary" @click="openForm()">发布公告</el-button>
+        <el-button type="primary" @click="openForm()">{{ $t('adminAnnounce.publish') }}</el-button>
       </div>
     </div>
 
     <el-card class="mb-3 notify-card">
-      <template #header><span class="card-label">说明：公告与个人消息的区别</span></template>
-      <p class="card-desc">系统公告用于面向全体用户的公共信息发布；若要向指定员工或全体员工发送个人消息，请前往「系统管理 → 个人消息发送」。</p>
+      <template #header><span class="card-label">{{ $t('adminAnnounce.explanation') }}</span></template>
+      <p class="card-desc">{{ $t('adminAnnounce.explanationDesc') }}</p>
     </el-card>
 
     <el-card class="mb-3">
-      <template #header><span class="card-label">系统公告列表</span></template>
+      <template #header><span class="card-label">{{ $t('adminAnnounce.announcementList') }}</span></template>
       <el-table :data="list" v-loading="loading" border>
-        <el-table-column label="图标" width="80">
+        <el-table-column :label="$t('adminAnnounce.icon')" width="80">
           <template #default="{ row }">
             <el-icon :style="{ color: row.tag_color }">
               <component :is="row.icon === 'CircleCheckFilled' ? CircleCheckFilled : row.icon === 'WarningFilled' ? WarningFilled : InfoFilled" />
             </el-icon>
           </template>
         </el-table-column>
-        <el-table-column prop="title" label="标题" min-width="200" />
-        <el-table-column label="标签" width="140">
+        <el-table-column prop="title" :label="$t('adminAnnounce.titleLabel')" min-width="200" />
+        <el-table-column :label="$t('adminAnnounce.tag')" width="140">
           <template #default="{ row }">
             <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">{{ row.tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="content" label="内容" min-width="320" />
-        <el-table-column prop="created_at" label="时间" width="180" />
-        <el-table-column label="操作" width="180">
+        <el-table-column prop="content" :label="$t('adminAnnounce.content')" min-width="320" />
+        <el-table-column prop="created_at" :label="$t('adminAnnounce.time')" width="180" />
+        <el-table-column :label="$t('adminAnnounce.action')" width="180">
           <template #default="{ row }">
-            <el-button link type="primary" @click="openForm(row)">编辑</el-button>
-            <el-button link type="danger" @click="removeAnnouncement(row)">删除</el-button>
+            <el-button link type="primary" @click="openForm(row)">{{ $t('adminAnnounce.edit') }}</el-button>
+            <el-button link type="danger" @click="removeAnnouncement(row)">{{ $t('adminAnnounce.delete') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <div class="pagination">
-        <el-button :disabled="pages.page<=1" @click="prevPage">上一页</el-button>
-        <span>第 {{ pages.page }} / {{ pages.pages }} 页，共 {{ pages.total }} 条</span>
-        <el-button :disabled="pages.page>=pages.pages" @click="nextPage">下一页</el-button>
+        <el-button :disabled="pages.page<=1" @click="prevPage">{{ $t('adminAnnounce.prevPage') }}</el-button>
+        <span>{{ $t('adminAnnounce.pageInfo', { page: pages.page, pages: pages.pages, total: pages.total }) }}</span>
+        <el-button :disabled="pages.page>=pages.pages" @click="nextPage">{{ $t('adminAnnounce.nextPage') }}</el-button>
       </div>
     </el-card>
 
     <el-dialog v-model="formVisible" :title="formTitle" width="620px" draggable custom-class="rounded-dialog">
       <el-form label-width="88px">
-        <el-form-item label="标题">
-          <el-input v-model="form.title" placeholder="请输入公告标题" />
+        <el-form-item :label="$t('adminAnnounce.titleLabel')">
+          <el-input v-model="form.title" :placeholder="$t('adminAnnounce.titlePlaceholder')" />
         </el-form-item>
-        <el-form-item label="内容">
-          <el-input v-model="form.content" type="textarea" :rows="5" placeholder="请输入公告内容" />
+        <el-form-item :label="$t('adminAnnounce.content')">
+          <el-input v-model="form.content" type="textarea" :rows="5" :placeholder="$t('adminAnnounce.contentPlaceholder')" />
         </el-form-item>
-        <el-form-item label="标签">
+        <el-form-item :label="$t('adminAnnounce.tag')">
           <el-select v-model="form.tag" style="width: 160px">
-            <el-option label="重要" value="重要" />
-            <el-option label="新数据" value="新数据" />
-            <el-option label="优化" value="优化" />
-            <el-option label="自定义" value="自定义" />
+            <el-option :label="$t('adminAnnounce.tagImportant')" value="重要" />
+            <el-option :label="$t('adminAnnounce.tagNewData')" value="新数据" />
+            <el-option :label="$t('adminAnnounce.tagOptimize')" value="优化" />
+            <el-option :label="$t('adminAnnounce.tagCustom')" value="自定义" />
           </el-select>
           <el-color-picker v-model="form.tag_color" style="margin-left: 12px" />
         </el-form-item>
-        <el-form-item label="图标">
+        <el-form-item :label="$t('adminAnnounce.icon')">
           <el-select v-model="form.icon" style="width: 200px">
-            <el-option label="信息" value="InfoFilled" />
-            <el-option label="通过" value="CircleCheckFilled" />
-            <el-option label="警告" value="WarningFilled" />
+            <el-option :label="$t('adminAnnounce.iconInfo')" value="InfoFilled" />
+            <el-option :label="$t('adminAnnounce.iconPass')" value="CircleCheckFilled" />
+            <el-option :label="$t('adminAnnounce.iconWarning')" value="WarningFilled" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible=false">取消</el-button>
-        <el-button type="primary" @click="submitForm">保存</el-button>
+        <el-button @click="formVisible=false">{{ $t('adminAnnounce.cancel') }}</el-button>
+        <el-button type="primary" @click="submitForm">{{ $t('adminAnnounce.save') }}</el-button>
       </template>
     </el-dialog>
 

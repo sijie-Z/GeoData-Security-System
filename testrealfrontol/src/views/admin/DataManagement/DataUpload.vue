@@ -2,12 +2,12 @@
     <div class="data-upload-container">
       <!-- 1. 页面标题和引导区 -->
       <div class="page-header">
-        <h1 class="page-title">数据资源上传</h1>
+        <h1 class="page-title">{{ $t('adminDataUpload.title') }}</h1>
         <p class="page-description">
-          请在此处上传 SHP 格式的地理数据资源。为确保数据一致性，所有文件需打包为 ZIP 压缩文件。
+          {{ $t('adminDataUpload.description') }}
         </p>
       </div>
-  
+
       <!-- 2. 主操作区：表单和上传控件 -->
       <el-card class="upload-main-card">
         <el-form
@@ -21,44 +21,44 @@
         >
           <el-row :gutter="40">
             <el-col :span="12">
-              <el-form-item label="数据名称" prop="data_alias">
+              <el-form-item :label="$t('adminDataUpload.dataName')" prop="data_alias">
                 <el-input
                   v-model="form.data_alias"
-                  placeholder="例如：2023年全国省级行政区划"
+                  :placeholder="$t('adminDataUpload.dataNameExample')"
                   clearable
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-               <el-form-item label="数据分类 (可选)" prop="category">
-                  <el-select v-model="form.category" placeholder="请选择或输入数据分类" filterable allow-create>
-                    <el-option label="行政区划" value="行政区划"></el-option>
-                    <el-option label="水系" value="水系"></el-option>
-                    <el-option label="交通网络" value="交通网络"></el-option>
-                    <el-option label="兴趣点 (POI)" value="兴趣点 (POI)"></el-option>
+               <el-form-item :label="$t('adminDataUpload.category')" prop="category">
+                  <el-select v-model="form.category" :placeholder="$t('adminDataUpload.selectCategory')" filterable allow-create>
+                    <el-option :label="$t('adminDataUpload.categoryAdmin')" value="行政区划"></el-option>
+                    <el-option :label="$t('adminDataUpload.categoryWater')" value="水系"></el-option>
+                    <el-option :label="$t('adminDataUpload.categoryTraffic')" value="交通网络"></el-option>
+                    <el-option :label="$t('adminDataUpload.categoryPOI')" value="兴趣点 (POI)"></el-option>
                   </el-select>
                 </el-form-item>
             </el-col>
           </el-row>
-  
-          <el-form-item label="数据简介" prop="data_introduction">
+
+          <el-form-item :label="$t('adminDataUpload.dataIntro')" prop="data_introduction">
             <el-input
               v-model="form.data_introduction"
               type="textarea"
               :rows="4"
-              placeholder="请详细描述数据的来源、坐标系、年份、内容摘要等关键信息，便于其他用户理解和使用。"
+              :placeholder="$t('adminDataUpload.dataIntroPlaceholder')"
               show-word-limit
               maxlength="500"
             />
           </el-form-item>
-  
-          <el-form-item label="上传 SHP 压缩包" prop="file">
+
+          <el-form-item :label="$t('adminDataUpload.uploadSHP')" prop="file">
             <!-- el-upload 组件现在只用于选择文件，不进行实际上传 -->
             <el-upload
               ref="uploadRef"
               class="upload-dragger-wrapper"
               drag
-              action="#" 
+              action="#"
               :limit="1"
               :auto-upload="false"
               :http-request="() => {}"
@@ -69,50 +69,53 @@
             >
               <el-icon class="el-icon--upload"><upload-filled /></el-icon>
               <div class="el-upload__text">
-                将文件拖到此处，或<em>点击上传</em>
+                {{ $t('adminDataUpload.dragHere') }}<em>{{ $t('adminDataUpload.clickUpload') }}</em>
               </div>
               <template #tip>
                 <div class="el-upload__tip">
-                  仅支持 .zip 格式，文件大小不超过 500MB。
+                  {{ $t('adminDataUpload.zipOnly') }}
                 </div>
               </template>
             </el-upload>
           </el-form-item>
-          
+
           <!-- 上传进度条 -->
-          <el-progress 
+          <el-progress
               v-if="uploadPercentage > 0"
-              :percentage="uploadPercentage" 
+              :percentage="uploadPercentage"
               :stroke-width="10"
               :text-inside="true"
               status="success"
               class="upload-progress"
             />
-  
+
           <!-- 3. 操作按钮区 -->
           <el-form-item class="form-actions">
-            <el-button 
-              type="primary" 
+            <el-button
+              type="primary"
               size="large"
-              :icon="Upload" 
-              @click="submitUpload" 
+              :icon="Upload"
+              @click="submitUpload"
               :loading="isUploading"
               :disabled="!form.file"
             >
-              {{ isUploading ? '正在上传...' : '立即上传至服务器' }}
+              {{ isUploading ? $t('adminDataUpload.uploading') : $t('adminDataUpload.uploadNow') }}
             </el-button>
-            <el-button size="large" @click="resetForm">重置所有内容</el-button>
+            <el-button size="large" @click="resetForm">{{ $t('adminDataUpload.resetAll') }}</el-button>
           </el-form-item>
         </el-form>
       </el-card>
     </div>
   </template>
-  
+
 <script setup>
 import { ref, reactive, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { Upload, UploadFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import axios from '@/utils/Axios';
+
+const { t } = useI18n()
 
 const uploadFormRef = ref(null);
 const uploadRef = ref(null);
@@ -131,9 +134,9 @@ const initialForm = {
 const form = reactive({ ...initialForm });
 
 const rules = reactive({
-  data_alias: [{ required: true, message: '请输入一个明确的数据名称', trigger: 'blur' }],
-  data_introduction: [{ required: true, message: '数据简介有助于他人理解，不能为空', trigger: 'blur' }],
-  file: [{ required: true, message: '请选择一个 .zip 压缩文件进行上传', trigger: 'change' }],
+  data_alias: [{ required: true, message: () => t('adminDataUpload.enterDataName'), trigger: 'blur' }],
+  data_introduction: [{ required: true, message: () => t('adminDataUpload.introRequired'), trigger: 'blur' }],
+  file: [{ required: true, message: () => t('adminDataUpload.selectZip'), trigger: 'change' }],
 });
 
 // --- 事件处理函数 ---
@@ -142,13 +145,13 @@ const handleFileChange = (uploadFile) => {
   const isLt500M = uploadFile.size / 1024 / 1024 < 500;
 
   if (!isZip) {
-    ElMessage.error('只能上传 .zip 格式的文件!');
+    ElMessage.error(t('adminDataUpload.zipOnlyError'));
     uploadRef.value?.clearFiles();
     form.file = null;
     return;
   }
   if (!isLt500M) {
-    ElMessage.error('文件大小不能超过 500MB!');
+    ElMessage.error(t('adminDataUpload.fileSizeError'));
     uploadRef.value?.clearFiles();
     form.file = null;
     return;
@@ -166,7 +169,7 @@ const handleFileRemove = () => {
 };
 
 const handleExceed = () => {
-  ElMessage.warning('一次只能上传一个文件，如需更换，请先移除已选文件。');
+  ElMessage.warning(t('adminDataUpload.singleFileOnly'));
 };
 
 const submitUpload = async () => {
@@ -174,7 +177,7 @@ const submitUpload = async () => {
 
   await uploadFormRef.value.validate(async (valid) => {
     if (!valid) {
-      ElMessage.error('表单信息不完整，请检查红色标记的必填项。');
+      ElMessage.error(t('adminDataUpload.formIncomplete'));
       return;
     }
 
@@ -198,10 +201,10 @@ const submitUpload = async () => {
       });
 
       uploadPercentage.value = 100;
-      ElMessage.success('数据上传成功！');
+      ElMessage.success(t('adminDataUpload.uploadSuccess'));
       setTimeout(resetForm, 1000);
     } catch (error) {
-      const msg = error.response?.data?.msg || '上传失败，请检查网络或文件格式后重试';
+      const msg = error.response?.data?.msg || t('adminDataUpload.uploadFailed');
       ElMessage.error(msg);
     } finally {
       isUploading.value = false;
@@ -219,7 +222,7 @@ const resetForm = () => {
   });
 };
 </script>
-  
+
 <style scoped>
 .data-upload-container {
   padding: 24px 40px;

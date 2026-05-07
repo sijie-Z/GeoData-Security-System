@@ -1,34 +1,34 @@
 <template>
   <div class="notifications-page">
     <div class="page-header">
-      <h1 class="page-title">我的个人消息</h1>
-      <p class="page-desc">查看管理员发送给您的个人消息，可标记已读</p>
+      <h1 class="page-title">{{ $t('empNotify.title') }}</h1>
+      <p class="page-desc">{{ $t('empNotify.description') }}</p>
     </div>
 
     <el-card class="notify-card" shadow="hover">
       <div class="filter-bar">
         <el-radio-group v-model="unreadOnly" @change="fetchList">
-          <el-radio-button :value="false">全部</el-radio-button>
-          <el-radio-button :value="true">仅未读</el-radio-button>
+          <el-radio-button :value="false">{{ $t('empNotify.all') }}</el-radio-button>
+          <el-radio-button :value="true">{{ $t('empNotify.unreadOnly') }}</el-radio-button>
         </el-radio-group>
         <el-button :icon="RefreshRight" circle @click="fetchList" :loading="loading" title="刷新" />
       </div>
 
       <el-table :data="list" v-loading="loading" border stripe>
         <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="title" label="标题" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="content" label="内容" min-width="280" show-overflow-tooltip />
-        <el-table-column prop="created_at" label="时间" width="172" />
-        <el-table-column label="状态" width="90" align="center">
+        <el-table-column prop="title" :label="$t('empNotify.titleColumn')" min-width="180" show-overflow-tooltip />
+        <el-table-column prop="content" :label="$t('empNotify.contentColumn')" min-width="280" show-overflow-tooltip />
+        <el-table-column prop="created_at" :label="$t('empNotify.timeColumn')" width="172" />
+        <el-table-column :label="$t('empNotify.statusColumn')" width="90" align="center">
           <template #default="{ row }">
-            <el-tag v-if="row.read" type="info" size="small">已读</el-tag>
-            <el-tag v-else type="warning" size="small">未读</el-tag>
+            <el-tag v-if="row.read" type="info" size="small">{{ $t('empNotify.read') }}</el-tag>
+            <el-tag v-else type="warning" size="small">{{ $t('empNotify.unread') }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="100" align="center" fixed="right">
+        <el-table-column :label="$t('empNotify.actionColumn')" width="100" align="center" fixed="right">
           <template #default="{ row }">
-            <el-button v-if="!row.read" link type="primary" @click="markRead(row)">标记已读</el-button>
-            <el-button link type="primary" @click="openDetail(row)">详情</el-button>
+            <el-button v-if="!row.read" link type="primary" @click="markRead(row)">{{ $t('empNotify.markRead') }}</el-button>
+            <el-button link type="primary" @click="openDetail(row)">{{ $t('empNotify.detail') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -50,8 +50,8 @@
     <el-dialog v-model="detailVisible" :title="detailRow?.title" width="520px">
       <div class="detail-content">{{ detailRow?.content }}</div>
       <template #footer>
-        <el-button v-if="detailRow && !detailRow.read" type="primary" @click="markRead(detailRow); detailVisible = false">标记已读</el-button>
-        <el-button @click="detailVisible = false">关闭</el-button>
+        <el-button v-if="detailRow && !detailRow.read" type="primary" @click="markRead(detailRow); detailVisible = false">{{ $t('empNotify.markRead') }}</el-button>
+        <el-button @click="detailVisible = false">{{ $t('empNotify.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -59,9 +59,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { RefreshRight } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import Axios from '@/utils/Axios';
+
+const { t } = useI18n();
 
 const loading = ref(false);
 const list = ref([]);
@@ -90,7 +93,7 @@ const fetchList = async () => {
       total.value = 0;
     }
   } catch (e) {
-    ElMessage.error('获取通知失败');
+    ElMessage.error(t('empNotify.fetchFailed'));
     list.value = [];
     total.value = 0;
   } finally {
@@ -102,9 +105,9 @@ const markRead = async (row) => {
   try {
     await Axios.post(`/api/employee/notifications/${row.id}/read`);
     row.read = true;
-    ElMessage.success('已标记为已读');
+    ElMessage.success(t('empNotify.markedRead'));
   } catch (e) {
-    ElMessage.error('操作失败');
+    ElMessage.error(t('empNotify.operationFailed'));
   }
 };
 

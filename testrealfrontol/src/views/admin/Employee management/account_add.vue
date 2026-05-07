@@ -1,9 +1,12 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Back } from '@element-plus/icons-vue';
 import Axios from '@/utils/Axios.js';
+
+const { t } = useI18n();
 
 // --- 依赖与初始化 ---
 const router = useRouter(); // 用于导航，如此处的返回功能
@@ -31,9 +34,9 @@ const submitLoading = ref(false);
 // 自定义校验：确认密码是否一致
 const validateConfirmPassword = (rule, value, callback) => {
   if (value === '') {
-    callback(new Error('请再次输入您的密码'));
+    callback(new Error(t('accountAdd.errorConfirmPassword')));
   } else if (value !== accountForm.password) {
-    callback(new Error('两次输入的密码不一致'));
+    callback(new Error(t('accountAdd.errorPasswordMismatch')));
   } else {
     callback(); // 校验通过
   }
@@ -41,20 +44,20 @@ const validateConfirmPassword = (rule, value, callback) => {
 
 // 完整的表单校验规则集
 const rules = reactive({
-  employee_number: [{ required: true, message: '必须选择一个关联的员工', trigger: 'change' }],
+  employee_number: [{ required: true, message: t('accountAdd.errorEmployeeRequired'), trigger: 'change' }],
   username: [
-    { required: true, message: '账号名称不能为空', trigger: 'blur' },
-    { min: 3, max: 15, message: '长度应在 3 到 15 个字符', trigger: 'blur' }
+    { required: true, message: t('accountAdd.errorUsernameRequired'), trigger: 'blur' },
+    { min: 3, max: 15, message: t('accountAdd.errorUsernameLength'), trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '密码不能为空', trigger: 'blur' },
-    { min: 6, message: '密码长度至少为 6 位', trigger: 'blur' }
+    { required: true, message: t('accountAdd.errorPasswordRequired'), trigger: 'blur' },
+    { min: 6, message: t('accountAdd.errorPasswordLength'), trigger: 'blur' }
   ],
   confirmPassword: [
     // 使用自定义校验器
     { required: true, validator: validateConfirmPassword, trigger: 'blur' }
   ],
-  role: [{ required: true, message: '必须为账号指定一个角色', trigger: 'change' }]
+  role: [{ required: true, message: t('accountAdd.errorRoleRequired'), trigger: 'change' }]
 });
 
 
@@ -73,11 +76,11 @@ const fetchEmployeesForSelection = async () => {
     if (response.data && response.data.status) {
       employeeList.value = response.data.data.list;
     } else {
-      ElMessage.error(response.data.msg || '无法加载员工列表');
+      ElMessage.error(response.data.msg || t('accountAdd.errorLoadEmployees'));
     }
   } catch (error) {
     console.error("Failed to fetch employees for selection:", error);
-    ElMessage.error('网络错误，获取员工列表失败');
+    ElMessage.error(t('accountAdd.errorNetworkEmployees'));
   }
 };
 
@@ -107,16 +110,16 @@ const submitForm = async () => {
         // ==========================================================
 
         if (response.data && response.data.status) {
-          ElMessage.success('新账号创建成功！');
+          ElMessage.success(t('accountAdd.successCreated'));
           formRef.value.resetFields(); // 成功后清空表单，方便继续添加
         } else {
           // 后端返回的业务逻辑错误（如：用户名已存在）
-          ElMessage.error(response.data.msg || '创建失败，请稍后重试');
+          ElMessage.error(response.data.msg || t('accountAdd.errorCreateFailed'));
         }
       } catch (error) {
         // 网络层或服务器500等错误
         console.error("Failed to create account:", error);
-        ElMessage.error('账号创建请求失败，请检查网络或联系管理员');
+        ElMessage.error(t('accountAdd.errorCreateRequest'));
       } finally {
         // 4. 无论成功或失败，都要结束加载状态
         submitLoading.value = false;
@@ -124,7 +127,7 @@ const submitForm = async () => {
     } else {
       // 校验不通过，提示用户检查
       console.log('Validation failed on fields:', fields);
-      ElMessage.warning('表单信息不完整或格式不正确，请检查');
+      ElMessage.warning(t('accountAdd.warningFormIncomplete'));
       return false;
     }
   });
@@ -146,9 +149,9 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <!-- 页面头部：提供上下文和导航 -->
-    <el-page-header :icon="Back" title="返回" @back="handleBack">
+    <el-page-header :icon="Back" :title="$t('accountAdd.back')" @back="handleBack">
       <template #content>
-        <span class="page-title">添加新账号</span>
+        <span class="page-title">{{ $t('accountAdd.addNewAccount') }}</span>
       </template>
     </el-page-header>
 
@@ -165,10 +168,10 @@ onMounted(() => {
         status-icon
         style="max-width: 600px"
       >
-        <el-form-item label="关联员工" prop="employee_number">
+        <el-form-item :label="$t('accountAdd.linkedEmployee')" prop="employee_number">
           <el-select
             v-model="accountForm.employee_number"
-            placeholder="通过姓名或编号搜索员工"
+            :placeholder="$t('accountAdd.searchEmployeePlaceholder')"
             filterable
             style="width: 100%;"
           >
@@ -181,31 +184,31 @@ onMounted(() => {
           </el-select>
         </el-form-item>
 
-        <el-form-item label="设置账号名称" prop="username">
-          <el-input v-model="accountForm.username" placeholder="用于登录系统的唯一名称" clearable />
+        <el-form-item :label="$t('accountAdd.setUsername')" prop="username">
+          <el-input v-model="accountForm.username" :placeholder="$t('accountAdd.usernamePlaceholder')" clearable />
         </el-form-item>
 
-        <el-form-item label="设置密码" prop="password">
-          <el-input v-model="accountForm.password" type="password" show-password placeholder="至少6位，区分大小写" />
+        <el-form-item :label="$t('accountAdd.setPassword')" prop="password">
+          <el-input v-model="accountForm.password" type="password" show-password :placeholder="$t('accountAdd.passwordPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="accountForm.confirmPassword" type="password" show-password placeholder="请再次输入以确认" />
+        <el-form-item :label="$t('accountAdd.confirmPassword')" prop="confirmPassword">
+          <el-input v-model="accountForm.confirmPassword" type="password" show-password :placeholder="$t('accountAdd.confirmPasswordPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="指定角色" prop="role">
+        <el-form-item :label="$t('accountAdd.assignRole')" prop="role">
           <el-radio-group v-model="accountForm.role">
             <!-- TODO: 请与后端确认角色值 (label) 是否为 'ADMIN' 和 'USER' -->
-            <el-radio value="ADMIN">管理员</el-radio>
-            <el-radio value="USER">普通用户</el-radio>
+            <el-radio value="ADMIN">{{ $t('accountAdd.roleAdmin') }}</el-radio>
+            <el-radio value="USER">{{ $t('accountAdd.roleUser') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item>
           <el-button type="primary" :loading="submitLoading" @click="submitForm">
-            确认创建
+            {{ $t('accountAdd.confirmCreate') }}
           </el-button>
-          <el-button @click="resetForm">清空重填</el-button>
+          <el-button @click="resetForm">{{ $t('accountAdd.clearForm') }}</el-button>
         </el-form-item>
       </el-form>
     </div>

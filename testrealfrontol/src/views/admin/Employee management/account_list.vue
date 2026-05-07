@@ -3,9 +3,11 @@ import { reactive, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Back } from '@element-plus/icons-vue'; // 引入图标
+import { useI18n } from 'vue-i18n';
 import Axios from '@/utils/Axios.js';
 
 // --- 依赖与初始化 ---
+const { t } = useI18n();
 const router = useRouter();
 const formRef = ref(null);
 
@@ -24,26 +26,26 @@ const loading = ref(false); // 用于控制提交按钮的加载状态
 // --- 校验规则 (与之前版本相同，保持健壮性) ---
 const validateConfirmPassword = (rule, value, callback) => {
   if (value === '') {
-    callback(new Error('请再次输入密码'));
+    callback(new Error(t('employeeMgmt.enterConfirmPassword')));
   } else if (value !== accountForm.password) {
-    callback(new Error('两次输入的密码不一致!'));
+    callback(new Error(t('employeeMgmt.passwordMismatch')));
   } else {
     callback();
   }
 };
 
 const rules = reactive({
-  employee_number: [{ required: true, message: '请选择关联的员工', trigger: 'change' }],
+  employee_number: [{ required: true, message: () => t('employeeMgmt.selectEmployee'), trigger: 'change' }],
   username: [
-    { required: true, message: '请输入账号名称', trigger: 'blur' },
-    { min: 3, max: 15, message: '长度应在 3 到 15 个字符之间', trigger: 'blur' }
+    { required: true, message: () => t('employeeMgmt.enterAccountName'), trigger: 'blur' },
+    { min: 3, max: 15, message: () => t('employeeMgmt.usernameLength'), trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+    { required: true, message: () => t('employeeMgmt.enterPassword'), trigger: 'blur' },
+    { min: 6, message: () => t('employeeMgmt.passwordMinLength'), trigger: 'blur' }
   ],
   confirmPassword: [{ required: true, validator: validateConfirmPassword, trigger: 'blur' }],
-  role: [{ required: true, message: '请选择账号角色', trigger: 'change' }]
+  role: [{ required: true, message: () => t('employeeMgmt.selectRole'), trigger: 'change' }]
 });
 
 
@@ -61,11 +63,11 @@ const fetchEmployees = async () => {
     if (response.data && response.data.status) {
       employeeList.value = response.data.data.list;
     } else {
-      ElMessage.error('获取员工列表失败');
+      ElMessage.error(t('employeeMgmt.fetchEmployeeListFailed'));
     }
   } catch (error) {
     console.error("Failed to fetch employees:", error);
-    ElMessage.error('网络错误，无法加载员工列表');
+    ElMessage.error(t('employeeMgmt.networkErrorLoadList'));
   }
 };
 
@@ -88,19 +90,19 @@ const submitForm = async () => {
         const response = await Axios.post('/api/account/create', payload);
 
         if (response.data && response.data.status) {
-          ElMessage.success('账号创建成功！');
+          ElMessage.success(t('employeeMgmt.accountCreateSuccess'));
           formRef.value.resetFields();
         } else {
-          ElMessage.error(response.data.msg || '创建失败，请检查输入');
+          ElMessage.error(response.data.msg || t('employeeMgmt.accountCreateFailed'));
         }
       } catch (error) {
         console.error("Failed to create account:", error);
-        ElMessage.error('账号创建失败，服务器或网络错误');
+        ElMessage.error(t('employeeMgmt.accountCreateError'));
       } finally {
         loading.value = false; // 无论成功失败，结束加载状态
       }
     } else {
-      ElMessage.warning('表单校验未通过，请检查红色提示项');
+      ElMessage.warning(t('employeeMgmt.formValidationFailed'));
       return false;
     }
   });
@@ -119,9 +121,9 @@ onMounted(fetchEmployees);
 <template>
   <div class="page-container">
     <!-- 1. 使用 Page Header, 专业的页面标题和返回功能 -->
-    <el-page-header :icon="Back" title="返回" @back="handleBack">
+    <el-page-header :icon="Back" :title="$t('employeeMgmt.back')" @back="handleBack">
       <template #content>
-        <span class="page-title">创建新员工账号</span>
+        <span class="page-title">{{ $t('employeeMgmt.createAccount') }}</span>
       </template>
     </el-page-header>
 
@@ -139,10 +141,10 @@ onMounted(fetchEmployees);
         status-icon
         style="max-width: 600px"
       >
-        <el-form-item label="关联员工" prop="employee_number">
+        <el-form-item :label="$t('employeeMgmt.linkedEmployee')" prop="employee_number">
           <el-select
             v-model="accountForm.employee_number"
-            placeholder="请搜索或选择要绑定的员工"
+            :placeholder="$t('employeeMgmt.linkedEmployeePlaceholder')"
             filterable
             style="width: 100%;"
           >
@@ -155,28 +157,28 @@ onMounted(fetchEmployees);
           </el-select>
         </el-form-item>
 
-        <el-form-item label="账号名称" prop="username">
-          <el-input v-model="accountForm.username" placeholder="请输入登录用户名" clearable />
+        <el-form-item :label="$t('employeeMgmt.accountName')" prop="username">
+          <el-input v-model="accountForm.username" :placeholder="$t('employeeMgmt.accountNamePlaceholder')" clearable />
         </el-form-item>
 
-        <el-form-item label="设置密码" prop="password">
-          <el-input v-model="accountForm.password" type="password" show-password placeholder="请输入至少6位密码" />
+        <el-form-item :label="$t('employeeMgmt.setPassword')" prop="password">
+          <el-input v-model="accountForm.password" type="password" show-password :placeholder="$t('employeeMgmt.passwordPlaceholderDefault')" />
         </el-form-item>
 
-        <el-form-item label="确认密码" prop="confirmPassword">
-          <el-input v-model="accountForm.confirmPassword" type="password" show-password placeholder="请再次输入密码" />
+        <el-form-item :label="$t('employeeMgmt.confirmPassword')" prop="confirmPassword">
+          <el-input v-model="accountForm.confirmPassword" type="password" show-password :placeholder="$t('employeeMgmt.confirmPasswordPlaceholder')" />
         </el-form-item>
 
-        <el-form-item label="账号角色" prop="role">
+        <el-form-item :label="$t('employeeMgmt.accountRole')" prop="role">
           <el-radio-group v-model="accountForm.role">
-            <el-radio value="ADMIN">管理员</el-radio>
-            <el-radio value="USER">普通用户</el-radio>
+            <el-radio value="ADMIN">{{ $t('employeeMgmt.admin') }}</el-radio>
+            <el-radio value="USER">{{ $t('employeeMgmt.normalUser') }}</el-radio>
           </el-radio-group>
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" :loading="loading" @click="submitForm">立即创建</el-button>
-          <el-button @click="resetForm">重置</el-button>
+          <el-button type="primary" :loading="loading" @click="submitForm">{{ $t('employeeMgmt.createNow') }}</el-button>
+          <el-button @click="resetForm">{{ $t('employeeMgmt.reset') }}</el-button>
         </el-form-item>
       </el-form>
     </div>

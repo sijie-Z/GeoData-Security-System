@@ -2,11 +2,14 @@
 import { computed, onMounted } from 'vue';
 import { useUserStore } from "@/stores/userStore";
 import { useRouter } from "vue-router";
+import { useI18n } from 'vue-i18n';
 import { UserFilled, SwitchButton, Expand, Fold } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import axiosInstance from "@/utils/Axios";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
+
+const { t } = useI18n();
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -17,10 +20,10 @@ const userName = computed(() => userStore.userName);
 const roleLabel = computed(() => {
   const num = (userNumber.value || '').toString().toLowerCase();
   const name = (userName.value || '').toString().toLowerCase();
-  if (num === 'admin1' || num === '22200214135' || name === '管理员1') return '管理员1';
-  if (num === 'admin2' || num === '33300214135' || name === '管理员2') return '管理员2';
-  if (num === 'admin3' || num === '44400214135' || name === '管理员3') return '管理员3';
-  return '管理员1';
+  if (num === 'admin1' || num === '22200214135' || name === '管理员1') return t('header.admin') + '1';
+  if (num === 'admin2' || num === '33300214135' || name === '管理员2') return t('header.admin') + '2';
+  if (num === 'admin3' || num === '44400214135' || name === '管理员3') return t('header.admin') + '3';
+  return t('header.admin') + '1';
 });
 
 const props = defineProps({
@@ -39,7 +42,7 @@ const fetchUserInfo = async () => {
       ...userStore.currentUser,
       user_number: response.data.user_number,
       role: response.data.role,
-      user_name: response.data.user_name || '管理员'
+      user_name: response.data.user_name || t('header.admin')
     });
   } catch (err) {
     console.error('获取管理员信息失败', err);
@@ -55,10 +58,10 @@ onMounted(() => {
 const logout = async () => {
   try {
     await axiosInstance.post('/api/logout');
-    ElMessage.success('管理员已登出');
+    ElMessage.success(t('header.logoutSuccess'));
   } catch (err) {
-    console.error('管理员登出失败', err);
-    ElMessage.warning('登出请求失败，但会继续清除本地管理员信息');
+    console.error('Admin logout failed', err);
+    ElMessage.warning(t('header.logoutFailed'));
   } finally {
     userStore.clearUserInfo();
     await router.push('/login');
@@ -77,10 +80,10 @@ const logout = async () => {
       />
       <div class="logo-container">
         <img src="@/components/icons/geo-wiki-logo.svg" alt="Logo" class="wiki-logo" />
-        <span class="logo-text" v-if="!isSideCollapse">空间数据跟踪系统</span>
+        <span class="logo-text" v-if="!isSideCollapse">{{ $t('header.systemTitle') }}</span>
       </div>
       <div class="return-home">
-        <router-link :to="{ name: 'AdminDashboard' }" class="return-link">仪表板</router-link>
+        <router-link :to="{ name: 'AdminDashboard' }" class="return-link">{{ $t('header.dashboard') }}</router-link>
       </div>
     </div>
 
@@ -91,7 +94,7 @@ const logout = async () => {
         <el-icon><UserFilled /></el-icon>
         <span>{{ roleLabel }}</span>
       </div>
-      <el-button type="danger" :icon="SwitchButton" circle @click="logout" title="退出登录"></el-button>
+      <el-button type="danger" :icon="SwitchButton" circle @click="logout" :title="$t('header.logout')"></el-button>
     </div>
   </header>
 </template>

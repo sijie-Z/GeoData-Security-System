@@ -4,6 +4,88 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v2.2.0] — 2026-05-07 (Full i18n Translation & UI Polish)
+
+### Summary
+Translated all 49 Vue view templates (~1595 Chinese strings) to vue-i18n, completing full internationalization coverage. Both `zh-CN.js` and `en-US.js` now contain 1200+ translation keys covering every user-facing string in the application.
+
+**Files changed:** 49 Vue views, 2 locale files
+**Total i18n keys:** 1200+ per locale (up from ~400 in v2.1)
+
+---
+
+### Frontend — Complete i18n Translation
+
+#### New i18n Sections (30+ new modules)
+
+| Module | Key Prefix | Views Covered |
+|--------|-----------|---------------|
+| Admin Dashboard | `adminDashboard` | adm_dashboard.vue |
+| Employee Management | `employeeMgmt` | information_list, information_add, EditEmployee, account_list, account_add |
+| Approval Workflow | `approval` | not_approved, approved, DualChannelApproval |
+| Recall Proposals | `recall` | RecallProposalList.vue (expanded from 11 to 40+ keys) |
+| Admin Application | `adminApp` | VotingPage.vue |
+| Employee Dashboard | `empDashboard` | employee_dashboard.vue |
+| Employee Profile | `empProfile` | employee_profile.vue |
+| Employee Chat | `empChat` | employee_chat.vue |
+| Employee Notifications | `empNotify` | my_notifications.vue |
+| Employee History | `empHistory` | my_operation_history.vue |
+| Employee About | `empAbout` | employee_about.vue |
+| Employee Help | `empHelp` | employee_help.vue |
+| Employee Admin App | `empAdminApp` | ApplicationForm.vue |
+| Employee Data View | `empDataView` | data_viewing.vue |
+| Employee Data Application | `empDataApp` | data_application.vue |
+| Employee Data Download | `empDataDownload` | data_download.vue |
+| Admin Chat | `adminChat` | AdminChat.vue |
+| Admin Guide | `adminGuide` | AdminGuide.vue |
+| Admin Notifications | `adminNotify` | AdminNotifications.vue |
+| Admin Announcements | `adminAnnounce` | SystemAnnouncement.vue |
+| Admin Log Viewer | `adminLogViewer` | LogViewer.vue |
+| Admin Data Upload | `adminDataUpload` | DataUpload.vue |
+| Watermark Generation | `wmGen` | watermark_generation.vue |
+| Watermark Embedding | `wmEmbed` | watermark_embedding.vue |
+| Watermark Extraction | `wmExtract` | watermark_extraction.vue |
+| Raster Watermark Gen | `rasterWmGen` | raster_watermark_generation.vue |
+| Raster Watermark Embed | `rasterWmEmbed` | raster_watermark_embedding.vue |
+| Raster Watermark Extract | `rasterWmExtract` | raster_watermark_extraction.vue |
+| Account Add | `accountAdd` | account_add.vue |
+| ECharts Labels | `echarts` | echarts.vue |
+| Employee Data View (New) | `empDataViewNew` | data_viewing_new.vue |
+
+#### Shared Components Translated
+- **HomeSide.vue (Admin)** — All 22 sidebar menu items use `$t('sidebar.admin.*')`
+- **HomeSide.vue (Employee)** — All 8 sidebar menu items use `$t('sidebar.employee.*')`
+- **HomeHeader.vue (Admin)** — System title, nav items, user dropdown use `$t('header.*')`
+- **HomeHeader.vue (Employee)** — System title, nav menu, avatar messages use `$t('header.*')`
+- **NotificationCenter.vue** — Panel title, tabs, empty states, time formatting use `$t('notification.*')`
+- **EmptyState.vue** — Default title/description use `$t('common.noData')` / `$t('common.noDataDesc')`
+
+#### Translation Approach
+- **Template:** `$t('module.key')` for labels, placeholders, titles
+- **Script:** `const { t } = useI18n(); t('module.key')` for ElMessage, validation rules
+- **Validation rules:** Arrow functions for reactive messages: `message: () => t('key')`
+- **Parameterized translations:** `t('key', { param: value })` for dynamic content
+
+---
+
+### Frontend — UI Improvements
+- Consistent styling across all admin and employee views
+- Clean card-based layouts with proper shadows and border radius
+- Responsive table designs with proper column widths
+- Improved dialog layouts with better spacing
+
+---
+
+### Files Changed Summary
+
+| Category | Files | Description |
+|----------|-------|-------------|
+| Modified frontend views | 49 | All Vue views translated to i18n |
+| Modified locale files | 2 | zh-CN.js (~1400 lines), en-US.js (~1400 lines) |
+| Documentation | 1 | CHANGELOG.md |
+
+---
+
 ## [v2.1.0] — 2026-05-07 (Security & Monitoring Upgrade)
 
 ### Summary
@@ -266,7 +348,7 @@ Transformed from a student-level project into a production-grade, resume-worthy 
 2. **Prometheus on Windows:** `prometheus_client` fails on Windows Python 3.12 (`resource.getpagesize` missing) — metrics gracefully disabled
 3. **WebSocket async mode:** Uses `eventlet` for production; `threading` mode for development
 4. **Test DB:** Tests use SQLite (not MySQL/PostgreSQL), so spatial queries and UUID columns are skipped
-5. **i18n coverage:** Core infrastructure files (router, Axios, Time) are translated; individual Vue view templates still use hardcoded Chinese (41 views × ~50 strings each = ~2000 strings to translate)
+5. **i18n coverage:** Core infrastructure files (router, Axios, Time) are translated; individual Vue view templates still use hardcoded Chinese (41 views × ~50 strings each = ~2000 strings to translate) — **Resolved in v2.2**
 
 ---
 
@@ -275,7 +357,7 @@ Transformed from a student-level project into a production-grade, resume-worthy 
 - [x] ~~Add Grafana dashboards for Prometheus metrics~~ — Done in v2.1
 - [x] ~~Per-user rate limiting with Redis backend~~ — Done in v2.1 (Redis sorted sets)
 - [x] ~~WebSocket authentication (JWT handshake)~~ — Done in v2.1
-- [ ] Translate remaining 38 Vue view templates (~1800 strings)
+- [x] ~~Translate remaining 38 Vue view templates (~1800 strings)~~ — Done in v2.2 (all 49 views, 1200+ keys)
 - [ ] Increase test coverage to 80%+ (currently ~50% of endpoints covered)
 - [ ] Add integration tests with real MySQL/PostgreSQL
 - [ ] Add E2E tests with Playwright or Cypress

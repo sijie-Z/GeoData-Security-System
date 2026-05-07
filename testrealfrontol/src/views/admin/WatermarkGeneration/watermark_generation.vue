@@ -1,24 +1,24 @@
 <template>
   <div class="watermark-generation-page">
     <div class="page-header">
-      <h1 class="page-title">水印生成</h1>
-      <p class="page-desc">管理员填写生成信息后，可生成并预览二维码，同时支持地图预览、搜索定位与回退。</p>
+      <h1 class="page-title">{{ $t('wmGen.pageTitle') }}</h1>
+      <p class="page-desc">{{ $t('wmGen.pageDesc') }}</p>
     </div>
 
     <el-card class="table-card" shadow="hover">
-      <el-table :data="data.list" border stripe v-loading="loading" empty-text="暂无可生成水印的记录">
-        <el-table-column prop="id" label="申请编号" width="90" />
-        <el-table-column prop="data_alias" label="数据名称" min-width="140" />
-        <el-table-column prop="data_id" label="数据编号" width="120" />
-        <el-table-column prop="applicant_user_number" label="申请人编号" width="120" />
-        <el-table-column prop="applicant_name" label="申请人姓名" width="120" />
-        <el-table-column label="一审状态" width="100" align="center">
+      <el-table :data="data.list" border stripe v-loading="loading" :empty-text="$t('wmGen.emptyText')">
+        <el-table-column prop="id" :label="$t('wmGen.colApplicationId')" width="90" />
+        <el-table-column prop="data_alias" :label="$t('wmGen.colDataName')" min-width="140" />
+        <el-table-column prop="data_id" :label="$t('wmGen.colDataId')" width="120" />
+        <el-table-column prop="applicant_user_number" :label="$t('wmGen.colApplicantNo')" width="120" />
+        <el-table-column prop="applicant_name" :label="$t('wmGen.colApplicantName')" width="120" />
+        <el-table-column :label="$t('wmGen.colFirstStatus')" width="100" align="center">
           <template #default="scope">{{ getStatusText(scope.row.first_statu) }}</template>
         </el-table-column>
-        <el-table-column label="二审状态" width="100" align="center">
+        <el-table-column :label="$t('wmGen.colSecondStatus')" width="100" align="center">
           <template #default="scope">{{ getStatusText(scope.row.second_statu) }}</template>
         </el-table-column>
-        <el-table-column label="水印" width="100" align="center">
+        <el-table-column :label="$t('wmGen.colWatermark')" width="100" align="center">
           <template #default="scope">
             <el-image
               v-if="scope.row.qrcode"
@@ -27,13 +27,13 @@
               fit="cover"
               style="width: 48px; height: 48px; border-radius: 6px;"
             />
-            <span v-else style="color:#909399;">未生成</span>
+            <span v-else style="color:#909399;">{{ $t('wmGen.notGenerated') }}</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="240" align="center" fixed="right">
+        <el-table-column :label="$t('wmGen.colAction')" width="240" align="center" fixed="right">
           <template #default="scope">
-            <el-button size="small" @click="openMapDialog(scope.row)">地图预览</el-button>
-            <el-button size="small" type="primary" @click="openRequestDialog(scope.row)">生成水印</el-button>
+            <el-button size="small" @click="openMapDialog(scope.row)">{{ $t('wmGen.mapPreview') }}</el-button>
+            <el-button size="small" type="primary" @click="openRequestDialog(scope.row)">{{ $t('wmGen.generateWatermark') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -53,41 +53,41 @@
       v-model="requestDataVisible"
       width="560px"
       :close-on-click-modal="false"
-      title="生成水印"
+      :title="$t('wmGen.generateWatermark')"
     >
       <el-form ref="requestFormRef" :model="requestInformation" :rules="rules" label-width="100px">
-        <el-form-item label="申请编号" prop="application_id">
+        <el-form-item :label="$t('wmGen.formApplicationId')" prop="application_id">
           <el-input v-model="requestInformation.application_id" readonly />
         </el-form-item>
-        <el-form-item label="数据编号" prop="data_id">
+        <el-form-item :label="$t('wmGen.formDataId')" prop="data_id">
           <el-input v-model="requestInformation.data_id" readonly />
         </el-form-item>
-        <el-form-item label="数据名称" prop="data_alias">
+        <el-form-item :label="$t('wmGen.formDataName')" prop="data_alias">
           <el-input v-model="requestInformation.data_alias" readonly />
         </el-form-item>
-        <el-form-item label="申请人姓名" prop="applicant_name">
+        <el-form-item :label="$t('wmGen.formApplicantName')" prop="applicant_name">
           <el-input v-model="requestInformation.applicant_name" readonly />
         </el-form-item>
-        <el-form-item label="申请原因" prop="reason">
-          <el-input v-model="requestInformation.reason" type="textarea" :rows="2" placeholder="将写入二维码，可留空" />
+        <el-form-item :label="$t('wmGen.formReason')" prop="reason">
+          <el-input v-model="requestInformation.reason" type="textarea" :rows="2" :placeholder="$t('wmGen.reasonPlaceholder')" />
         </el-form-item>
-        <el-form-item label="使用目的" prop="purpose">
-          <el-input v-model="requestInformation.purpose" type="textarea" :rows="2" placeholder="例如：科研分析、项目汇报" />
+        <el-form-item :label="$t('wmGen.formPurpose')" prop="purpose">
+          <el-input v-model="requestInformation.purpose" type="textarea" :rows="2" :placeholder="$t('wmGen.purposePlaceholder')" />
         </el-form-item>
-        <el-form-item label="使用范围" prop="usage_scope">
-          <el-input v-model="requestInformation.usage_scope" placeholder="例如：仅限部门内部" />
+        <el-form-item :label="$t('wmGen.formUsageScope')" prop="usage_scope">
+          <el-input v-model="requestInformation.usage_scope" :placeholder="$t('wmGen.scopePlaceholder')" />
         </el-form-item>
-        <el-form-item label="安全级别" prop="security_level">
-          <el-select v-model="requestInformation.security_level" style="width:100%;" placeholder="请选择">
-            <el-option label="普通" value="normal" />
-            <el-option label="内部" value="internal" />
-            <el-option label="敏感" value="sensitive" />
+        <el-form-item :label="$t('wmGen.formSecurityLevel')" prop="security_level">
+          <el-select v-model="requestInformation.security_level" style="width:100%;" :placeholder="$t('wmGen.selectPlaceholder')">
+            <el-option :label="$t('wmGen.levelNormal')" value="normal" />
+            <el-option :label="$t('wmGen.levelInternal')" value="internal" />
+            <el-option :label="$t('wmGen.levelSensitive')" value="sensitive" />
           </el-select>
         </el-form-item>
-        <el-form-item label="标记标签" prop="custom_tag">
-          <el-input v-model="requestInformation.custom_tag" placeholder="例如：2026Q2-专项" />
+        <el-form-item :label="$t('wmGen.formCustomTag')" prop="custom_tag">
+          <el-input v-model="requestInformation.custom_tag" :placeholder="$t('wmGen.tagPlaceholder')" />
         </el-form-item>
-        <el-form-item label="二维码预览">
+        <el-form-item :label="$t('wmGen.qrPreview')">
           <div class="qr-preview-area">
             <el-image
               v-if="generatedQrcode"
@@ -96,52 +96,52 @@
               fit="contain"
               style="width: 140px; height: 140px; border: 1px solid #e5e7eb; border-radius: 8px;"
             />
-            <span v-else style="color:#909399;">生成后可预览</span>
+            <span v-else style="color:#909399;">{{ $t('wmGen.qrPreviewAfter') }}</span>
             <div v-if="generatedQrcode" class="qr-meta">
-              <p v-if="generatedQrVersion">版本: V{{ generatedQrVersion }}</p>
-              <p v-if="generatedSignature">签名: {{ generatedSignature }}</p>
+              <p v-if="generatedQrVersion">{{ $t('wmGen.version') }} V{{ generatedQrVersion }}</p>
+              <p v-if="generatedSignature">{{ $t('wmGen.signature') }} {{ generatedSignature }}</p>
             </div>
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="requestDataVisible=false">取消</el-button>
-        <el-button type="primary" @click="generate">确认生成</el-button>
+        <el-button @click="requestDataVisible=false">{{ $t('wmGen.cancel') }}</el-button>
+        <el-button type="primary" @click="generate">{{ $t('wmGen.confirmGenerate') }}</el-button>
       </template>
     </el-dialog>
 
     <el-dialog
       v-model="mapDialogVisible"
-      title="地图预览与定位"
+      :title="$t('wmGen.mapDialogTitle')"
       width="74%"
       :close-on-click-modal="false"
       destroy-on-close
       @closed="destroyMapView"
     >
       <div class="map-toolbar">
-        <el-input v-model="mapSearchKeyword" clearable placeholder="输入地名进行定位搜索" style="width: 320px" @keyup.enter="searchMap">
+        <el-input v-model="mapSearchKeyword" clearable :placeholder="$t('wmGen.mapSearchPlaceholder')" style="width: 320px" @keyup.enter="searchMap">
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-button type="primary" @click="searchMap">搜索定位</el-button>
-        <el-button @click="goInitialExtent">回退视图</el-button>
-        <el-button @click="clearSearchResult">清空定位</el-button>
+        <el-button type="primary" @click="searchMap">{{ $t('wmGen.searchLocation') }}</el-button>
+        <el-button @click="goInitialExtent">{{ $t('wmGen.resetView') }}</el-button>
+        <el-button @click="clearSearchResult">{{ $t('wmGen.clearLocation') }}</el-button>
       </div>
       <div class="map-dialog-layout">
         <div class="map-pane">
           <div ref="mapContainer" class="map-container"></div>
           <div v-if="!selectedMapRow.data_url" class="map-placeholder">
-            <el-empty description="该记录缺少地图服务地址，无法加载" />
+            <el-empty :description="$t('wmGen.mapEmptyDesc')" />
           </div>
         </div>
         <div class="info-pane">
           <el-descriptions :column="1" border size="small">
-            <el-descriptions-item label="申请编号">{{ selectedMapRow.id }}</el-descriptions-item>
-            <el-descriptions-item label="数据名称">{{ selectedMapRow.data_alias }}</el-descriptions-item>
-            <el-descriptions-item label="数据编号">{{ selectedMapRow.data_id }}</el-descriptions-item>
-            <el-descriptions-item label="申请人">{{ selectedMapRow.applicant_name }} ({{ selectedMapRow.applicant_user_number }})</el-descriptions-item>
-            <el-descriptions-item label="地图服务地址">
+            <el-descriptions-item :label="$t('wmGen.descApplicationId')">{{ selectedMapRow.id }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descDataName')">{{ selectedMapRow.data_alias }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descDataId')">{{ selectedMapRow.data_id }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descApplicant')">{{ selectedMapRow.applicant_name }} ({{ selectedMapRow.applicant_user_number }})</el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descMapServiceUrl')">
               <span class="url-text" :title="selectedMapRow.data_url">{{ selectedMapRow.data_url || '—' }}</span>
             </el-descriptions-item>
           </el-descriptions>
@@ -153,6 +153,7 @@
 
 <script setup>
 import { reactive, ref, onMounted, watch, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import axios from '@/utils/Axios';
 import { Search } from '@element-plus/icons-vue';
@@ -164,6 +165,8 @@ import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 import GraphicsLayer from '@arcgis/core/layers/GraphicsLayer';
 import Graphic from '@arcgis/core/Graphic';
 import Point from '@arcgis/core/geometry/Point';
+
+const { t } = useI18n();
 
 const data = reactive({ list: [] });
 const page = ref(1);
@@ -194,10 +197,10 @@ const requestInformation = reactive({
 });
 
 const rules = {
-  application_id: [{ required: true, message: '缺少申请编号', trigger: 'blur' }],
-  data_id: [{ required: true, message: '缺少数据编号', trigger: 'blur' }],
-  data_alias: [{ required: true, message: '缺少数据名称', trigger: 'blur' }],
-  applicant_name: [{ required: true, message: '缺少申请人姓名', trigger: 'blur' }]
+  application_id: [{ required: true, message: t('wmGen.missingApplicationId'), trigger: 'blur' }],
+  data_id: [{ required: true, message: t('wmGen.missingDataId'), trigger: 'blur' }],
+  data_alias: [{ required: true, message: t('wmGen.missingDataName'), trigger: 'blur' }],
+  applicant_name: [{ required: true, message: t('wmGen.missingApplicantName'), trigger: 'blur' }]
 };
 
 const pageChanged = (newPage) => {
@@ -209,9 +212,9 @@ watch(page, (n, o) => {
 });
 
 const getStatusText = (status) => {
-  if (status === true) return '通过';
-  if (status === false) return '不通过';
-  return '待审核';
+  if (status === true) return t('wmGen.statusPassed');
+  if (status === false) return t('wmGen.statusRejected');
+  return t('wmGen.statusPending');
 };
 
 const get_applications = async () => {
@@ -223,13 +226,13 @@ const get_applications = async () => {
     if (!response.data?.status) {
       data.list = [];
       total.value = 0;
-      ElMessage.error(response.data?.msg || '获取记录失败');
+      ElMessage.error(response.data?.msg || t('wmGen.fetchFailed'));
       return;
     }
     data.list = response.data.application_data || [];
     total.value = response.data.pages?.total ?? 0;
   } catch (_err) {
-    ElMessage.error('获取记录失败');
+    ElMessage.error(t('wmGen.fetchFailed'));
   } finally {
     loading.value = false;
   }
@@ -263,13 +266,13 @@ const generate = async () => {
   await requestFormRef.value?.validate();
   const resp = await axios.post(`/api/generate_watermark`, requestInformation);
   if (!resp.data?.status) {
-    ElMessage.error(resp.data?.msg || '生成失败');
+    ElMessage.error(resp.data?.msg || t('wmGen.generateFailed'));
     return;
   }
   generatedQrcode.value = resp.data?.qrcode || '';
   generatedQrVersion.value = resp.data?.qr_version || null;
   generatedSignature.value = resp.data?.signature || '';
-  ElMessage.success(`水印生成成功 (版本: V${generatedQrVersion.value})`);
+  ElMessage.success(t('wmGen.generateSuccess', { version: generatedQrVersion.value }));
   requestDataVisible.value = false;
   await get_applications();
 };
@@ -342,11 +345,11 @@ const openMapDialog = async (row) => {
 const searchMap = async () => {
   const keyword = mapSearchKeyword.value.trim();
   if (!keyword) {
-    ElMessage.warning('请输入搜索关键词');
+    ElMessage.warning(t('wmGen.enterKeyword'));
     return;
   }
   if (!mapView) {
-    ElMessage.warning('地图尚未加载完成');
+    ElMessage.warning(t('wmGen.mapNotLoaded'));
     return;
   }
   try {
@@ -355,12 +358,12 @@ const searchMap = async () => {
     });
     const pois = resp.data?.pois || [];
     if (!pois.length) {
-      ElMessage.warning('未找到匹配结果');
+      ElMessage.warning(t('wmGen.noResults'));
       return;
     }
     const [lon, lat] = String(pois[0].lonlat || '').split(',').map(v => Number(v));
     if (Number.isNaN(lon) || Number.isNaN(lat)) {
-      ElMessage.warning('定位结果异常');
+      ElMessage.warning(t('wmGen.locationError'));
       return;
     }
     markerLayer?.removeAll();
@@ -376,15 +379,15 @@ const searchMap = async () => {
     });
     markerLayer?.add(marker);
     await mapView.goTo({ center: [lon, lat], zoom: 13 });
-    ElMessage.success(`已定位：${pois[0].name || keyword}`);
+    ElMessage.success(t('wmGen.locationSuccess', { name: pois[0].name || keyword }));
   } catch (_err) {
-    ElMessage.error('搜索定位失败');
+    ElMessage.error(t('wmGen.searchFailed'));
   }
 };
 
 const goInitialExtent = async () => {
   if (!mapView || !initialExtent) {
-    ElMessage.warning('暂无可回退视图');
+    ElMessage.warning(t('wmGen.noViewToReset'));
     return;
   }
   await mapView.goTo(initialExtent);

@@ -1,29 +1,29 @@
 <template>
   <div class="approval-page">
     <div class="page-header">
-      <h1 class="page-title">待一审申请</h1>
-      <p class="page-desc">仅管理员1处理的一审申请列表，通过或不通过后将从本列表移除。</p>
+      <h1 class="page-title">{{ $t('approval.firstReviewTitle') }}</h1>
+      <p class="page-desc">{{ $t('approval.firstReviewDescription') }}</p>
     </div>
 
     <el-card class="table-card" shadow="hover">
       <div class="batch-toolbar" v-if="isAdm1">
-        <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">批量通过</el-button>
-        <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">批量不通过</el-button>
-        <span class="batch-tip">已选 {{ selectedIds.length }} 条</span>
+        <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
+        <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
+        <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
       </div>
-      <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" empty-text="暂无待审批申请" @selection-change="onSelectionChange">
+      <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" :empty-text="$t('approval.noPendingApproval')" @selection-change="onSelectionChange">
         <el-table-column type="selection" width="50" align="center" />
-        <el-table-column prop="id" label="申请编号" width="90" align="center" />
-        <el-table-column prop="data_alias" label="数据名称" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="data_id" label="数据编号" width="100" align="center" />
-        <el-table-column prop="applicant_user_number" label="申请人编号" width="110" align="center" />
-        <el-table-column prop="applicant_name" label="申请人姓名" width="100" align="center" />
-        <el-table-column prop="reason" label="申请理由" min-width="160" show-overflow-tooltip />
+        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
+        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
+        <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="110" align="center" />
+        <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="100" align="center" />
+        <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="160" show-overflow-tooltip />
 
-        <el-table-column label="操作" width="160" align="center" fixed="right">
+        <el-table-column :label="$t('approval.operation')" width="160" align="center" fixed="right">
           <template #default="scope">
-            <el-button size="small" type="primary" @click="pass(scope.row)">通过</el-button>
-            <el-button size="small" @click="fail(scope.row)">不通过</el-button>
+            <el-button size="small" type="primary" @click="pass(scope.row)">{{ $t('approval.approve') }}</el-button>
+            <el-button size="small" @click="fail(scope.row)">{{ $t('approval.reject') }}</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -45,11 +45,12 @@
 <script setup>
 import {reactive, onMounted, ref, computed, watch} from "vue";
 import {ElMessage, ElMessageBox, ElLoading} from "element-plus";
+import { useI18n } from 'vue-i18n';
 // import {useRouter} from "vue-router";
 import axios from '@/utils/Axios';
 import {useUserStore} from "@/stores/userStore.js";
 
-
+const { t } = useI18n();
 
 // const router=useRouter()
 
@@ -107,7 +108,7 @@ const admin1_get_applications = async () => {
     total.value = response.data.pages.total;  // 使用分页数据中的 total
   } catch (err) {
     console.error('Error:', err);
-    ElMessage.error('获取记录失败');
+    ElMessage.error(t('approval.fetchFailed'));
   } finally {
     loading.value = false;
   }
@@ -119,21 +120,21 @@ onMounted(() => {
   } else {
     data.list = [];
     total.value = 0;
-    ElMessage.warning('当前账号不是管理员1，待一审页不可操作');
+    ElMessage.warning(t('approval.notAdmin1'));
   }
 });
 
 const pass = async (row) => {
   try {
-    await ElMessageBox.confirm("确定通过?", '审批', {
+    await ElMessageBox.confirm(t('approval.confirmApprove'), t('approval.review'), {
       type: 'warning',
-      confirmButtonText: '确认',
-      cancelButtonText: '取消'
+      confirmButtonText: t('approval.confirm'),
+      cancelButtonText: t('approval.cancel')
     });
-    
+
     const loadingInstance = ElLoading.service({
       lock: true,
-      text: '正在处理，请稍候...',
+      text: t('approval.processing'),
       background: 'rgba(0, 0, 0, 0.7)',
     });
 
@@ -149,12 +150,12 @@ const pass = async (row) => {
       } else {
         passResult = await axios.post(`/api/adm2_pass`, requestData);
       }
-      
+
       if (!passResult.data.status) {
-        ElMessage.error(passResult.data.msg || '审核失败');
+        ElMessage.error(passResult.data.msg || t('approval.reviewFailed'));
         return;
       }
-      ElMessage.success('审核通过并已自动生成嵌入文件');
+      ElMessage.success(t('approval.reviewPassed'));
       if (isAdm1.value) {
         await admin1_get_applications();
       } else {
@@ -165,17 +166,17 @@ const pass = async (row) => {
     }
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error('操作失败');
+      ElMessage.error(t('approval.operationFailed'));
     }
   }
 };
 
 const fail = async (row) => {
   try {
-    await ElMessageBox.confirm("确定不通过?", '审批', {
+    await ElMessageBox.confirm(t('approval.confirmReject'), t('approval.review'), {
       type: 'warning',
-      confirmButtonText: '确认',
-      cancelButtonText: '取消'
+      confirmButtonText: t('approval.confirm'),
+      cancelButtonText: t('approval.cancel')
     });
 
     const requestData = {
@@ -196,7 +197,7 @@ const fail = async (row) => {
       return;
     }
 
-    ElMessage.success('操作成功');
+    ElMessage.success(t('approval.operationSuccess'));
     if (isAdm1.value) {
       await admin1_get_applications();
     } else {
@@ -205,7 +206,7 @@ const fail = async (row) => {
 
   } catch (err) {
     if (err !== 'cancel') {
-      ElMessage.error('操作失败');
+      ElMessage.error(t('approval.operationFailed'));
     }
   }
 };
@@ -227,21 +228,21 @@ const exportBatchFailedCsv = async (failed) => {
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   } catch (_e) {
-    ElMessage.warning('失败清单导出失败，可稍后重试');
+    ElMessage.warning(t('approval.exportFailed'));
   }
 };
 
 const batchReview = async (action) => {
   if (!selectedIds.value.length) {
-    ElMessage.warning('请先选择要处理的申请');
+    ElMessage.warning(t('approval.selectFirst'));
     return;
   }
   const stage = isAdm1.value ? 'adm1' : 'adm2';
   try {
     await ElMessageBox.confirm(
-      `确认将选中的 ${selectedIds.value.length} 条申请批量${action === 'pass' ? '通过' : '不通过'}？`,
-      '批量审批确认',
-      { type: 'warning', confirmButtonText: '确认', cancelButtonText: '取消' }
+      t('approval.batchConfirm', { count: selectedIds.value.length, action: action === 'pass' ? t('approval.approve') : t('approval.reject') }),
+      t('approval.batchReviewConfirm'),
+      { type: 'warning', confirmButtonText: t('approval.confirm'), cancelButtonText: t('approval.cancel') }
     );
     const resp = await axios.post(`/api/admin/batch_review`, {
       ids: selectedIds.value,
@@ -251,11 +252,11 @@ const batchReview = async (action) => {
       user_number: userNumber.value
     });
     if (!resp.data?.status) {
-      ElMessage.error(resp.data?.msg || '批量审批失败');
+      ElMessage.error(resp.data?.msg || t('approval.batchReviewFailed'));
       return;
     }
     const failed = resp.data?.data?.failed || [];
-    ElMessage.success(resp.data.msg || '批量审批完成');
+    ElMessage.success(resp.data.msg || t('approval.batchReviewComplete'));
 
     // 增量刷新：仅从当前列表移除成功项
     const successIds = new Set(resp.data?.data?.success_ids || []);
@@ -265,9 +266,9 @@ const batchReview = async (action) => {
 
     if (failed.length > 0) {
       await ElMessageBox.confirm(
-        `有 ${failed.length} 条处理失败，是否导出失败清单？`,
-        '批量审批部分失败',
-        { type: 'warning', confirmButtonText: '导出', cancelButtonText: '稍后' }
+        t('approval.partialFail', { count: failed.length }),
+        t('approval.partialFailTitle'),
+        { type: 'warning', confirmButtonText: t('approval.export'), cancelButtonText: t('approval.later') }
       );
       await exportBatchFailedCsv(failed);
     }

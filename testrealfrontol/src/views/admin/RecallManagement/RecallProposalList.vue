@@ -1,61 +1,61 @@
 <template>
   <div class="recall-list-page">
     <div class="page-header">
-      <h1 class="page-title">数据回收审议</h1>
-      <p class="page-desc">管理已批准数据的回收提议，投票决定是否收回数据</p>
+      <h1 class="page-title">{{ $t('recall.title') }}</h1>
+      <p class="page-desc">{{ $t('recall.pageDesc') }}</p>
     </div>
 
     <el-card class="filter-card" shadow="hover">
       <div class="filter-row">
-        <el-select v-model="statusFilter" placeholder="状态筛选" clearable style="width: 150px" @change="getProposals">
-          <el-option label="投票中" value="voting" />
-          <el-option label="已通过" value="approved" />
-          <el-option label="已否决" value="rejected" />
+        <el-select v-model="statusFilter" :placeholder="$t('recall.statusFilter')" clearable style="width: 150px" @change="getProposals">
+          <el-option :label="$t('recall.voting')" value="voting" />
+          <el-option :label="$t('recall.approved')" value="approved" />
+          <el-option :label="$t('recall.rejected')" value="rejected" />
         </el-select>
         <el-button type="primary" @click="openCreateDialog" v-if="canCreate">
           <el-icon><Plus /></el-icon>
-          发起回收提议
+          {{ $t('recall.create') }}
         </el-button>
       </div>
     </el-card>
 
     <el-card class="table-card" shadow="hover">
-      <el-table :data="proposals" v-loading="loading" stripe empty-text="暂无回收提议">
-        <el-table-column prop="id" label="提议编号" width="90" />
-        <el-table-column label="关联申请" width="100">
+      <el-table :data="proposals" v-loading="loading" stripe :empty-text="$t('common.noData')">
+        <el-table-column prop="id" :label="$t('recall.proposalId')" width="90" />
+        <el-table-column :label="$t('recall.relatedApp')" width="100">
           <template #default="scope">
             <el-link type="primary" @click="viewApplication(scope.row.application_id)">
               #{{ scope.row.application_id }}
             </el-link>
           </template>
         </el-table-column>
-        <el-table-column prop="application_info.data_alias" label="数据名称" min-width="140" />
-        <el-table-column prop="proposer_name" label="提议人" width="100" />
-        <el-table-column label="投票进度" width="180">
+        <el-table-column prop="application_info.data_alias" :label="$t('recall.dataName')" min-width="140" />
+        <el-table-column prop="proposer_name" :label="$t('recall.proposer')" width="100" />
+        <el-table-column :label="$t('recall.voteProgress')" width="180">
           <template #default="scope">
             <div class="vote-progress">
-              <el-tag type="success" size="small">支持: {{ scope.row.votes_for }}</el-tag>
-              <el-tag type="danger" size="small">反对: {{ scope.row.votes_against }}</el-tag>
-              <el-tag type="info" size="small">弃权: {{ scope.row.votes_abstain }}</el-tag>
+              <el-tag type="success" size="small">{{ $t('recall.support') }}: {{ scope.row.votes_for }}</el-tag>
+              <el-tag type="danger" size="small">{{ $t('recall.oppose') }}: {{ scope.row.votes_against }}</el-tag>
+              <el-tag type="info" size="small">{{ $t('recall.abstain') }}: {{ scope.row.votes_abstain }}</el-tag>
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="状态" width="100" align="center">
+        <el-table-column :label="$t('common.status')" width="100" align="center">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status_text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="160" />
-        <el-table-column label="操作" width="180" align="center" fixed="right">
+        <el-table-column prop="created_at" :label="$t('recall.createdAt')" width="160" />
+        <el-table-column :label="$t('common.action')" width="180" align="center" fixed="right">
           <template #default="scope">
-            <el-button size="small" @click="viewDetail(scope.row)">详情</el-button>
+            <el-button size="small" @click="viewDetail(scope.row)">{{ $t('common.detail') }}</el-button>
             <el-button
               v-if="scope.row.status === 'voting' && scope.row.can_vote"
               size="small"
               type="primary"
               @click="openVoteDialog(scope.row)"
             >
-              投票
+              {{ $t('recall.vote') }}
             </el-button>
           </template>
         </el-table-column>
@@ -72,11 +72,10 @@
       />
     </div>
 
-    <!-- Create Recall Dialog -->
-    <el-dialog v-model="createDialogVisible" title="发起数据回收提议" width="550px">
+    <el-dialog v-model="createDialogVisible" :title="$t('recall.createDialogTitle')" width="550px">
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="100px">
-        <el-form-item label="选择申请" prop="application_id">
-          <el-select v-model="createForm.application_id" placeholder="选择已批准的申请" filterable style="width: 100%">
+        <el-form-item :label="$t('recall.selectApp')" prop="application_id">
+          <el-select v-model="createForm.application_id" :placeholder="$t('recall.selectAppPlaceholder')" filterable style="width: 100%">
             <el-option
               v-for="app in approvedApps"
               :key="app.id"
@@ -85,80 +84,76 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="回收原因" prop="reason">
+        <el-form-item :label="$t('recall.reason')" prop="reason">
           <el-input
             v-model="createForm.reason"
             type="textarea"
             :rows="4"
-            placeholder="请详细说明回收原因（至少20字）"
+            :placeholder="$t('recall.reasonPlaceholder')"
             show-word-limit
             maxlength="500"
           />
         </el-form-item>
         <el-alert type="warning" :closable="false" show-icon>
-          <template #title>
-            提示：回收提议发起后，其他管理员将进行投票。若超过50%的管理员反对，数据将被收回，用户将无法继续下载。
-          </template>
+          <template #title>{{ $t('recall.createHint') }}</template>
         </el-alert>
       </el-form>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitCreate" :loading="createLoading">确认发起</el-button>
+        <el-button @click="createDialogVisible = false">{{ $t('common.cancel') }}</el-button>
+        <el-button type="primary" @click="submitCreate" :loading="createLoading">{{ $t('recall.confirmCreate') }}</el-button>
       </template>
     </el-dialog>
 
-    <!-- Vote Dialog -->
-    <el-dialog v-model="voteDialogVisible" title="投票" width="500px">
+    <el-dialog v-model="voteDialogVisible" :title="$t('recall.vote')" width="500px">
       <div class="vote-content">
         <el-descriptions :column="1" border size="small">
-          <el-descriptions-item label="提议编号">#{{ currentProposal?.id }}</el-descriptions-item>
-          <el-descriptions-item label="提议人">{{ currentProposal?.proposer_name }}</el-descriptions-item>
-          <el-descriptions-item label="回收原因">{{ currentProposal?.reason }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.proposalId')">#{{ currentProposal?.id }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.proposer')">{{ currentProposal?.proposer_name }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.reason')">{{ currentProposal?.reason }}</el-descriptions-item>
         </el-descriptions>
         <el-divider />
-        <p class="vote-question">您是否支持回收该数据？</p>
+        <p class="vote-question">{{ $t('recall.voteQuestion') }}</p>
         <div class="vote-buttons">
-          <el-button type="success" size="large" @click="submitVote('for')">支持回收</el-button>
-          <el-button type="danger" size="large" @click="submitVote('against')">反对回收</el-button>
-          <el-button type="info" size="large" @click="submitVote('abstain')">弃权</el-button>
+          <el-button type="success" size="large" @click="submitVote('for')">{{ $t('recall.supportRecall') }}</el-button>
+          <el-button type="danger" size="large" @click="submitVote('against')">{{ $t('recall.opposeRecall') }}</el-button>
+          <el-button type="info" size="large" @click="submitVote('abstain')">{{ $t('recall.abstain') }}</el-button>
         </div>
       </div>
     </el-dialog>
 
-    <!-- Detail Dialog -->
-    <el-dialog v-model="detailDialogVisible" title="提议详情" width="650px">
+    <el-dialog v-model="detailDialogVisible" :title="$t('recall.detailTitle')" width="650px">
       <div v-if="currentProposal">
         <el-descriptions :column="2" border>
-          <el-descriptions-item label="提议编号">#{{ currentProposal.id }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
+          <el-descriptions-item :label="$t('recall.proposalId')">#{{ currentProposal.id }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('common.status')">
             <el-tag :type="getStatusType(currentProposal.status)">{{ currentProposal.status_text }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="提议人">{{ currentProposal.proposer_name }}</el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ currentProposal.created_at }}</el-descriptions-item>
-          <el-descriptions-item label="关联申请">#{{ currentProposal.application_id }}</el-descriptions-item>
-          <el-descriptions-item label="数据名称">{{ currentProposal.application_info?.data_alias }}</el-descriptions-item>
-          <el-descriptions-item label="回收原因" :span="2">{{ currentProposal.reason }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.proposer')">{{ currentProposal.proposer_name }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.createdAt')">{{ currentProposal.created_at }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.relatedApp')">#{{ currentProposal.application_id }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.dataName')">{{ currentProposal.application_info?.data_alias }}</el-descriptions-item>
+          <el-descriptions-item :label="$t('recall.reason')" :span="2">{{ currentProposal.reason }}</el-descriptions-item>
         </el-descriptions>
-        <el-divider content-position="left">投票情况</el-divider>
+        <el-divider content-position="left">{{ $t('recall.voteStatus') }}</el-divider>
         <div class="vote-summary">
           <div class="vote-item">
-            <span class="vote-label">支持回收:</span>
+            <span class="vote-label">{{ $t('recall.supportRecall') }}:</span>
             <span class="vote-count success">{{ currentProposal.votes_for }}</span>
           </div>
           <div class="vote-item">
-            <span class="vote-label">反对回收:</span>
+            <span class="vote-label">{{ $t('recall.opposeRecall') }}:</span>
             <span class="vote-count danger">{{ currentProposal.votes_against }}</span>
           </div>
           <div class="vote-item">
-            <span class="vote-label">弃权:</span>
+            <span class="vote-label">{{ $t('recall.abstain') }}:</span>
             <span class="vote-count info">{{ currentProposal.votes_abstain }}</span>
           </div>
         </div>
         <div v-if="Object.keys(currentProposal.votes_json || {}).length > 0" class="vote-details">
-          <el-divider content-position="left">投票详情</el-divider>
+          <el-divider content-position="left">{{ $t('recall.voteDetails') }}</el-divider>
           <el-table :data="formatVotes(currentProposal.votes_json)" size="small">
-            <el-table-column prop="name" label="投票人" />
-            <el-table-column label="投票结果">
+            <el-table-column prop="name" :label="$t('recall.voter')" />
+            <el-table-column :label="$t('recall.voteResult')">
               <template #default="scope">
                 <el-tag :type="scope.row.voteType" size="small">{{ scope.row.voteText }}</el-tag>
               </template>
@@ -172,11 +167,13 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import axios from '@/utils/Axios';
 import { useUserStore } from '@/stores/userStore';
 
+const { t } = useI18n();
 const userStore = useUserStore();
 
 const proposals = ref([]);
@@ -200,8 +197,8 @@ const createForm = reactive({
 });
 
 const createRules = {
-  application_id: [{ required: true, message: '请选择申请', trigger: 'change' }],
-  reason: [{ required: true, min: 20, message: '回收原因至少需要20个字符', trigger: 'blur' }]
+  application_id: [{ required: true, message: () => t('recall.selectAppRequired'), trigger: 'change' }],
+  reason: [{ required: true, min: 20, message: () => t('recall.reasonMinLength'), trigger: 'blur' }]
 };
 
 const canCreate = computed(() => userStore.currentUser?.role === 'admin');
@@ -222,7 +219,7 @@ const getProposals = async () => {
       total.value = resp.data.data.total || 0;
     }
   } catch (err) {
-    ElMessage.error('获取列表失败');
+    ElMessage.error(t('recall.fetchListFailed'));
   } finally {
     loading.value = false;
   }
@@ -231,14 +228,13 @@ const getProposals = async () => {
 const openCreateDialog = async () => {
   createForm.application_id = null;
   createForm.reason = '';
-  // Get approved applications
   try {
     const resp = await axios.get('/api/adm2_get_approved', { params: { pageSize: 100 } });
     if (resp.data?.status) {
       approvedApps.value = resp.data.approved_application_data || [];
     }
   } catch (err) {
-    ElMessage.error('获取申请列表失败');
+    ElMessage.error(t('recall.fetchAppListFailed'));
   }
   createDialogVisible.value = true;
 };
@@ -249,14 +245,14 @@ const submitCreate = async () => {
   try {
     const resp = await axios.post('/api/recall/create', createForm);
     if (resp.data?.status) {
-      ElMessage.success('回收提议已发起');
+      ElMessage.success(t('recall.createSuccess'));
       createDialogVisible.value = false;
       getProposals();
     } else {
-      ElMessage.error(resp.data?.msg || '发起失败');
+      ElMessage.error(resp.data?.msg || t('recall.createFailed'));
     }
   } catch (err) {
-    ElMessage.error('发起失败');
+    ElMessage.error(t('recall.createFailed'));
   } finally {
     createLoading.value = false;
   }
@@ -275,10 +271,10 @@ const submitVote = async (voteType) => {
       voteDialogVisible.value = false;
       getProposals();
     } else {
-      ElMessage.error(resp.data?.msg || '投票失败');
+      ElMessage.error(resp.data?.msg || t('recall.voteFailed'));
     }
   } catch (err) {
-    ElMessage.error('投票失败');
+    ElMessage.error(t('recall.voteFailed'));
   }
 };
 
@@ -290,13 +286,12 @@ const viewDetail = async (row) => {
       detailDialogVisible.value = true;
     }
   } catch (err) {
-    ElMessage.error('获取详情失败');
+    ElMessage.error(t('recall.fetchDetailFailed'));
   }
 };
 
 const viewApplication = (appId) => {
-  // Navigate to application detail or show modal
-  ElMessage.info(`查看申请 #${appId}`);
+  ElMessage.info(`${t('common.view')} #${appId}`);
 };
 
 const formatVotes = (votesJson) => {
@@ -304,7 +299,7 @@ const formatVotes = (votesJson) => {
     number,
     name: data.name || number,
     vote: data.vote,
-    voteText: { for: '支持', against: '反对', abstain: '弃权' }[data.vote] || data.vote,
+    voteText: { for: t('recall.support'), against: t('recall.oppose'), abstain: t('recall.abstain') }[data.vote] || data.vote,
     voteType: { for: 'success', against: 'danger', abstain: 'info' }[data.vote] || 'info'
   }));
 };

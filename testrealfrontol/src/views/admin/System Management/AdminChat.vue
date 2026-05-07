@@ -3,15 +3,15 @@
     <el-card class="chat-card" shadow="hover">
       <template #header>
         <div class="chat-header">
-          <h2>在线沟通中心</h2>
-          <el-button type="primary" @click="showUserList = true" :icon="Plus">选择联系人</el-button>
+          <h2>{{ $t('adminChat.title') }}</h2>
+          <el-button type="primary" @click="showUserList = true" :icon="Plus">{{ $t('adminChat.selectContact') }}</el-button>
         </div>
       </template>
 
       <div class="chat-layout">
         <!-- 会话列表 -->
         <aside class="conversation-list">
-          <div class="list-header">最近会话</div>
+          <div class="list-header">{{ $t('adminChat.recentConversations') }}</div>
           <div class="conversations" v-loading="loadingConversations">
             <div
               v-for="item in conversations"
@@ -23,13 +23,13 @@
               <div class="avatar">{{ (item.peer_name || item.peer_number || '?').charAt(0) }}</div>
               <div class="info">
                 <div class="name">{{ item.peer_name || item.peer_number }}</div>
-                <div class="preview">{{ item.last_message || '点击开始聊天' }}</div>
+                <div class="preview">{{ item.last_message || $t('adminChat.clickToChat') }}</div>
               </div>
               <el-badge v-if="item.unread_count > 0" :value="item.unread_count" />
             </div>
             <div v-if="conversations.length === 0 && !loadingConversations" class="no-session">
-              <p>暂无会话记录</p>
-              <el-button type="primary" size="small" @click="showUserList = true">开始聊天</el-button>
+              <p>{{ $t('adminChat.noConversations') }}</p>
+              <el-button type="primary" size="small" @click="showUserList = true">{{ $t('adminChat.startChat') }}</el-button>
             </div>
           </div>
         </aside>
@@ -37,8 +37,8 @@
         <!-- 聊天区域 -->
         <section class="chat-area">
           <div v-if="!activePeer" class="empty-chat">
-            <el-empty description="请选择联系人开始聊天">
-              <el-button type="primary" @click="showUserList = true">选择联系人</el-button>
+            <el-empty :description="$t('adminChat.selectContactToChat')">
+              <el-button type="primary" @click="showUserList = true">{{ $t('adminChat.selectContact') }}</el-button>
             </el-empty>
           </div>
 
@@ -48,10 +48,10 @@
               <div class="peer-info">
                 <span class="peer-name">{{ activePeer.peer_name || activePeer.peer_number }}</span>
                 <el-tag size="small" :type="activePeer.peer_role === 'admin' ? 'warning' : 'success'">
-                  {{ activePeer.peer_role === 'admin' ? '管理员' : '员工' }}
+                  {{ activePeer.peer_role === 'admin' ? $t('adminChat.admin') : $t('adminChat.employee') }}
                 </el-tag>
               </div>
-              <el-button size="small" @click="loadMessages" :loading="loadingMessages">刷新</el-button>
+              <el-button size="small" @click="loadMessages" :loading="loadingMessages">{{ $t('adminChat.refresh') }}</el-button>
             </div>
 
             <!-- 消息列表 -->
@@ -61,8 +61,8 @@
                 <div class="time">{{ msg.created_at }}</div>
               </div>
               <div v-if="messages.length === 0 && !loadingMessages" class="no-msg">
-                <p>暂无消息</p>
-                <p>发送第一条消息开始聊天</p>
+                <p>{{ $t('adminChat.noMessages') }}</p>
+                <p>{{ $t('adminChat.sendFirstMessage') }}</p>
               </div>
             </div>
 
@@ -72,12 +72,12 @@
                 v-model="messageText"
                 type="textarea"
                 :rows="3"
-                placeholder="输入消息内容，按 Ctrl+Enter 发送"
+                :placeholder="$t('adminChat.inputPlaceholder')"
                 @keydown.ctrl.enter="sendMessage"
               />
               <div class="input-actions">
                 <el-button type="primary" @click="sendMessage" :loading="sending" :disabled="!messageText.trim()">
-                  发送
+                  {{ $t('adminChat.send') }}
                 </el-button>
               </div>
             </div>
@@ -87,27 +87,27 @@
     </el-card>
 
     <!-- 用户选择对话框 -->
-    <el-dialog v-model="showUserList" title="选择联系人" width="600px" destroy-on-close>
-      <el-input v-model="userSearchKeyword" placeholder="搜索用户名或编号" clearable style="margin-bottom: 16px" />
+    <el-dialog v-model="showUserList" :title="$t('adminChat.selectContact')" width="600px" destroy-on-close>
+      <el-input v-model="userSearchKeyword" :placeholder="$t('adminChat.searchUser')" clearable style="margin-bottom: 16px" />
       <el-tabs v-model="userListTab">
-        <el-tab-pane label="员工列表" name="employees">
+        <el-tab-pane :label="$t('adminChat.employeeList')" name="employees">
           <el-table :data="filteredEmployees" max-height="400" v-loading="loadingUsers">
-            <el-table-column prop="employee_number" label="编号" width="120" />
-            <el-table-column prop="name" label="姓名" />
-            <el-table-column label="操作" width="100">
+            <el-table-column prop="employee_number" :label="$t('adminChat.number')" width="120" />
+            <el-table-column prop="name" :label="$t('adminChat.name')" />
+            <el-table-column :label="$t('adminChat.action')" width="100">
               <template #default="scope">
-                <el-button type="primary" size="small" @click="startChat(scope.row, 'employee')">聊天</el-button>
+                <el-button type="primary" size="small" @click="startChat(scope.row, 'employee')">{{ $t('adminChat.chat') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane label="管理员列表" name="admins">
+        <el-tab-pane :label="$t('adminChat.adminList')" name="admins">
           <el-table :data="filteredAdmins" max-height="400" v-loading="loadingUsers">
-            <el-table-column prop="adm_number" label="编号" width="120" />
-            <el-table-column prop="name" label="姓名" />
-            <el-table-column label="操作" width="100">
+            <el-table-column prop="adm_number" :label="$t('adminChat.number')" width="120" />
+            <el-table-column prop="name" :label="$t('adminChat.name')" />
+            <el-table-column :label="$t('adminChat.action')" width="100">
               <template #default="scope">
-                <el-button type="primary" size="small" @click="startChat(scope.row, 'admin')">聊天</el-button>
+                <el-button type="primary" size="small" @click="startChat(scope.row, 'admin')">{{ $t('adminChat.chat') }}</el-button>
               </template>
             </el-table-column>
           </el-table>
@@ -119,11 +119,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import Axios from '@/utils/Axios'
 import { useUserStore } from '@/stores/userStore'
 
+const { t } = useI18n()
 const userStore = useUserStore()
 
 const conversations = ref([])
@@ -176,7 +178,7 @@ const loadConversations = async () => {
       conversations.value = data.data || []
     }
   } catch (e) {
-    console.error('加载会话失败:', e)
+    console.error('loadConversations error:', e)
   } finally {
     loadingConversations.value = false
   }
@@ -204,7 +206,7 @@ const loadMessages = async () => {
       await loadConversations()
     }
   } catch (e) {
-    console.error('加载消息失败:', e)
+    console.error('loadMessages error:', e)
   } finally {
     loadingMessages.value = false
   }
@@ -221,12 +223,12 @@ const selectConversation = async (item) => {
 
 const sendMessage = async () => {
   if (!activePeer.value) {
-    ElMessage.warning('请先选择联系人')
+    ElMessage.warning(t('adminChat.selectContactFirst'))
     return
   }
   const content = (messageText.value || '').trim()
   if (!content) {
-    ElMessage.warning('消息不能为空')
+    ElMessage.warning(t('adminChat.messageEmpty'))
     return
   }
   sending.value = true
@@ -240,10 +242,10 @@ const sendMessage = async () => {
       messageText.value = ''
       await loadMessages()
     } else {
-      ElMessage.error(data?.msg || '发送失败')
+      ElMessage.error(data?.msg || t('adminChat.sendFailed'))
     }
   } catch (e) {
-    ElMessage.error('发送失败')
+    ElMessage.error(t('adminChat.sendFailed'))
   } finally {
     sending.value = false
   }
@@ -258,13 +260,13 @@ const loadAllUsers = async () => {
       admins.value = data.data?.admins || []
     }
   } catch (e) {
-    console.error('加载用户失败:', e)
+    console.error('loadAllUsers error:', e)
     // 备用方案
     try {
       const empRes = await Axios.get('/api/adm/get_emp_info_list', { params: { pageSize: 1000 } })
       employees.value = empRes.data?.data?.list || empRes.data?.data || []
     } catch (e2) {
-      console.error('备用加载员工失败:', e2)
+      console.error('fallback loadEmployees error:', e2)
     }
   } finally {
     loadingUsers.value = false
@@ -275,7 +277,7 @@ const startChat = (row, role) => {
   const number = role === 'employee' ? row.employee_number : row.adm_number
   // 检查是否选择自己
   if (number === userStore.userNumber) {
-    ElMessage.warning('不能和自己聊天')
+    ElMessage.warning(t('adminChat.cannotChatSelf'))
     return
   }
   activePeer.value = {

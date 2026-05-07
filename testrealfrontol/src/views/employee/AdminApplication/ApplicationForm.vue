@@ -1,8 +1,8 @@
 <template>
   <div class="admin-application-page">
     <div class="page-header">
-      <h1 class="page-title">申请成为管理员</h1>
-      <p class="page-desc">申请获得管理员权限，参与系统管理和数据审批</p>
+      <h1 class="page-title">{{ $t('empAdminApp.title') }}</h1>
+      <p class="page-desc">{{ $t('empAdminApp.description') }}</p>
     </div>
 
     <el-card class="eligibility-card" shadow="hover" v-loading="checkingEligibility">
@@ -10,16 +10,16 @@
         <div v-if="eligibility.eligible" class="eligible">
           <el-icon class="success-icon"><CircleCheckFilled /></el-icon>
           <div class="eligibility-text">
-            <h3>您符合申请条件</h3>
-            <p>已注册 {{ eligibility.days_registered }} 天，可以提交管理员申请</p>
+            <h3>{{ $t('empAdminApp.eligible') }}</h3>
+            <p>{{ $t('empAdminApp.daysRegistered', { days: eligibility.days_registered }) }}</p>
           </div>
         </div>
         <div v-else class="not-eligible">
           <el-icon class="warning-icon"><WarningFilled /></el-icon>
           <div class="eligibility-text">
-            <h3>暂不符合申请条件</h3>
+            <h3>{{ $t('empAdminApp.notEligible') }}</h3>
             <p>{{ eligibility.reason }}</p>
-            <p v-if="eligibility.days_needed">还需等待 {{ eligibility.days_needed }} 天</p>
+            <p v-if="eligibility.days_needed">{{ $t('empAdminApp.daysNeeded', { days: eligibility.days_needed }) }}</p>
           </div>
         </div>
       </div>
@@ -28,22 +28,22 @@
     <!-- Application Form -->
     <el-card class="form-card" shadow="hover" v-if="eligibility?.eligible">
       <template #header>
-        <span>填写申请信息</span>
+        <span>{{ $t('empAdminApp.fillForm') }}</span>
       </template>
       <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="申请原因" prop="reason">
+        <el-form-item :label="$t('empAdminApp.reasonLabel')" prop="reason">
           <el-input
             v-model="form.reason"
             type="textarea"
             :rows="6"
-            placeholder="请详细说明您申请成为管理员的原因（至少50字）"
+            :placeholder="$t('empAdminApp.reasonPlaceholder')"
             show-word-limit
             maxlength="1000"
           />
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="submitApplication" :loading="submitting">
-            提交申请
+            {{ $t('empAdminApp.submit') }}
           </el-button>
         </el-form-item>
       </el-form>
@@ -52,23 +52,23 @@
     <!-- My Applications History -->
     <el-card class="history-card" shadow="hover">
       <template #header>
-        <span>我的申请记录</span>
+        <span>{{ $t('empAdminApp.myApplications') }}</span>
       </template>
-      <el-table :data="myApplications" v-loading="loadingHistory" empty-text="暂无申请记录">
-        <el-table-column prop="id" label="申请编号" width="100" />
-        <el-table-column prop="status_text" label="状态" width="120">
+      <el-table :data="myApplications" v-loading="loadingHistory" :empty-text="$t('empAdminApp.noApplications')">
+        <el-table-column prop="id" :label="$t('empAdminApp.applicationId')" width="100" />
+        <el-table-column prop="status_text" :label="$t('empAdminApp.status')" width="120">
           <template #default="scope">
             <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status_text }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="approval_ratio" label="支持率" width="100">
+        <el-table-column prop="approval_ratio" :label="$t('empAdminApp.approvalRatio')" width="100">
           <template #default="scope">
             <span>{{ scope.row.approval_ratio }}%</span>
           </template>
         </el-table-column>
-        <el-table-column prop="total_votes" label="投票数" width="100" />
-        <el-table-column prop="created_at" label="申请时间" width="160" />
-        <el-table-column prop="reason" label="申请原因" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="total_votes" :label="$t('empAdminApp.totalVotes')" width="100" />
+        <el-table-column prop="created_at" :label="$t('empAdminApp.applicationTime')" width="160" />
+        <el-table-column prop="reason" :label="$t('empAdminApp.reasonColumn')" min-width="200" show-overflow-tooltip />
       </el-table>
     </el-card>
   </div>
@@ -76,9 +76,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue';
 import axios from '@/utils/Axios';
+
+const { t } = useI18n();
 
 const checkingEligibility = ref(true);
 const eligibility = ref(null);
@@ -92,7 +95,7 @@ const form = reactive({
 });
 
 const rules = {
-  reason: [{ required: true, min: 50, message: '申请原因至少需要50个字符', trigger: 'blur' }]
+  reason: [{ required: true, min: 50, message: t('empAdminApp.reasonMinLength'), trigger: 'blur' }]
 };
 
 const getStatusType = (status) => {
@@ -108,7 +111,7 @@ const checkEligibility = async () => {
       eligibility.value = resp.data.data;
     }
   } catch (err) {
-    ElMessage.error('检查资格失败');
+    ElMessage.error(t('empAdminApp.checkFailed'));
   } finally {
     checkingEligibility.value = false;
   }
@@ -134,14 +137,14 @@ const submitApplication = async () => {
   try {
     const resp = await axios.post('/api/admin-application/submit', form);
     if (resp.data?.status) {
-      ElMessage.success('申请已提交，请等待管理员审核');
+      ElMessage.success(t('empAdminApp.submitSuccess'));
       form.reason = '';
       getMyApplications();
     } else {
-      ElMessage.error(resp.data?.msg || '提交失败');
+      ElMessage.error(resp.data?.msg || t('empAdminApp.submitFailed'));
     }
   } catch (err) {
-    ElMessage.error('提交失败');
+    ElMessage.error(t('empAdminApp.submitFailed'));
   } finally {
     submitting.value = false;
   }

@@ -3,8 +3,8 @@
     <!-- 顶部装饰区域 -->
     <div class="profile-header-bg">
       <div class="header-content">
-        <h1 class="profile-title">个人中心</h1>
-        <p class="profile-subtitle">管理您的个人信息和账户设置</p>
+        <h1 class="profile-title">{{ $t('empProfile.personalCenter') }}</h1>
+        <p class="profile-subtitle">{{ $t('empProfile.manageProfile') }}</p>
       </div>
     </div>
 
@@ -14,35 +14,35 @@
         <template #header>
           <div class="card-header">
             <el-icon size="20" color="#409eff"><User /></el-icon>
-            <span>基本信息</span>
+            <span>{{ $t('empProfile.basicInfo') }}</span>
           </div>
         </template>
         <div class="profile-content">
           <div class="avatar-section">
             <el-avatar :size="120" class="profile-avatar">
-              <img v-if="profileData.avatarUrl" :src="profileData.avatarUrl" alt="员工头像" />
+              <img v-if="profileData.avatarUrl" :src="profileData.avatarUrl" :alt="$t('empProfile.employeeAvatar')" />
               <el-icon v-else :size="60" class="default-avatar-icon"><User /></el-icon>
             </el-avatar>
             <div class="avatar-info">
-              <h3 class="user-name">{{ profileData.userName || '未设置姓名' }}</h3>
-              <p class="user-number">员工编号: {{ profileData.userNumber || 'N/A' }}</p>
+              <h3 class="user-name">{{ profileData.userName || $t('empProfile.nameNotSet') }}</h3>
+              <p class="user-number">{{ $t('empProfile.employeeNumber') }}: {{ profileData.userNumber || 'N/A' }}</p>
               <p class="user-status">
-                <el-tag type="success" size="small">在职</el-tag>
+                <el-tag type="success" size="small">{{ $t('empProfile.active') }}</el-tag>
               </p>
             </div>
           </div>
 
           <el-descriptions :column="1" border class="profile-descriptions">
-            <el-descriptions-item label="邮箱">
+            <el-descriptions-item :label="$t('empProfile.email')">
               <strong>{{ profileData.email || profileData.userName + '@company.com' }}</strong>
             </el-descriptions-item>
-            <el-descriptions-item label="联系电话">
+            <el-descriptions-item :label="$t('empProfile.phone')">
               <strong>{{ profileData.phoneNumber || 'N/A' }}</strong>
             </el-descriptions-item>
-            <el-descriptions-item label="入职日期">
-              <strong>{{ profileData.hireDate || '新员工' }}</strong>
+            <el-descriptions-item :label="$t('empProfile.hireDate')">
+              <strong>{{ profileData.hireDate || $t('empProfile.newEmployee') }}</strong>
             </el-descriptions-item>
-            <el-descriptions-item label="住址">
+            <el-descriptions-item :label="$t('empProfile.address')">
               <strong>{{ profileData.address || 'N/A' }}</strong>
             </el-descriptions-item>
           </el-descriptions>
@@ -50,11 +50,11 @@
           <div class="action-buttons">
             <el-button type="primary" @click="editProfile" size="large">
               <el-icon><Edit /></el-icon>
-              编辑资料
+              {{ $t('empProfile.editProfile') }}
             </el-button>
             <el-button @click="changePassword" size="large">
               <el-icon><Key /></el-icon>
-              修改密码
+              {{ $t('empProfile.changePassword') }}
             </el-button>
           </div>
         </div>
@@ -65,7 +65,7 @@
         <template #header>
           <div class="card-header">
             <el-icon size="20" color="#67c23a"><DataAnalysis /></el-icon>
-            <span>账户统计</span>
+            <span>{{ $t('empProfile.accountStats') }}</span>
           </div>
         </template>
         <div class="stats-content">
@@ -75,7 +75,7 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ profileData.hireDate ? calculateDaysSinceHire() : '0' }}</div>
-              <div class="stat-label">入职天数</div>
+              <div class="stat-label">{{ $t('empProfile.daysSinceHire') }}</div>
             </div>
           </div>
           <div class="stat-item">
@@ -83,8 +83,8 @@
               <el-icon size="24" color="#67c23a"><Clock /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ lastLoginTime || '首次登录' }}</div>
-              <div class="stat-label">最近登录</div>
+              <div class="stat-value">{{ lastLoginTime || $t('empProfile.firstLogin') }}</div>
+              <div class="stat-label">{{ $t('empProfile.recentLogin') }}</div>
             </div>
           </div>
           <div class="stat-item">
@@ -93,38 +93,38 @@
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ dataCount || '0' }}</div>
-              <div class="stat-label">处理数据</div>
+              <div class="stat-label">{{ $t('empProfile.processedData') }}</div>
             </div>
           </div>
         </div>
         <div class="quick-links">
-          <router-link to="/employee/operation_history" class="quick-link">操作历史</router-link>
+          <router-link to="/employee/operation_history" class="quick-link">{{ $t('empProfile.operationHistory') }}</router-link>
           <span class="quick-divider">|</span>
-          <router-link to="/employee/notifications" class="quick-link">我的通知</router-link>
+          <router-link to="/employee/notifications" class="quick-link">{{ $t('empProfile.myNotifications') }}</router-link>
         </div>
       </el-card>
     </div>
-    
+
     <!-- 编辑资料对话框 -->
     <el-dialog
       v-model="editDialogVisible"
-      title="编辑个人资料"
+      :title="$t('empProfile.editProfileTitle')"
       width="500px"
       :before-close="handleEditClose"
     >
       <el-form :model="editForm" label-width="80px">
         <!-- 头像上传区域 -->
-        <el-form-item label="头像">
+        <el-form-item :label="$t('empProfile.avatar')">
           <div class="avatar-upload-section">
             <div class="avatar-preview" @click="triggerFileInput">
-              <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" alt="头像预览" class="avatar-image" />
+              <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" :alt="$t('empProfile.avatarPreview')" class="avatar-image" />
               <div v-else class="avatar-placeholder">
                 <el-icon size="32" color="#909399"><User /></el-icon>
-                <span class="avatar-text">点击上传头像</span>
+                <span class="avatar-text">{{ $t('empProfile.clickToUpload') }}</span>
               </div>
               <div class="avatar-overlay">
                 <el-icon color="white" size="20"><Camera /></el-icon>
-                <span>更换头像</span>
+                <span>{{ $t('empProfile.changeAvatar') }}</span>
               </div>
             </div>
             <input
@@ -136,70 +136,70 @@
             />
             <div class="avatar-tips">
               <el-text type="info" size="small">
-                支持 JPG、PNG 格式，大小不超过 2MB
+                {{ $t('empProfile.avatarTips') }}
               </el-text>
             </div>
           </div>
         </el-form-item>
-        
-        <el-form-item label="姓名">
-          <el-input v-model="editForm.userName" placeholder="请输入姓名" />
+
+        <el-form-item :label="$t('empProfile.name')">
+          <el-input v-model="editForm.userName" :placeholder="$t('empProfile.enterName')" />
         </el-form-item>
-        <el-form-item label="邮箱">
-          <el-input v-model="editForm.email" placeholder="请输入邮箱" />
+        <el-form-item :label="$t('empProfile.email')">
+          <el-input v-model="editForm.email" :placeholder="$t('empProfile.enterEmail')" />
         </el-form-item>
-        <el-form-item label="电话">
-          <el-input v-model="editForm.phoneNumber" placeholder="请输入电话号码" />
+        <el-form-item :label="$t('empProfile.phoneNumber')">
+          <el-input v-model="editForm.phoneNumber" :placeholder="$t('empProfile.enterPhone')" />
         </el-form-item>
-        <el-form-item label="地址">
-          <el-input v-model="editForm.address" placeholder="请输入地址" type="textarea" />
+        <el-form-item :label="$t('empProfile.address')">
+          <el-input v-model="editForm.address" :placeholder="$t('empProfile.enterAddress')" type="textarea" />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="editDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveProfile">保存</el-button>
+          <el-button @click="editDialogVisible = false">{{ $t('empProfile.cancel') }}</el-button>
+          <el-button type="primary" @click="saveProfile">{{ $t('empProfile.save') }}</el-button>
         </span>
       </template>
     </el-dialog>
-    
+
     <!-- 修改密码对话框 -->
     <el-dialog
       v-model="passwordDialogVisible"
-      title="修改密码"
+      :title="$t('empProfile.changePasswordTitle')"
       width="500px"
       :before-close="handlePasswordClose"
     >
       <el-form :model="passwordForm" label-width="100px">
-        <el-form-item label="原密码">
-          <el-input 
-            v-model="passwordForm.oldPassword" 
-            type="password" 
-            placeholder="请输入原密码"
+        <el-form-item :label="$t('empProfile.oldPassword')">
+          <el-input
+            v-model="passwordForm.oldPassword"
+            type="password"
+            :placeholder="$t('empProfile.enterOldPassword')"
             show-password
           />
         </el-form-item>
-        <el-form-item label="新密码">
-          <el-input 
-            v-model="passwordForm.newPassword" 
-            type="password" 
-            placeholder="请输入新密码"
+        <el-form-item :label="$t('empProfile.newPassword')">
+          <el-input
+            v-model="passwordForm.newPassword"
+            type="password"
+            :placeholder="$t('empProfile.enterNewPassword')"
             show-password
           />
         </el-form-item>
-        <el-form-item label="确认密码">
-          <el-input 
-            v-model="passwordForm.confirmPassword" 
-            type="password" 
-            placeholder="请再次输入新密码"
+        <el-form-item :label="$t('empProfile.confirmPassword')">
+          <el-input
+            v-model="passwordForm.confirmPassword"
+            type="password"
+            :placeholder="$t('empProfile.enterConfirmPassword')"
             show-password
           />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="passwordDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="updatePassword">确认修改</el-button>
+          <el-button @click="passwordDialogVisible = false">{{ $t('empProfile.cancel') }}</el-button>
+          <el-button type="primary" @click="updatePassword">{{ $t('empProfile.confirmChange') }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -208,11 +208,13 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus';
 import { User, Camera, Edit, Key, DataAnalysis, Calendar, Clock, Document } from '@element-plus/icons-vue';
 import axios from '@/utils/Axios';
 import { useUserStore } from '@/stores/userStore';
 
+const { t } = useI18n();
 const userStore = useUserStore();
 
 // 获取当前用户编号
@@ -269,14 +271,14 @@ const fetchUserProfile = async () => {
         await fetchUserAvatar(userNumber.value);
       }
       // 同步最近登录时间到统计卡片
-      lastLoginTime.value = profileData.value.lastLoginTime || '今天';
-      ElMessage.success('用户资料加载成功！');
+      lastLoginTime.value = profileData.value.lastLoginTime || t('empProfile.today');
+      ElMessage.success(t('empProfile.profileLoadSuccess'));
     } else {
-      ElMessage.error(response.data.message || '获取用户资料失败');
+      ElMessage.error(response.data.message || t('empProfile.profileLoadFail'));
     }
   } catch (error) {
     console.error('获取用户资料时出错:', error);
-    ElMessage.error('获取用户资料失败，请检查网络或后端服务');
+    ElMessage.error(t('empProfile.profileLoadFailNetwork'));
   } finally {
     loading.value = false;
   }
@@ -296,7 +298,7 @@ const fetchUserAvatar = async (employeeNumber) => {
     console.error(`获取员工 ${employeeNumber} 头像失败:`, error);
     // 如果获取失败，不设置avatarUrl，让它显示默认图标
     profileData.value.avatarUrl = null;
-    ElMessage.warning('未能加载用户头像');
+    ElMessage.warning(t('empProfile.avatarLoadFail'));
   }
 };
 
@@ -312,7 +314,7 @@ const calculateDaysSinceHire = () => {
 
 onMounted(async () => {
   await fetchUserProfile();
-  lastLoginTime.value = profileData.value.lastLoginTime || '今天';
+  lastLoginTime.value = profileData.value.lastLoginTime || t('empProfile.today');
   // 从仪表盘API获取真实统计数据
   try {
     const resp = await axios.get('/api/employee/dashboard', {
@@ -351,14 +353,14 @@ const handleAvatarChange = (event) => {
   // 验证文件类型
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
   if (!allowedTypes.includes(file.type)) {
-    ElMessage.error('请上传 JPG、JPEG 或 PNG 格式的图片');
+    ElMessage.error(t('empProfile.avatarFormatError'));
     return;
   }
 
   // 验证文件大小
   const maxSize = 2 * 1024 * 1024; // 2MB
   if (file.size > maxSize) {
-    ElMessage.error('头像大小不能超过 2MB');
+    ElMessage.error(t('empProfile.avatarSizeError'));
     return;
   }
 
@@ -367,7 +369,7 @@ const handleAvatarChange = (event) => {
   reader.onload = (e) => {
     editForm.value.avatarUrl = e.target.result;
     editForm.value.avatar = file;
-    ElMessage.success('头像上传成功！');
+    ElMessage.success(t('empProfile.avatarUploadSuccess'));
   };
   reader.readAsDataURL(file);
 };
@@ -391,7 +393,7 @@ const saveProfile = async () => {
     formData.append('email', editForm.value.email);
     formData.append('phoneNumber', editForm.value.phoneNumber);
     formData.append('address', editForm.value.address);
-    
+
     // 如果有头像文件，添加到 FormData
     if (editForm.value.avatar) {
       formData.append('avatar', editForm.value.avatar);
@@ -402,18 +404,18 @@ const saveProfile = async () => {
         'Content-Type': 'multipart/form-data'
       }
     });
-    
+
     if (response.data && response.data.code === 200) {
-      ElMessage.success('个人资料更新成功！');
+      ElMessage.success(t('empProfile.profileUpdateSuccess'));
       editDialogVisible.value = false;
       // 重新获取用户资料
       await fetchUserProfile();
     } else {
-      ElMessage.error(response.data.message || '更新个人资料失败');
+      ElMessage.error(response.data.message || t('empProfile.profileUpdateFail'));
     }
   } catch (error) {
     console.error('更新个人资料失败:', error);
-    ElMessage.error('更新个人资料失败，请检查网络连接');
+    ElMessage.error(t('empProfile.profileUpdateFailNetwork'));
   }
 };
 
@@ -421,36 +423,36 @@ const saveProfile = async () => {
 const updatePassword = async () => {
   // 验证密码
   if (passwordForm.value.newPassword !== passwordForm.value.confirmPassword) {
-    ElMessage.error('新密码和确认密码不一致');
+    ElMessage.error(t('empProfile.passwordMismatch'));
     return;
   }
-  
+
   if (passwordForm.value.newPassword.length < 6) {
-    ElMessage.error('新密码长度至少为6位');
+    ElMessage.error(t('empProfile.passwordTooShort'));
     return;
   }
-  
+
   try {
     const response = await axios.put('/api/employee/password', {
       old_password: passwordForm.value.oldPassword,
       new_password: passwordForm.value.newPassword
     });
-    
+
     if (response.data && response.data.code === 200) {
-      ElMessage.success('密码修改成功！');
+      ElMessage.success(t('empProfile.passwordChangeSuccess'));
       passwordDialogVisible.value = false;
     } else {
-      ElMessage.error(response.data.message || '密码修改失败');
+      ElMessage.error(response.data.message || t('empProfile.passwordChangeFail'));
     }
   } catch (error) {
     console.error('修改密码失败:', error);
-    ElMessage.error(error.response?.data?.message || '密码修改失败');
+    ElMessage.error(error.response?.data?.message || t('empProfile.passwordChangeFail'));
   }
 };
 
 // 处理编辑对话框关闭
 const handleEditClose = (done) => {
-  ElMessageBox.confirm('确定要关闭编辑对话框吗？未保存的更改将丢失。')
+  ElMessageBox.confirm(t('empProfile.closeEditConfirm'))
     .then(() => {
       done();
     })
@@ -461,7 +463,7 @@ const handleEditClose = (done) => {
 
 // 处理密码对话框关闭
 const handlePasswordClose = (done) => {
-  ElMessageBox.confirm('确定要关闭密码修改对话框吗？')
+  ElMessageBox.confirm(t('empProfile.closePasswordConfirm'))
     .then(() => {
       done();
     })
@@ -799,35 +801,35 @@ const handlePasswordClose = (done) => {
   .profile-header-bg {
     padding: 30px 16px 20px;
   }
-  
+
   .profile-title {
     font-size: 24px;
   }
-  
+
   .profile-subtitle {
     font-size: 14px;
   }
-  
+
   .profile-main-content {
     padding: 16px;
     gap: 16px;
   }
-  
+
   .avatar-section {
     flex-direction: column;
     text-align: center;
     gap: 16px;
   }
-  
+
   .action-buttons {
     flex-direction: column;
     width: 100%;
   }
-  
+
   .action-buttons .el-button {
     width: 100%;
   }
-  
+
   .stat-item {
     flex-direction: column;
     text-align: center;
