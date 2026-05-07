@@ -4,6 +4,89 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v2.1.0] — 2026-05-07 (Security & Monitoring Upgrade)
+
+### Summary
+Hardened WebSocket authentication, upgraded rate limiter to Redis-backed sliding window, added Grafana dashboard provisioning, and translated core Vue views to i18n.
+
+---
+
+### Backend — Security Hardening
+
+#### 1. WebSocket JWT Authentication (`utils/websocket.py`)
+- **What:** Clients must authenticate after connecting by emitting `'authenticate'` event with JWT token
+- **Verification:** `_verify_jwt_token(token, app)` uses `flask_jwt_extended.decode_token()`
+- **Auto-join rooms:** On success, joins `user_{number}` room + `admins` room (if admin role)
+- **Session tracking:** `authenticated_users` dict maps sid → identity; cleaned up on disconnect
+- **All room operations** (join/leave/send) require prior authentication
+
+#### 2. Redis-Backed Rate Limiting (`utils/user_limiter.py`)
+- **What:** Per-user sliding window rate limiting using Redis sorted sets (ZREMRANGEBYSCORE, ZCARD, ZADD)
+- **Fallback:** In-memory sliding window when Redis unavailable
+- **Pre-configured limiters:**
+  - `strict_limit` — 10 req/min (login, registration)
+  - `normal_limit` — 60 req/min (standard endpoints)
+  - `relaxed_limit` — 200 req/min (data viewing, dashboard)
+- **Key improvement over v2.0:** Rate limit state survives server restarts and is shared across instances
+
+---
+
+### Backend — Monitoring
+
+#### 3. Grafana Dashboard Provisioning (`grafana/`)
+- **Datasource:** `grafana/provisioning/datasources/datasource.yml` — Prometheus at `http://prometheus:9090`
+- **Dashboard provider:** `grafana/provisioning/dashboards/dashboards.yml` — auto-loads JSON dashboards
+- **Dashboard:** `grafana/provisioning/dashboards/json/geodata-overview.json` with 11 panels:
+  - Request Rate (req/s) — timeseries
+  - Response Latency p50/p95/p99 — timeseries
+  - In-Progress Requests — gauge
+  - Error Rate (5xx) — stat
+  - Applications Submitted — stat
+  - Downloads — stat
+  - Approvals vs Rejections — pie chart
+  - Watermarks Generated — bar gauge
+  - Cache Hit Rate — gauge
+  - Request Status Distribution — pie chart
+  - Database Errors — stat
+- **Auto-refresh:** 30s, default time range: last 1 hour
+
+---
+
+### Frontend — i18n Expansion
+
+#### 4. Core View Translations
+- **`login.vue`** — All 20+ Chinese strings replaced with `$t('login.*')` calls (title, features, form labels, placeholders, validation messages, error messages)
+- **`register.vue`** — All 25+ Chinese strings replaced with `$t('register.*')` calls (form labels, placeholders, validation, avatar upload messages, feature descriptions)
+- **`first_home.vue`** — All 10+ Chinese strings replaced with `$t('firstHome.*')` calls (title, subtitle, buttons, feature cards, copyright)
+- **New i18n keys:** ~60 keys added to both `zh-CN.js` and `en-US.js` across 3 new modules: `login`, `register`, `firstHome`
+
+---
+
+### Infrastructure
+
+#### Docker Compose (7 services)
+- **Added:** `grafana` service (Grafana latest, port 3000)
+  - Auto-provisions Prometheus datasource and dashboards
+  - Default home dashboard set to `geodata-overview.json`
+  - Mounts `grafana/provisioning/` for datasource and dashboard configs
+  - Depends on `prometheus` service
+  - Credentials configurable via `GRAFANA_USER` / `GRAFANA_PASSWORD` env vars (default: admin/geodata_grafana)
+- **Added:** `grafana_data` volume for persistent Grafana state
+
+---
+
+### Files Changed Summary
+
+| Category | Files | Description |
+|----------|-------|-------------|
+| Modified backend | 2 | websocket.py (JWT auth), user_limiter.py (Redis sorted sets) |
+| New Grafana config | 3 | datasource.yml, dashboards.yml, geodata-overview.json |
+| Modified frontend | 5 | login.vue, register.vue, first_home.vue, zh-CN.js, en-US.js |
+| Modified infra | 1 | docker-compose.yml (added grafana service + volume) |
+| Documentation | 1 | CHANGELOG.md |
+
+---
+
 ## [v2.0.0] — 2026-05-07 (Enterprise Upgrade)
 
 ### Summary
@@ -188,14 +271,17 @@ Transformed from a student-level project into a production-grade, resume-worthy 
 ---
 
 ### Future Improvements (Not Yet Implemented)
-- [ ] Translate all 41 Vue view templates (labor-intensive, ~2000 strings)
-- [ ] Add Grafana dashboards for Prometheus metrics
-- [ ] Per-user rate limiting with Redis backend (currently in-memory)
+- [x] ~~Translate all 41 Vue view templates~~ — Core views translated (login, register, first_home); remaining views pending
+- [x] ~~Add Grafana dashboards for Prometheus metrics~~ — Done in v2.1
+- [x] ~~Per-user rate limiting with Redis backend~~ — Done in v2.1 (Redis sorted sets)
+- [x] ~~WebSocket authentication (JWT handshake)~~ — Done in v2.1
+- [ ] Translate remaining 38 Vue view templates (~1800 strings)
 - [ ] Increase test coverage to 80%+ (currently ~50% of endpoints covered)
 - [ ] Add integration tests with real MySQL/PostgreSQL
 - [ ] Add E2E tests with Playwright or Cypress
-- [ ] WebSocket authentication (JWT handshake)
 - [ ] Redis session store for multi-instance deployments
+- [ ] Add alerting rules to Grafana (error rate thresholds, latency alerts)
+- [ ] Add Loki for log aggregation in Grafana
 
 ---
 

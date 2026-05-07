@@ -9,22 +9,22 @@
         <div class="qr-code-wrapper">
           <canvas ref="qrCanvasRef"></canvas>
         </div>
-        <h1 class="system-title">地理空间数据安全分发<br/>与追踪溯源系统</h1>
-        <p class="system-subtitle">每一次访问，都由可信的数字凭证守护</p>
+        <h1 class="system-title" v-html="$t('login.title')"></h1>
+        <p class="system-subtitle">{{ $t('login.subtitle') }}</p>
         
         <!-- 系统特性展示 -->
         <div class="system-features">
           <div class="feature-item">
             <el-icon><Lock /></el-icon>
-            <span>企业级安全防护</span>
+            <span>{{ $t('login.featureSecurity') }}</span>
           </div>
           <div class="feature-item">
             <el-icon><Location /></el-icon>
-            <span>矢量栅格数据管理</span>
+            <span>{{ $t('login.featureDataMgmt') }}</span>
           </div>
           <div class="feature-item">
             <el-icon><TrendCharts /></el-icon>
-            <span>全链路追踪溯源</span>
+            <span>{{ $t('login.featureTracing') }}</span>
           </div>
         </div>
       </div>
@@ -34,8 +34,8 @@
     <div class="form-panel-wrapper">
       <div class="login-card">
         <div class="card-header">
-          <h2 class="form-title">系统访问</h2>
-          <p class="form-subtitle">请输入您的凭证以进行验证</p>
+          <h2 class="form-title">{{ $t('login.formTitle') }}</h2>
+          <p class="form-subtitle">{{ $t('login.formSubtitle') }}</p>
         </div>
 
         <el-form :model="data" :rules="rules" ref="elFormRef" class="login-form" @submit.prevent="login">
@@ -44,7 +44,7 @@
               size="large" 
               :prefix-icon="User" 
               v-model="data.username" 
-              placeholder="用户名 / 工号"
+              :placeholder="$t('login.usernamePlaceholder')"
               class="custom-input"
             />
           </el-form-item>
@@ -56,7 +56,7 @@
               show-password 
               v-model="data.password" 
               type="password" 
-              placeholder="密码" 
+              :placeholder="$t('login.passwordPlaceholder')"
               @keyup.enter="login"
               class="custom-input"
             />
@@ -65,10 +65,10 @@
           <el-form-item prop="role" class="role-selector-item">
             <div class="role-capsule-group">
               <div class="role-option" :class="{active: data.role === 'admin'}" @click="data.role = 'admin'">
-                <el-icon><Platform /></el-icon><span>管理员</span>
+                <el-icon><Platform /></el-icon><span>{{ $t('auth.admin') }}</span>
               </div>
               <div class="role-option" :class="{active: data.role === 'employee'}" @click="data.role = 'employee'">
-                  <el-icon><UserFilled /></el-icon><span>员工</span>
+                  <el-icon><UserFilled /></el-icon><span>{{ $t('auth.employee') }}</span>
               </div>
               <div class="active-capsule" :style="capsuleStyle"></div>
             </div>
@@ -82,22 +82,22 @@
               native-type="submit"
             >
               <el-icon class="login-icon"><Key /></el-icon>
-              授权登录
+              {{ $t('login.loginButton') }}
             </el-button>
           </el-form-item>
         </el-form>
         
         <div class="form-footer">
-          <span>还没有账户？ </span>
+          <span>{{ $t('login.noAccount') }} </span>
           <el-link type="primary" @click="register" :underline="false" class="register-link">
-            立即注册
+            {{ $t('login.registerNow') }}
           </el-link>
         </div>
         
         <!-- 安全提示 -->
         <div class="security-notice">
           <el-icon><Warning /></el-icon>
-          <span>请妥善保管您的登录凭证</span>
+          <span>{{ $t('login.securityNotice') }}</span>
         </div>
       </div>
     </div>
@@ -109,11 +109,13 @@ import { Lock, User, Platform, UserFilled, Key, Location, TrendCharts, Warning }
 import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import axios from '@/utils/Axios';
 import QRCode from 'qrcode';
 import * as THREE from 'three';
 
+const { t } = useI18n();
 const userStore = useUserStore();
 const router = useRouter();
 const elFormRef = ref(null);
@@ -122,9 +124,9 @@ const data = reactive({ username: '', password: '', role: 'employee' });
 const loading = ref(false);
 
 const rules = reactive({
-  username: [{ required: true, message: '请输入用户名或工号', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
-  role: [{ required: true, message: '请选择您的角色', trigger: 'change' }]
+  username: [{ required: true, message: () => t('login.usernameRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: () => t('login.passwordRequired'), trigger: 'blur' }],
+  role: [{ required: true, message: () => t('login.roleRequired'), trigger: 'change' }]
 });
 
 // [核心修复] 登录函数，增加更详细的错误处理
@@ -133,7 +135,7 @@ const login = async () => {
   try {
     const valid = await elFormRef.value.validate();
     if (!valid) {
-      ElMessage.warning('请填写完整的登录信息');
+      ElMessage.warning(t('login.fillComplete'));
       return;
     }
     loading.value = true;
@@ -154,24 +156,21 @@ const login = async () => {
         permissions: responseData.permissions,
         user_name: responseData.user_name
       });
-      ElMessage.success('登录验证通过！');
+      ElMessage.success(t('login.loginSuccess'));
       if (responseData.role === 'admin') await router.push('/admin');
       else await router.push('/employee');
     } else {
-      ElMessage.error(responseData.message || '登录失败，凭证无效');
+      ElMessage.error(responseData.message || t('login.loginFailed'));
     }
   } catch (error) {
     console.error('登录请求失败:', error); // 在控制台打印完整的错误对象，便于调试
-    let errorMessage = '登录请求失败，请稍后重试';
+    let errorMessage = t('login.requestFailed');
     if (error.response) {
-      // 服务器返回了错误状态码 (e.g., 401, 403, 500)
-      errorMessage = error.response.data?.message || `服务器错误，状态码: ${error.response.status}`;
+      errorMessage = error.response.data?.message || `${t('login.serverError')} ${error.response.status}`;
     } else if (error.request) {
-      // 请求已发出但没有收到响应
-      errorMessage = '无法连接到服务器，请检查网络或后端服务是否正在运行';
+      errorMessage = t('login.networkError');
     } else {
-      // 设置请求时发生了错误
-      errorMessage = '发生未知错误，请检查控制台';
+      errorMessage = t('login.unknownError');
     }
     ElMessage.error(errorMessage);
   } finally {

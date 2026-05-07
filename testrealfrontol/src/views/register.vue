@@ -6,23 +6,23 @@
       <el-card class="register-card" shadow="hover">
         <template #header>
           <div class="card-header">
-            <h1 class="register-title">创建账户</h1>
-            <p class="register-subtitle">加入我们的空间数据平台</p>
+            <h1 class="register-title">{{ $t('register.title') }}</h1>
+            <p class="register-subtitle">{{ $t('register.subtitle') }}</p>
           </div>
         </template>
         
         <el-form :model="data" :rules="rules" ref="elFormRef" label-position="top">
-          <el-form-item label="头像" prop="avatar">
+          <el-form-item :label="$t('register.avatar')" prop="avatar">
             <div class="avatar-upload-section">
               <div class="avatar-preview" @click="triggerFileInput">
                 <img v-if="data.avatarUrl" :src="data.avatarUrl" alt="头像预览" class="avatar-image" />
                 <div v-else class="avatar-placeholder">
                   <el-icon size="32" color="#909399"><User /></el-icon>
-                  <span class="avatar-text">点击上传头像</span>
+                  <span class="avatar-text">{{ $t('register.avatarUpload') }}</span>
                 </div>
                 <div class="avatar-overlay">
                   <el-icon color="white" size="20"><Camera /></el-icon>
-                  <span>更换头像</span>
+                  <span>{{ $t('register.avatarChange') }}</span>
                 </div>
               </div>
               <input
@@ -34,54 +34,54 @@
               />
               <div class="avatar-tips">
                 <el-text type="info" size="small">
-                  支持 JPG、PNG 格式，大小不超过 2MB
+                  {{ $t('register.avatarTip') }}
                 </el-text>
               </div>
             </div>
           </el-form-item>
 
-          <el-form-item label="姓名" prop="name">
-            <el-input v-model="data.name" placeholder="请输入您的真实姓名" :prefix-icon="User" />
+          <el-form-item :label="$t('register.nameLabel')" prop="name">
+            <el-input v-model="data.name" :placeholder="$t('register.namePlaceholder')" :prefix-icon="User" />
           </el-form-item>
 
-          <el-form-item label="工号" prop="employeeId">
-            <el-input v-model="data.employeeId" placeholder="请输入您的工号" :prefix-icon="Key" />
+          <el-form-item :label="$t('register.employeeIdLabel')" prop="employeeId">
+            <el-input v-model="data.employeeId" :placeholder="$t('register.employeeIdPlaceholder')" :prefix-icon="Key" />
           </el-form-item>
 
-          <el-form-item label="身份证号" prop="idNumber">
-            <el-input v-model="data.idNumber" placeholder="请输入您的身份证号" :prefix-icon="CreditCard" />
+          <el-form-item :label="$t('register.idNumberLabel')" prop="idNumber">
+            <el-input v-model="data.idNumber" :placeholder="$t('register.idNumberPlaceholder')" :prefix-icon="CreditCard" />
           </el-form-item>
 
-          <el-form-item label="联系电话" prop="phone">
-            <el-input v-model="data.phone" placeholder="请输入您的手机号码" :prefix-icon="Phone" />
+          <el-form-item :label="$t('register.phoneLabel')" prop="phone">
+            <el-input v-model="data.phone" :placeholder="$t('register.phonePlaceholder')" :prefix-icon="Phone" />
           </el-form-item>
 
-          <el-form-item label="密码" prop="password">
-            <el-input show-password v-model="data.password" placeholder="请设置登录密码" :prefix-icon="Lock" />
+          <el-form-item :label="$t('register.passwordLabel')" prop="password">
+            <el-input show-password v-model="data.password" :placeholder="$t('register.passwordPlaceholder')" :prefix-icon="Lock" />
           </el-form-item>
 
-          <el-form-item label="确认密码" prop="confirmPassword">
-            <el-input show-password v-model="data.confirmPassword" placeholder="请再次输入密码" :prefix-icon="Lock" />
+          <el-form-item :label="$t('register.confirmPasswordLabel')" prop="confirmPassword">
+            <el-input show-password v-model="data.confirmPassword" :placeholder="$t('register.confirmPasswordPlaceholder')" :prefix-icon="Lock" />
           </el-form-item>
 
           <el-form-item>
             <el-button type="primary" class="register-button" @click="register" :loading="loading" size="large">
               <el-icon><CircleCheck /></el-icon>
-              创建账户
+              {{ $t('register.createButton') }}
             </el-button>
           </el-form-item>
 
           <div class="login-link-container">
-            <span class="login-text">已有账户？</span>
-            <el-link type="primary" @click="login" :underline="false">立即登录</el-link>
+            <span class="login-text">{{ $t('register.hasAccount') }}</span>
+            <el-link type="primary" @click="login" :underline="false">{{ $t('register.loginNow') }}</el-link>
           </div>
         </el-form>
       </el-card>
       
       <div class="features-section">
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>安全可靠的数据保护</span></div>
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>专业的空间数据服务</span></div>
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>7×24小时技术支持</span></div>
+        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureSecure') }}</span></div>
+        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureService') }}</span></div>
+        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureSupport') }}</span></div>
       </div>
     </div>
   </div>
@@ -91,10 +91,12 @@
 import { reactive, ref, onMounted, onUnmounted } from 'vue';
 import * as THREE from 'three';
 import { useRouter } from 'vue-router';
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { post } from '@/utils/Axios';
 import { User, Key, CreditCard, Phone, Lock, CircleCheck, Camera, Check } from '@element-plus/icons-vue';
 
+const { t } = useI18n();
 const router = useRouter();
 const elFormRef = ref();
 
@@ -110,12 +112,12 @@ const data = reactive({
 });
 
 const rules = {
-  name: [{ required: true, message: '请填写姓名', trigger: 'blur' }],
-  employeeId: [{ required: true, message: '请填写工号', trigger: 'blur' }],
-  idNumber: [{ required: true, message: '请填写身份证号', trigger: 'blur' }],
-  phone: [{ required: true, message: '请填写联系电话', trigger: 'blur' }],
-  password: [{ required: true, message: '请填写密码', trigger: 'blur' }],
-  confirmPassword: [{ required: true, message: '请再次输入密码', trigger: 'blur' }]
+  name: [{ required: true, message: () => t('register.nameRequired'), trigger: 'blur' }],
+  employeeId: [{ required: true, message: () => t('register.employeeIdRequired'), trigger: 'blur' }],
+  idNumber: [{ required: true, message: () => t('register.idNumberRequired'), trigger: 'blur' }],
+  phone: [{ required: true, message: () => t('register.phoneRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: () => t('register.passwordRequired'), trigger: 'blur' }],
+  confirmPassword: [{ required: true, message: () => t('register.confirmPasswordRequired'), trigger: 'blur' }]
 };
 
 const loading = ref(false);
@@ -140,14 +142,14 @@ const handleAvatarChange = (event) => {
   // 验证文件类型
   const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
   if (!allowedTypes.includes(file.type)) {
-    ElMessage.error('请上传 JPG、JPEG 或 PNG 格式的图片');
+    ElMessage.error(t('register.avatarFormatError'));
     return;
   }
 
   // 验证文件大小
   const maxSize = 2 * 1024 * 1024; // 2MB
   if (file.size > maxSize) {
-    ElMessage.error('头像大小不能超过 2MB');
+    ElMessage.error(t('register.avatarSizeError'));
     return;
   }
 
@@ -156,7 +158,7 @@ const handleAvatarChange = (event) => {
   reader.onload = (e) => {
     data.avatarUrl = e.target.result;
     data.avatar = file;
-    ElMessage.success('头像上传成功！');
+    ElMessage.success(t('register.avatarUploadSuccess'));
   };
   reader.readAsDataURL(file);
 };
@@ -188,11 +190,11 @@ const register = async () => {
 
     const response = await post('/api/register', formData);
     
-    ElMessage.success(response.message + "，请登录");
+    ElMessage.success(response.message + "，" + t('register.pleaseLogin'));
     router.push('/login');
   } catch (err) {
     console.error('注册请求失败:', err);
-    ElMessage.error('注册失败：' + (err.response?.data?.message || '未知错误'));
+    ElMessage.error(t('register.registerFailed') + (err.response?.data?.message || t('common.unknown')));
   } finally {
     loading.value = false;
   }

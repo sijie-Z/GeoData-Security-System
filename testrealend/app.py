@@ -101,6 +101,10 @@ def create_app():
     socketio = init_socketio(app)
     app.socketio = socketio
 
+    # Initialize per-user rate limiter
+    from utils.user_limiter import init_user_limiter
+    init_user_limiter(app)
+
     # CORS configuration
     cors_origins = app.config['CORS_ORIGINS']
     CORS(app,

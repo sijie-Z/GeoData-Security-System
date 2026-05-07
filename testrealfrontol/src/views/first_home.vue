@@ -6,20 +6,20 @@
       <!-- 品牌信息区域 -->
       <div class="brand-info">
         <h1 class="system-title">
-          <span class="title-line">空间数据跟踪系统</span>
+          <span class="title-line">{{ $t('firstHome.title') }}</span>
         </h1>
-        <p class="system-subtitle">守护每一比特数据的安全、主权与价值</p>
+        <p class="system-subtitle">{{ $t('firstHome.subtitle') }}</p>
       </div>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
         <button @click="register_button" class="action-btn register-btn">
           <el-icon><Plus /></el-icon>
-          创建账户
+          {{ $t('firstHome.createAccount') }}
         </button>
         <button @click="login_button" class="action-btn login-btn">
           <el-icon><Key /></el-icon>
-          授权访问
+          {{ $t('firstHome.accessLogin') }}
         </button>
       </div>
 
@@ -29,29 +29,29 @@
           <div class="feature-icon">
             <el-icon><Lock /></el-icon>
           </div>
-          <h4>数据安全</h4>
-          <p>水印追踪保护数据主权</p>
+          <h4>{{ $t('firstHome.featureSecurity') }}</h4>
+          <p>{{ $t('firstHome.featureSecurityDesc') }}</p>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <el-icon><Compass /></el-icon>
           </div>
-          <h4>流程审批</h4>
-          <p>规范的数据流转机制</p>
+          <h4>{{ $t('firstHome.featureApproval') }}</h4>
+          <p>{{ $t('firstHome.featureApprovalDesc') }}</p>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <el-icon><TrendCharts /></el-icon>
           </div>
-          <h4>溯源追踪</h4>
-          <p>完整的数据使用记录</p>
+          <h4>{{ $t('firstHome.featureTracing') }}</h4>
+          <p>{{ $t('firstHome.featureTracingDesc') }}</p>
         </div>
       </div>
     </div>
 
     <!-- 底部信息 -->
     <div class="footer-info">
-      <p>© 2024 空间数据跟踪系统 | 专业 · 安全 · 可信赖</p>
+      <p>{{ $t('firstHome.copyright') }}</p>
     </div>
   </div>
 </template>

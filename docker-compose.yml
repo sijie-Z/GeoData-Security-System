@@ -111,6 +111,23 @@ services:
     depends_on:
       - backend
 
+  # ─── Grafana (Dashboards & Visualization) ───────────────
+  grafana:
+    image: grafana/grafana:latest
+    container_name: geodata-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-geodata_grafana}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/json/geodata-overview.json
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    depends_on:
+      - prometheus
+
 volumes:
   mysql_data:
   postgres_data:
@@ -119,3 +136,4 @@ volumes:
   watermark_data:
   extracted_data:
   prometheus_data:
+  grafana_data:

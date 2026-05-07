@@ -1,4 +1,4 @@
-"""WebSocket (Socket.IO) for real-time notifications."""
+"""WebSocket (Socket.IO) for real-time notifications with JWT authentication."""
 
 import logging
 from datetime import datetime
@@ -20,7 +20,7 @@ def init_socketio(app):
             logger=False,
             engineio_logger=False
         )
-        _register_handlers(_socketio)
+        _register_handlers(_socketio, app)
         logger.info("Socket.IO initialized")
     except ImportError:
         logger.warning("flask-socketio not installed, WebSocket disabled")
@@ -31,21 +31,71 @@ def get_socketio():
     return _socketio
 
 
-def _register_handlers(sio):
-    """Register Socket.IO event handlers."""
+def _verify_jwt_token(token, app):
+    """Verify a JWT token and return the identity dict or None."""
+    try:
+        from flask_jwt_extended import decode_token
+        with app.app_context():
+            decoded = decode_token(token)
+            return decoded.get('sub')
+    except Exception as e:
+        logger.debug(f"JWT verification failed: {e}")
+        return None
+
+
+def _register_handlers(sio, app):
+    """Register Socket.IO event handlers with JWT authentication."""
     from flask_socketio import emit, join_room, leave_room
+    from flask import request as flask_request
+
+    authenticated_users = {}  # sid -> identity
 
     @sio.on('connect')
     def handle_connect():
-        logger.debug("Client connected")
-        emit('connected', {'status': 'ok'})
+        logger.debug("Client connected, awaiting authentication")
+
+    @sio.on('authenticate')
+    def handle_authenticate(data):
+        """Client sends JWT token after connection for authentication."""
+        sid = flask_request.sid
+        token = data.get('token', '')
+
+        identity = _verify_jwt_token(token, app)
+        if not identity:
+            emit('authenticated', {'status': 'error', 'msg': '认证失败，请重新登录'})
+            return
+
+        authenticated_users[sid] = identity
+        user_number = identity.get('number', 'unknown')
+        role = identity.get('role', 'employee')
+
+        # Auto-join user room
+        join_room(f'user_{user_number}')
+
+        # Auto-join admin room if admin
+        if role == 'admin':
+            join_room('admins')
+
+        emit('authenticated', {
+            'status': 'ok',
+            'user_number': user_number,
+            'role': role
+        })
+        logger.info(f"User {user_number} authenticated via WebSocket")
 
     @sio.on('disconnect')
     def handle_disconnect():
-        logger.debug("Client disconnected")
+        sid = flask_request.sid
+        identity = authenticated_users.pop(sid, None)
+        if identity:
+            logger.debug(f"User {identity.get('number')} disconnected")
 
     @sio.on('join')
     def handle_join(data):
+        sid = flask_request.sid
+        if sid not in authenticated_users:
+            emit('error', {'msg': '请先认证'})
+            return
         room = data.get('room', '')
         if room:
             join_room(room)
@@ -53,6 +103,9 @@ def _register_handlers(sio):
 
     @sio.on('leave')
     def handle_leave(data):
+        sid = flask_request.sid
+        if sid not in authenticated_users:
+            return
         room = data.get('room', '')
         if room:
             leave_room(room)
@@ -109,4 +162,5 @@ def notify_recall_update(proposal_id, status):
         'status': status,
         'timestamp': datetime.utcnow().isoformat()
     }
-    _socketio.emit('recall_update', payload, room='admins') if _socketio else None
+    if _socketio:
+        _socketio.emit('recall_update', payload, room='admins')
