@@ -13,6 +13,12 @@ class LogInfo(db.Model):
     status = db.Column(db.String(50), nullable=False) # '成功' or '失败'
     details = db.Column(db.Text, nullable=True)
 
+    __table_args__ = (
+        db.Index('idx_log_user_number', 'user_number'),
+        db.Index('idx_log_action', 'action'),
+        db.Index('idx_log_timestamp', 'timestamp'),
+    )
+
     def to_dict(self):
         return {
             'id': self.id,

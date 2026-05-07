@@ -30,6 +30,15 @@ def _get_hour_of_day(dt):
 
 
 class AdminDashboardResource(Resource):
+    """
+    Admin Dashboard Statistics
+    ---
+    tags: [Dashboard]
+    security: [Bearer: []]
+    responses:
+      200: {description: Dashboard data}
+      403: {description: Not authorized}
+    """
     @jwt_required()
     def get(self):
         identity = get_jwt_identity()

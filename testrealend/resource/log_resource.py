@@ -5,6 +5,35 @@ from model.Log_Info import LogInfo
 from extension.extension import db
 
 class SystemLogResource(Resource):
+    """
+    System Operation Logs
+    ---
+    tags: [Logs]
+    security: [Bearer: []]
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        default: 1
+      - in: query
+        name: pageSize
+        type: integer
+        default: 10
+      - in: query
+        name: username
+        type: string
+        description: Filter by username (partial match)
+      - in: query
+        name: user_number
+        type: string
+        description: Filter by user number
+      - in: query
+        name: action
+        type: string
+        description: Filter by action type
+    responses:
+      200: {description: Operation logs list}
+    """
     @jwt_required()
     def get(self):
         page = request.args.get('page', 1, type=int)

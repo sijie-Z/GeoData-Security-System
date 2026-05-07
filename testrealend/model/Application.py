@@ -60,6 +60,16 @@ class Application(db.Model):
     # Timestamps
     application_submission_time = db.Column(db.DateTime, default=datetime.utcnow)
 
+    # Database indexes for query performance
+    __table_args__ = (
+        db.Index('idx_applicant_user_number', 'applicant_user_number'),
+        db.Index('idx_adm1_statu', 'adm1_statu'),
+        db.Index('idx_adm2_statu', 'adm2_statu'),
+        db.Index('idx_data_type', 'data_type'),
+        db.Index('idx_is_recalled', 'is_recalled'),
+        db.Index('idx_submission_time', 'application_submission_time'),
+    )
+
     def to_dict(self):
         qr_data = self.qrcode
         if isinstance(qr_data, bytes):

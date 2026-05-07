@@ -15,7 +15,27 @@ from utils.log_helper import log_action
 
 
 class RecallListResource(Resource):
-    """获取回收提议列表"""
+    """
+    Get recall proposals list
+    ---
+    tags: [Recall]
+    security: [Bearer: []]
+    parameters:
+      - in: query
+        name: page
+        type: integer
+        default: 1
+      - in: query
+        name: pageSize
+        type: integer
+        default: 10
+      - in: query
+        name: status
+        type: string
+        description: Filter by status (open/closed/approved/rejected)
+    responses:
+      200: {description: Recall proposals list}
+    """
     @jwt_required()
     def get(self):
         page = request.args.get('page', 1, type=int)
