@@ -1,4 +1,3 @@
-// src/main.js
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from './router';
@@ -9,41 +8,35 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue';
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs';
 import { createPinia } from 'pinia';
 import piniaPluginPersistedstate from 'pinia-plugin-persistedstate';
-// import {useUserStore} from "@/stores/userStore.js";
-import {useUserStore} from '@/stores/userStore.js'
+import { useUserStore } from '@/stores/userStore.js';
 
-
-// 创建 Vue 应用
 const app = createApp(App);
 
-// 创建并配置 Pinia
+// Global error handler
+app.config.errorHandler = (err, instance, info) => {
+  console.error('Global error:', err);
+  console.error('Component:', instance?.$options?.name || 'unknown');
+  console.error('Info:', info);
+};
+
+// Pinia state management
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
-
-
-// 使用 Pinia 和路由
 app.use(pinia);
-const userStore = useUserStore();
-userStore.initializeStore()
 
+// Initialize auth state from sessionStorage
+const userStore = useUserStore();
+userStore.initializeStore();
+
+// Router
 app.use(router);
 
-
-// 注册 ElementPlus 组件库中的所有图标到全局 Vue 应用中
+// Element Plus icons
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component);
 }
 
-// 使用 ElementPlus 并设置语言
-app.use(ElementPlus, {
-  locale: zhCn
-});
+// Element Plus with Chinese locale
+app.use(ElementPlus, { locale: zhCn });
 
-// 挂载应用
-app.mount("#app");
-
-
-
-
-
-
+app.mount('#app');

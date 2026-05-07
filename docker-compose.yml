@@ -1,0 +1,87 @@
+version: "3.9"
+
+services:
+  # ─── MySQL (Business Data) ───────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: geodata-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-geodata_root_2024}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-esri_test}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── PostgreSQL + PostGIS (Spatial Data) ─────────────────
+  postgres:
+    image: postgis/postgis:15-3.4
+    container_name: geodata-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geodata_pg_2024}
+      POSTGRES_DB: ${POSTGRES_DB:-esri_test}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Flask Backend ───────────────────────────────────────
+  backend:
+    build:
+      context: ./testrealend
+      dockerfile: Dockerfile
+    container_name: geodata-backend
+    restart: unless-stopped
+    ports:
+      - "5003:5003"
+    environment:
+      FLASK_ENV: production
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-jwt-secret}
+      MYSQL_URI: "mysql+mysqldb://root:${MYSQL_ROOT_PASSWORD:-geodata_root_2024}@mysql/${MYSQL_DATABASE:-esri_test}"
+      POSTGRES_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-geodata_pg_2024}@postgres/${POSTGRES_DB:-esri_test}"
+      CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173"
+      UPLOAD_FOLDER: /data/upload_folder
+      WATERMARK_FOLDER: /data/watermark_folder
+      EXTRACTED_FOLDER: /data/extracted_folder
+    volumes:
+      - upload_data:/data/upload_folder
+      - watermark_data:/data/watermark_folder
+      - extracted_data:/data/extracted_folder
+    depends_on:
+      mysql:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+  # ─── Vue Frontend (Nginx) ────────────────────────────────
+  frontend:
+    build:
+      context: ./testrealfrontol
+      dockerfile: Dockerfile
+    container_name: geodata-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
+  postgres_data:
+  upload_data:
+  watermark_data:
+  extracted_data:

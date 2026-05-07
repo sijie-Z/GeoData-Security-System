@@ -121,15 +121,43 @@ def create_app():
             except Exception as e:
                 app.logger.error(f"Failed to create {folder_key} at {folder_path}: {e}")
 
-    # Global Error Handler
+    # Request size limit (100MB for file uploads)
+    app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
+
+    # Global Error Handlers
+    @app.errorhandler(400)
+    def handle_400_error(e):
+        return jsonify({"status": False, "msg": "请求参数错误"}), 400
+
+    @app.errorhandler(401)
+    def handle_401_error(e):
+        return jsonify({"status": False, "msg": "未授权访问"}), 401
+
+    @app.errorhandler(403)
+    def handle_403_error(e):
+        return jsonify({"status": False, "msg": "禁止访问"}), 403
+
+    @app.errorhandler(404)
+    def handle_404_error(e):
+        return jsonify({"status": False, "msg": "请求的资源不存在"}), 404
+
+    @app.errorhandler(413)
+    def handle_413_error(e):
+        return jsonify({"status": False, "msg": "上传文件过大"}), 413
+
+    @app.errorhandler(429)
+    def handle_429_error(e):
+        return jsonify({"status": False, "msg": "请求过于频繁，请稍后重试"}), 429
+
     @app.errorhandler(500)
     def handle_500_error(e):
         app.logger.error(f"Internal Server Error: {e}")
         return jsonify({"status": False, "msg": "服务器内部错误，请稍后重试"}), 500
 
-    @app.errorhandler(404)
-    def handle_404_error(e):
-        return jsonify({"status": False, "msg": "请求的资源不存在"}), 404
+    @app.errorhandler(Exception)
+    def handle_unhandled_exception(e):
+        app.logger.error(f"Unhandled exception: {e}", exc_info=True)
+        return jsonify({"status": False, "msg": "服务器内部错误，请稍后重试"}), 500
 
     api = Api(app)
     
@@ -184,9 +212,23 @@ def create_app():
         AdminApplicationDetailResource, AdminApplicationVoteResource, AdminApplicationCloseResource
     )
 
+    # --- Security Headers ---
+    @app.after_request
+    def add_security_headers(response):
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['X-XSS-Protection'] = '1; mode=block'
+        response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+        if not app.config.get('DEBUG'):
+            response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+        return response
+
     # --- Routes ---
-    
-    # Auth
+
+    # Health & Auth
+    from resource.health_resource import HealthCheckResource
+    api.add_resource(HealthCheckResource, '/api/health')
+    api.add_resource(RegisterResource, '/api/register')
     api.add_resource(RegisterResource, '/api/register')
     api.add_resource(LoginResource, '/api/login')
     api.add_resource(LogoutResource, '/api/logout')

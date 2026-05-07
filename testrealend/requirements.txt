@@ -6,6 +6,7 @@ flask-migrate
 flask-cors
 flask-limiter
 flasgger
+gunicorn
 mysqlclient
 psycopg2-binary
 geopandas
