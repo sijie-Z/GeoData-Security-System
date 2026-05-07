@@ -13,6 +13,7 @@ import zipfile
 import numpy as np
 import logging
 import hmac
+from utils.metrics import record_watermark
 import hashlib
 from PIL import Image
 from model.Shp_Data import Shp
@@ -215,6 +216,7 @@ class GenerateWatermarkResource(Resource):
                 '水印生成', '成功',
                 f"app_id={item.id} data_alias={item.data_alias} qr_version={qr_version}"
             )
+            record_watermark(data_type=item.data_type or 'vector')
 
             return {
                 'status': True,

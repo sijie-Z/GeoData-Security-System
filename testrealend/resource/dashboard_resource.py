@@ -16,6 +16,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import func, and_, or_
 import calendar
 import logging
+from utils.cache import cached
 
 
 def _day_window(days_ago):
@@ -40,6 +41,7 @@ class AdminDashboardResource(Resource):
       403: {description: Not authorized}
     """
     @jwt_required()
+    @cached(timeout=120, key_prefix='dashboard')
     def get(self):
         identity = get_jwt_identity()
         if identity.get('role') != 'admin':

@@ -6,7 +6,10 @@
 ![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat-square&logo=flask)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791?style=flat-square&logo=postgresql)
+![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)
+![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?style=flat-square&logo=prometheus)
+![i18n](https://img.shields.io/badge/i18n-ZH%20%7C%20EN-blue?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)
 
 **Enterprise-grade spatial data security distribution and traceability platform**
@@ -36,9 +39,14 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 - **Notification System** — Targeted and broadcast announcements
 - **Operation Audit Log** — Full activity trail with filtering by user, action type, and time range
 - **Dashboard Analytics** — Admin and employee dashboards with ECharts visualizations
+- **Internationalization (i18n)** — Chinese and English language support with runtime switching
 
 ### Technical Highlights
 - **Dual-database Architecture** — MySQL for business data, PostgreSQL + PostGIS for spatial data
+- **Redis Caching** — Hot query caching for dashboards and data listings with graceful fallback
+- **WebSocket Notifications** — Real-time push via Socket.IO for application status updates
+- **Prometheus Metrics** — Request latency, error rates, business KPIs exposed at `/metrics`
+- **Per-user Rate Limiting** — JWT-identity-based rate limiting (not just IP)
 - **Rate Limiting** — Flask-Limiter with configurable per-endpoint limits
 - **Request Interceptors** — Axios interceptors for automatic token injection and 401 refresh
 - **Lazy-loaded Routes** — Code splitting via dynamic imports for optimal bundle size
@@ -52,38 +60,36 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 ┌─────────────────────────────────────────────────────────────┐
 │                      Frontend (Vue 3)                        │
 │  ┌──────────┐ ┌──────────────┐ ┌───────────┐ ┌───────────┐ │
-│  │  Vue 3   │ │ Element Plus │ │   Pinia   │ │ Leaflet   │ │
-│  │ (SFC)    │ │  (UI Kit)    │ │ (State)   │ │ (Maps)    │ │
+│  │  Vue 3   │ │ Element Plus │ │   Pinia   │ │ vue-i18n  │ │
+│  │ (SFC)    │ │  (UI Kit)    │ │ (State)   │ │ (ZH/EN)   │ │
 │  └──────────┘ └──────────────┘ └───────────┘ └───────────┘ │
 │  ┌──────────┐ ┌──────────────┐ ┌───────────┐               │
-│  │ Vue Router│ │   Axios      │ │ Three.js  │               │
-│  │ (Lazy)   │ │ (Intercept)  │ │ (3D BG)   │               │
+│  │ Vue Router│ │   Axios      │ │ Socket.IO │               │
+│  │ (Lazy)   │ │ (Intercept)  │ │ (Realtime)│               │
 │  └──────────┘ └──────────────┘ └───────────┘               │
 └──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/JSON (JWT Bearer)
+                           │ HTTP/JSON (JWT Bearer) + WebSocket
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    Backend (Flask)                            │
 │  ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
-│  │ Flask-RESTful│ │ Flask-JWT    │ │   Flask-Limiter     │ │
-│  │  (API)       │ │ (Auth)       │ │   (Rate Limit)      │ │
+│  │ Flask-RESTful│ │ Flask-JWT    │ │   Flask-SocketIO    │ │
+│  │  (API)       │ │ (Auth)       │ │   (WebSocket)       │ │
 │  └──────────────┘ └──────────────┘ └─────────────────────┘ │
 │  ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
-│  │ SQLAlchemy   │ │  rasterio    │ │   qrcode + pyzbar   │ │
-│  │  (ORM)       │ │ (Tile Slice) │ │   (Watermark)       │ │
+│  │ SQLAlchemy   │ │  Redis Cache │ │   Prometheus        │ │
+│  │  (ORM)       │ │ (Hot Query)  │ │   (Metrics)         │ │
+│  └──────────────┘ └──────────────┘ └─────────────────────┘ │
+│  ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
+│  │ Flask-Limiter│ │  rasterio    │ │   qrcode + pyzbar   │ │
+│  │ (Rate Limit) │ │ (Tile Slice) │ │   (Watermark)       │ │
 │  └──────────────┘ └──────────────┘ └─────────────────────┘ │
 └──────────┬──────────────────────────────────┬───────────────┘
            ▼                                  ▼
-┌─────────────────────┐          ┌──────────────────────────┐
-│   MySQL 8.0         │          │  PostgreSQL + PostGIS    │
-│  ┌───────────────┐  │          │  ┌────────────────────┐  │
-│  │ users         │  │          │  │ vector_data (shp)  │  │
-│  │ applications  │  │          │  │ raster_data (tif)  │  │
-│  │ logs          │  │          │  │ spatial queries    │  │
-│  │ chat          │  │          │  └────────────────────┘  │
-│  │ notifications │  │          │                          │
-│  └───────────────┘  │          │                          │
-└─────────────────────┘          └──────────────────────────┘
+┌─────────────────────┐  ┌──────────────┐  ┌──────────────────┐
+│   MySQL 8.0         │  │ Redis 7      │  │ PostgreSQL+PostGIS│
+│  users, apps, logs  │  │ Cache layer  │  │ vector/raster data│
+└─────────────────────┘  └──────────────┘  └──────────────────┘
 ```
 
 ---
@@ -96,23 +102,31 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 | | Element Plus | Enterprise UI component library |
 | | Pinia | State management |
 | | Vue Router | Client-side routing with guards |
+| | vue-i18n | Internationalization (ZH/EN) |
 | | Axios | HTTP client with interceptors |
+| | Socket.IO Client | Real-time WebSocket notifications |
 | | Leaflet | Map rendering and tile layers |
 | | ECharts | Dashboard analytics charts |
 | | Three.js | 3D particle effects (login page) |
 | **Backend** | Flask + Flask-RESTful | REST API framework |
 | | Flask-JWT-Extended | JWT authentication |
+| | Flask-SocketIO | WebSocket real-time events |
 | | SQLAlchemy | ORM with dual-database binds |
 | | Flask-Migrate (Alembic) | Database migrations |
 | | Flask-Limiter | API rate limiting |
+| | Redis | Response caching layer |
+| | prometheus_client | Metrics collection |
 | | rasterio / geopandas | Spatial data processing |
 | | qrcode / pyzbar | QR watermark generation/extraction |
 | **Database** | MySQL 8.0 | Business data (users, apps, logs) |
 | | PostgreSQL + PostGIS | Spatial data (vectors, rasters) |
-| **DevOps** | Docker + docker-compose | Containerized deployment |
+| | Redis 7 | Cache and session store |
+| **DevOps** | Docker + docker-compose | Containerized deployment (6 services) |
+| | Prometheus | Metrics monitoring |
 | | GitHub Actions | CI/CD pipeline |
 | | Ruff | Python linting |
-| | ESLint + Prettier | JS/Vue linting |
+| | ESLint | JS/Vue linting |
+| | pre-commit | Git hooks |
 
 ---
 
@@ -123,6 +137,7 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 - Node.js 18+
 - MySQL 8.0
 - PostgreSQL with PostGIS extension
+- Redis 7 (optional, caching works without it)
 
 ### 1. Clone the repository
 ```bash
@@ -173,7 +188,7 @@ Frontend starts at **http://localhost:5173**
 ```bash
 docker-compose up -d
 ```
-This starts all services: frontend, backend, MySQL, PostgreSQL.
+This starts all 6 services: frontend, backend, MySQL, PostgreSQL, Redis, Prometheus.
 
 ---
 
@@ -185,53 +200,52 @@ GeoData-Security-System/
 │   ├── app.py                      # Application entry point
 │   ├── config.py                   # Environment-based configuration
 │   ├── requirements.txt            # Python dependencies
+│   ├── pyproject.toml              # Ruff, pytest, coverage config
 │   ├── extension/
 │   │   └── extension.py            # Flask extensions (db, limiter)
-│   ├── model/                      # SQLAlchemy models
-│   │   ├── Application.py          # Data application model
-│   │   ├── Employee_Account.py     # Employee account model
-│   │   ├── Adm_Account.py          # Admin account model
-│   │   ├── RecallProposal.py       # Recall voting model
-│   │   └── ...
-│   ├── resource/                   # API endpoints (Flask-RESTful)
-│   │   ├── common_resource.py      # Auth (login/register/refresh)
-│   │   ├── application_resource.py # Application CRUD + approval
-│   │   ├── watermark_resource.py   # Watermark generate/embed/extract
-│   │   ├── recall_resource.py      # Recall voting system
-│   │   └── ...
+│   ├── model/                      # SQLAlchemy models (29 classes)
+│   ├── resource/                   # API endpoints (76 routes)
 │   ├── algorithm/                  # Watermark algorithms
-│   │   ├── embed.py                # Vector watermark embedding
-│   │   ├── extract.py              # Vector watermark extraction
-│   │   ├── raster_embed_lsb.py     # Raster LSB steganography
-│   │   └── ...
 │   ├── utils/
+│   │   ├── cache.py                # Redis caching layer
+│   │   ├── metrics.py              # Prometheus metrics
+│   │   ├── websocket.py            # Socket.IO event handlers
+│   │   ├── user_limiter.py         # Per-user JWT rate limiting
+│   │   ├── logging_config.py       # Production logging
 │   │   └── log_helper.py           # Audit logging utility
-│   ├── migrations/                 # Alembic migrations
+│   ├── tests/                      # Pytest test suite (15+ files)
 │   └── Dockerfile
 │
 ├── testrealfrontol/                # Vue 3 frontend
 │   ├── src/
 │   │   ├── main.js                 # App entry point
-│   │   ├── App.vue                 # Root component
+│   │   ├── locales/                # i18n locale files
+│   │   │   ├── zh-CN.js            # Chinese translations
+│   │   │   ├── en-US.js            # English translations
+│   │   │   └── index.js            # i18n configuration
 │   │   ├── router/index.js         # Route definitions + guards
-│   │   ├── stores/
-│   │   │   └── userStore.js        # Pinia auth state
+│   │   ├── stores/userStore.js     # Pinia auth state
 │   │   ├── utils/
-│   │   │   └── Axios.js            # HTTP client + interceptors
-│   │   ├── views/
-│   │   │   ├── admin/              # Admin pages (25+ views)
-│   │   │   ├── employee/           # Employee pages (15+ views)
-│   │   │   ├── login.vue           # Login with 3D background
-│   │   │   └── register.vue        # Registration
+│   │   │   ├── Axios.js            # HTTP client + interceptors
+│   │   │   └── Time.js             # Time utilities
+│   │   ├── views/                  # 41 view components
 │   │   ├── components/             # Reusable components
+│   │   │   └── common/
+│   │   │       ├── LanguageSwitcher.vue
+│   │   │       ├── LoadingSkeleton.vue
+│   │   │       ├── EmptyState.vue
+│   │   │       └── NotificationCenter.vue
 │   │   └── api/                    # API service layer
 │   ├── package.json
-│   ├── vite.config.js
 │   └── Dockerfile
 │
-├── docker-compose.yml              # Multi-container orchestration
+├── docker-compose.yml              # Multi-container orchestration (6 services)
+├── prometheus.yml                  # Prometheus scrape config
 ├── .github/workflows/ci.yml        # GitHub Actions CI
+├── .pre-commit-config.yaml         # Pre-commit hooks
 ├── .gitignore
+├── CONTRIBUTING.md
+├── LICENSE
 └── README.md
 ```
 
@@ -269,6 +283,8 @@ The backend exposes a RESTful API. Key endpoints:
 ### System
 | Method | Endpoint | Description |
 |--------|----------|-------------|
+| GET | `/api/health` | Health check (DB + Redis) |
+| GET | `/metrics` | Prometheus metrics |
 | GET | `/api/admin/dashboard` | Admin dashboard stats |
 | GET | `/api/admin/logs` | System operation logs |
 | POST | `/api/recall/create` | Create recall proposal |
@@ -283,7 +299,7 @@ Full API documentation available at `/apidocs/` when running (Swagger UI via Fla
 ### Docker Production
 ```bash
 # Build and start all services
-docker-compose -f docker-compose.yml up -d --build
+docker-compose up -d --build
 
 # View logs
 docker-compose logs -f backend
@@ -294,10 +310,9 @@ docker-compose down
 
 ### Manual Production
 ```bash
-# Backend (Gunicorn)
+# Backend (Gunicorn with eventlet for Socket.IO)
 cd testrealend
-pip install gunicorn
-gunicorn -w 4 -b 0.0.0.0:5003 "app:create_app()"
+gunicorn -w 4 -b 0.0.0.0:5003 -k eventlet "app:create_app()"
 
 # Frontend (Nginx)
 cd testrealfrontol

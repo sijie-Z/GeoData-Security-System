@@ -77,12 +77,29 @@ def create_app():
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(seconds=app.config['JWT_ACCESS_TOKEN_EXPIRES'])
     app.config['JWT_REFRESH_TOKEN_EXPIRES'] = timedelta(seconds=app.config['JWT_REFRESH_TOKEN_EXPIRES'])
 
+    # Configure logging
+    from utils.logging_config import setup_logging
+    setup_logging(app)
+
     # Extensions initialization
     db.init_app(app)
     limiter.init_app(app)
     Migrate(app, db)
     JWTManager(app)
     _bootstrap_runtime_schema(app)
+
+    # Initialize Redis cache
+    from utils.cache import init_cache
+    init_cache(app)
+
+    # Initialize Prometheus metrics
+    from utils.metrics import setup_metrics
+    setup_metrics(app)
+
+    # Initialize WebSocket (Socket.IO)
+    from utils.websocket import init_socketio
+    socketio = init_socketio(app)
+    app.socketio = socketio
 
     # CORS configuration
     cors_origins = app.config['CORS_ORIGINS']
@@ -160,7 +177,7 @@ def create_app():
         return jsonify({"status": False, "msg": "服务器内部错误，请稍后重试"}), 500
 
     api = Api(app)
-    
+
     # Import and Register Resources
     from resource.common_resource import RegisterResource, LoginResource, LogoutResource, RefreshTokenResource
     from resource.nav_resource import NavTreeResource, NavListResource
@@ -184,7 +201,7 @@ def create_app():
         UploadOriAndExtWatermarkResource, GetOriginalWatermarkResource
     )
     from resource.raster_resource import (
-        RasterPreviewResource, RasterTilesResource, RasterEmbedDispatchResource, 
+        RasterPreviewResource, RasterTilesResource, RasterEmbedDispatchResource,
         CRMarkEmbedResource, CRMarkRecoverResource, CRMarkDecodeResource,
         Adm1GetRasterApplicationsGenerateWatermark, GenerateRasterWatermarkResource
     )
@@ -229,23 +246,22 @@ def create_app():
     from resource.health_resource import HealthCheckResource
     api.add_resource(HealthCheckResource, '/api/health')
     api.add_resource(RegisterResource, '/api/register')
-    api.add_resource(RegisterResource, '/api/register')
     api.add_resource(LoginResource, '/api/login')
     api.add_resource(LogoutResource, '/api/logout')
     api.add_resource(RefreshTokenResource, '/api/refresh-token')
     api.add_resource(ProtectedResource, '/api/protected')
-    
+
     # Navigation
     api.add_resource(NavTreeResource, '/api/admin/nav/tree', '/api/employee/nav/tree')
     api.add_resource(NavListResource, '/api/admin/nav/list', '/api/employee/nav/list')
-    
+
     # Data Viewing
     api.add_resource(VectorDataViewingResource, '/api/vector_data_viewing')
     api.add_resource(RasterDataViewingResource, '/api/raster_data_viewing')
     api.add_resource(ShpDataListResource, '/api/data_viewing/pageList', '/api/data_viewing')
     api.add_resource(ShpDataByIdResource, '/api/data_viewing/getById')
     api.add_resource(MapSearchResource, '/api/map/search', '/api/geocoding/search')
-    
+
     # Applications
     api.add_resource(SubmitApplicationResource, '/api/submit_application')
     api.add_resource(GetApplicationsResource, '/api/get_applications')
@@ -254,7 +270,7 @@ def create_app():
     api.add_resource(ApplicationDetailResource, '/api/applications/<int:application_id>')
     api.add_resource(ApplicationQRCodeResource, '/api/applications/<int:application_id>/qrcode')
     api.add_resource(ApplicationQRCodeImageResource, '/api/applications/<int:application_id>/qrcode/image')
-    
+
     # Admin Application Management
     api.add_resource(GetEmpInfoListResource, '/api/adm/get_emp_info_list', '/api/admin/get_employee_info')
     api.add_resource(AddEmployeeResource, '/api/adm/add_employee')
@@ -274,7 +290,7 @@ def create_app():
     api.add_resource(BatchReviewResource, '/api/admin/batch_review')
     api.add_resource(ReReviewResource, '/api/admin/re_review')
     api.add_resource(BatchReviewFailedExportResource, '/api/admin/batch_review_failed_export')
-    
+
     # Watermark
     api.add_resource(Adm1GetGenerateWatermarkApplications, '/api/adm1_get_applications_generate_watermark')
     api.add_resource(GenerateWatermarkResource, '/api/generate_watermark')
@@ -285,7 +301,7 @@ def create_app():
     api.add_resource(UploadExtractedWatermarkResource, '/api/upload_extracted_watermark')
     api.add_resource(UploadOriAndExtWatermarkResource, '/api/upload/ori&ext_watermark')
     api.add_resource(GetOriginalWatermarkResource, '/api/get_original_watermark')
-    
+
     # Raster
     api.add_resource(Adm1GetRasterApplicationsGenerateWatermark, '/api/adm1_get_raster_applications_generate_watermark')
     api.add_resource(GenerateRasterWatermarkResource, '/api/generate_raster_watermark')
@@ -295,7 +311,7 @@ def create_app():
     api.add_resource(CRMarkEmbedResource, '/api/crmark/embed')
     api.add_resource(CRMarkRecoverResource, '/api/crmark/recover')
     api.add_resource(CRMarkDecodeResource, '/api/crmark/decode')
-    
+
     # Download
     api.add_resource(EmpDownloadZipResource, '/api/emp_download_zip')
     api.add_resource(RecordDownloadResource, '/api/record_download_file')
@@ -303,7 +319,7 @@ def create_app():
     api.add_resource(TokenDownloadResource, '/api/download/<string:download_token>')
     api.add_resource(ShpDataUploadResource, '/api/upload_shp_data')
     api.add_resource(RasterDataUploadResource, '/api/upload_raster_data')
-    
+
     # Logs & Dashboard
     api.add_resource(SystemLogResource, '/api/admin/logs')
     api.add_resource(AdminDashboardResource, '/api/admin/dashboard')
@@ -352,4 +368,8 @@ app = create_app()
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5003))
-    app.run(debug=app.config.get('DEBUG', False), port=port, use_reloader=False)
+    # Use SocketIO.run() for WebSocket support when available
+    if hasattr(app, 'socketio') and app.socketio:
+        app.socketio.run(app, debug=app.config.get('DEBUG', False), port=port, allow_unsafe_werkzeug=True)
+    else:
+        app.run(debug=app.config.get('DEBUG', False), port=port, use_reloader=False)

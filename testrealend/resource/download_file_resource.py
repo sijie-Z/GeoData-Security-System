@@ -15,6 +15,7 @@ from model.download_token import DownloadToken
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
+from utils.metrics import record_download
 from datetime import datetime, timedelta
 
 
@@ -138,6 +139,7 @@ class EmpDownloadZipResource(Resource):
                 '数据下载', '成功',
                 f"app_id={app.id} data_alias={app.data_alias} file={download_name}"
             )
+            record_download()
             return send_file(
                 file_path,
                 as_attachment=True,

@@ -7,6 +7,9 @@ from datetime import datetime
 import base64
 import logging
 from utils.log_helper import log_action
+from utils.metrics import record_application, record_approval
+from utils.websocket import notify_application_update, notify_new_application
+from utils.cache import invalidate_prefix
 
 def _build_application_status(item):
     if item.is_recalled:
@@ -127,6 +130,9 @@ class SubmitApplicationResource(Resource):
                 '成功',
                 f"data_id={new_app.data_id} data_alias={new_app.data_alias}"
             )
+            record_application(data_type=new_app.data_type or 'unknown')
+            notify_new_application(new_app.id, new_app.applicant_name, new_app.data_alias)
+            invalidate_prefix('dashboard')
             return {'status': True, 'msg': '申请提交成功'}, 201
         except Exception as e:
             db.session.rollback()
@@ -250,6 +256,9 @@ class Adm1PassResource(Resource):
             db.session.commit()
             log_action(user_number, user_name, '一审通过', '成功',
                        f"app_id={item.id} data_alias={item.data_alias}")
+            record_approval(result='approved', level='adm1')
+            notify_application_update(item.id, 'adm1_approved', item.applicant_user_number)
+            invalidate_prefix('dashboard')
             return {'status': True, 'msg': '一审通过', 'application': _to_dual_channel_dict(item)}, 200
         return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -268,6 +277,9 @@ class Adm1FailResource(Resource):
             db.session.commit()
             log_action(user_number, user_name, '一审驳回', '成功',
                        f"app_id={item.id} data_alias={item.data_alias}")
+            record_approval(result='rejected', level='adm1')
+            notify_application_update(item.id, 'adm1_rejected', item.applicant_user_number)
+            invalidate_prefix('dashboard')
             return {'status': True, 'msg': '一审驳回', 'application': _to_dual_channel_dict(item)}, 200
         return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -286,6 +298,9 @@ class Adm2PassResource(Resource):
             db.session.commit()
             log_action(user_number, user_name, '二审通过', '成功',
                        f"app_id={item.id} data_alias={item.data_alias}")
+            record_approval(result='approved', level='adm2')
+            notify_application_update(item.id, 'approved', item.applicant_user_number)
+            invalidate_prefix('dashboard')
             return {'status': True, 'msg': '二审通过', 'application': _to_dual_channel_dict(item)}, 200
         return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -304,6 +319,9 @@ class Adm2FailResource(Resource):
             db.session.commit()
             log_action(user_number, user_name, '二审驳回', '成功',
                        f"app_id={item.id} data_alias={item.data_alias}")
+            record_approval(result='rejected', level='adm2')
+            notify_application_update(item.id, 'rejected', item.applicant_user_number)
+            invalidate_prefix('dashboard')
             return {'status': True, 'msg': '二审驳回', 'application': _to_dual_channel_dict(item)}, 200
         return {'status': False, 'msg': '申请不存在'}, 404
 

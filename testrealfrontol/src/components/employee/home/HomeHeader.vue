@@ -90,6 +90,7 @@ const logout = async () => {
  } from "@element-plus/icons-vue";
  import Axios from "@/utils/Axios";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
  
  const userStore = useUserStore();
  const router = useRouter();
@@ -219,6 +220,7 @@ import NotificationCenter from "@/components/common/NotificationCenter.vue";
      </div>
  
      <div class="header-right">
+       <LanguageSwitcher />
        <NotificationCenter />
        <el-menu
          class="header-nav-menu"

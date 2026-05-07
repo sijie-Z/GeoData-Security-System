@@ -6,6 +6,7 @@ import { UserFilled, SwitchButton, Expand, Fold } from "@element-plus/icons-vue"
 import { ElMessage } from "element-plus";
 import axiosInstance from "@/utils/Axios";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
+import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -84,6 +85,7 @@ const logout = async () => {
     </div>
 
     <div class="header-right" v-if="userNumber">
+      <LanguageSwitcher />
       <NotificationCenter />
       <div class="user-info-display">
         <el-icon><UserFilled /></el-icon>

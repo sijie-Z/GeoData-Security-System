@@ -6,7 +6,11 @@ flask-migrate
 flask-cors
 flask-limiter
 flasgger
+flask-socketio
 gunicorn
+eventlet
+redis
+prometheus_client
 mysqlclient
 psycopg2-binary
 geopandas
@@ -24,4 +28,6 @@ rtree
 gdal
 pyzbar
 qrcode
+pytest
+pytest-cov
 backports.zoneinfo; python_version < '3.9'

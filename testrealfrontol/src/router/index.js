@@ -1,6 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { useUserStore } from '@/stores/userStore.js';
+import i18n from '@/locales/index.js';
+
+const t = (key) => i18n.global.t(key);
 
 import EmployeeProfile from '@/views/employee/Employee Profile/employee_profile.vue';
 import EmployeeHelp from '@/views/employee/Employee Help/employee_help.vue';
@@ -86,14 +89,14 @@ router.beforeEach(async (to, from, next) => {
 
   if (to.meta.requiresAuth) {
     if (!userStore.isAuthenticated) {
-      ElMessage.error('未登录或登录已过期，请重新登录。');
+      ElMessage.error(t('auth.unauthorized'));
       return next('/login');
     }
 
     try {
       const currentUserRole = userStore.currentUser?.role;
       if (to.meta.roles && !to.meta.roles.includes(currentUserRole)) {
-        ElMessage.error('您没有权限访问该页面。');
+        ElMessage.error(t('auth.noPermission'));
         return next(currentUserRole === 'admin' ? '/admin' : '/employee');
       }
 
@@ -107,7 +110,7 @@ router.beforeEach(async (to, from, next) => {
           'adm1';
         const allowed = to.meta.adminRole ? [to.meta.adminRole] : (to.meta.adminRoles || []);
         if (allowed.length && !allowed.includes(adminRole)) {
-          ElMessage.error('您没有权限访问此页面。');
+          ElMessage.error(t('auth.noPermissionPage'));
           return next({ name: 'AdminDashboard' });
         }
       }
@@ -116,7 +119,7 @@ router.beforeEach(async (to, from, next) => {
     } catch (err) {
       console.error('验证用户状态失败:', err);
       userStore.clearUserInfo();
-      ElMessage.error('登录状态异常，请重新登录。');
+      ElMessage.error(t('auth.sessionError'));
       return next('/login');
     }
   } else {

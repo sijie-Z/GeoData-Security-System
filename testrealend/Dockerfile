@@ -32,7 +32,7 @@ EXPOSE 5003
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5003/api/protected')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:5003/api/health')" || exit 1
 
-# Run with Gunicorn in production
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5003", "--timeout", "120", "app:create_app()"]
+# Run with Gunicorn in production (with eventlet for Socket.IO support)
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5003", "--timeout", "120", "-k", "eventlet", "app:create_app()"]

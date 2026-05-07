@@ -44,3 +44,17 @@ def auth_headers(client):
         data = response.get_json()
         return {'Authorization': f'Bearer {data["access_token"]}'}
     return {}
+
+
+@pytest.fixture
+def employee_headers(client):
+    """Get authenticated headers by logging in as employee."""
+    response = client.post('/api/login', json={
+        'username': 'employee1',
+        'password': 'emp123',
+        'role': 'employee'
+    })
+    if response.status_code == 200:
+        data = response.get_json()
+        return {'Authorization': f'Bearer {data["access_token"]}'}
+    return {}

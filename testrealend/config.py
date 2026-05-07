@@ -37,6 +37,13 @@ class Config:
         'CORS_ORIGINS', 'http://localhost:5174,http://localhost:5173'
     ).split(',')
 
+    # Redis
+    REDIS_URL = os.environ.get('REDIS_URL', 'redis://localhost:6379/0')
+
+    # Cache TTL (seconds)
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get('CACHE_DEFAULT_TIMEOUT', '300'))
+    CACHE_DASHBOARD_TIMEOUT = int(os.environ.get('CACHE_DASHBOARD_TIMEOUT', '120'))
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -46,6 +53,19 @@ class ProductionConfig(Config):
     DEBUG = False
 
 
+class TestingConfig(Config):
+    TESTING = True
+    DEBUG = True
+    SQLALCHEMY_BINDS = {
+        'mysql_db': 'sqlite:///test.db',
+        'postgres_db': 'sqlite:///test.db',
+    }
+    JWT_ACCESS_TOKEN_EXPIRES = 60
+    RATELIMIT_ENABLED = False
+
+
 def get_config():
     env = os.environ.get('FLASK_ENV', 'development')
+    if env == 'testing':
+        return TestingConfig
     return ProductionConfig if env == 'production' else DevelopmentConfig
