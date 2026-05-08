@@ -348,7 +348,8 @@ import { ref, reactive, onMounted, nextTick, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Search, Close, ArrowLeftBold, Location, Picture, DataAnalysis, View, Download, Refresh } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
-import axios from '@/utils/Axios';
+import { dataViewing, geocodingSearch } from '@/api/data';
+import { submitApplication } from '@/api/employee';
 import { useUserStore } from '@/stores/userStore';
 
 import 'ol/ol.css';
@@ -428,15 +429,13 @@ const exportData = () => {
 const fetchData = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/data_viewing`, {
-      params: {
-        page: page.value,
-        pageSize: pageSize.value,
-        keyword: keyword.value || undefined,
-        dataType: activeDataType.value,
-        dataSource: dataSourceFilter.value || undefined,
-        timeRange: timeFilter.value || undefined
-      }
+    const response = await dataViewing({
+      page: page.value,
+      pageSize: pageSize.value,
+      keyword: keyword.value || undefined,
+      dataType: activeDataType.value,
+      dataSource: dataSourceFilter.value || undefined,
+      timeRange: timeFilter.value || undefined
     });
     const result = response.data;
     if (result && result.data && Array.isArray(result.data.list)) {
@@ -503,13 +502,12 @@ const submitForm = () => {
   requestFormRef.value.validate((valid) => {
     if (valid) {
       // 发送包含了所有后端所需字段的 requestInformation 对象
-      axios.post(`/api/submit_application`, requestInformation)
+      submitApplication(requestInformation)
         .then(() => {
             ElMessage.success(t('empDataView.submitSuccess'));
             requestDataVisible.value = false;
         })
         .catch(error => {
-            // 这里的 console.error 会捕获并打印详细的 400 错误信息
             console.error('Error submitting application:', error);
             const errorMsg = error.response?.data?.message || t('empDataView.submitFailed');
             ElMessage.error(errorMsg);
@@ -585,7 +583,7 @@ const resetForm = () => {
 const handleMapSearch = async () => {
   if (!mapSearchKeyword.value.trim() || !mapView.value) { if (!mapSearchKeyword.value.trim()) ElMessage.warning(t('empDataView.enterSearchKeyword')); return; }
   try {
-    const response = await axios.get(`/api/geocoding/search`, { params: { keyword: mapSearchKeyword.value.trim() } });
+    const response = await geocodingSearch({ keyword: mapSearchKeyword.value.trim() });
     const results = response.data?.data?.results || [];
     if (results.length > 0) {
       const first = results[0];

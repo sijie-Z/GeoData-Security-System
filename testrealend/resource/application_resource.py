@@ -8,8 +8,10 @@ import base64
 import logging
 from utils.log_helper import log_action
 from utils.metrics import record_application, record_approval
+from utils.user_limiter import normal_limit, relaxed_limit
 from utils.websocket import notify_application_update, notify_new_application
 from utils.cache import invalidate_prefix
+from utils.required import admin_required, admin_role_required
 
 def _build_application_status(item):
     if item.is_recalled:
@@ -45,9 +47,16 @@ def _to_dual_channel_dict(item):
     }
 
 
-def _review_actor(data):
-    user_name = (data.get('user_name') or '').strip()
-    user_number = (data.get('user_number') or '').strip()
+def _review_actor():
+    """Get reviewer identity from JWT token (not from request body)."""
+    from model.Adm_Info import AdmInfo
+    identity = get_jwt_identity() or {}
+    user_number = str(identity.get('number', ''))
+    user_name = identity.get('username', '')
+    if not user_name and user_number:
+        adm = AdmInfo.query.filter_by(adm_number=user_number).first()
+        if adm:
+            user_name = adm.name
     return user_name, user_number
 
 
@@ -109,14 +118,22 @@ class SubmitApplicationResource(Resource):
     @limiter.limit("20 per minute")
     def post(self):
         data = request.get_json()
+        # Get identity from JWT to prevent impersonation
+        identity = get_jwt_identity()
+        if isinstance(identity, dict):
+            jwt_name = identity.get('name', '')
+            jwt_number = identity.get('number', '')
+        else:
+            jwt_name = data.get('applicant_name', '')
+            jwt_number = str(identity)
         new_app = Application(
             data_id=data.get('data_id'),
             data_name=data.get('data_name'),
             data_alias=data.get('data_alias'),
             data_url=data.get('data_url'),
             data_type=data.get('data_type', 'vector').lower(), # Default to vector
-            applicant_name=data.get('applicant_name'),
-            applicant_user_number=data.get('applicant_user_number'),
+            applicant_name=jwt_name,
+            applicant_user_number=jwt_number,
             reason=data.get('reason'),
             application_submission_time=datetime.utcnow()
         )
@@ -139,12 +156,43 @@ class SubmitApplicationResource(Resource):
             logging.error(str(e))
             return {'status': False, 'msg': '操作失败，请稍后重试'}, 500
 
+
+class WithdrawApplicationResource(Resource):
+    """Withdraw (cancel) a pending application."""
+    @jwt_required()
+    @normal_limit
+    def put(self, application_id):
+        identity = get_jwt_identity() or {}
+        user_number = identity.get('number')
+        item = Application.query.get(application_id)
+        if not item:
+            return {'status': False, 'msg': '申请不存在'}, 404
+        if item.applicant_user_number != user_number:
+            return {'status': False, 'msg': '只能撤回自己的申请'}, 403
+        if item.is_recalled:
+            return {'status': False, 'msg': '该申请已撤回'}, 400
+        if item.adm1_statu is not None:
+            return {'status': False, 'msg': '该申请已在审批中，无法撤回'}, 400
+
+        item.is_recalled = True
+        item.recalled_at = datetime.utcnow()
+        item.recall_reason = '申请人主动撤回'
+        db.session.commit()
+
+        log_action(user_number, item.applicant_name, '撤回申请', '成功',
+                   f"app_id={item.id} data_alias={item.data_alias}")
+        invalidate_prefix('dashboard')
+        return {'status': True, 'msg': '申请已撤回'}, 200
+
+
 class GetApplicationsResource(Resource):
     @jwt_required()
+    @relaxed_limit
     def get(self):
-        user_number = request.args.get('userNumber')
+        identity = get_jwt_identity() or {}
+        user_number = identity.get('number') or request.args.get('userNumber')
         page = request.args.get('page', 1, type=int)
-        page_size = request.args.get('pageSize', 10, type=int)
+        page_size = min(request.args.get('pageSize', 10, type=int), 100)
         
         query = Application.query.filter_by(applicant_user_number=user_number)
         pagination = query.paginate(page=page, per_page=page_size, error_out=False)
@@ -167,9 +215,10 @@ class GetApplicationsResource(Resource):
 class ApprovedApplicationsResource(Resource):
     @jwt_required()
     def get(self):
-        user_number = request.args.get('userNumber')
+        identity = get_jwt_identity() or {}
+        user_number = identity.get('number') or request.args.get('userNumber')
         page = request.args.get('page', 1, type=int)
-        page_size = request.args.get('pageSize', 5, type=int)
+        page_size = min(request.args.get('pageSize', 5, type=int), 100)
         
         # Only applications that passed both reviews
         query = Application.query.filter_by(applicant_user_number=user_number, adm1_statu=True, adm2_statu=True)
@@ -242,7 +291,8 @@ class Adm2GetApprovedResource(Resource):
         }, 200
 
 class Adm1PassResource(Resource):
-    @jwt_required()
+    @admin_role_required('admin1')
+    @normal_limit
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
@@ -251,7 +301,7 @@ class Adm1PassResource(Resource):
             ok, msg = _validate_stage_transition(item, 'adm1')
             if not ok:
                 return {'status': False, 'msg': msg}, 400
-            user_name, user_number = _review_actor(data)
+            user_name, user_number = _review_actor()
             _update_review_result(item, 'adm1', True, user_name, user_number)
             db.session.commit()
             log_action(user_number, user_name, '一审通过', '成功',
@@ -263,7 +313,7 @@ class Adm1PassResource(Resource):
         return {'status': False, 'msg': '申请不存在'}, 404
 
 class Adm1FailResource(Resource):
-    @jwt_required()
+    @admin_role_required('admin1')
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
@@ -272,7 +322,7 @@ class Adm1FailResource(Resource):
             ok, msg = _validate_stage_transition(item, 'adm1')
             if not ok:
                 return {'status': False, 'msg': msg}, 400
-            user_name, user_number = _review_actor(data)
+            user_name, user_number = _review_actor()
             _update_review_result(item, 'adm1', False, user_name, user_number)
             db.session.commit()
             log_action(user_number, user_name, '一审驳回', '成功',
@@ -284,7 +334,8 @@ class Adm1FailResource(Resource):
         return {'status': False, 'msg': '申请不存在'}, 404
 
 class Adm2PassResource(Resource):
-    @jwt_required()
+    @admin_role_required('admin2')
+    @normal_limit
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
@@ -293,7 +344,7 @@ class Adm2PassResource(Resource):
             ok, msg = _validate_stage_transition(item, 'adm2')
             if not ok:
                 return {'status': False, 'msg': msg}, 400
-            user_name, user_number = _review_actor(data)
+            user_name, user_number = _review_actor()
             _update_review_result(item, 'adm2', True, user_name, user_number)
             db.session.commit()
             log_action(user_number, user_name, '二审通过', '成功',
@@ -305,7 +356,7 @@ class Adm2PassResource(Resource):
         return {'status': False, 'msg': '申请不存在'}, 404
 
 class Adm2FailResource(Resource):
-    @jwt_required()
+    @admin_role_required('admin2')
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
@@ -314,7 +365,7 @@ class Adm2FailResource(Resource):
             ok, msg = _validate_stage_transition(item, 'adm2')
             if not ok:
                 return {'status': False, 'msg': msg}, 400
-            user_name, user_number = _review_actor(data)
+            user_name, user_number = _review_actor()
             _update_review_result(item, 'adm2', False, user_name, user_number)
             db.session.commit()
             log_action(user_number, user_name, '二审驳回', '成功',
@@ -326,13 +377,14 @@ class Adm2FailResource(Resource):
         return {'status': False, 'msg': '申请不存在'}, 404
 
 class BatchReviewResource(Resource):
-    @jwt_required()
+    @admin_required
+    @normal_limit
     def post(self):
         data = request.get_json() or {}
         ids = data.get('ids', [])
         stage = data.get('stage') # 'adm1' or 'adm2'
         action = data.get('action') # 'pass' or 'fail'
-        user_name, user_number = _review_actor(data)
+        user_name, user_number = _review_actor()
         if stage not in ('adm1', 'adm2'):
             return {'status': False, 'msg': '无效审核阶段'}, 400
         if action not in ('pass', 'fail'):
@@ -376,13 +428,13 @@ class BatchReviewResource(Resource):
         }, 200
 
 class ReReviewResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
         stage = data.get('stage')
         statu = data.get('statu')
-        user_name, user_number = _review_actor(data)
+        user_name, user_number = _review_actor()
         item = Application.query.get(app_id)
         if item:
             if stage == 'adm2':
@@ -398,14 +450,13 @@ class ReReviewResource(Resource):
 
 
 class Adm3AdditionalReviewResource(Resource):
-    @jwt_required()
+    @admin_role_required('admin3')
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
         statu = data.get('statu', False)
         reason = data.get('reason')
-        user_name = data.get('user_name')
-        user_number = data.get('user_number')
+        user_name, user_number = _review_actor()
 
         item = Application.query.get(app_id)
         if not item:

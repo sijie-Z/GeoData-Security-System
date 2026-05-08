@@ -95,7 +95,8 @@ import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
-import axios from '@/utils/Axios';
+import { getDashboard } from '@/api/employee';
+import { getAnnouncements } from '@/api/admin';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -128,7 +129,7 @@ const greeting = computed(() => {
 const fetchDashboard = async () => {
   loading.value = true;
   try {
-    const response = await axios.get('/api/employee/dashboard');
+    const response = await getDashboard();
     const data = response.data?.data || {};
     metrics.value = {
       totalApplications: data.total_applications || 0,
@@ -142,7 +143,7 @@ const fetchDashboard = async () => {
     todayVisits.value = data.today_visits || 0;
     lastLoginTime.value = data.last_login_time || '—';
 
-    const ann = await axios.get('/api/announcements', { params: { page: 1, pageSize: 5 } });
+    const ann = await getAnnouncements({ page: 1, pageSize: 5 });
     announcements.value = ann.data?.data?.list || [];
 
     await nextTick();
@@ -254,7 +255,9 @@ onBeforeUnmount(() => {
   gap: 12px;
   margin-bottom: 12px;
 }
-.kpi { padding: 14px; }
+.kpi { padding: 14px; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
+.kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
+.kpi:first-child { border-left: 4px solid var(--accent-purple, #8b5cf6); }
 .kpi span { color: #64748b; font-size: 13px; }
 .kpi h2 { margin: 6px 0; font-size: 28px; }
 .warn { border-left: 4px solid #f59e0b; }
@@ -279,11 +282,17 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, #f8fafc, #eef2ff);
   border: 1px solid #e2e8f0;
   cursor: pointer;
+  transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1));
+}
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  border-color: var(--accent-blue, #3b82f6);
 }
 .action-card b { display:block; color:#1e293b; margin-bottom:4px; }
 .action-card span { color:#475569; }
 
-.announcement-list { display: grid; gap: 10px; }
+.announcement-list { display: grid; gap: 10px; max-height: 320px; overflow-y: auto; padding-right: 4px; }
 .announcement-item { display:flex; justify-content: space-between; align-items:center; padding: 10px; border-radius: 10px; background: #f8fafc; }
 .announcement-item p { margin: 6px 0 0; color: #64748b; }
 .empty { color:#94a3b8; padding: 10px 0; }

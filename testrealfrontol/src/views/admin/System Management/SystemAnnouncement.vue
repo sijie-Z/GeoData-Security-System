@@ -3,7 +3,12 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue'
-import Axios from '@/utils/Axios'
+import {
+  getAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement
+} from '@/api/admin'
 
 const { t } = useI18n()
 
@@ -27,9 +32,7 @@ const form = reactive({
 const fetchAnnouncements = async () => {
   loading.value = true
   try {
-    const { data } = await Axios.get('/api/announcements', {
-      params: { page: pages.page, pageSize: pages.pageSize }
-    })
+    const { data } = await getAnnouncements({ page: pages.page, pageSize: pages.pageSize })
     if (data?.status) {
       list.value = data.data.list || []
       Object.assign(pages, data.data.pages || pages)
@@ -72,10 +75,10 @@ const submitForm = async () => {
       return
     }
     if (form.id) {
-      await Axios.put('/api/admin/announcements', form)
+      await updateAnnouncement(form)
       ElMessage.success(t('adminAnnounce.updateSuccess'))
     } else {
-      await Axios.post('/api/admin/announcements', form)
+      await createAnnouncement(form)
       ElMessage.success(t('adminAnnounce.publishSuccess'))
     }
     formVisible.value = false
@@ -89,7 +92,7 @@ const submitForm = async () => {
 const removeAnnouncement = async (row) => {
   try {
     await ElMessageBox.confirm(t('adminAnnounce.confirmDelete', { title: row.title }), t('adminAnnounce.tip'), { type: 'warning' })
-    await Axios.delete('/api/admin/announcements', { params: { id: row.id } })
+    await deleteAnnouncement(row.id)
     ElMessage.success(t('adminAnnounce.removed'))
     fetchAnnouncements()
   } catch (e) {

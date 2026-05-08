@@ -27,6 +27,7 @@ pyogrio
 rtree
 gdal
 pyzbar
+PyWavelets
 qrcode
 pytest
 pytest-cov

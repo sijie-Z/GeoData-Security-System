@@ -1,5 +1,6 @@
 import base64
 import io
+import json
 import os
 from datetime import datetime
 import logging
@@ -9,12 +10,15 @@ from PIL import Image
 from flask import current_app, request, send_file
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required
+from utils.required import admin_required
 
 from algorithm.raster_reversible_watermark import (
     decode_reversible,
     embed_reversible,
     recover_reversible,
 )
+from algorithm.raster_dwt_watermark import embed_dwt, extract_dwt, recover_dwt
+from algorithm.raster_histogram_watermark import embed_histogram, extract_histogram, recover_histogram
 from extension.extension import db
 from model.Application import Application
 from model.Raster_Data import RasterData
@@ -193,18 +197,24 @@ class RasterEmbedDispatchResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('application_id')
+        algorithm = data.get('algorithm', 'lsb')
         item = Application.query.get(app_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         embed_resource = CRMarkEmbedResource()
-        result, code = embed_resource._embed(item)
+        result, code = embed_resource._embed(item, algorithm=algorithm)
         if code == 200:
             return {'status': True, 'msg': '栅格水印嵌入成功', 'data': result}, 200
         return result, code
 
 class CRMarkEmbedResource(Resource):
-    def _embed(self, item):
-        """内部方法，直接接收item对象，避免递归调用解析request"""
+    def _embed(self, item, algorithm='lsb'):
+        """内部方法，直接接收item对象，避免递归调用解析request。
+
+        Args:
+            item: Application model instance.
+            algorithm: 'lsb' (default) or 'dwt'.
+        """
         source_path = _resolve_raster_source_path(item)
         if not source_path:
             return {'status': False, 'message': '未找到可用的栅格原始文件路径'}, 404
@@ -214,30 +224,51 @@ class CRMarkEmbedResource(Resource):
         try:
             qr_img = Image.open(io.BytesIO(base64.b64decode(item.qrcode))).convert('L')
             out_dir = _runtime_dir('crmark', f'app_{item.id}')
-            result = embed_reversible(
-                host_path=source_path,
-                watermark_img=qr_img,
-                output_dir=out_dir,
-                prefix=f'app_{item.id}'
-            )
+
+            if algorithm == 'dwt':
+                result = embed_dwt(
+                    host_path=source_path,
+                    watermark_img=qr_img,
+                    output_dir=out_dir,
+                    prefix=f'app_{item.id}'
+                )
+            elif algorithm == 'histogram':
+                result = embed_histogram(
+                    host_path=source_path,
+                    watermark_img=qr_img,
+                    output_dir=out_dir,
+                    prefix=f'app_{item.id}'
+                )
+            else:
+                result = embed_reversible(
+                    host_path=source_path,
+                    watermark_img=qr_img,
+                    output_dir=out_dir,
+                    prefix=f'app_{item.id}'
+                )
+
             item.watermark_embedded = True
             item.watermark_path = result['stego_path']
             db.session.commit()
-            return {
+
+            response = {
                 'status': True,
+                'algorithm': algorithm,
                 'stego_path': result['stego_path'],
-                'wm_map_path': result['wm_map_path'],
                 'wm_meta_path': result['wm_meta_path'],
                 'stego_preview_base64': _to_preview_base64(result['stego_path'])
-            }, 200
+            }
+            # LSB stores a separate wm_map file; DWT stores everything in meta
+            if 'wm_map_path' in result:
+                response['wm_map_path'] = result['wm_map_path']
+            return response, 200
         except Exception as e:
             db.session.rollback()
             logging.error(str(e))
             return {'status': False, 'message': '操作失败，请稍后重试'}, 500
 
-    @jwt_required()
+    @admin_required
     def post(self):
-        """HTTP端点方法，保持兼容性"""
         data = request.get_json() or {}
         app_id = data.get('application_id')
         item = Application.query.get(app_id)
@@ -252,18 +283,36 @@ class CRMarkRecoverResource(Resource):
         stego_path = _resolve_existing_path(data.get('stego_path'))
         wm_map_path = _resolve_existing_path(data.get('wm_map_path'))
         wm_meta_path = _resolve_existing_path(data.get('wm_meta_path'))
-        if not stego_path or not wm_map_path:
-            return {'status': False, 'message': '缺少有效的 stego_path 或 wm_map_path'}, 400
-        if not wm_meta_path:
-            guessed_meta = os.path.splitext(wm_map_path)[0].replace('_wm_map', '_wm_meta') + '.json'
-            wm_meta_path = guessed_meta if os.path.exists(guessed_meta) else None
+        if not stego_path:
+            return {'status': False, 'message': '缺少有效的 stego_path'}, 400
         if not wm_meta_path:
             return {'status': False, 'message': '缺少有效的 wm_meta_path'}, 400
+
+        # Detect algorithm from metadata
+        algo = 'lsb'
+        try:
+            with open(wm_meta_path, 'r', encoding='utf-8') as fp:
+                meta_data = json.load(fp)
+            algo = meta_data.get('algorithm', 'lsb')
+        except Exception:
+            pass
+
+        # For LSB, wm_map_path is also required
+        if algo not in ('dwt', 'histogram_shifting') and not wm_map_path:
+            guessed_meta = os.path.splitext(wm_meta_path)[0].replace('_wm_meta', '_wm_map') + '.npz'
+            wm_map_path = guessed_meta if os.path.exists(guessed_meta) else None
+            if not wm_map_path:
+                return {'status': False, 'message': '缺少有效的 wm_map_path'}, 400
         try:
             output_dir = _runtime_dir('crmark', 'recovered')
             out_name = f"recovered_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
             output_path = os.path.join(output_dir, out_name)
-            recover_reversible(stego_path, wm_map_path, wm_meta_path, output_path)
+            if algo == 'dwt':
+                recover_dwt(stego_path, wm_meta_path, output_path)
+            elif algo == 'histogram_shifting':
+                recover_histogram(stego_path, wm_meta_path, output_path)
+            else:
+                recover_reversible(stego_path, wm_map_path, wm_meta_path, output_path)
             return send_file(output_path, as_attachment=True, download_name='recovered_original.png')
         except Exception as e:
             logging.error(str(e))
@@ -277,11 +326,26 @@ class CRMarkDecodeResource(Resource):
         wm_meta_path = _resolve_existing_path(data.get('wm_meta_path'))
         if not stego_path or not wm_meta_path:
             return {'status': False, 'message': '缺少有效的 stego_path 或 wm_meta_path'}, 400
+
+        # Detect algorithm from metadata
+        algo = 'lsb'
+        try:
+            with open(wm_meta_path, 'r', encoding='utf-8') as fp:
+                meta_data = json.load(fp)
+            algo = meta_data.get('algorithm', 'lsb')
+        except Exception:
+            pass
+
         try:
             output_dir = _runtime_dir('crmark', 'decoded')
             out_name = f"decoded_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
             output_path = os.path.join(output_dir, out_name)
-            decode_reversible(stego_path, wm_meta_path, output_path)
+            if algo == 'dwt':
+                extract_dwt(stego_path, wm_meta_path, output_path)
+            elif algo == 'histogram_shifting':
+                extract_histogram(stego_path, wm_meta_path, output_path)
+            else:
+                decode_reversible(stego_path, wm_meta_path, output_path)
             return send_file(output_path, as_attachment=True, download_name='decoded_watermark.png')
         except Exception as e:
             logging.error(str(e))

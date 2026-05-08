@@ -5,6 +5,7 @@ from model.Announcement import Announcement
 from extension.extension import db
 from datetime import datetime
 from sqlalchemy.exc import SQLAlchemyError
+from utils.required import admin_required
 import logging
 
 
@@ -62,9 +63,8 @@ class AnnouncementResource(Resource):
             }
         }, 200
 
-    @jwt_required()
+    @admin_required
     def post(self):
-        # Admin only
         data = request.get_json()
         try:
             _ensure_announcement_table()

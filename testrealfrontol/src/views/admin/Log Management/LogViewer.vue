@@ -49,21 +49,16 @@
           @change="handleFilterSearch"
         >
           <el-option :label="$t('adminLogViewer.allTypes')" value="" />
-          <el-option :label="$t('adminLogViewer.userLogin')" value="用户登录" />
-          <el-option :label="$t('adminLogViewer.submitDataRequest')" value="提交数据申请" />
-          <el-option :label="$t('adminLogViewer.approveDataRequest')" value="审批数据申请" />
+          <el-option :label="$t('adminLogViewer.userLogin')" value="登录" />
+          <el-option :label="$t('adminLogViewer.submitDataRequest')" value="申请提交" />
+          <el-option :label="$t('adminLogViewer.approveDataRequest')" value="一审通过" />
           <el-option :label="$t('adminLogViewer.generateWatermark')" value="生成水印" />
           <el-option :label="$t('adminLogViewer.embedWatermark')" value="嵌入水印" />
-          <el-option :label="$t('adminLogViewer.dataUpload')" value="数据上传" />
-          <el-option :label="$t('adminLogViewer.userPermissionChange')" value="用户权限修改" />
-          <el-option :label="$t('adminLogViewer.dataBackup')" value="数据备份" />
           <el-option :label="$t('adminLogViewer.extractWatermark')" value="提取水印" />
-          <el-option :label="$t('adminLogViewer.userLogout')" value="用户登出" />
-          <el-option :label="$t('adminLogViewer.securityPolicyUpdate')" value="安全策略更新" />
           <el-option :label="$t('adminLogViewer.downloadData')" value="下载数据" />
-          <el-option :label="$t('adminLogViewer.generateReport')" value="生成报告" />
-          <el-option :label="$t('adminLogViewer.deleteUser')" value="删除用户" />
-          <el-option :label="$t('adminLogViewer.systemParamConfig')" value="系统参数配置" />
+          <el-option :label="$t('adminLogViewer.withdrawApplication')" value="撤回申请" />
+          <el-option :label="$t('adminLogViewer.recallProposal')" value="回收提议创建" />
+          <el-option :label="$t('adminLogViewer.recallVote')" value="回收投票" />
         </el-select>
         <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('adminLogViewer.search') }}</el-button>
         <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('adminLogViewer.reset') }}</el-button>
@@ -119,7 +114,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search, RefreshRight, RefreshLeft, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import axios from '@/utils/Axios'
+import { getSystemLogs } from '@/api/admin'
 
 const { t } = useI18n()
 
@@ -138,14 +133,12 @@ const filters = reactive({
 const fetchLogs = async () => {
   loading.value = true
   try {
-    const response = await axios.get(`/api/admin/logs`, {
-      params: {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        username: filters.username || undefined,
-        user_number: filters.user_number || undefined,
-        action: filters.action || undefined
-      }
+    const response = await getSystemLogs({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      username: filters.username || undefined,
+      user_number: filters.user_number || undefined,
+      action: filters.action || undefined
     });
     const result = response.data;
     if (result?.status === true && result?.data) {

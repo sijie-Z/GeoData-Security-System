@@ -18,7 +18,7 @@ def setup_logging(app):
     console_handler.setFormatter(log_format)
 
     # File handler (with rotation)
-    log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')
+    log_dir = os.environ.get('LOG_DIR', os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs'))
     os.makedirs(log_dir, exist_ok=True)
 
     file_handler = RotatingFileHandler(

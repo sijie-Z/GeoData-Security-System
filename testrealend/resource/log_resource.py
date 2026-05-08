@@ -3,6 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required
 from model.Log_Info import LogInfo
 from extension.extension import db
+from utils.required import admin_required
 
 class SystemLogResource(Resource):
     """
@@ -34,7 +35,7 @@ class SystemLogResource(Resource):
     responses:
       200: {description: Operation logs list}
     """
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('pageSize', 10, type=int)

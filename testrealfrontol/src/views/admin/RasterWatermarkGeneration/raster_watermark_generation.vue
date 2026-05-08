@@ -22,7 +22,7 @@
         <el-table-column :label="$t('rasterWmGen.colSecondStatus')" width="100">
           <template v-slot="scope">
             <div v-if="!scope.row.first_statu">
-              {{ getStatusText('空') }}
+              {{ getStatusText(null) }}
             </div>
             <div v-else>
               {{ getStatusText(scope.row.second_statu) }}
@@ -133,7 +133,7 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" @click="generate">{{ $t('rasterWmGen.confirmGenerate') }}</el-button>
+          <el-button type="primary" @click="generate" :loading="generating">{{ $t('rasterWmGen.confirmGenerate') }}</el-button>
           <el-button @click="resetForm">{{ $t('rasterWmGen.reset') }}</el-button>
         </el-form-item>
       </el-form>
@@ -144,7 +144,7 @@
   import { reactive, ref, onMounted, watch, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import axios from '@/utils/Axios';
+  import { getRasterApplicationsGenerateWatermark, generateRasterWatermark } from '@/api/watermark';
 
   const { t } = useI18n();
 
@@ -154,6 +154,7 @@
   const total = ref(0);
   const requestDataVisible = ref(false);
   const requestFormRef = ref(null);
+  const generating = ref(false);
 
 
   watch(page, (newValue, oldValue) => {
@@ -209,10 +210,7 @@
   const get_applications = async () => {
     try {
       // 调用栅格数据专用的API端点
-      const response = await axios.get(`/api/adm1_get_raster_applications_generate_watermark`, {
-        params: { page: page.value, pageSize: pageSize.value },
-        responseType: 'json'
-      });
+      const response = await getRasterApplicationsGenerateWatermark({ page: page.value, pageSize: pageSize.value });
 
       if (!response.data || !response.data.status) {
         data.list = [];
@@ -269,32 +267,29 @@
   };
 
   const generate = () => {
-    requestFormRef.value.validate((valid) => {
-      if (valid) {
-        // 调用栅格数据生成水印的API端点
-        axios.post(`/api/generate_raster_watermark`, requestInformation)
-          .then((response) => {
-            if (response.data.status) {
-              ElMessage.success(t('rasterWmGen.generateSuccess'));
-              get_applications(); // 刷新记录
-              requestDataVisible.value = false;
-            } else {
-              ElMessage.error(response.data.msg || t('rasterWmGen.generateFailed'));
-            }
-          }).catch((err) => {
-            console.error('Error generating watermark:', err);
-            ElMessage.error(t('rasterWmGen.generateFailed'));
-          });
-
-      } else {
-        console.log('表单验证失败');
+    requestFormRef.value.validate(async (valid) => {
+      if (!valid) return;
+      generating.value = true;
+      try {
+        const response = await generateRasterWatermark(requestInformation);
+        if (response.data.status) {
+          ElMessage.success(t('rasterWmGen.generateSuccess'));
+          get_applications();
+          requestDataVisible.value = false;
+        } else {
+          ElMessage.error(response.data.msg || t('rasterWmGen.generateFailed'));
+        }
+      } catch (err) {
+        ElMessage.error(t('rasterWmGen.generateFailed'));
+      } finally {
+        generating.value = false;
       }
     });
   };
 
   </script>
 
-  <style>
+  <style scoped>
   /* 样式与矢量数据代码保持一致，确保外观统一 */
   .qr-code-image {
     width: 50px;
@@ -359,39 +354,14 @@
     margin-bottom: 10px;
   }
 
-  .custom-watermark-dialog .el-input__inner,
-  .custom-watermark-dialog .el-select .el-input__inner,
-  .custom-watermark-dialog .el-textarea__inner {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    font-size: 13px;
-    height: 32px;
-    line-height: 32px;
-    padding-right: 140px !important;
-  }
-
   .custom-watermark-dialog .el-select .el-input .el-select__caret {
     font-size: 13px;
   }
-
 
   .custom-watermark-dialog .el-dialog {
     border: 2px solid #2A6EB3;
     border-radius: 6px;
     overflow: hidden;
-  }
-
-  .custom-watermark-dialog .el-form-item:last-child .el-button + .el-button {
-    margin-left: 80px;
-  }
-
-  .custom-watermark-dialog .el-form-item:last-child {
-    margin-bottom: 0;
-    margin-top: 20px;
-    text-align: center;
-  }
-
-  .custom-watermark-dialog .el-form-item:last-child .el-button + .el-button {
-    margin-left: 120px;
   }
 
   .custom-watermark-dialog .el-form-item .el-button--small {
@@ -438,7 +408,7 @@
     font-size: 13px;
     height: 32px;
     line-height: 32px;
-    padding-right: 160px;
+    padding-right: 30px;
   }
 
   .custom-watermark-dialog .el-form-item:last-child {
@@ -449,9 +419,5 @@
 
   .custom-watermark-dialog .el-form-item:last-child .el-button + .el-button {
     margin-left: 150px;
-  }
-
-  .custom-watermark-dialog .el-input__inner {
-    padding-right: 30px;
   }
   </style>

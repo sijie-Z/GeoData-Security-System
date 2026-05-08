@@ -61,7 +61,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import Axios from '@/utils/Axios'
+import { getEmployeeInfo, sendNotification } from '@/api/admin'
 
 const { t } = useI18n()
 
@@ -77,7 +77,7 @@ const form = reactive({
 
 const loadEmployees = async () => {
   try {
-    const { data } = await Axios.get(`/api/admin/get_employee_info`)
+    const { data } = await getEmployeeInfo()
     const list = data?.data?.list || []
     employeeOptions.value = list.map((i) => ({
       label: `${i.employee_number}${i.name ? ` - ${i.name}` : ''}`,
@@ -111,7 +111,7 @@ const sendNotification = async () => {
       content,
       user_numbers: sendMode.value === 'all' ? [] : form.user_numbers
     }
-    const { data } = await Axios.post(`/api/admin/notifications/send`, payload)
+    const { data } = await sendNotification(payload)
     if (data?.status) {
       ElMessage.success(data?.msg || t('adminNotify.sendSuccess'))
       resetForm()

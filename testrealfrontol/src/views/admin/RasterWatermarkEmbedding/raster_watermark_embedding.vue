@@ -143,7 +143,14 @@
   import { reactive, ref, onMounted, watch, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, ElMessageBox } from 'element-plus';
-  import axios from '@/utils/Axios';
+  import {
+    getEmbeddingApplications,
+    previewRaster,
+    embedDispatch,
+    crmarkEmbed,
+    crmarkRecover,
+    crmarkDecode
+  } from '@/api/watermark';
 
   const { t } = useI18n();
 
@@ -182,10 +189,7 @@
   const get_applications = async () => {
     try {
       // 调用栅格数据专用的API端点
-      const response = await axios.get(`/api/adm2_embedding_watermark_applications`, {
-        params: { page: page.value, pageSize: pageSize.value, data_type: 'raster' },
-        responseType: 'json'
-      });
+      const response = await getEmbeddingApplications({ page: page.value, pageSize: pageSize.value, data_type: 'raster' });
 
       if (!response.data || !response.data.status) {
         data.list = [];
@@ -217,7 +221,7 @@
 
     if (selectedData.data_file_path) {
       try {
-        const resp = await axios.post(`/api/raster/preview`, {
+        const resp = await previewRaster({
           file_path: selectedData.data_file_path
         });
         selectedData.preview_base64 = resp.data?.base64 || resp.data?.png_base64 || '';
@@ -299,7 +303,7 @@
     const ApplicationId = row.id;
     ElMessage.info(t('rasterWmEmbed.embeddingInProgress'));
 
-    axios.post(`/api/admin/embed_dispatch`, {
+    embedDispatch({
       application_id: ApplicationId
     })
     .then(response => {
@@ -341,7 +345,7 @@
   const crmarkEmbed = async () => {
     if (!crmarkApplicationId.value) { ElMessage.error(t('rasterWmEmbed.fillApplicationIdFirst')); return; }
     try {
-      const resp = await axios.post(`/api/crmark/embed`, { application_id: crmarkApplicationId.value });
+      const resp = await crmarkEmbed({ application_id: crmarkApplicationId.value });
       crmarkResult.stego_path = resp.data?.stego_path || '';
       crmarkResult.wm_map_path = resp.data?.wm_map_path || '';
       crmarkResult.wm_meta_path = resp.data?.wm_meta_path || '';
@@ -359,7 +363,7 @@
   const crmarkPreviewStego = async () => {
     if (!crmarkResult.stego_path) { ElMessage.error(t('rasterWmEmbed.completeEmbedFirst')); return; }
     try {
-      const resp = await axios.post(`/api/raster/preview`, { file_path: crmarkResult.stego_path });
+      const resp = await previewRaster({ file_path: crmarkResult.stego_path });
       crmarkResult.stego_preview_base64 = resp.data?.base64 || resp.data?.png_base64 || '';
       if (crmarkResult.stego_preview_base64) ElMessage.success(t('rasterWmEmbed.thumbnailLoadSuccess')); else ElMessage.error(t('rasterWmEmbed.thumbnailNotObtained'));
     } catch (e) {
@@ -375,7 +379,7 @@
   const crmarkRecover = async () => {
     if (!crmarkResult.stego_path || !crmarkResult.wm_map_path) { ElMessage.error(t('rasterWmEmbed.completeEmbedFirst')); return; }
     try {
-      const resp = await axios.post(`/api/crmark/recover`, { stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path }, { responseType: 'blob' });
+      const resp = await crmarkRecover({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path });
       const url = window.URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -398,7 +402,7 @@
   const crmarkDecode = async () => {
     if (!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path) { ElMessage.error(t('rasterWmEmbed.completeEmbedFirst')); return; }
     try {
-      const resp = await axios.post(`/api/crmark/decode`, { stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path, wm_meta_path: crmarkResult.wm_meta_path }, { responseType: 'blob' });
+      const resp = await crmarkDecode({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path, wm_meta_path: crmarkResult.wm_meta_path });
       const url = window.URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
       link.href = url;

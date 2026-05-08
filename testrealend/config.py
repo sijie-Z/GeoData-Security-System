@@ -25,8 +25,9 @@ class Config:
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # JWT
-    JWT_ACCESS_TOKEN_EXPIRES = 86400  # 24 hours in seconds
-    JWT_REFRESH_TOKEN_EXPIRES = 2592000  # 30 days in seconds
+    JWT_ACCESS_TOKEN_EXPIRES = 7200  # 2 hours in seconds
+    JWT_REFRESH_TOKEN_EXPIRES = 604800  # 7 days in seconds
+    JWT_BLOCKLIST_ENABLED = True
 
     # Rate limiter
     RATELIMIT_STORAGE_URI = 'memory://'
@@ -48,9 +49,22 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
 
+    def __init__(self):
+        super().__init__()
+        insecure = {'dev-only-key-replace-in-production', 'dev-only-jwt-key-replace-in-production'}
+        if self.SECRET_KEY in insecure or self.JWT_SECRET_KEY in insecure:
+            import logging
+            logging.warning("Using insecure dev keys — set SECRET_KEY and JWT_SECRET_KEY env vars for production")
+
 
 class ProductionConfig(Config):
     DEBUG = False
+
+    def __init__(self):
+        super().__init__()
+        insecure = {'dev-only-key-replace-in-production', 'dev-only-jwt-key-replace-in-production'}
+        if self.SECRET_KEY in insecure or self.JWT_SECRET_KEY in insecure:
+            raise RuntimeError("Production requires SECRET_KEY and JWT_SECRET_KEY environment variables")
 
 
 class TestingConfig(Config):

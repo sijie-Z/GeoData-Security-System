@@ -49,6 +49,18 @@
       </div>
     </div>
 
+    <!-- Language switcher in top-right corner -->
+    <div class="lang-switcher">
+      <LanguageSwitcher />
+    </div>
+
+    <!-- Scroll indicator -->
+    <div class="scroll-indicator">
+      <div class="scroll-mouse">
+        <div class="scroll-wheel"></div>
+      </div>
+    </div>
+
     <!-- 底部信息 -->
     <div class="footer-info">
       <p>{{ $t('firstHome.copyright') }}</p>
@@ -61,10 +73,12 @@ import { useRouter } from 'vue-router';
 import { ref, onMounted, onUnmounted } from 'vue';
 import * as THREE from 'three';
 import { Plus, Key, Lock, Compass, TrendCharts } from '@element-plus/icons-vue';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
 const router = useRouter();
 const bgCanvas = ref(null);
 let renderer, scene, camera, particles;
+let animationId = null;
 
 /**
  * 初始化3D背景
@@ -78,9 +92,10 @@ const initBg = () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
-  // 背景粒子
+  // 背景粒子 - reduce count on mobile
   const geometry = new THREE.BufferGeometry();
-  const count = 500;
+  const isMobile = window.innerWidth <= 768;
+  const count = isMobile ? 200 : 500;
   const positions = new Float32Array(count * 3);
   for (let i = 0; i < count * 3; i++) positions[i] = (Math.random() - 0.5) * 90;
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -113,7 +128,7 @@ const initBg = () => {
       r.material.opacity = 0.3 + 0.15 * Math.sin(Date.now() * 0.001 + idx);
     });
     renderer.render(scene, camera);
-    requestAnimationFrame(animate);
+    animationId = requestAnimationFrame(animate);
   };
   animate();
 };
@@ -132,6 +147,11 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
+  if (animationId) cancelAnimationFrame(animationId);
+  if (particles) {
+    particles.geometry?.dispose();
+    particles.material?.dispose();
+  }
   if (renderer) renderer.dispose();
 });
 
@@ -277,7 +297,7 @@ const register_button = () => router.push('/register');
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 0;
+  gap: 24px;
   margin-top: 40px;
 }
 
@@ -285,11 +305,15 @@ const register_button = () => router.push('/register');
   text-align: center;
   width: 32%;
   min-width: 200px;
-  transition: transform 0.3s ease;
+  transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1));
+  border-radius: var(--radius-lg, 16px);
+  padding: 20px;
 }
 
 .feature-item:hover {
-  transform: translateY(-5px);
+  transform: translateY(-8px);
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
 .feature-icon {
@@ -343,6 +367,53 @@ const register_button = () => router.push('/register');
   text-align: center;
 }
 
+/* Language switcher */
+.lang-switcher {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 3;
+  animation: fadeInBounce 2s ease-out 1.5s both;
+}
+
+.scroll-mouse {
+  width: 26px;
+  height: 40px;
+  border: 2px solid rgba(147, 197, 253, 0.6);
+  border-radius: 13px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.scroll-wheel {
+  width: 4px;
+  height: 8px;
+  background: rgba(147, 197, 253, 0.8);
+  border-radius: 2px;
+  animation: scrollPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes scrollPulse {
+  0% { opacity: 1; transform: translateY(0); }
+  50% { opacity: 0.3; transform: translateY(6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeInBounce {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+  to { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .content-overlay {
@@ -368,6 +439,11 @@ const register_button = () => router.push('/register');
 
   .system-title {
     font-size: clamp(2rem, 5vw, 3rem);
+  }
+
+  .lang-switcher {
+    top: 10px;
+    right: 10px;
   }
 }
 </style>

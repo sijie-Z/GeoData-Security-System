@@ -17,6 +17,8 @@ from sqlalchemy import func, and_, or_
 import calendar
 import logging
 from utils.cache import cached
+from utils.required import is_admin_role
+from utils.user_limiter import relaxed_limit
 
 
 def _day_window(days_ago):
@@ -41,10 +43,11 @@ class AdminDashboardResource(Resource):
       403: {description: Not authorized}
     """
     @jwt_required()
+    @relaxed_limit
     @cached(timeout=120, key_prefix='dashboard')
     def get(self):
         identity = get_jwt_identity()
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '无权访问'}, 403
 
         # ========== 基础统计 ==========

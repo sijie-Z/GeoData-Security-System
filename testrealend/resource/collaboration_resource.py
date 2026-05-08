@@ -14,6 +14,8 @@ from model.Announcement import Announcement
 from model.ChatMessage import ChatMessage
 from model.FriendRequest import FriendRequest
 from model.EmployeeNotification import EmployeeNotification
+from utils.required import admin_required, is_admin_role
+from utils.websocket import notify_new_chat_message, notify_message_read
 
 
 def _get_identity():
@@ -37,7 +39,7 @@ def _me():
 
 
 def _display_name(number, role):
-    if role == 'admin':
+    if is_admin_role(role):
         adm = AdmInfo.query.filter_by(adm_number=str(number)).first()
         return adm.name if adm and adm.name else str(number)
     emp = EmployeeInfo.query.filter_by(employee_number=str(number)).first()
@@ -74,7 +76,7 @@ class AdminEmployeeInfoResource(Resource):
 
 
 class AdminSendNotificationResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json() or {}
         title = (data.get('title') or '').strip()
@@ -151,7 +153,7 @@ class EmployeeMyLogsResource(Resource):
 
 
 class AdminAnnouncementManageResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json() or {}
         title = (data.get('title') or '').strip()
@@ -179,6 +181,7 @@ class AdminAnnouncementManageResource(Resource):
             logging.error(str(e))
             return {'status': False, 'msg': '公告服务不可用，请检查数据库配置'}, 500
 
+    @admin_required
     def put(self):
         data = request.get_json() or {}
         item_id = data.get('id')
@@ -206,6 +209,7 @@ class AdminAnnouncementManageResource(Resource):
             logging.error(str(e))
             return {'status': False, 'msg': '更新失败，请检查数据库配置'}, 500
 
+    @admin_required
     def delete(self):
         item_id = request.args.get('id', type=int)
         try:
@@ -319,6 +323,15 @@ class ChatMarkReadResource(Resource):
             read=False
         ).update({'read': True})
         db.session.commit()
+
+        # Notify the original sender that their messages have been read
+        notify_message_read(
+            reader_number=me_number,
+            reader_role=me_role,
+            sender_number=str(peer_number),
+            sender_role=str(peer_role),
+        )
+
         return {'status': True, 'msg': '已读更新成功'}, 200
 
 
@@ -440,6 +453,8 @@ class ChatSendResource(Resource):
         content = (data.get('content') or '').strip()
         if not me_number or not receiver_number or not content:
             return {'status': False, 'msg': '参数不完整'}, 400
+        if len(content) > 2000:
+            return {'status': False, 'msg': '消息内容不能超过2000字'}, 400
         msg = ChatMessage(
             sender_number=me_number,
             sender_role=me_role,
@@ -449,6 +464,18 @@ class ChatSendResource(Resource):
         )
         db.session.add(msg)
         db.session.commit()
+
+        # Emit real-time notification to the receiver
+        notify_new_chat_message(
+            message_id=msg.id,
+            sender_number=me_number,
+            sender_role=me_role,
+            receiver_number=receiver_number,
+            receiver_role=receiver_role,
+            content=content,
+            created_at=msg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+        )
+
         return {'status': True, 'msg': '发送成功'}, 200
 
 
@@ -483,7 +510,7 @@ class AdminUserListResource(Resource):
     @jwt_required()
     def get(self):
         identity = get_jwt_identity()
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '无权限'}, 403
 
         # 获取所有员工

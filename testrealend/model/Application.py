@@ -13,7 +13,7 @@ class Application(db.Model):
     data_id = db.Column(db.Integer, nullable=False)
     data_name = db.Column(db.String(255), nullable=False)
     data_alias = db.Column(db.String(255), nullable=False)
-    data_url = db.Column(db.String(500), nullable=False)
+    data_url = db.Column(db.String(500), nullable=True)
     data_type = db.Column(db.String(50), nullable=True)  # 'vector' or 'raster'
     applicant_name = db.Column(db.String(255), nullable=False)
     applicant_user_number = db.Column(db.String(255), nullable=False)

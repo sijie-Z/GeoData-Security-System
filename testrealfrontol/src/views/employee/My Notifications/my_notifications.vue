@@ -62,7 +62,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RefreshRight } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import Axios from '@/utils/Axios';
+import { getNotifications, markNotificationRead as markNotificationReadApi } from '@/api/employee';
 
 const { t } = useI18n();
 
@@ -78,12 +78,10 @@ const detailRow = ref(null);
 const fetchList = async () => {
   loading.value = true;
   try {
-    const { data } = await Axios.get(`/api/employee/notifications`, {
-      params: {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        unread_only: unreadOnly.value
-      }
+    const { data } = await getNotifications({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      unread_only: unreadOnly.value
     });
     if (data?.status && data?.data) {
       list.value = data.data.list || [];
@@ -103,7 +101,7 @@ const fetchList = async () => {
 
 const markRead = async (row) => {
   try {
-    await Axios.post(`/api/employee/notifications/${row.id}/read`);
+    await markNotificationReadApi(row.id);
     row.read = true;
     ElMessage.success(t('empNotify.markedRead'));
   } catch (e) {

@@ -1,3 +1,4 @@
+import logging
 import math
 import os
 import random
@@ -12,6 +13,7 @@ from flask import current_app
 from algorithm.get_coor import get_coor_nested, get_coor_array
 from algorithm.to_geodataframe import to_geodataframe
 from algorithm.NC import NC, image_to_array
+from algorithm.embed import _compute_seed
 
 
 def watermark_extract(coor, coor_l, R, n):
@@ -29,14 +31,15 @@ def watermark_extract(coor, coor_l, R, n):
     return np.vstack([original_x, original_y]), int(w)
 
 
-def coor_process(coor, W, dis, argument):
+def coor_process(coor, W, seed, argument):
     """
     对坐标进行处理
     :param coor: 需要处理的坐标
+    :param seed: 确定性种子
     :return: 嵌入水印的坐标
     """
     n, R, side_length, ratio = argument.values()
-    random.seed(dis)
+    random.seed(seed)
 
     index = random.randint(0, len(W) - 1)
     coor = np.array([Decimal(str(x)) for x in coor])
@@ -60,8 +63,9 @@ def coor_group_process(coor_group, W, argument):
         if i == coor_group.shape[1] - 1:
             original_coor = coor[:, np.newaxis]
         else:
-            dis = abs(coor[1] - coor_group[:, i + 1][1])
-            original_coor, W = coor_process(coor, W, dis, argument)
+            next_coor = coor_group[:, i + 1]
+            seed = _compute_seed(coor, next_coor)
+            original_coor, W = coor_process(coor, W, seed, argument)
         original_coor_group = np.concatenate((original_coor_group, original_coor), axis=1)
     return original_coor_group, W
 
@@ -100,6 +104,7 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, l, argument):
     for feature_index in range(coor_nested.shape[1]):
         coor_group = np.vstack(coor_nested[:, feature_index])
         if isinstance(coor_nested[:, feature_index][0], list):
+            logging.warning('Skipping feature_index=%d: coor_group[0] is a list (nested geometry not supported for extraction)', feature_index)
             continue
         feature_type = shp_type[feature_index]
         if isinstance(coor_group[0, 0], np.ndarray):
@@ -134,7 +139,7 @@ def calculate_watermark_and_nc(watermarked_shpfile, l, argument):
             empty_array_flag = True
             W[i] = [0] * n
     if empty_array_flag:
-        print('存在空数组，补零')
+        logging.warning('存在空数组，补零')
     W = [item for w in W for item in w]
 
     W = W[:side_length ** 2 - 192]
@@ -150,27 +155,30 @@ def calculate_watermark_and_nc(watermarked_shpfile, l, argument):
     return original_shpfile, watermark
 
 
-def extract(watermarked_shpfile_path, vr):
+def extract(watermarked_shpfile_path, vr, n=4, R=Decimal('1e-7'), side_length=45, output_dir=None):
     import geopandas as gpd
-    n = 4
-    tau = 10 ** (-6)
-    side_length = 45
     l = math.ceil((side_length ** 2 - 192) / n)
-    R = Decimal('1e-7')
 
     watermarked_shpfile = gpd.read_file(watermarked_shpfile_path)
 
     watermarked_coor_nested, feature_type = get_coor_nested(watermarked_shpfile)
     coor_array = get_coor_array(watermarked_coor_nested, feature_type)
     coor_mean = np.mean(coor_array, axis=1)
-    print(coor_mean, vr)
-    ratio = np.mean(vr / coor_mean)
-    print('倍数', ratio)
+    logging.debug('coor_mean=%s, vr=%s', coor_mean, vr)
+    # Compute separate ratios for x and y to handle different magnitudes
+    vr_arr = np.array(vr, dtype=np.float64)
+    coor_mean_arr = np.array(coor_mean, dtype=np.float64)
+    # Avoid division by zero
+    ratios = np.where(np.abs(coor_mean_arr) > 1e-15, vr_arr / coor_mean_arr, 1.0)
+    ratio = float(np.mean(ratios))
+    logging.info('倍数 %s (x_ratio=%.10f, y_ratio=%.10f)', ratio, ratios[0], ratios[1])
     argument = {'n': n, 'R': R, 'side_length': side_length, 'ratio': ratio, }
     original_shpfile, watermark = calculate_watermark_and_nc(watermarked_shpfile, l, argument)
 
-    shp_output_folder = os.path.join(current_app.config['EXTRACTED_FOLDER'], 'shp')
-    watermark_output_folder = os.path.join(current_app.config['EXTRACTED_FOLDER'], 'watermark')
+    if output_dir is None:
+        output_dir = current_app.config['EXTRACTED_FOLDER']
+    shp_output_folder = os.path.join(output_dir, 'shp')
+    watermark_output_folder = os.path.join(output_dir, 'watermark')
 
     os.makedirs(shp_output_folder, exist_ok=True)
     os.makedirs(watermark_output_folder, exist_ok=True)
@@ -180,13 +188,13 @@ def extract(watermarked_shpfile_path, vr):
         os.path.basename(watermarked_shpfile_path)
     )
     original_shpfile.to_file(output_shapefile_path)
-    print("Shapefile创建完成，已保存为", output_shapefile_path)
+    logging.info("Shapefile创建完成，已保存为 %s", output_shapefile_path)
 
     output_watermark_path = os.path.join(
         watermark_output_folder,
         f'{os.path.splitext(os.path.basename(watermarked_shpfile_path))[0]}.png'
     )
     Image.fromarray(watermark.astype(bool)).save(output_watermark_path)
-    print("水印创建完成，已保存为", output_watermark_path)
+    logging.info("水印创建完成，已保存为 %s", output_watermark_path)
 
     return output_shapefile_path, output_watermark_path

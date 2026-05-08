@@ -80,10 +80,30 @@ def _seed_test_data(db):
     admin = AdmAccount(
         adm_user_name='admin1',
         adm_user_password=generate_password_hash('admin123'),
-        role='admin',
+        role='admin1',
         adm_number='admin1'
     )
     db.session.add(admin)
+
+    # Admin2 info and account (for adm2 approval tests)
+    admin2_info = AdmInfo(
+        adm_number='admin2',
+        name='管理员2',
+        job_number='ADM002',
+        id_number='ID003',
+        phone_number='13800000003',
+        address='Test Address'
+    )
+    db.session.add(admin2_info)
+    db.session.flush()
+
+    admin2 = AdmAccount(
+        adm_user_name='admin2',
+        adm_user_password=generate_password_hash('admin123'),
+        role='admin2',
+        adm_number='admin2'
+    )
+    db.session.add(admin2)
 
     # Employee info (must exist before account due to FK)
     emp_info = EmployeeInfo(
@@ -113,6 +133,20 @@ def auth_headers(client, db):
     """Get authenticated headers by logging in as admin."""
     response = client.post('/api/login', json={
         'username': 'admin1',
+        'password': 'admin123',
+        'role': 'admin'
+    })
+    if response.status_code == 200:
+        data = response.get_json()
+        return {'Authorization': f'Bearer {data["access_token"]}'}
+    return {}
+
+
+@pytest.fixture
+def adm2_headers(client, db):
+    """Get authenticated headers by logging in as admin2."""
+    response = client.post('/api/login', json={
+        'username': 'admin2',
         'password': 'admin123',
         'role': 'admin'
     })

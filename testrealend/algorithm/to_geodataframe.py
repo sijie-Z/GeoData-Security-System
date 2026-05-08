@@ -1,58 +1,4 @@
-# from decimal import Decimal
-# import geopandas as gpd
-# import matplotlib.pyplot as plt
-# import numpy as np
-# from shapely.geometry import LineString, Point, Polygon, MultiPolygon, MultiLineString
-
-# def to_geodataframe(dataframe, index, coor_group, shpfile_type):
-#     if shpfile_type == 'Point':
-#         if len(coor_group[1]) > 0:
-#             dataframe.loc[index, 'geometry'] = Point([(Decimal(str(x)), Decimal(str(y))) for x, y in zip(coor_group[0], coor_group[1])])
-#         else:
-#             dataframe.loc[index, 'geometry'] = None  # Or set to a default point if desired
-
-#     elif shpfile_type == 'LineString':
-#         if len(coor_group[1]) > 1:
-#             dataframe.loc[index, 'geometry'] = LineString([(Decimal(str(x)), Decimal(str(y))) for x, y in zip(coor_group[0], coor_group[1])])
-#         else:
-#             dataframe.loc[index, 'geometry'] = None
-
-#     elif shpfile_type == 'MultiLineString':
-#         lines = [LineString([(Decimal(str(x)), Decimal(str(y))) for x, y in zip(cg[0], cg[1])]) for cg in coor_group if cg[1].size > 1]
-#         non_empty_lines = [line for line in lines if not line.is_empty]
-#         if non_empty_lines:
-#             dataframe.loc[index, 'geometry'] = MultiLineString(non_empty_lines)
-#         else:
-#             dataframe.loc[index, 'geometry'] = None
-
-#     elif shpfile_type == 'Polygon':
-#         if len(coor_group[1]) > 2:
-#             dataframe.loc[index, 'geometry'] = Polygon([(Decimal(str(x)), Decimal(str(y))) for x, y in zip(coor_group[0], coor_group[1])])
-#         else:
-#             dataframe.loc[index, 'geometry'] = None
-
-#     elif shpfile_type == 'MultiPolygon':
-#         polygons = [Polygon([(Decimal(str(x)), Decimal(str(y))) for x, y in zip(cg[0], cg[1])]) for cg in coor_group if cg[1].size > 2]
-#         if polygons:
-#             dataframe.loc[index, 'geometry'] = MultiPolygon(polygons)
-#         else:
-#             dataframe.loc[index, 'geometry'] = None
-
-#     else:
-#         print("存在未写入的数组类型")
-
-#     return dataframe
-
-# if __name__ == "__main__":
-#     gdf = gpd.GeoDataFrame(geometry=[None, None], crs="EPSG:4326")  # Specify CRS if needed
-#     coorArray = [(73.85844152801786, 15.940917473114041)]
-#     gdf.loc[1, 'geometry'] = Point(coorArray)
-#     print(gdf)
-#     gdf.plot()
-#     plt.show()
-
-
-
+import logging
 import numpy as np
 from decimal import Decimal
 from shapely.geometry import (
@@ -140,6 +86,6 @@ def to_geodataframe(dataframe, index, coor_nested, shpfile_type):
     
     else:
         dataframe.loc[index, 'geometry'] = None
-        print(f"警告: 存在未写入或无法识别的数组类型: {shpfile_type}")
+        logging.warning("Unrecognized geometry type: %s", shpfile_type)
 
     return dataframe

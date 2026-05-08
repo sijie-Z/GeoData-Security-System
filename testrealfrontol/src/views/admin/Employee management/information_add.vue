@@ -93,7 +93,7 @@ const submitForm = async () => {
 
         // ========================================================
         // === 这里是与后端交互的核心，现在它会失败 ===
-        const response = await Axios.post('/api/adm/add_employee', submitData);
+        const response = await addEmployee(submitData);
         // ========================================================
 
         if (response.data && response.data.status) {
@@ -185,7 +185,7 @@ import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Back, Plus as PlusIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import Axios from '@/utils/Axios.js';
+import { addEmployee } from '@/api/admin';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -252,7 +252,7 @@ const submitForm = async () => {
           }
         }
 
-        const response = await Axios.post('/api/adm/add_employee', submitData);
+        const response = await addEmployee(submitData);
 
         if (response.data && response.data.status) {
           ElMessage.success(response.data.msg || t('employeeMgmt.addSuccess'));

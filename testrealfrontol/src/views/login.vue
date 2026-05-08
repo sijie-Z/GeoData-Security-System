@@ -111,7 +111,7 @@ import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
-import axios from '@/utils/Axios';
+import { login as loginApi } from '@/api/auth';
 import QRCode from 'qrcode';
 import * as THREE from 'three';
 
@@ -144,7 +144,7 @@ const login = async () => {
       password: (data.password || '').trim(),
       role: data.role === 'admin' ? 'admin' : 'employee'
     };
-    const response = await axios.post('/api/login', payload);
+    const response = await loginApi(payload);
     const responseData = response.data;
 
     if (responseData && responseData.access_token) {
@@ -154,7 +154,8 @@ const login = async () => {
         token: responseData.access_token,
         refreshToken: responseData.refresh_token,
         permissions: responseData.permissions,
-        user_name: responseData.user_name
+        user_name: responseData.user_name,
+        admin_sub_role: responseData.admin_sub_role || null
       });
       ElMessage.success(t('login.loginSuccess'));
       if (responseData.role === 'admin') await router.push('/admin');
@@ -189,31 +190,33 @@ const capsuleStyle = computed(() => ({
 const qrCanvasRef = ref(null);
 const particlesContainer = ref(null);
 let scene, camera, renderer, particles;
+let animationId = null;
 
 // 3D粒子背景效果
 const initParticles = () => {
   if (!particlesContainer.value) return;
-  
+
   // 创建场景
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
   renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  
+
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setClearColor(0x000000, 0);
   particlesContainer.value.appendChild(renderer.domElement);
-  
-  // 创建粒子几何体
+
+  // 创建粒子几何体 - reduce particle count on mobile
   const particlesGeometry = new THREE.BufferGeometry();
-  const particlesCount = 800;
+  const isMobile = window.innerWidth <= 768;
+  const particlesCount = isMobile ? 300 : 800;
   const posArray = new Float32Array(particlesCount * 3);
-  
+
   for (let i = 0; i < particlesCount * 3; i++) {
     posArray[i] = (Math.random() - 0.5) * 100;
   }
-  
+
   particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-  
+
   // 创建粒子材质
   const particlesMaterial = new THREE.PointsMaterial({
     size: 0.8,
@@ -222,22 +225,21 @@ const initParticles = () => {
     opacity: 0.6,
     sizeAttenuation: true
   });
-  
+
   particles = new THREE.Points(particlesGeometry, particlesMaterial);
   scene.add(particles);
-  
+
   camera.position.z = 30;
-  
+
   // 动画循环
   const animate = () => {
-    requestAnimationFrame(animate);
-    
     particles.rotation.x += 0.001;
     particles.rotation.y += 0.002;
-    
+
     renderer.render(scene, camera);
+    animationId = requestAnimationFrame(animate);
   };
-  
+
   animate();
 };
 
@@ -266,8 +268,16 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
-  if (renderer && particlesContainer.value) {
-    particlesContainer.value.removeChild(renderer.domElement);
+  if (animationId) cancelAnimationFrame(animationId);
+  if (particles) {
+    particles.geometry?.dispose();
+    particles.material?.dispose();
+  }
+  if (renderer) {
+    renderer.dispose();
+    if (particlesContainer.value && renderer.domElement.parentNode === particlesContainer.value) {
+      particlesContainer.value.removeChild(renderer.domElement);
+    }
   }
 });
 </script>
@@ -295,7 +305,7 @@ onUnmounted(() => {
 /* 左侧品牌区 */
 .brand-panel {
   width: 50%;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3b82f6 100%);
+  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3b82f6 100%));
   display: flex; 
   align-items: center; 
   justify-content: center;
@@ -434,17 +444,18 @@ canvas {
 }
 
 .login-card {
-  width: 100%; 
+  width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.95); 
-  border-radius: 24px; 
+  background: var(--surface-glass, rgba(255, 255, 255, 0.85));
+  border-radius: var(--radius-xl, 24px);
   padding: 48px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1));
   position: relative;
   overflow: hidden;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1));
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
 .login-card::before {
@@ -465,7 +476,8 @@ canvas {
 
 .login-card:hover {
   transform: translateY(-5px);
-  box-shadow: 0 30px 60px -15px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1)), var(--shadow-glow, 0 0 20px rgba(59, 130, 246, 0.3));
+  background: var(--surface-glass-hover, rgba(255, 255, 255, 0.95));
 }
 
 .card-header {

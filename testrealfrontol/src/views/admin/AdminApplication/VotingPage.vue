@@ -125,7 +125,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import axios from '@/utils/Axios';
+import { getAdminApplicationList, getAdminApplicationDetail, voteAdminApplication } from '@/api/admin';
 
 const { t } = useI18n();
 
@@ -152,9 +152,7 @@ const getStatusType = (status) => {
 const getApplications = async () => {
   loading.value = true;
   try {
-    const resp = await axios.get('/api/admin-application/list', {
-      params: { page: page.value, pageSize: pageSize.value }
-    });
+    const resp = await getAdminApplicationList({ page: page.value, pageSize: pageSize.value });
     if (resp.data?.status) {
       applications.value = resp.data.data.list || [];
       total.value = resp.data.data.total || 0;
@@ -168,7 +166,7 @@ const getApplications = async () => {
 
 const viewDetail = async (row) => {
   try {
-    const resp = await axios.get(`/api/admin-application/${row.id}`);
+    const resp = await getAdminApplicationDetail(row.id);
     if (resp.data?.status) {
       currentApp.value = resp.data.data;
       detailDialogVisible.value = true;
@@ -180,7 +178,7 @@ const viewDetail = async (row) => {
 
 const openVoteDialog = async (row) => {
   try {
-    const resp = await axios.get(`/api/admin-application/${row.id}`);
+    const resp = await getAdminApplicationDetail(row.id);
     if (resp.data?.status) {
       currentApp.value = resp.data.data;
       voteForm.approve = true;
@@ -195,7 +193,7 @@ const openVoteDialog = async (row) => {
 const submitVote = async () => {
   voting.value = true;
   try {
-    const resp = await axios.post(`/api/admin-application/${currentApp.value.id}/vote`, voteForm);
+    const resp = await voteAdminApplication(currentApp.value.id, voteForm);
     if (resp.data?.status) {
       ElMessage.success(resp.data.msg);
       voteDialogVisible.value = false;

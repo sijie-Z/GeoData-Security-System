@@ -43,6 +43,7 @@ const routes = [
       { path: 'data/upload', name: 'AdminDataUpload', component: () => import('@/views/admin/DataManagement/DataUpload.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'recall', name: 'AdminRecallList', component: () => import('@/views/admin/RecallManagement/RecallProposalList.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'admin-application', name: 'AdminApplicationVoting', component: () => import('@/views/admin/AdminApplication/VotingPage.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
+      { path: 'watermark-quality', name: 'WatermarkQualityDashboard', component: () => import('@/views/admin/WatermarkQuality/WatermarkQualityDashboard.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
     ]
   },
   {
@@ -95,18 +96,20 @@ router.beforeEach(async (to, from, next) => {
 
     try {
       const currentUserRole = userStore.currentUser?.role;
-      if (to.meta.roles && !to.meta.roles.includes(currentUserRole)) {
+      const isAdmin = currentUserRole && currentUserRole.startsWith('admin');
+      const normalizedRole = isAdmin ? 'admin' : currentUserRole;
+
+      if (to.meta.roles && !to.meta.roles.includes(normalizedRole)) {
         ElMessage.error(t('auth.noPermission'));
-        return next(currentUserRole === 'admin' ? '/admin' : '/employee');
+        return next(isAdmin ? '/admin' : '/employee');
       }
 
-      if (currentUserRole === 'admin' && (to.meta.adminRole || to.meta.adminRoles)) {
-        const num = (userStore.userNumber || '').toString().toLowerCase();
-        const name = (userStore.userName || '').toString().toLowerCase();
+      if (isAdmin && (to.meta.adminRole || to.meta.adminRoles)) {
+        const subRole = (userStore.adminSubRole || '').toString().toLowerCase();
         const adminRole =
-          (num === 'admin1' || num === '22200214135' || name === '管理员1') ? 'adm1' :
-          (num === 'admin2' || num === '33300214135' || name === '管理员2') ? 'adm2' :
-          (num === 'admin3' || num === '44400214135' || name === '管理员3') ? 'adm3' :
+          subRole === 'admin1' ? 'adm1' :
+          subRole === 'admin2' ? 'adm2' :
+          subRole === 'admin3' ? 'adm3' :
           'adm1';
         const allowed = to.meta.adminRole ? [to.meta.adminRole] : (to.meta.adminRoles || []);
         if (allowed.length && !allowed.includes(adminRole)) {

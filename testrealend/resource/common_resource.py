@@ -86,10 +86,11 @@ class LoginResource(Resource):
                         'status': True,
                         'user_number': user.adm_number,
                         'role': user.role,
+                        'admin_sub_role': user.role,
                         'access_token': access_token,
                         'refresh_token': refresh_token,
                         'user_name': username,
-                        'permissions': ['*'] # Admin has all permissions
+                        'permissions': ['*']
                     }, 200
         else:
             user = EmployeeAccount.query.filter_by(employee_user_name=username).first()
@@ -170,6 +171,12 @@ class RegisterResource(Resource):
         password = request.form.get('password')
         avatar = request.files.get('avatar')
         
+        # Validate password complexity
+        if not password or len(password) < 8:
+            return {'status': False, 'msg': '密码长度至少8位'}, 400
+        if not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
+            return {'status': False, 'msg': '密码必须包含字母和数字'}, 400
+
         # Check if already exists
         if EmployeeInfo.query.filter_by(employee_number=employee_id).first():
             return {'status': False, 'msg': '员工编号已存在'}, 400
@@ -208,6 +215,12 @@ class RegisterResource(Resource):
 class LogoutResource(Resource):
     @jwt_required()
     def post(self):
+        from flask_jwt_extended import get_jwt
+        from model.TokenBlacklist import TokenBlacklist
+        jti = get_jwt().get('jti')
+        if jti:
+            db.session.add(TokenBlacklist(jti=jti))
+            db.session.commit()
         return {'status': True, 'msg': '登出成功'}, 200
 
 class RefreshTokenResource(Resource):

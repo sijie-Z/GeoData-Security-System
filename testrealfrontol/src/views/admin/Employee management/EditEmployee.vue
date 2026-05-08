@@ -4,7 +4,7 @@ import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import { Back, User as UserIcon, Plus as PlusIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import Axios from '@/utils/Axios.js';
+import { getEmployeeDetails, updateEmployee } from '@/api/admin';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -37,7 +37,7 @@ const handleBack = () => router.back();
 const fetchEmployeeData = async (employeeNumber) => {
   try {
     // 后端需要一个 /api/employee/details/{id} 接口来获取单个员工信息
-    const response = await Axios.get(`/api/employee/details/${employeeNumber}`);
+    const response = await getEmployeeDetails(employeeNumber);
     if (response.data && response.data.status) {
       Object.assign(formData, response.data.data);
       // 如果有照片，设置预览
@@ -81,7 +81,7 @@ const submitForm = async () => {
 
       try {
         // 后端需要一个 PUT /api/employee/{id} 接口来更新员工信息
-        const response = await Axios.put(`/api/employee/${formData.employee_number}`, submitData);
+        const response = await updateEmployee(formData.employee_number, submitData);
         if (response.data && response.data.status) {
           ElMessage.success(t('employeeMgmt.updateSuccess'));
           router.push('/admin/employee_management/information_list');

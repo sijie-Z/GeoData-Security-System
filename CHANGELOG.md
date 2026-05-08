@@ -4,6 +4,188 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v2.3.0] — 2026-05-09 (Security Hardening, Multi-Algorithm Watermark & Monitoring)
+
+### Summary
+Fixed critical security vulnerabilities (user impersonation, missing role enforcement), added admin sub-role differentiation (admin1/admin2/admin3), implemented 3 raster watermark algorithms (LSB, DWT, Histogram Shifting) with GeoTIFF CRS preservation, added application withdrawal lifecycle, centralized the frontend API service layer, upgraded chat to Socket.IO, and added Grafana alerting + Loki log aggregation.
+
+**Total changes:** 40+ files modified/added
+
+---
+
+### Backend — Security Fixes
+
+#### 1. Admin Sub-role Enforcement (`utils/required.py`, resource files)
+- **What:** `admin_role_required(*roles)` decorator enforces specific admin sub-roles (admin1/admin2/admin3)
+- **Applied to:**
+  - `Adm1PassResource` / `Adm1FailResource` → `@admin_role_required('admin1')`
+  - `Adm2PassResource` / `Adm2FailResource` → `@admin_role_required('admin2')`
+  - `Adm3AdditionalReviewResource` → `@admin_role_required('admin3')`
+- **Helper:** `is_admin_role(role)` replaces all hardcoded `== 'admin'` / `!= 'admin'` checks across 6 resource files
+- **Files changed:** `application_resource.py`, `admin_application_resource.py`, `dashboard_resource.py`, `collaboration_resource.py`, `recall_resource.py`
+
+#### 2. User Impersonation Fix (`resource/application_resource.py`, `download_file_resource.py`)
+- **What:** `user_name` and `user_number` now derived from `get_jwt_identity()` instead of request body
+- **Endpoints fixed:** `SubmitApplicationResource`, `get_applications`, `get_approved_applications`, `RecordDownloadResource`
+
+#### 3. Input Validation
+- Registration: password complexity (8+ chars, letters + digits)
+- Profile update: email format validation
+- Password change: old password verification required
+- Chat messages: 2000-character limit
+
+---
+
+### Backend — New Features
+
+#### 4. Application Withdrawal (`resource/application_resource.py`)
+- **Endpoint:** `PUT /api/applications/<id>/withdraw`
+- **Rules:** Only own applications, only before adm1 review starts
+- **Side effects:** Audit log entry + dashboard cache invalidation
+- **Registered in:** `app.py`
+
+#### 5. Multi-Algorithm Raster Watermark (`algorithm/`, `resource/watermark_resource.py`, `resource/raster_resource.py`)
+- **LSB** (`raster_reversible_watermark.py`) — Least Significant Bit embedding
+- **DWT** (`raster_dwt_watermark.py`) — Discrete Wavelet Transform embedding
+- **Histogram Shifting** (`raster_histogram_watermark.py`) — Histogram-based reversible watermarking
+- **GeoTIFF preservation** (`raster_geotiff_utils.py`) — CRS and affine transform preserved through embed/extract
+- **Dispatch:** Both `watermark_resource.py` and `raster_resource.py` route by `algorithm` parameter
+
+#### 6. Algorithm Quality Metrics (`algorithm/quality_metrics.py`)
+- PSNR, SSIM, NC (Normalized Correlation) computation for watermark quality assessment
+
+---
+
+### Backend — Test Suite Expansion
+
+#### 7. Robustness Tests (`tests/test_robustness.py`) — 6 new tests
+| Test | Description |
+|------|-------------|
+| `test_lsb_baseline_roundtrip` | Embed → extract → NC ≥ 0.99 |
+| `test_jpeg_compression_robustness` | NC after JPEG quality 50 |
+| `test_gaussian_noise_robustness` | NC after σ=10 noise |
+| `test_crop_robustness` | NC after 10% crop |
+| `test_watermark_recovery` | Recover original from watermarked |
+| `test_vector_roundtrip` | Full vector embed → extract pipeline |
+
+#### 8. Admin Workflow Tests Updated (`tests/test_approval_workflow.py`, `tests/test_integration.py`)
+- Admin2 tests use dedicated `adm2_headers` fixture (role='admin2')
+- `conftest.py` seeds admin1 (role='admin1') + admin2 (role='admin2')
+
+**Test count:** 140 tests (up from 115), 138 passed, 2 skipped
+
+---
+
+### Backend — Monitoring & Logging
+
+#### 9. Grafana Alerting Rules (`grafana/provisioning/alerting/alerts.yml`)
+- Error rate > 5% for 5min → alert
+- p95 latency > 2s for 5min → alert
+- Database connection failure → immediate alert
+- Cache hit rate < 50% → alert
+
+#### 10. Loki Log Aggregation
+- **Loki config:** `loki-config.yml` — local filesystem storage
+- **Promtail config:** `promtail-config.yml` — scrapes `testrealend/logs/`
+- **Grafana dashboard:** `grafana/provisioning/dashboards/json/logs.json` — log volume + error panels
+- **Docker Compose:** Added `loki` and `promtail` services (total: 9 services)
+- **Datasource:** `grafana/provisioning/datasources/datasource.yml` — added Loki
+
+---
+
+### Frontend — Architecture
+
+#### 11. Centralized API Service Layer (`src/api/`)
+| Module | File | Endpoints |
+|--------|------|-----------|
+| Auth | `auth.js` | login, register, refresh, logout |
+| Admin | `admin.js` | dashboard, employees, approval, batch review, logs |
+| Employee | `employee.js` | applications, profile, notifications, downloads |
+| Watermark | `watermark.js` | generate, embed, extract |
+| Chat | `chat.js` | conversations, messages, search, friend requests |
+| Recall | `recall.js` | list, create, vote, detail |
+| Upload | `upload.js` | SHP upload, raster upload |
+| Data | `data.js` | vector data, raster data, tiles |
+| Data Viewing | `data_viewing_api.js` | viewing, search |
+| Navigation | `NaviApi.js` | nav tree |
+
+- All 49 Vue components migrated from inline `axios` calls to centralized API modules
+
+#### 12. Socket.IO Real-time Chat (`src/utils/socket.js`)
+- **What:** Event-driven messaging replaces 30-second polling
+- **Fallback:** Automatic HTTP polling when WebSocket unavailable
+- **Events:** `new_message`, `typing`, `mark_read`, `friend_request`
+- **Files changed:** `employee_chat.vue`, `AdminChat.vue`
+
+#### 13. LogViewer Filter Fix (`views/admin/Log Management/LogViewer.vue`)
+- Filter values changed from UI labels (用户登录) to backend action types (登录, 申请提交, 一审通过, etc.)
+
+#### 14. Application Withdrawal UI (`views/employee/Data Application/data_application.vue`)
+- "撤回" button with confirmation dialog for pending applications
+- "已撤回" badge for recalled applications
+
+---
+
+### Files Changed Summary
+
+| Category | Files | Description |
+|----------|-------|-------------|
+| Security fixes | 8 | required.py, application_resource.py, admin_application_resource.py, dashboard_resource.py, collaboration_resource.py, recall_resource.py, download_file_resource.py, common_resource.py |
+| New algorithms | 4 | raster_dwt_watermark.py, raster_histogram_watermark.py, raster_geotiff_utils.py, quality_metrics.py |
+| New tests | 1 | test_robustness.py (6 tests) |
+| Modified tests | 3 | conftest.py, test_approval_workflow.py, test_integration.py |
+| New Grafana/Loki | 4 | alerts.yml, loki-config.yml, promtail-config.yml, logs.json |
+| New frontend utils | 1 | socket.js |
+| New API modules | 6 | auth.js, recall.js, upload.js, data.js, watermark.js, chat.js |
+| Modified frontend | 15+ | Vue components migrated to API modules |
+| Modified infra | 2 | docker-compose.yml, datasource.yml |
+| Documentation | 2 | README.md, CHANGELOG.md |
+
+---
+
+### Architecture Upgrade (Deep Audit Fixes)
+
+#### 15. Frontend Admin Sub-role Bug Fix (`login.vue`, `router/index.js`)
+- **Problem:** `login.vue` did not pass `admin_sub_role` to `setUserInfo()`, causing all admins to default to `adm1` on page refresh. Router guard used exact match `=== 'admin'` but backend returns `'admin1'`/`'admin2'`/`'admin3'`.
+- **Fix:** `login.vue` now passes `admin_sub_role` from login response. Router guard normalizes role with `startsWith('admin')` check.
+
+#### 16. QR_SECRET_KEY Crash Guard (`resource/watermark_resource.py`)
+- **Problem:** If `QR_SECRET_KEY` env var is unset, `None.encode()` would crash watermark generation at runtime.
+- **Fix:** Added dev-only fallback key with warning. Watermark generation no longer crashes; extraction already handled this gracefully.
+
+#### 17. Per-user Rate Limiting Activated (`utils/user_limiter.py` → resource files)
+- **Problem:** `strict_limit`/`normal_limit`/`relaxed_limit` decorators were defined but never applied to any endpoint.
+- **Fix:** Applied to key endpoints:
+  - `SubmitApplicationResource.post` — already had `@limiter.limit`
+  - `WithdrawApplicationResource.put` — `@normal_limit`
+  - `GetApplicationsResource.get` — `@relaxed_limit`
+  - `Adm1PassResource.post` / `Adm2PassResource.post` — `@normal_limit`
+  - `BatchReviewResource.post` — `@normal_limit`
+  - `VectorExtractResource.post` — `@normal_limit`
+  - `AdminDashboardResource.get` — `@relaxed_limit`
+
+#### 18. Destructive `is_multiple.py` Fixed (`algorithm/is_multiple.py`)
+- **Problem:** `is_multiple()` overwrote original shapefiles in place, permanently destroying all but the first sub-geometry of MultiPolygon/MultiLineString features.
+- **Fix:** Now saves to `{filename}_single.shp` by default. Original file is never overwritten. Accepts optional `output_path` parameter. Returns output path for chaining.
+
+#### 19. Algorithm Code Cleanup (`algorithm/embed.py`, `algorithm/is_multiple.py`)
+- Removed 6 commented-out `print()` debug statements from `embed.py`
+- Replaced hardcoded `E:\矢量数据\...` path in `embed.py` `__main__` with argparse CLI
+- Replaced hardcoded `D:\Desktop\Projects\yingbianma` path in `is_multiple.py` `__main__` with env var
+
+#### 20. Dev Key Warning (`config.py`)
+- **Problem:** `DevelopmentConfig` silently used insecure default keys with no warning.
+- **Fix:** Added logging warning when dev keys are detected in development mode.
+
+---
+
+### Known Limitations (v2.3)
+1. **DWT/Histogram algorithms** — Only LSB has end-to-end integration tests; DWT and Histogram are tested via unit tests only
+2. **`datetime.utcnow()`** — Used in several places; should migrate to `datetime.now(datetime.UTC)` for Python 3.12+
+3. **Frontend E2E tests** — No Cypress/Playwright tests yet; all frontend testing is manual
+
+---
+
 ## [v2.2.0] — 2026-05-07 (Full i18n Translation & UI Polish)
 
 ### Summary
@@ -358,12 +540,15 @@ Transformed from a student-level project into a production-grade, resume-worthy 
 - [x] ~~Per-user rate limiting with Redis backend~~ — Done in v2.1 (Redis sorted sets)
 - [x] ~~WebSocket authentication (JWT handshake)~~ — Done in v2.1
 - [x] ~~Translate remaining 38 Vue view templates (~1800 strings)~~ — Done in v2.2 (all 49 views, 1200+ keys)
+- [x] ~~Add alerting rules to Grafana~~ — Done in v2.3 (error rate, latency, DB, cache alerts)
+- [x] ~~Add Loki for log aggregation in Grafana~~ — Done in v2.3 (Loki + Promtail + logs dashboard)
+- [x] ~~Admin sub-role differentiation~~ — Done in v2.3 (admin1/admin2/admin3 enforcement)
+- [x] ~~Application withdrawal~~ — Done in v2.3 (PUT /api/applications/{id}/withdraw)
+- [x] ~~Multi-algorithm raster watermark~~ — Done in v2.3 (LSB, DWT, Histogram Shifting)
 - [ ] Increase test coverage to 80%+ (currently ~50% of endpoints covered)
 - [ ] Add integration tests with real MySQL/PostgreSQL
 - [ ] Add E2E tests with Playwright or Cypress
 - [ ] Redis session store for multi-instance deployments
-- [ ] Add alerting rules to Grafana (error rate thresholds, latency alerts)
-- [ ] Add Loki for log aggregation in Grafana
 
 ---
 

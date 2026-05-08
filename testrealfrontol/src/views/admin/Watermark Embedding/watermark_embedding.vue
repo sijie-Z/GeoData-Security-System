@@ -1,9 +1,20 @@
 <template>
   <div>
-    <div class="data-type-tabs" style="margin-bottom: 12px;">
+    <div class="data-type-tabs" style="margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
       <span class="data-type-label">{{ $t('wmEmbed.dataTypeLabel') }}</span>
+      <div v-if="hasRasterData" style="display: flex; align-items: center; gap: 8px;">
+        <span style="font-size: 13px; color: #64748b;">{{ $t('wmEmbed.algorithm') || 'Algorithm' }}:</span>
+        <el-select v-model="selectedAlgorithm" size="small" style="width: 180px;">
+          <el-option label="LSB (Reversible)" value="lsb" />
+          <el-option label="DWT (Frequency)" value="dwt" />
+          <el-option label="Histogram Shift" value="histogram" />
+        </el-select>
+        <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
+          <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
+        </el-tooltip>
+      </div>
     </div>
-    <el-table :data="data.list" border style="width: 1175px">
+    <el-table :data="data.list" border style="width: 100%" v-loading="loading">
       <el-table-column prop="id" :label="$t('wmEmbed.colApplicationId')" width="82.5" />
       <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" width="85"/>
       <el-table-column prop="data_id" :label="$t('wmEmbed.colVectorDataId')" width="110"/>
@@ -21,7 +32,7 @@
       <el-table-column :label="$t('wmEmbed.colSecondStatus')" width="85">
         <template v-slot="scope">
           <div v-if="!scope.row.first_statu">
-            {{ getStatusText('空') }}
+            {{ getStatusText(null) }}
           </div>
           <div v-else>
             {{ getStatusText(scope.row.second_statu) }}
@@ -40,11 +51,11 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('wmEmbed.colAction')" width="300">
+      <el-table-column :label="$t('wmEmbed.colAction')" width="380">
         <template v-slot="scope">
           <el-button size="small" type="primary" @click="openMapDialog(scope.row)">{{ $t('wmEmbed.viewOriginalData') }}</el-button>
-          <el-button size="small" type="primary" @click="embedding_watermark(scope.row)">{{ $t('wmEmbed.embedWatermark') }}</el-button>
-<!--          <el-button size="small" type="primary" @click="OpenSendZip(scope.row)">发送数据</el-button>-->
+          <el-button size="small" type="info" @click="previewWatermark(scope.row)" :loading="previewing">{{ $t('wmEmbed.preview') || 'Preview' }}</el-button>
+          <el-button size="small" type="primary" @click="embedding_watermark(scope.row)" :loading="embedding">{{ $t('wmEmbed.embedWatermark') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -91,33 +102,46 @@
     </div>
   </el-dialog>
 
-
-  <el-dialog :title="$t('wmEmbed.sendDataDialogTitle')" v-model="SendDataVisible" width="50%" :before-close="(done)=>handleClose('send',done)">
-    <div class="send-dialog-container" >
-      <el-upload
-
-        class="send_file"
-        drag
-        action=""
-        multiple
-        accept=".zip"
-
-
-      >
-        <el-icon class="el-icon--upload"><upload-filled/></el-icon>
-        <div class="el-upload__text">
-          {{ $t('wmEmbed.uploadText') }}<em>{{ $t('wmEmbed.uploadClick') }}</em>
-        </div>
-        <template #tip>
-          <div class="el-upload__tip">
-            {{ $t('wmEmbed.uploadTip') }}
-          </div>
-        </template>
-      </el-upload>
-    </div>
+  <!-- Watermark Preview Dialog -->
+  <el-dialog
+    v-model="previewVisible"
+    :title="$t('wmEmbed.previewTitle') || 'Watermark Embedding Preview'"
+    width="500px"
+    class="preview-dialog"
+  >
+    <el-descriptions :column="1" border size="small">
+      <el-descriptions-item :label="$t('wmEmbed.previewDataType') || 'Data Type'">
+        <el-tag :type="previewData.data_type === 'raster' ? 'warning' : 'primary'" effect="plain">
+          {{ previewData.data_type }}
+        </el-tag>
+      </el-descriptions-item>
+      <el-descriptions-item v-if="previewData.data_type === 'vector'" :label="$t('wmEmbed.previewVertices') || 'Total Vertices'">
+        {{ previewData.total_vertices.toLocaleString() }}
+      </el-descriptions-item>
+      <el-descriptions-item v-if="previewData.data_type === 'raster'" :label="$t('wmEmbed.previewHostSize') || 'Host Image Size'">
+        {{ previewData.host_size ? `${previewData.host_size.width} x ${previewData.host_size.height}` : '-' }}
+      </el-descriptions-item>
+      <el-descriptions-item v-if="previewData.data_type === 'raster'" :label="$t('wmEmbed.previewTotalPixels') || 'Total Pixels'">
+        {{ previewData.total_pixels.toLocaleString() }}
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('wmEmbed.previewWmBits') || 'Watermark Bits'">
+        {{ previewData.watermark_bits.toLocaleString() }}
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('wmEmbed.previewUtilization') || 'Capacity Utilization'">
+        <el-progress
+          :percentage="Math.min(100, previewData.estimated_utilization)"
+          :color="previewData.estimated_utilization > 80 ? '#f56c6c' : previewData.estimated_utilization > 50 ? '#e6a23c' : '#67c23a'"
+          :stroke-width="18"
+          :text-inside="true"
+        />
+      </el-descriptions-item>
+      <el-descriptions-item :label="$t('wmEmbed.previewStatus') || 'Capacity Status'">
+        <el-tag :type="previewData.sufficient ? 'success' : 'danger'" effect="dark">
+          {{ previewData.sufficient ? ($t('wmEmbed.sufficient') || 'Sufficient') : ($t('wmEmbed.insufficient') || 'Insufficient') }}
+        </el-tag>
+      </el-descriptions-item>
+    </el-descriptions>
   </el-dialog>
-
-
 
 </template>
 
@@ -125,9 +149,13 @@
 import {useUserStore} from "@/stores/userStore.js";
 import {reactive, ref, onMounted, watch, nextTick, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, ElMessageBox } from 'element-plus';
-import {UploadFilled} from "@element-plus/icons-vue";
-import axios from '@/utils/Axios';
+import { ElMessage, ElMessageBox, QuestionFilled } from 'element-plus';
+import {
+  getEmbeddingApplications,
+  embedWatermark as embedWatermarkApi,
+  embedDispatch,
+  previewWatermark as previewWatermarkApi
+} from '@/api/watermark';
 import '@arcgis/core/assets/esri/themes/light/main.css';
 import MapView from '@arcgis/core/views/MapView';
 import Map from '@arcgis/core/Map';
@@ -136,6 +164,22 @@ import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
 
 const { t } = useI18n();
 
+const loading = ref(false);
+const embedding = ref(false);
+const previewing = ref(false);
+const selectedAlgorithm = ref('lsb');
+const hasRasterData = computed(() => data.list.some(r => (r.data_type || '').toLowerCase() === 'raster'));
+const previewVisible = ref(false);
+const previewData = reactive({
+  data_type: '',
+  total_vertices: 0,
+  watermark_bits: 0,
+  estimated_utilization: 0,
+  sufficient: true,
+  host_size: null,
+  watermark_size: null,
+  total_pixels: 0
+});
 const data = reactive({ list: [] });
 const page = ref(1);
 const pageSize = ref(10);
@@ -143,8 +187,6 @@ const total = ref(0);
 const dataTypeTab = ref('');
 
 const requestFormRef = ref(null);
-
-const SendDataVisible=ref(false);
 const viewDataVisible = ref(false);
 const mapContainer = ref(null);
 let mapView = null;
@@ -192,10 +234,10 @@ const initialRequestInformation = {
 const requestInformation = reactive({ ...initialRequestInformation });
 
 const get_applications = async () => {
+  loading.value = true;
   try {
-    const response = await axios.get(`/api/adm2_embedding_watermark_applications`, {
-      params: { page: page.value, pageSize: pageSize.value, data_type: 'vector' },
-      responseType: 'json'
+    const response = await getEmbeddingApplications({
+      page: page.value, pageSize: pageSize.value
     });
 
     if (!response.data || !response.data.status) {
@@ -210,6 +252,8 @@ const get_applications = async () => {
   } catch (err) {
     console.error('Error fetching records:', err);
     ElMessage.error(t('wmEmbed.fetchFailed'));
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -226,78 +270,86 @@ const resetForm = async () => {
 };
 
 
-const embedding_watermark =async (row) => {
+const embedding_watermark = async (row) => {
   const ApplicationId = row.id;
   const DataId = row.data_id;
   const applicant_user_number = row.applicant_user_number;
   const isRaster = (row.data_type || '').toLowerCase() === 'raster';
 
+  embedding.value = true;
   ElMessage.info(t('wmEmbed.embeddingInProgress'));
 
-  if (isRaster) {
-    axios.post(`/api/admin/embed_dispatch`, { application_id: ApplicationId }, { responseType: 'json' })
-      .then(res => {
-        if (res.data && res.data.status) {
-          ElMessage.success(res.data.msg || t('wmEmbed.rasterEmbedSuccess'));
-          get_applications();
-        } else {
-          ElMessage.error(res.data?.msg || t('wmEmbed.rasterEmbedFailed'));
-        }
-      })
-      .catch(err => {
-        ElMessage.error(t('wmEmbed.rasterEmbedFailed'));
-        console.error(err);
-      });
-    return;
-  }
+  try {
+    if (isRaster) {
+      const res = await embedDispatch({ application_id: ApplicationId, algorithm: selectedAlgorithm.value });
+      if (res.data && res.data.status) {
+        ElMessage.success(res.data.msg || t('wmEmbed.rasterEmbedSuccess'));
+        get_applications();
+      } else {
+        ElMessage.error(res.data?.msg || t('wmEmbed.rasterEmbedFailed'));
+      }
+      return;
+    }
 
-  axios.post(`/api/embedding_watermark`, {
-    application_id: ApplicationId,
-    data_id: DataId,
-    applicant_user_number: applicant_user_number,
-    embed_person:row.adm2_name,
-    applicant:row.applicant_name
-  }, {
-    responseType: 'blob'  // 设置响应类型为 blob
-  })
-  .then(response => {
-    // 打印完整的响应头
-    console.log('Response Headers:', response.headers);
-    // 打印Content-Disposition内容
+    const response = await embedWatermarkApi({
+      application_id: ApplicationId,
+      data_id: DataId,
+      applicant_user_number: applicant_user_number,
+      embed_person: row.adm2_name,
+      applicant: row.applicant_name
+    });
+
     const disposition = response.headers['content-disposition'];
-    console.log('Content-Disposition:', disposition);
-    // 创建一个 URL 对象来处理 Blob 数据
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-    // 从响应头中提取文件名（如果后端有设置下载文件名）
     let fileName = 'default.zip';
     if (disposition) {
       const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-      console.log('Filename matches:', matches);
       if (matches && matches[1]) {
-        fileName = matches[1].replace(/['"]/g, ''); // 去除引号
+        fileName = matches[1].replace(/['"]/g, '');
       }
     }
-    console.log('Final filename:', fileName);
-    link.setAttribute('download', fileName);  // 设置下载的文件名
+    link.setAttribute('download', fileName);
     document.body.appendChild(link);
-    link.click();  // 触发下载
-    document.body.removeChild(link);  // 清理 DOM
-    window.URL.revokeObjectURL(url);  // 释放 URL 对象
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
     ElMessage.success(t('wmEmbed.embedSuccess'));
-  })
-  .catch(error => {
+  } catch (error) {
     ElMessage.error(t('wmEmbed.embedFailed'));
-    console.error('Error embedding watermark:', error);
-  });
+  } finally {
+    embedding.value = false;
+  }
 };
 
 
-const OpenSendZip=(row)=>{
-  SendDataVisible.value=true
-}
-
+const previewWatermark = async (row) => {
+  previewing.value = true;
+  try {
+    const resp = await previewWatermarkApi({ application_id: row.id });
+    if (resp.data.status) {
+      const p = resp.data.preview;
+      Object.assign(previewData, {
+        data_type: resp.data.data_type,
+        total_vertices: p.total_vertices || 0,
+        watermark_bits: p.watermark_bits || 0,
+        estimated_utilization: p.estimated_utilization || 0,
+        sufficient: p.capacity?.sufficient ?? true,
+        host_size: p.host_size || null,
+        watermark_size: p.watermark_size || null,
+        total_pixels: p.total_pixels || 0
+      });
+      previewVisible.value = true;
+    } else {
+      ElMessage.error(resp.data.msg || 'Preview failed');
+    }
+  } catch (e) {
+    ElMessage.error('Preview failed');
+  } finally {
+    previewing.value = false;
+  }
+};
 
 const selectedData = reactive({
   data_alias: '',
@@ -364,9 +416,7 @@ const handleClose = (dialogType, done) => {
   ElMessageBox.confirm(t('wmEmbed.confirmClose')).then(() => {
     done();
     if (dialogType === 'map') {
-      destroyMapView(); // 仅在处理地图视图的对话框时销毁地图视图
-    } else if (dialogType === 'send') {
-      resetForm(); // 在关闭申请使用数据对话框时重置表单
+      destroyMapView();
     }
   }).catch(() => {});
 };
@@ -375,7 +425,7 @@ const handleClose = (dialogType, done) => {
 
 </script>
 
-<style>
+<style scoped>
 
 .qr-code-image {
   width: 50px;
@@ -444,16 +494,8 @@ const handleClose = (dialogType, done) => {
   margin: 16px 0 0 0;
 }
 
-.send-dialog-container{
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-
-}
-
-.send_file{
-  width: 100%;
+.preview-dialog .el-descriptions {
+  margin-top: 8px;
 }
 
 </style>

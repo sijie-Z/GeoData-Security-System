@@ -87,6 +87,9 @@
               <el-empty v-if="!messages.length && !loadingMessages" :description="$t('empChat.noMessages')" :image-size="70" />
             </div>
 
+            <div v-if="peerTyping" class="typing-indicator">
+              {{ activePeer.peer_name || activePeer.peer_number }} {{ $t('empChat.typing') || 'is typing...' }}
+            </div>
             <div class="composer">
               <el-input
                 v-model="draft"
@@ -109,12 +112,36 @@
 </template>
 
 <script setup>
-import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import Axios from '@/utils/Axios'
+import {
+  getConversations,
+  getMessages,
+  sendMessage as httpSendMessage,
+  markRead as httpMarkRead,
+  searchUsers,
+  addFriend as httpAddFriend,
+  getFriendRequests,
+  respondFriend as httpRespondFriend
+} from '@/api/chat'
+import { useUserStore } from '@/stores/userStore'
+import {
+  connectSocket,
+  disconnectSocket,
+  isSocketConnected,
+  joinChat,
+  sendMessage as socketSendMessage,
+  onNewMessage,
+  onTyping,
+  onMessagesRead,
+  markAsRead,
+  emitTyping,
+  offAllChatEvents,
+} from '@/utils/socket'
 
 const { t } = useI18n()
+const userStore = useUserStore()
 
 const conversations = ref([])
 const messages = ref([])
@@ -129,7 +156,10 @@ const loadingMessages = ref(false)
 const sending = ref(false)
 const messageListRef = ref(null)
 
-let pollTimer = null
+// Typing indicator state
+const peerTyping = ref(false)
+let typingTimeout = null
+let pollInterval = null
 
 const roleText = (role) => (role === 'admin' ? t('empChat.admin') : t('empChat.employee'))
 
@@ -139,10 +169,33 @@ const scrollBottom = async () => {
   if (el) el.scrollTop = el.scrollHeight
 }
 
+/* ------------------------------------------------------------------ */
+/*  Polling fallback                                                   */
+/* ------------------------------------------------------------------ */
+
+const startPolling = () => {
+  stopPolling()
+  pollInterval = setInterval(async () => {
+    await loadConversations()
+    if (activePeer.value) await loadMessages()
+  }, 30000)
+}
+
+const stopPolling = () => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  HTTP data loaders (initial + fallback)                             */
+/* ------------------------------------------------------------------ */
+
 const loadConversations = async () => {
   loadingConversations.value = true
   try {
-    const { data } = await Axios.get(`/api/chat/conversations`)
+    const { data } = await getConversations()
     conversations.value = data?.data || []
   } catch (_e) {
     conversations.value = []
@@ -155,15 +208,13 @@ const loadMessages = async () => {
   if (!activePeer.value) return
   loadingMessages.value = true
   try {
-    const { data } = await Axios.get(`/api/chat/messages`, {
-      params: {
-        peer_number: activePeer.value.peer_number,
-        peer_role: activePeer.value.peer_role,
-        limit: 150
-      }
+    const { data } = await getMessages({
+      peer_number: activePeer.value.peer_number,
+      peer_role: activePeer.value.peer_role,
+      limit: 150
     })
     messages.value = data?.data || []
-    await markRead()
+    await markReadHTTP()
     await scrollBottom()
   } catch (_e) {
     messages.value = []
@@ -172,15 +223,19 @@ const loadMessages = async () => {
   }
 }
 
-const markRead = async () => {
+const markReadHTTP = async () => {
   if (!activePeer.value) return
   try {
-    await Axios.post(`/api/chat/mark_read`, {
+    await httpMarkRead({
       peer_number: activePeer.value.peer_number,
       peer_role: activePeer.value.peer_role
     })
   } catch (_e) {}
 }
+
+/* ------------------------------------------------------------------ */
+/*  Conversation / friend management                                   */
+/* ------------------------------------------------------------------ */
 
 const selectConversation = async (item) => {
   activePeer.value = {
@@ -190,6 +245,10 @@ const selectConversation = async (item) => {
   }
   await loadMessages()
   await loadConversations()
+  // Notify the server via socket that we've read this conversation
+  if (isSocketConnected()) {
+    markAsRead({ peerNumber: item.peer_number, peerRole: item.peer_role })
+  }
 }
 
 const searchUsers = async () => {
@@ -199,7 +258,7 @@ const searchUsers = async () => {
     return
   }
   try {
-    const { data } = await Axios.get(`/api/chat/search_users`, { params: { keyword: kw } })
+    const { data } = await searchUsers({ keyword: kw })
     searchResults.value = data?.data || []
   } catch (_e) {
     searchResults.value = []
@@ -208,7 +267,7 @@ const searchUsers = async () => {
 
 const addFriend = async (u) => {
   try {
-    const { data } = await Axios.post(`/api/chat/add_friend`, {
+    const { data } = await httpAddFriend({
       friend_number: u.number,
       friend_role: u.role
     })
@@ -225,7 +284,7 @@ const addFriend = async (u) => {
 
 const loadFriendRequests = async () => {
   try {
-    const { data } = await Axios.get(`/api/chat/friend_requests`)
+    const { data } = await getFriendRequests()
     friendRequests.value = data?.data || []
   } catch (_e) {
     friendRequests.value = []
@@ -234,7 +293,7 @@ const loadFriendRequests = async () => {
 
 const respondFriend = async (r, action) => {
   try {
-    const { data } = await Axios.post(`/api/chat/friend_respond`, {
+    const { data } = await httpRespondFriend({
       request_id: r.id,
       action
     })
@@ -250,6 +309,10 @@ const respondFriend = async (r, action) => {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Send message (socket-first, HTTP fallback)                         */
+/* ------------------------------------------------------------------ */
+
 const sendMessage = async () => {
   if (!activePeer.value) {
     ElMessage.warning(t('empChat.selectConversationFirst'))
@@ -262,17 +325,36 @@ const sendMessage = async () => {
   }
   sending.value = true
   try {
-    const { data } = await Axios.post(`/api/chat/send`, {
-      receiver_number: activePeer.value.peer_number,
-      receiver_role: activePeer.value.peer_role,
-      content
-    })
-    if (data?.status) {
+    if (isSocketConnected()) {
+      await socketSendMessage({
+        toUserNumber: activePeer.value.peer_number,
+        toUserRole: activePeer.value.peer_role,
+        content,
+      })
       draft.value = ''
-      await loadMessages()
+      // Optimistically append our own message
+      messages.value.push({
+        id: Date.now(),
+        content,
+        created_at: new Date().toLocaleString(),
+        is_me: true,
+      })
+      await scrollBottom()
       await loadConversations()
     } else {
-      ElMessage.error(data?.msg || t('empChat.sendFailed'))
+      // Fallback to HTTP
+      const { data } = await httpSendMessage({
+        receiver_number: activePeer.value.peer_number,
+        receiver_role: activePeer.value.peer_role,
+        content
+      })
+      if (data?.status) {
+        draft.value = ''
+        await loadMessages()
+        await loadConversations()
+      } else {
+        ElMessage.error(data?.msg || t('empChat.sendFailed'))
+      }
     }
   } catch (_e) {
     ElMessage.error(t('empChat.sendFailed'))
@@ -281,33 +363,104 @@ const sendMessage = async () => {
   }
 }
 
-onMounted(async () => {
-  await Promise.all([loadConversations(), loadFriendRequests()])
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-  startPolling()
+/* ------------------------------------------------------------------ */
+/*  Typing indicator                                                   */
+/* ------------------------------------------------------------------ */
+
+const onInputTyping = () => {
+  if (!activePeer.value || !isSocketConnected()) return
+  emitTyping({ toUserNumber: activePeer.value.peer_number })
+}
+
+// Watch draft for typing events (debounced)
+let draftTypingTimer = null
+watch(draft, () => {
+  if (draftTypingTimer) clearTimeout(draftTypingTimer)
+  draftTypingTimer = setTimeout(onInputTyping, 500)
 })
 
-const startPolling = () => {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(async () => {
-    if (document.visibilityState === 'visible') {
-      await Promise.all([loadConversations(), loadFriendRequests()])
-      if (activePeer.value) await loadMessages()
+/* ------------------------------------------------------------------ */
+/*  Socket setup                                                       */
+/* ------------------------------------------------------------------ */
+
+const setupSocketListeners = () => {
+  // Cleanup existing listeners to avoid duplicates
+  offAllChatEvents()
+
+  onNewMessage((msg) => {
+    if (activePeer.value) {
+      const isFromActivePeer =
+        msg.sender_number === activePeer.value.peer_number &&
+        msg.sender_role === activePeer.value.peer_role
+      const isToMe = msg.receiver_number === userStore.user_number
+
+      if (isFromActivePeer && isToMe) {
+        messages.value.push({
+          id: msg.id,
+          content: msg.content,
+          created_at: msg.created_at,
+          is_me: false,
+        })
+        scrollBottom()
+        markAsRead({
+          peerNumber: activePeer.value.peer_number,
+          peerRole: activePeer.value.peer_role,
+        })
+      }
     }
-  }, 30000) // 改为30秒
+    loadConversations()
+  })
+
+  onTyping((data) => {
+    if (!activePeer.value) return
+    if (data.from_user_number === activePeer.value.peer_number) {
+      peerTyping.value = true
+      if (typingTimeout) clearTimeout(typingTimeout)
+      typingTimeout = setTimeout(() => {
+        peerTyping.value = false
+      }, 3000)
+    }
+  })
+
+  onMessagesRead(() => {
+    loadConversations()
+  })
 }
 
-const handleVisibilityChange = () => {
-  if (document.visibilityState === 'visible') {
-    loadConversations()
-    loadFriendRequests()
-    if (activePeer.value) loadMessages()
-  }
+const initChat = async () => {
+  await Promise.all([loadConversations(), loadFriendRequests()])
+
+  const token = userStore.token
+  if (!token) return
+
+  connectSocket(token, {
+    onAuthenticated (data) {
+      if (data.user_number) {
+        joinChat(data.user_number)
+      }
+      // Socket connected -- stop polling fallback
+      stopPolling()
+      setupSocketListeners()
+    },
+  })
+
+  // If socket doesn't connect within 5 seconds, start polling fallback
+  setTimeout(() => {
+    if (!isSocketConnected()) {
+      ElMessage.warning(t('empChat.socketFallback') || 'Real-time connection unavailable, using polling')
+      startPolling()
+    }
+  }, 5000)
 }
+
+onMounted(initChat)
 
 onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  offAllChatEvents()
+  stopPolling()
+  if (typingTimeout) clearTimeout(typingTimeout)
+  if (draftTypingTimer) clearTimeout(draftTypingTimer)
+  disconnectSocket()
 })
 </script>
 
@@ -339,6 +492,7 @@ onBeforeUnmount(() => {
 .bubble { max-width: 70%; padding: 10px 12px; border-radius: 8px; background: #f2f6fc; color: #303133; white-space: pre-wrap; word-break: break-word; }
 .msg-row.me .bubble { background: #409eff; color: #fff; }
 .meta { margin-top: 4px; font-size: 12px; color: #909399; }
+.typing-indicator { padding: 4px 0 6px; font-size: 12px; color: #909399; font-style: italic; }
 .composer { border-top: 1px solid #ebeef5; padding-top: 10px; }
 .composer-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 

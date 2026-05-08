@@ -16,8 +16,8 @@ class TestApprovalWorkflow:
         resp = client.get('/api/adm1_get_raster_applications', headers=auth_headers)
         assert resp.status_code == 200
 
-    def test_adm2_approved_list(self, client, auth_headers):
-        resp = client.get('/api/adm2_get_approved', headers=auth_headers)
+    def test_adm2_approved_list(self, client, adm2_headers):
+        resp = client.get('/api/adm2_get_approved', headers=adm2_headers)
         assert resp.status_code == 200
         data = resp.get_json()
         assert 'approved_application_data' in data
@@ -34,14 +34,14 @@ class TestApprovalWorkflow:
         })
         assert resp.status_code in (404, 400)
 
-    def test_adm2_pass_nonexistent(self, client, auth_headers):
-        resp = client.post('/api/adm2_pass', headers=auth_headers, json={
+    def test_adm2_pass_nonexistent(self, client, adm2_headers):
+        resp = client.post('/api/adm2_pass', headers=adm2_headers, json={
             'id': 99999, 'user_name': 'Admin', 'user_number': 'admin2'
         })
         assert resp.status_code in (404, 400)
 
-    def test_adm2_fail_nonexistent(self, client, auth_headers):
-        resp = client.post('/api/adm2_fail', headers=auth_headers, json={
+    def test_adm2_fail_nonexistent(self, client, adm2_headers):
+        resp = client.post('/api/adm2_fail', headers=adm2_headers, json={
             'id': 99999, 'user_name': 'Admin', 'user_number': 'admin2'
         })
         assert resp.status_code in (404, 400)

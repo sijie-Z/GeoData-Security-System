@@ -8,6 +8,7 @@ export const useUserStore = defineStore('user', {
     permissions: [],
     user_number: null,
     user_name: null,
+    admin_sub_role: null,
     isLoginSuccess: false,
   }),
 
@@ -19,6 +20,7 @@ export const useUserStore = defineStore('user', {
       this.permissions = userData.permissions;
       this.user_number = userData.user_number;
       this.user_name = userData.user_name;
+      this.admin_sub_role = userData.admin_sub_role || null;
       this.isLoginSuccess = true;
 
       sessionStorage.setItem('currentUser', JSON.stringify(userData));
@@ -33,6 +35,7 @@ export const useUserStore = defineStore('user', {
       this.permissions = [];
       this.user_number = null;
       this.user_name = null;
+      this.admin_sub_role = null;
       this.isLoginSuccess = false;
 
       sessionStorage.removeItem('currentUser');
@@ -51,6 +54,7 @@ export const useUserStore = defineStore('user', {
           this.permissions = userData.permissions;
           this.user_number = userData.user_number;
           this.user_name = userData.user_name;
+          this.admin_sub_role = userData.admin_sub_role || null;
         } catch (error) {
           console.error('Failed to parse user data from sessionStorage:', error);
           this.clearUserInfo();
@@ -70,6 +74,7 @@ export const useUserStore = defineStore('user', {
   getters: {
     isAuthenticated: (state) => !!state.token,
     userNumber: (state) => state.user_number || '',
-    userName: (state) => state.user_name || ''
+    userName: (state) => state.user_name || '',
+    adminSubRole: (state) => state.admin_sub_role || ''
   }
 });

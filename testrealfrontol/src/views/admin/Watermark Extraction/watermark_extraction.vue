@@ -1,5 +1,5 @@
 <template>
-  <div class="watermark-extraction-container">
+  <div class="watermark-extraction-container" v-loading="loading">
     <div class="input-section">
       <el-input v-model="GetIdInput" style="width: 250px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
       <el-button size="default" type="primary" @click="click_extract">{{ $t('wmExtract.selectAndExtract') }}</el-button>
@@ -16,6 +16,20 @@
       </div>
       <div v-else class="watermark-placeholder">
         <el-empty :description="$t('wmExtract.watermarkPlaceholder')"></el-empty>
+      </div>
+    </el-card>
+
+    <el-card v-if="recoveredBase64" class="watermark-card" shadow="hover" style="margin-top: 16px;">
+      <template #header>
+        <div class="card-header">
+          <span>{{ $t('wmExtract.recoveredTitle') || 'Recovered Original Image' }}</span>
+        </div>
+      </template>
+      <div class="watermark-image-wrapper">
+        <img :src="`data:image/png;base64,${recoveredBase64}`" alt="Recovered Original" class="watermark-image"/>
+      </div>
+      <div style="text-align: center; margin-top: 8px;">
+        <el-tag type="success" effect="dark">{{ $t('wmExtract.reversibleSuccess') || 'Reversible recovery successful — original image perfectly restored' }}</el-tag>
       </div>
     </el-card>
 
@@ -77,15 +91,16 @@
 import { UploadFilled } from "@element-plus/icons-vue";
 import { ref, watch } from "vue";
 import { useI18n } from 'vue-i18n';
-import axios from "@/utils/Axios";
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const { t } = useI18n();
 
 // State and refs
+const loading = ref(false);
 const ExtractVisible = ref(false);
 const GetIdInput = ref('');
 const extractedWatermarkBase64 = ref('');
+const recoveredBase64 = ref('');
 const decodedInfo = ref(null);
 
 // API URL from environment variables
@@ -113,6 +128,7 @@ const click_extract = () => {
 };
 
 const handleUploadSuccess = (response, file) => {
+  loading.value = false;
   ElMessage.success(t('wmExtract.uploadSuccess', { name: file.name }));
   ExtractVisible.value = false;
 
@@ -120,8 +136,12 @@ const handleUploadSuccess = (response, file) => {
   if (extracted) {
     extractedWatermarkBase64.value = extracted;
     decodedInfo.value = response?.data?.decoded_info || null;
+    recoveredBase64.value = response?.recovered_base64 || '';
     if (decodedInfo.value) {
       ElMessage.success(t('wmExtract.qrDecoded'));
+    }
+    if (recoveredBase64.value) {
+      ElMessage.success(t('wmExtract.reversibleSuccess') || 'Original image recovered');
     }
   } else {
     ElMessage.error(t('wmExtract.noWatermarkExtracted'));
@@ -129,6 +149,7 @@ const handleUploadSuccess = (response, file) => {
 };
 
 const handleUploadError = (err, file) => {
+  loading.value = false;
   let errorMessage = t('wmExtract.uploadFailed', { name: file.name });
   if (err.response && err.response.data && err.response.data.error) {
     errorMessage += ` ${t('wmExtract.errorInfo')}: ${err.response.data.error}`;
@@ -152,6 +173,7 @@ const beforeUpload = (file) => {
     return false;
   }
 
+  loading.value = true;
   return true;
 };
 
@@ -167,6 +189,7 @@ const handleClose = (dialogType, done) => {
 const resetForm = () => {
   GetIdInput.value = '';
   extractedWatermarkBase64.value = '';
+  recoveredBase64.value = '';
   decodedInfo.value = null;
 };
 

@@ -2,9 +2,9 @@
 import { reactive, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Back } from '@element-plus/icons-vue'; // 引入图标
+import { Back } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import Axios from '@/utils/Axios.js';
+import { getEmployeeList, createAccount } from '@/api/admin';
 
 // --- 依赖与初始化 ---
 const { t } = useI18n();
@@ -59,7 +59,7 @@ const handleBack = () => {
 // 获取员工列表
 const fetchEmployees = async () => {
   try {
-    const response = await Axios.get('/api/adm/get_emp_info_list');
+    const response = await getEmployeeList();
     if (response.data && response.data.status) {
       employeeList.value = response.data.data.list;
     } else {
@@ -86,8 +86,7 @@ const submitForm = async () => {
           // TODO: 请与后端确认实际的角色值是 'ADMIN'/'USER' 还是其他
           role: accountForm.role,
         };
-        // 假设创建账号的后端接口是 '/api/account/create'
-        const response = await Axios.post('/api/account/create', payload);
+        const response = await createAccount(payload);
 
         if (response.data && response.data.status) {
           ElMessage.success(t('employeeMgmt.accountCreateSuccess'));

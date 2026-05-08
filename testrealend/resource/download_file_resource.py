@@ -16,6 +16,7 @@ from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
 from utils.metrics import record_download
+from utils.user_limiter import normal_limit, relaxed_limit
 from datetime import datetime, timedelta
 
 
@@ -151,7 +152,8 @@ class RecordDownloadResource(Resource):
     @jwt_required()
     def post(self):
         data = request.get_json() or {}
-        user_number = data.get('applicant_user_number') or data.get('download_user_number', '')
+        identity = get_jwt_identity() or {}
+        user_number = identity.get('number', '')
         new_record = DownloadRecord(
             application_id=data.get('application_id'),
             data_id=data.get('data_id'),

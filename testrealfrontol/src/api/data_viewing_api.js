@@ -1,13 +1,23 @@
-import Axios from "@/utils/Axios.js";
+/**
+ * @module api/data_viewing_api
+ * @deprecated Use {@link module:api/data} instead for all data viewing operations.
+ * Kept for backward compatibility.
+ */
+import axios from '@/utils/Axios'
 
-const getById = (id) => {
-    // 确保 id 在 URL 中以键值对的形式出现
-    return Axios.get(`/api/data_viewing/getById?id=${id}`);
-}
+/**
+ * Get data record by ID.
+ * @param {number|string} id
+ * @returns {Promise<AxiosResponse>}
+ */
+const getById = (id) => axios.get(`/api/data_viewing/getById?id=${id}`)
 
-const pageList = (page, pageSize) => {
-    // 确保分页参数在 URL 中正确拼接
-    return Axios.get(`/api/data_viewing/pageList?page=${page}&pageSize=${pageSize}`);
-}
+/**
+ * Get paginated data list.
+ * @param {number} page
+ * @param {number} pageSize
+ * @returns {Promise<AxiosResponse>}
+ */
+const pageList = (page, pageSize) => axios.get(`/api/data_viewing/pageList?page=${page}&pageSize=${pageSize}`)
 
 export default { getById, pageList }

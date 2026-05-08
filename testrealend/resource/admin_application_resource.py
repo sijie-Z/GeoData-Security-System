@@ -6,6 +6,7 @@ import logging
 import json
 
 from extension.extension import db
+from utils.required import is_admin_role
 from model.AdminApplication import AdminApplication
 from model.Employee_Info import EmployeeInfo
 from model.Employee_Account import EmployeeAccount
@@ -22,7 +23,7 @@ class AdminApplicationEligibilityResource(Resource):
         role = identity.get('role')
 
         # Already an admin
-        if role == 'admin':
+        if is_admin_role(role):
             return {
                 'status': True,
                 'data': {
@@ -98,7 +99,7 @@ class AdminApplicationSubmitResource(Resource):
         user_number = identity.get('number')
         role = identity.get('role')
 
-        if role == 'admin':
+        if is_admin_role(role):
             return {'status': False, 'msg': '您已经是管理员'}, 400
 
         data = request.get_json() or {}
@@ -172,7 +173,7 @@ class AdminApplicationListResource(Resource):
     @jwt_required()
     def get(self):
         identity = get_jwt_identity()
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以查看'}, 403
 
         page = request.args.get('page', 1, type=int)
@@ -220,7 +221,7 @@ class AdminApplicationDetailResource(Resource):
         votes = json.loads(application.votes_json) if application.votes_json else {}
         data['my_vote'] = votes.get(voter_number, {}).get('approve', None)
         data['can_vote'] = (
-            identity.get('role') == 'admin' and
+            is_admin_role(identity.get('role')) and
             application.status in ['pending', 'voting']
         )
 
@@ -234,7 +235,7 @@ class AdminApplicationVoteResource(Resource):
         identity = get_jwt_identity()
         voter_number = identity.get('number')
 
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以投票'}, 403
 
         application = AdminApplication.query.get(application_id)
@@ -323,7 +324,7 @@ class AdminApplicationCloseResource(Resource):
     def post(self, application_id):
         identity = get_jwt_identity()
 
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以操作'}, 403
 
         application = AdminApplication.query.get(application_id)

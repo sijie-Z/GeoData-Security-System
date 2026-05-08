@@ -46,8 +46,13 @@
 import {reactive, onMounted, ref, computed, watch} from "vue";
 import {ElMessage, ElMessageBox, ElLoading} from "element-plus";
 import { useI18n } from 'vue-i18n';
-// import {useRouter} from "vue-router";
-import axios from '@/utils/Axios';
+import {
+  getApplications,
+  approveApplication,
+  rejectApplication,
+  batchReview,
+  batchReviewFailedExport
+} from '@/api/admin';
 import {useUserStore} from "@/stores/userStore.js";
 
 const { t } = useI18n();
@@ -92,9 +97,7 @@ watch(page, (newValue, oldValue) => {
 const admin1_get_applications = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/adm1_get_applications`, {
-      params: { page: page.value, pageSize: pageSize.value }
-    });
+    const response = await getApplications('adm1', { page: page.value, pageSize: pageSize.value });
     if (response.data == null) {
       data.list = [];
       total.value = 0;
@@ -146,9 +149,9 @@ const pass = async (row) => {
       };
       let passResult;
       if (isAdm1.value) {
-        passResult = await axios.post(`/api/adm1_pass`, requestData);
+        passResult = await approveApplication('adm1', requestData);
       } else {
-        passResult = await axios.post(`/api/adm2_pass`, requestData);
+        passResult = await approveApplication('adm2', requestData);
       }
 
       if (!passResult.data.status) {
@@ -187,9 +190,9 @@ const fail = async (row) => {
 
     let failResult;
     if (isAdm1.value) {
-      failResult = await axios.post(`/api/adm1_fail`, requestData);
+      failResult = await rejectApplication('adm1', requestData);
     } else {
-      failResult = await axios.post(`/api/adm2_fail`, requestData);
+      failResult = await rejectApplication('adm2', requestData);
     }
 
     if (!failResult.data.status) {
@@ -213,11 +216,7 @@ const fail = async (row) => {
 
 const exportBatchFailedCsv = async (failed) => {
   try {
-    const response = await axios.post(
-      `/api/admin/batch_review_failed_export`,
-      { failed },
-      { responseType: 'blob' }
-    );
+    const response = await batchReviewFailedExport({ failed });
     const blob = new Blob([response.data], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -244,7 +243,7 @@ const batchReview = async (action) => {
       t('approval.batchReviewConfirm'),
       { type: 'warning', confirmButtonText: t('approval.confirm'), cancelButtonText: t('approval.cancel') }
     );
-    const resp = await axios.post(`/api/admin/batch_review`, {
+    const resp = await batchReview({
       ids: selectedIds.value,
       stage,
       action,

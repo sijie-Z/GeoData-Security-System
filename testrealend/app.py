@@ -50,12 +50,13 @@ def _bootstrap_runtime_schema(app):
     from model.AdminApplication import AdminApplication
     from model.watermark_verification import WatermarkVerification
     from model.download_token import DownloadToken
+    from model.TokenBlacklist import TokenBlacklist
 
     models = [
         AdmAccount, AdmInfo, AdmNav, Announcement, Application, ChatMessage,
         DownloadRecord, EmployeeNotification, EmployeeAccount, EmployeeInfo,
         EmployeeNav, FriendRequest, LogInfo, RasterData, Shp,
-        RecallProposal, AdminApplication, WatermarkVerification, DownloadToken
+        RecallProposal, AdminApplication, WatermarkVerification, DownloadToken, TokenBlacklist
     ]
 
     with app.app_context():
@@ -85,7 +86,18 @@ def create_app():
     db.init_app(app)
     limiter.init_app(app)
     Migrate(app, db)
-    JWTManager(app)
+    jwt = JWTManager(app)
+
+    # Token blocklist check
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        try:
+            from model.TokenBlacklist import TokenBlacklist
+            jti = jwt_payload.get('jti')
+            return TokenBlacklist.query.filter_by(jti=jti).first() is not None
+        except Exception:
+            return False
+
     _bootstrap_runtime_schema(app)
 
     # Initialize Redis cache
@@ -191,7 +203,7 @@ def create_app():
     )
     from resource.shp_data_resource import ShpDataListResource, ShpDataByIdResource, VectorDataViewingResource, RasterDataViewingResource, MapSearchResource
     from resource.application_resource import (
-        SubmitApplicationResource, GetApplicationsResource, ApprovedApplicationsResource,
+        SubmitApplicationResource, WithdrawApplicationResource, GetApplicationsResource, ApprovedApplicationsResource,
         Adm1GetApplicationsResource, Adm2GetApprovedResource,
         Adm1PassResource, Adm1FailResource, Adm2PassResource, Adm2FailResource,
         BatchReviewResource, ReReviewResource, Adm3AdditionalReviewResource,
@@ -202,7 +214,9 @@ def create_app():
         GenerateWatermarkResource, EmbeddingWatermarkResource, VectorExtractResource,
         Adm1GetGenerateWatermarkApplications, Adm2GetEmbeddingWatermarkApplications,
         UploadOriginalWatermarkResource, UploadExtractedWatermarkResource,
-        UploadOriAndExtWatermarkResource, GetOriginalWatermarkResource
+        UploadOriAndExtWatermarkResource, GetOriginalWatermarkResource,
+        WatermarkVerificationRecordsResource, WatermarkPreviewResource,
+        BatchGenerateWatermarkResource, BatchEmbedWatermarkResource
     )
     from resource.raster_resource import (
         RasterPreviewResource, RasterTilesResource, RasterEmbedDispatchResource,
@@ -268,6 +282,7 @@ def create_app():
 
     # Applications
     api.add_resource(SubmitApplicationResource, '/api/submit_application')
+    api.add_resource(WithdrawApplicationResource, '/api/applications/<int:application_id>/withdraw')
     api.add_resource(GetApplicationsResource, '/api/get_applications')
     api.add_resource(ApprovedApplicationsResource, '/api/get_approved_applications')
     api.add_resource(AllApplicationsResource, '/api/applications')
@@ -305,6 +320,10 @@ def create_app():
     api.add_resource(UploadExtractedWatermarkResource, '/api/upload_extracted_watermark')
     api.add_resource(UploadOriAndExtWatermarkResource, '/api/upload/ori&ext_watermark')
     api.add_resource(GetOriginalWatermarkResource, '/api/get_original_watermark')
+    api.add_resource(WatermarkVerificationRecordsResource, '/api/watermark/verification_records')
+    api.add_resource(WatermarkPreviewResource, '/api/watermark/preview')
+    api.add_resource(BatchGenerateWatermarkResource, '/api/watermark/batch_generate')
+    api.add_resource(BatchEmbedWatermarkResource, '/api/watermark/batch_embed')
 
     # Raster
     api.add_resource(Adm1GetRasterApplicationsGenerateWatermark, '/api/adm1_get_raster_applications_generate_watermark')

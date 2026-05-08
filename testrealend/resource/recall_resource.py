@@ -3,6 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 import logging
+from utils.required import is_admin_role
 import json
 
 from extension.extension import db
@@ -80,7 +81,7 @@ class RecallCreateResource(Resource):
         proposer_name = identity.get('username')
         proposer_role = identity.get('role')
 
-        if proposer_role != 'admin':
+        if not is_admin_role(proposer_role):
             return {'status': False, 'msg': '只有管理员可以发起回收提议'}, 403
 
         data = request.get_json() or {}
@@ -152,7 +153,7 @@ class RecallVoteResource(Resource):
         voter_number = identity.get('number')
         voter_role = identity.get('role')
 
-        if voter_role != 'admin':
+        if not is_admin_role(voter_role):
             return {'status': False, 'msg': '只有管理员可以投票'}, 403
 
         proposal = RecallProposal.query.get(proposal_id)
@@ -259,7 +260,7 @@ class RecallDetailResource(Resource):
         votes = json.loads(proposal.votes_json) if proposal.votes_json else {}
         data['my_vote'] = votes.get(voter_number, {}).get('vote', None)
         data['can_vote'] = (
-            identity.get('role') == 'admin' and
+            is_admin_role(identity.get('role')) and
             voter_number != proposal.proposer_number and
             proposal.status == 'voting'
         )
@@ -281,7 +282,7 @@ class RecallCloseResource(Resource):
             return {'status': False, 'msg': '该提议已结束'}, 400
 
         # Only proposer or admin can close
-        if identity.get('role') != 'admin':
+        if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以结束投票'}, 403
 
         total_admins = AdmAccount.query.count()

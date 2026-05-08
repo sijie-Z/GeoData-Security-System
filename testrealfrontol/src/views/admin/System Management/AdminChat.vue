@@ -66,6 +66,11 @@
               </div>
             </div>
 
+            <!-- Typing indicator -->
+            <div v-if="peerTyping" class="typing-indicator">
+              {{ activePeer.peer_name || activePeer.peer_number }} {{ $t('adminChat.typing') || 'is typing...' }}
+            </div>
+
             <!-- 输入区域 -->
             <div class="input-area">
               <el-input
@@ -118,12 +123,31 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
-import Axios from '@/utils/Axios'
+import {
+  getConversations,
+  getMessages,
+  sendMessage as httpSendMessage,
+  markRead as httpMarkRead
+} from '@/api/chat'
+import { getAdminUsers, getEmployeeList } from '@/api/admin'
 import { useUserStore } from '@/stores/userStore'
+import {
+  connectSocket,
+  disconnectSocket,
+  isSocketConnected,
+  joinChat,
+  sendMessage as socketSendMessage,
+  onNewMessage,
+  onTyping,
+  onMessagesRead,
+  markAsRead,
+  emitTyping,
+  offAllChatEvents,
+} from '@/utils/socket'
 
 const { t } = useI18n()
 const userStore = useUserStore()
@@ -143,7 +167,10 @@ const employees = ref([])
 const admins = ref([])
 const messageBoxRef = ref(null)
 
-let pollTimer = null
+// Typing indicator state
+const peerTyping = ref(false)
+let typingTimeout = null
+let pollInterval = null
 
 const filteredEmployees = computed(() => {
   const kw = (userSearchKeyword.value || '').toLowerCase()
@@ -170,10 +197,33 @@ const scrollToBottom = async () => {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Polling fallback                                                   */
+/* ------------------------------------------------------------------ */
+
+const startPolling = () => {
+  stopPolling()
+  pollInterval = setInterval(async () => {
+    await loadConversations()
+    if (activePeer.value) await loadMessages()
+  }, 30000)
+}
+
+const stopPolling = () => {
+  if (pollInterval) {
+    clearInterval(pollInterval)
+    pollInterval = null
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  HTTP data loaders (initial + fallback)                             */
+/* ------------------------------------------------------------------ */
+
 const loadConversations = async () => {
   loadingConversations.value = true
   try {
-    const { data } = await Axios.get('/api/chat/conversations')
+    const { data } = await getConversations()
     if (data?.status) {
       conversations.value = data.data || []
     }
@@ -188,21 +238,18 @@ const loadMessages = async () => {
   if (!activePeer.value) return
   loadingMessages.value = true
   try {
-    const { data } = await Axios.get('/api/chat/messages', {
-      params: {
-        peer_number: activePeer.value.peer_number,
-        peer_role: activePeer.value.peer_role
-      }
+    const { data } = await getMessages({
+      peer_number: activePeer.value.peer_number,
+      peer_role: activePeer.value.peer_role
     })
     if (data?.status) {
       messages.value = data.data || []
       await scrollToBottom()
-      // 标记已读
-      await Axios.post('/api/chat/mark_read', {
+      // Mark as read via HTTP (also works as fallback)
+      await httpMarkRead({
         peer_number: activePeer.value.peer_number,
         peer_role: activePeer.value.peer_role
       })
-      // 更新会话列表中的未读数
       await loadConversations()
     }
   } catch (e) {
@@ -212,6 +259,10 @@ const loadMessages = async () => {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/*  Conversation / contact management                                  */
+/* ------------------------------------------------------------------ */
+
 const selectConversation = async (item) => {
   activePeer.value = {
     peer_number: item.peer_number,
@@ -219,6 +270,10 @@ const selectConversation = async (item) => {
     peer_name: item.peer_name
   }
   await loadMessages()
+  // Notify the server via socket that we've read this conversation
+  if (isSocketConnected()) {
+    markAsRead({ peerNumber: item.peer_number, peerRole: item.peer_role })
+  }
 }
 
 const sendMessage = async () => {
@@ -233,16 +288,35 @@ const sendMessage = async () => {
   }
   sending.value = true
   try {
-    const { data } = await Axios.post('/api/chat/send', {
-      receiver_number: activePeer.value.peer_number,
-      receiver_role: activePeer.value.peer_role,
-      content
-    })
-    if (data?.status) {
+    if (isSocketConnected()) {
+      await socketSendMessage({
+        toUserNumber: activePeer.value.peer_number,
+        toUserRole: activePeer.value.peer_role,
+        content,
+      })
       messageText.value = ''
-      await loadMessages()
+      // Optimistically append our own message
+      messages.value.push({
+        id: Date.now(),
+        content,
+        created_at: new Date().toLocaleString(),
+        is_me: true,
+      })
+      await scrollToBottom()
+      await loadConversations()
     } else {
-      ElMessage.error(data?.msg || t('adminChat.sendFailed'))
+      // Fallback to HTTP
+      const { data } = await httpSendMessage({
+        receiver_number: activePeer.value.peer_number,
+        receiver_role: activePeer.value.peer_role,
+        content
+      })
+      if (data?.status) {
+        messageText.value = ''
+        await loadMessages()
+      } else {
+        ElMessage.error(data?.msg || t('adminChat.sendFailed'))
+      }
     }
   } catch (e) {
     ElMessage.error(t('adminChat.sendFailed'))
@@ -254,16 +328,16 @@ const sendMessage = async () => {
 const loadAllUsers = async () => {
   loadingUsers.value = true
   try {
-    const { data } = await Axios.get('/api/admin/users')
+    const { data } = await getAdminUsers()
     if (data?.status) {
       employees.value = data.data?.employees || []
       admins.value = data.data?.admins || []
     }
   } catch (e) {
     console.error('loadAllUsers error:', e)
-    // 备用方案
+    // Fallback
     try {
-      const empRes = await Axios.get('/api/adm/get_emp_info_list', { params: { pageSize: 1000 } })
+      const empRes = await getEmployeeList({ pageSize: 1000 })
       employees.value = empRes.data?.data?.list || empRes.data?.data || []
     } catch (e2) {
       console.error('fallback loadEmployees error:', e2)
@@ -275,7 +349,6 @@ const loadAllUsers = async () => {
 
 const startChat = (row, role) => {
   const number = role === 'employee' ? row.employee_number : row.adm_number
-  // 检查是否选择自己
   if (number === userStore.userNumber) {
     ElMessage.warning(t('adminChat.cannotChatSelf'))
     return
@@ -289,35 +362,102 @@ const startChat = (row, role) => {
   loadMessages()
 }
 
-onMounted(async () => {
-  await Promise.all([loadConversations(), loadAllUsers()])
-  // 使用visibilitychange优化性能
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-  startPolling()
+/* ------------------------------------------------------------------ */
+/*  Typing indicator                                                   */
+/* ------------------------------------------------------------------ */
+
+const onInputTyping = () => {
+  if (!activePeer.value || !isSocketConnected()) return
+  emitTyping({ toUserNumber: activePeer.value.peer_number })
+}
+
+// Watch messageText for typing events (debounced)
+let draftTypingTimer = null
+watch(messageText, () => {
+  if (draftTypingTimer) clearTimeout(draftTypingTimer)
+  draftTypingTimer = setTimeout(onInputTyping, 500)
 })
 
-const startPolling = () => {
-  if (pollTimer) clearInterval(pollTimer)
-  pollTimer = setInterval(async () => {
-    // 只在页面可见时刷新
-    if (document.visibilityState === 'visible') {
-      await loadConversations()
-      if (activePeer.value) await loadMessages()
+/* ------------------------------------------------------------------ */
+/*  Socket setup                                                       */
+/* ------------------------------------------------------------------ */
+
+const setupSocketListeners = () => {
+  offAllChatEvents()
+
+  onNewMessage((msg) => {
+    if (activePeer.value) {
+      const isFromActivePeer =
+        msg.sender_number === activePeer.value.peer_number &&
+        msg.sender_role === activePeer.value.peer_role
+      const isToMe = msg.receiver_number === userStore.user_number
+
+      if (isFromActivePeer && isToMe) {
+        messages.value.push({
+          id: msg.id,
+          content: msg.content,
+          created_at: msg.created_at,
+          is_me: false,
+        })
+        scrollToBottom()
+        markAsRead({
+          peerNumber: activePeer.value.peer_number,
+          peerRole: activePeer.value.peer_role,
+        })
+      }
     }
-  }, 30000) // 改为30秒，减少刷新频率
+    loadConversations()
+  })
+
+  onTyping((data) => {
+    if (!activePeer.value) return
+    if (data.from_user_number === activePeer.value.peer_number) {
+      peerTyping.value = true
+      if (typingTimeout) clearTimeout(typingTimeout)
+      typingTimeout = setTimeout(() => {
+        peerTyping.value = false
+      }, 3000)
+    }
+  })
+
+  onMessagesRead(() => {
+    loadConversations()
+  })
 }
 
-const handleVisibilityChange = () => {
-  if (document.visibilityState === 'visible') {
-    // 页面重新可见时立即刷新一次
-    loadConversations()
-    if (activePeer.value) loadMessages()
-  }
+const initChat = async () => {
+  await Promise.all([loadConversations(), loadAllUsers()])
+
+  const token = userStore.token
+  if (!token) return
+
+  connectSocket(token, {
+    onAuthenticated (data) {
+      if (data.user_number) {
+        joinChat(data.user_number)
+      }
+      stopPolling()
+      setupSocketListeners()
+    },
+  })
+
+  // If socket doesn't connect within 5 seconds, start polling fallback
+  setTimeout(() => {
+    if (!isSocketConnected()) {
+      ElMessage.warning(t('adminChat.socketFallback') || 'Real-time connection unavailable, using polling')
+      startPolling()
+    }
+  }, 5000)
 }
+
+onMounted(initChat)
 
 onBeforeUnmount(() => {
-  if (pollTimer) clearInterval(pollTimer)
-  document.removeEventListener('visibilitychange', handleVisibilityChange)
+  offAllChatEvents()
+  stopPolling()
+  if (typingTimeout) clearTimeout(typingTimeout)
+  if (draftTypingTimer) clearTimeout(draftTypingTimer)
+  disconnectSocket()
 })
 </script>
 
@@ -419,6 +559,7 @@ onBeforeUnmount(() => {
 .msg-item .time { font-size: 11px; color: #909399; margin-top: 4px; }
 .no-msg { text-align: center; color: #909399; padding: 40px; }
 
+.typing-indicator { padding: 4px 16px 6px; font-size: 12px; color: #909399; font-style: italic; background: #f9f9f9; }
 .input-area {
   border-top: 1px solid #e4e7ed;
   padding: 12px 16px;

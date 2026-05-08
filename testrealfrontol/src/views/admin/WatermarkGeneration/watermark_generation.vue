@@ -155,7 +155,8 @@
 import { reactive, ref, onMounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
-import axios from '@/utils/Axios';
+import { getApplicationsGenerateWatermark, generateWatermark } from '@/api/watermark';
+import { geocodingSearch } from '@/api/data';
 import { Search } from '@element-plus/icons-vue';
 import '@arcgis/core/assets/esri/themes/light/main.css';
 import MapView from '@arcgis/core/views/MapView';
@@ -220,9 +221,7 @@ const getStatusText = (status) => {
 const get_applications = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/adm1_get_applications_generate_watermark`, {
-      params: { page: page.value, pageSize: pageSize.value }
-    });
+    const response = await getApplicationsGenerateWatermark({ page: page.value, pageSize: pageSize.value });
     if (!response.data?.status) {
       data.list = [];
       total.value = 0;
@@ -264,7 +263,7 @@ const openRequestDialog = async (row) => {
 
 const generate = async () => {
   await requestFormRef.value?.validate();
-  const resp = await axios.post(`/api/generate_watermark`, requestInformation);
+  const resp = await generateWatermark(requestInformation);
   if (!resp.data?.status) {
     ElMessage.error(resp.data?.msg || t('wmGen.generateFailed'));
     return;
@@ -353,9 +352,7 @@ const searchMap = async () => {
     return;
   }
   try {
-    const resp = await axios.get(`/api/geocoding/search`, {
-      params: { keyword }
-    });
+    const resp = await geocodingSearch({ keyword });
     const pois = resp.data?.pois || [];
     if (!pois.length) {
       ElMessage.warning(t('wmGen.noResults'));

@@ -1,3 +1,4 @@
+import logging
 import numpy as np
 
 
@@ -12,61 +13,6 @@ def get_coor_nested(shpfile):
     x_coords = []
     y_coords = []
     feature_type = []
-    # for geom in shpfile.geometry:
-    #     # 对于空的Point，LineString来说 保存为文件之后 再读取得到的geom就是None
-    #     if geom != None:
-    #         if geom.type == 'Point':
-    #             x_coords.append(np.array([geom.x]))
-    #             y_coords.append(np.array([geom.y]))
-    #
-    #         elif geom.type == 'LineString':
-    #             # 处理线几何对象的坐标
-    #             x_coords.append(np.array(geom.xy[0]))
-    #             y_coords.append(np.array(geom.xy[1]))
-    #
-    #         elif geom.type == 'MultiLineString':
-    #             x_mult = []
-    #             y_mult = []
-    #             for line in geom.geoms:
-    #                 coords = np.array(line.xy)
-    #                 x_mult.append(coords[0])
-    #                 y_mult.append(coords[1])
-    #             x_coords.append(x_mult)
-    #             y_coords.append(y_mult)
-    #
-    #         elif geom.type == 'Polygon':
-    #             # 处理多边形几何对象的坐标
-    #             # 处理多边形几何对象的外部环坐标
-    #             coords = geom.exterior.coords
-    #             x_coords.append(np.array(coords).T[0, :])
-    #             y_coords.append(np.array(coords).T[1, :])
-    #             # todo：内部环没处理
-    #             # # 处理多边形几何对象的内部环坐标
-    #             # for interior in geom.interiors:
-    #             #     print('是')
-    #             #     interior_coords = np.array(interior.coords)
-    #             #     x_coords.append(interior_coords[:, 0])
-    #             #     y_coords.append(interior_coords[:, 1])
-    #
-    #         elif geom.type == 'MultiPolygon':
-    #             x_mult = []
-    #             y_mult = []
-    #             for polygon in geom.geoms:
-    #                 coords = polygon.exterior.coords
-    #                 x_mult.append(np.array(coords).T[0, :])
-    #                 y_mult.append(np.array(coords).T[1, :])
-    #                 #     interior_coords = np.array(interior.coords)
-    #                 #     np.append(x_mult, interior_coords[:, 0])
-    #                 #     np.append(y_mult, interior_coords[:, 1])
-    #             x_coords.append(x_mult)
-    #             y_coords.append(y_mult)
-    #         else:
-    #             if geom.type not in feature_type:
-    #                 # 对于空的Point，LineString来说，未写入文件之前 geom.type为geometrycollection
-    #                 print(f"\n存在未解析类型{geom.type}")
-    #         feature_type.append(geom.type)
-    #     coor_nested = np.array([x_coords, y_coords], dtype=object)
-    # return coor_nested, feature_type
 
     for geom in shpfile.geometry:
         # 对于空的Point，LineString来说保存为文件之后再读取得到的geom就是None
@@ -93,33 +39,37 @@ def get_coor_nested(shpfile):
             elif geom.geom_type == 'Polygon':
                 # 处理多边形几何对象的坐标
                 # 处理多边形几何对象的外部环坐标
-                coords = geom.exterior.coords
-                x_coords.append(np.array(coords).T[0, :])
-                y_coords.append(np.array(coords).T[1, :])
-                # todo：内部环没处理
-                # # 处理多边形几何对象的内部环坐标
-                # for interior in geom.interiors:
-                #     print('是')
-                #     interior_coords = np.array(interior.coords)
-                #     x_coords.append(interior_coords[:, 0])
-                #     y_coords.append(interior_coords[:, 1])
+                if geom.interiors:
+                    # 有内部环（孔洞）时，将外部环和内部环作为嵌套列表存储
+                    x_mult = [np.array(geom.exterior.coords).T[0, :]]
+                    y_mult = [np.array(geom.exterior.coords).T[1, :]]
+                    for interior in geom.interiors:
+                        interior_coords = np.array(interior.coords)
+                        x_mult.append(interior_coords[:, 0])
+                        y_mult.append(interior_coords[:, 1])
+                    x_coords.append(x_mult)
+                    y_coords.append(y_mult)
+                else:
+                    coords = geom.exterior.coords
+                    x_coords.append(np.array(coords).T[0, :])
+                    y_coords.append(np.array(coords).T[1, :])
 
             elif geom.geom_type == 'MultiPolygon':
                 x_mult = []
                 y_mult = []
                 for polygon in geom.geoms:
-                    coords = polygon.exterior.coords
-                    x_mult.append(np.array(coords).T[0, :])
-                    y_mult.append(np.array(coords).T[1, :])
-                    #     interior_coords = np.array(interior.coords)
-                    #     np.append(x_mult, interior_coords[:, 0])
-                    #     np.append(y_mult, interior_coords[:, 1])
+                    x_mult.append(np.array(polygon.exterior.coords).T[0, :])
+                    y_mult.append(np.array(polygon.exterior.coords).T[1, :])
+                    for interior in polygon.interiors:
+                        interior_coords = np.array(interior.coords)
+                        x_mult.append(interior_coords[:, 0])
+                        y_mult.append(interior_coords[:, 1])
                 x_coords.append(x_mult)
                 y_coords.append(y_mult)
             else:
                 if geom.geom_type not in feature_type:
                     # 对于空的Point，LineString来说，未写入文件之前geom.geom_type为geometrycollection
-                    print(f"\n存在未解析类型{geom.geom_type}")
+                    logging.warning("Unparsed geometry type: %s", geom.geom_type)
             feature_type.append(geom.geom_type)
 
     coor_nested = np.array([x_coords, y_coords], dtype=object)
@@ -154,7 +104,7 @@ def get_coor_array(coor_nested, shp_type):
         # 如果存在indexError 即该要素为空，然后再判断 shp_type，如果先判断这个的话，会存在问题
         # todo:什么问题 一个数组会嵌套数组 但进入else判断中
         except IndexError as e:
-            print(e)
+            logging.warning("IndexError in get_coor_array at feature %d: %s", i, e)
             if shp_type[i] in ['MultiPolygon', 'MultiLineString']:
                 if len(coor_nested[:, i][0]) == 0:
                     continue
@@ -177,4 +127,4 @@ if __name__ == '__main__':
     embed_shpfile = gpd.read_file(embed_shpfile_path)
     embed_coor_nested, file_type = get_coor_nested(embed_shpfile)
     embed_coor_array = get_coor_array(embed_coor_nested, file_type)
-    print(embed_coor_array)
+    logging.info("Coordinate array: %s", embed_coor_array)

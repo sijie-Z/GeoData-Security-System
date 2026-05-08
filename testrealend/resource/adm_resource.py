@@ -4,10 +4,11 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from model.Employee_Info import EmployeeInfo
 from model.Employee_Account import EmployeeAccount
 from extension.extension import db
+from utils.required import admin_required
 import logging
 
 class GetEmpInfoListResource(Resource):
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get('page', 1, type=int)
         page_size = request.args.get('pageSize', 10, type=int)
@@ -42,7 +43,7 @@ class GetEmpPhotoResource(Resource):
 
 
 class AddEmployeeResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         try:
             employee_number = (request.form.get('employee_number') or '').strip()
@@ -115,7 +116,7 @@ class EmployeeDetailsResource(Resource):
 
 
 class EmployeeUpdateResource(Resource):
-    @jwt_required()
+    @admin_required
     def put(self, employee_number):
         try:
             item = EmployeeInfo.query.filter_by(employee_number=employee_number).first()
@@ -163,7 +164,7 @@ class EmployeeUpdateResource(Resource):
 
 
 class AdminDeleteEmployeeResource(Resource):
-    @jwt_required()
+    @admin_required
     def delete(self, employee_number):
         try:
             info = EmployeeInfo.query.filter_by(employee_number=employee_number).first()
@@ -182,7 +183,7 @@ class AdminDeleteEmployeeResource(Resource):
 
 
 class AccountCreateResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         try:
             data = request.get_json() or {}

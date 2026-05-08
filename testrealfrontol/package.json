@@ -25,6 +25,7 @@
     "pinia-plugin-persistedstate": "^3.2.1",
     "qrcode": "^1.5.4",
     "screenfull": "^6.0.2",
+    "socket.io-client": "^4.8.3",
     "three": "^0.177.0",
     "typewriter-effect": "^2.22.0",
     "uuid": "^11.1.0",

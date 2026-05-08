@@ -220,14 +220,57 @@
         />
       </div>
     </el-card>
+
+    <!-- Application Detail Dialog -->
+    <el-dialog
+      v-model="detailDialogVisible"
+      :title="$t('approval.viewDetail')"
+      width="600px"
+      destroy-on-close
+    >
+      <el-descriptions :column="2" border>
+        <el-descriptions-item :label="$t('approval.applyId')">{{ detailRow.id }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.dataName')">{{ detailRow.data_alias }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.dataId')">{{ detailRow.data_id }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.dataType')">{{ getDataTypeText(detailRow.data_type) }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.applicant')">{{ detailRow.applicant_name }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.userId')">{{ detailRow.applicant_user_number }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.applyReason')" :span="2">{{ detailRow.reason || '—' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.applyTime')">{{ detailRow.application_time }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.reviewStatus')">
+          <el-tag :type="getStatusType(detailRow)" effect="dark">{{ getStatusText(detailRow) }}</el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.firstReviewInfo')">
+          {{ detailRow.first_reviewer || '—' }}
+          <template v-if="detailRow.first_review_time">
+            <br /><small>{{ formatTime(detailRow.first_review_time) }}</small>
+          </template>
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('approval.secondReviewInfo')">
+          {{ detailRow.second_reviewer || '—' }}
+          <template v-if="detailRow.second_review_time">
+            <br /><small>{{ formatTime(detailRow.second_review_time) }}</small>
+          </template>
+        </el-descriptions-item>
+      </el-descriptions>
+      <template #footer>
+        <el-button @click="detailDialogVisible = false">{{ $t('approval.cancel') }}</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, h } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useI18n } from 'vue-i18n'
-import axios from '@/utils/Axios'
+import {
+  approveApplication,
+  rejectApplication,
+  additionalReview as additionalReviewApi,
+  getShpApplications,
+  getRasterApplications
+} from '@/api/admin'
 import { useUserStore } from '@/stores/userStore.js'
 import { Location, Picture, Search, Check, Close, View, Refresh } from '@element-plus/icons-vue'
 
@@ -237,6 +280,8 @@ const userStore = useUserStore()
 
 // 数据状态
 const loading = ref(false)
+const additionalReviewReason = ref('')
+const additionalReviewAction = ref('reject')
 const activeDataType = ref('vector') // vector 或 raster
 const searchKeyword = ref('')
 const statusFilter = ref('')
@@ -356,11 +401,7 @@ const getSecondReviewText = (row) => {
 }
 
 const currentAdminRole = computed(() => {
-  const n = (userStore.userNumber || '').toString().toLowerCase()
-  if (n === 'adm1' || n === 'admin1' || n === '22200214135') return 'adm1'
-  if (n === 'adm2' || n === 'admin2' || n === '33300214135') return 'adm2'
-  if (n === 'adm3' || n === 'admin3' || n === '44400214135') return 'adm3'
-  return ''
+  return userStore.adminSubRole || 'adm1'
 })
 
 const canFirstReview = (row) => {
@@ -389,7 +430,7 @@ const handleFirstApprove = async (row) => {
       type: 'info'
     })
 
-    const response = await axios.post(`/api/adm1_pass`, {
+    const response = await approveApplication('adm1', {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber
@@ -417,11 +458,11 @@ const handleFirstReject = async (row) => {
       inputErrorMessage: t('approval.rejectReasonMinLength')
     })
 
-    const response = await axios.post(`/api/adm1_fail`, {
+    const response = await rejectApplication('adm1', {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber,
-      reason: reason
+      fail_reason: reason
     })
 
     if (response.data.status) {
@@ -452,7 +493,7 @@ const handleSecondApprove = async (row) => {
     })
 
     try {
-      const response = await axios.post(`/api/adm2_pass`, {
+      const response = await approveApplication('adm2', {
         id: row.id,
         user_name: userStore.userName,
         user_number: userStore.userNumber
@@ -483,11 +524,11 @@ const handleSecondReject = async (row) => {
       inputErrorMessage: t('approval.rejectReasonMinLength')
     })
 
-    const response = await axios.post(`/api/adm2_fail`, {
+    const response = await rejectApplication('adm2', {
       id: row.id,
       user_name: userStore.userName,
       user_number: userStore.userNumber,
-      reason: reason
+      fail_reason: reason
     })
 
     if (response.data.status) {
@@ -505,44 +546,77 @@ const handleSecondReject = async (row) => {
 
 const handleAdditionalReview = async (row) => {
   try {
-    const { value } = await ElMessageBox.prompt(t('approval.enterAdditionalReviewOpinion'), t('approval.additionalReviewTitle'), {
+    const { action, value } = await ElMessageBox({
+      title: t('approval.additionalReviewTitle'),
+      message: h => {
+        return h('div', [
+          h('p', { style: 'margin-bottom:12px' }, t('approval.enterAdditionalReviewOpinion')),
+          h('div', { style: 'display:flex;gap:12px;margin-bottom:12px' }, [
+            h('el-radio-group', { modelValue: additionalReviewAction.value, 'onUpdate:modelValue': v => { additionalReviewAction.value = v } }, [
+              h('el-radio-button', { value: 'approve' }, t('approval.approve')),
+              h('el-radio-button', { value: 'reject' }, t('approval.reject'))
+            ])
+          ]),
+          h('el-input', {
+            type: 'textarea',
+            modelValue: additionalReviewReason.value,
+            'onUpdate:modelValue': v => { additionalReviewReason.value = v },
+            rows: 3,
+            placeholder: t('approval.enterAdditionalReviewOpinion')
+          })
+        ])
+      },
+      showCancelButton: true,
       confirmButtonText: t('approval.submitReject'),
       cancelButtonText: t('approval.cancel'),
-      inputPattern: /^[\s\S]{5,}$/,
-      inputErrorMessage: t('approval.additionalReviewMinLength')
+      beforeClose: (action, instance, done) => {
+        if (action === 'confirm') {
+          if (!additionalReviewReason.value || additionalReviewReason.value.length < 5) {
+            ElMessage.warning(t('approval.additionalReviewMinLength'))
+            return
+          }
+        }
+        done()
+      }
     })
 
-    const response = await axios.post(`/api/adm3_additional_review`, {
-      id: row.id,
-      statu: false,
-      reason: value,
-      user_name: userStore.userName,
-      user_number: userStore.userNumber
-    })
+    if (action === 'confirm') {
+      const response = await additionalReviewApi({
+        id: row.id,
+        statu: additionalReviewAction.value === 'approve',
+        reason: additionalReviewReason.value,
+        user_name: userStore.userName,
+        user_number: userStore.userNumber
+      })
 
-    if (response.data?.status) {
-      ElMessage.success(t('approval.additionalReviewSubmitted'))
-      await refreshData()
-    } else {
-      ElMessage.error(response.data?.msg || t('approval.additionalReviewFailed'))
+      if (response.data?.status) {
+        ElMessage.success(t('approval.additionalReviewSubmitted'))
+        additionalReviewReason.value = ''
+        additionalReviewAction.value = 'reject'
+        await refreshData()
+      } else {
+        ElMessage.error(response.data?.msg || t('approval.additionalReviewFailed'))
+      }
     }
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(t('approval.additionalReviewFailed'))
   }
 }
 
+// Detail dialog state
+const detailDialogVisible = ref(false)
+const detailRow = ref({})
+
 const viewApplicationDetail = (row) => {
-  // 查看申请详情
-  console.log('查看申请详情:', row)
+  detailRow.value = row
+  detailDialogVisible.value = true
 }
 
 // 数据获取
 const fetchVectorApplications = async () => {
   try {
     loading.value = true
-    const response = await axios.get(`/api/adm1_get_shp_applications`, {
-      params: { page: 1, pageSize: 100 }
-    })
+    const response = await getShpApplications({ page: 1, pageSize: 100 })
 
     if (response.data && response.data.status) {
       vectorApplications.value = response.data.application_data || []
@@ -552,7 +626,6 @@ const fetchVectorApplications = async () => {
     }
   } catch (error) {
     ElMessage.error(t('approval.fetchVectorFailed'))
-    console.error('获取矢量数据申请失败:', error)
   } finally {
     loading.value = false
   }
@@ -561,9 +634,7 @@ const fetchVectorApplications = async () => {
 const fetchRasterApplications = async () => {
   try {
     loading.value = true
-    const response = await axios.get(`/api/adm1_get_raster_applications`, {
-      params: { page: 1, pageSize: 100 }
-    })
+    const response = await getRasterApplications({ page: 1, pageSize: 100 })
 
     if (response.data && response.data.status) {
       rasterApplications.value = response.data.application_data || []
@@ -573,7 +644,6 @@ const fetchRasterApplications = async () => {
     }
   } catch (error) {
     ElMessage.error(t('approval.fetchRasterFailed'))
-    console.error('获取遥感数据申请失败:', error)
   } finally {
     loading.value = false
   }
@@ -619,7 +689,7 @@ onMounted(() => {
 /* 头部卡片 - 使用普通div而非el-card */
 .header-card {
   margin-bottom: 20px;
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%) !important;
+  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)) !important;
   border: none !important;
   border-radius: 12px;
   color: white !important;

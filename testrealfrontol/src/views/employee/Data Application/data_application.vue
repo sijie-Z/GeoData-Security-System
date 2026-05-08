@@ -40,9 +40,17 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('empDataApp.actions')" width="120" align="center">
-        <template #default>
+      <el-table-column :label="$t('empDataApp.actions')" width="180" align="center">
+        <template #default="{ row }">
           <el-button type="primary" link size="small">{{ $t('empDataApp.viewDetails') }}</el-button>
+          <el-button
+            v-if="row.first_statu === null && !row.is_recalled"
+            type="danger" link size="small"
+            @click="handleWithdraw(row)"
+          >{{ $t('empDataApp.withdraw') || '撤回' }}</el-button>
+          <el-tag v-if="row.is_recalled" type="info" size="small" effect="plain">
+            {{ $t('empDataApp.recalled') || '已撤回' }}
+          </el-tag>
         </template>
       </el-table-column>
     </el-table>
@@ -66,8 +74,8 @@
 import { Refresh } from "@element-plus/icons-vue";
 import { reactive, onMounted, ref, watch, computed } from "vue";
 import { useI18n } from 'vue-i18n';
-import { ElMessage } from "element-plus";
-import axios from '@/utils/Axios';
+import { ElMessage, ElMessageBox } from "element-plus";
+import { getMyApplications, withdrawApplication } from '@/api/employee';
 import { useUserStore } from "@/stores/userStore.js";
 
 const { t } = useI18n();
@@ -114,8 +122,8 @@ const getStatusText = (status) => {
 const get_applications = async () => {
   loading.value = true; // 开始加载
   try {
-    const response = await axios.get(`/api/get_applications`, {
-      params: { page: page.value, pageSize: pageSize.value, userNumber: userNumber.value },
+    const response = await getMyApplications({
+      page: page.value, pageSize: pageSize.value, userNumber: userNumber.value
     });
 
     if (response.data == null) {
@@ -136,6 +144,27 @@ const get_applications = async () => {
     ElMessage.error(t('empDataApp.fetchFailed'));
   } finally {
     loading.value = false; // 结束加载
+  }
+};
+
+const handleWithdraw = async (row) => {
+  try {
+    await ElMessageBox.confirm(
+      t('empDataApp.withdrawConfirm') || `确定要撤回申请 #${row.id} 吗？`,
+      t('empDataApp.withdrawTitle') || '撤回申请',
+      { confirmButtonText: t('common.confirm') || '确定', cancelButtonText: t('common.cancel') || '取消', type: 'warning' }
+    );
+    const resp = await withdrawApplication(row.id);
+    if (resp.data.status) {
+      ElMessage.success(resp.data.msg || t('empDataApp.withdrawSuccess') || '撤回成功');
+      get_applications();
+    } else {
+      ElMessage.error(resp.data.msg || t('empDataApp.withdrawFailed') || '撤回失败');
+    }
+  } catch (e) {
+    if (e !== 'cancel') {
+      ElMessage.error(t('empDataApp.withdrawFailed') || '撤回失败');
+    }
   }
 };
 

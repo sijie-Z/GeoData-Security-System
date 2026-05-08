@@ -79,7 +79,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue';
-import axios from '@/utils/Axios';
+import { checkAdminApplicationEligibility, getMyAdminApplications, submitAdminApplication } from '@/api/admin';
 
 const { t } = useI18n();
 
@@ -106,7 +106,7 @@ const getStatusType = (status) => {
 const checkEligibility = async () => {
   checkingEligibility.value = true;
   try {
-    const resp = await axios.get('/api/admin-application/eligibility');
+    const resp = await checkAdminApplicationEligibility();
     if (resp.data?.status) {
       eligibility.value = resp.data.data;
     }
@@ -120,7 +120,7 @@ const checkEligibility = async () => {
 const getMyApplications = async () => {
   loadingHistory.value = true;
   try {
-    const resp = await axios.get('/api/admin-application/my');
+    const resp = await getMyAdminApplications();
     if (resp.data?.status) {
       myApplications.value = resp.data.data || [];
     }
@@ -135,7 +135,7 @@ const submitApplication = async () => {
   await formRef.value?.validate();
   submitting.value = true;
   try {
-    const resp = await axios.post('/api/admin-application/submit', form);
+    const resp = await submitAdminApplication(form);
     if (resp.data?.status) {
       ElMessage.success(t('empAdminApp.submitSuccess'));
       form.reason = '';

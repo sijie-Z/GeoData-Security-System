@@ -32,20 +32,26 @@ class EmployeeProfileResource(Resource):
 
     @jwt_required()
     def put(self):
+        import re
         identity = get_jwt_identity()
         user_number = identity.get('number')
         user = EmployeeInfo.query.filter_by(employee_number=user_number).first()
         if not user:
             return {'status': False, 'msg': '用户未找到'}, 404
 
-        # Form data (multipart/form-data)
-        user.name = request.form.get('userName', user.name)
-        user.email = request.form.get('email', user.email)
-        user.phone_number = request.form.get('phoneNumber', user.phone_number)
-        user.address = request.form.get('address', user.address)
+        email = request.form.get('email')
+        if email and not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            return {'status': False, 'msg': '邮箱格式不正确'}, 400
+
+        user.name = (request.form.get('userName') or user.name).strip()[:50]
+        user.email = email or user.email
+        user.phone_number = (request.form.get('phoneNumber') or user.phone_number).strip()[:20]
+        user.address = (request.form.get('address') or user.address).strip()[:200]
 
         avatar = request.files.get('avatar')
         if avatar:
+            if avatar.content_length and avatar.content_length > 5 * 1024 * 1024:
+                return {'status': False, 'msg': '头像文件不能超过5MB'}, 400
             user.face_photo = avatar.read()
 
         db.session.commit()
@@ -69,8 +75,12 @@ class EmployeePasswordResource(Resource):
         old_password = (data.get('old_password') or '').strip()
         new_password = (data.get('new_password') or '').strip()
 
-        if not new_password or len(new_password) < 6:
-            return {'status': False, 'msg': '新密码长度至少6位'}, 400
+        if not old_password:
+            return {'status': False, 'msg': '请输入原密码'}, 400
+        if not new_password or len(new_password) < 8:
+            return {'status': False, 'msg': '新密码长度至少8位'}, 400
+        if not any(c.isdigit() for c in new_password) or not any(c.isalpha() for c in new_password):
+            return {'status': False, 'msg': '新密码必须包含字母和数字'}, 400
 
         user_acc = EmployeeAccount.query.filter_by(employee_number=user_number).first()
         if not user_acc:

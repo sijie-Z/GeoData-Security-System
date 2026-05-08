@@ -211,7 +211,7 @@ import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus';
 import { User, Camera, Edit, Key, DataAnalysis, Calendar, Clock, Document } from '@element-plus/icons-vue';
-import axios from '@/utils/Axios';
+import { getProfile, updateProfile, changePassword, getPhoto, getDashboard } from '@/api/employee';
 import { useUserStore } from '@/stores/userStore';
 
 const { t } = useI18n();
@@ -263,7 +263,7 @@ const passwordForm = ref({
 const fetchUserProfile = async () => {
   loading.value = true;
   try {
-    const response = await axios.get('/api/employee/profile');
+    const response = await getProfile();
     if (response.data && response.data.code === 200) {
       profileData.value = response.data.data;
       // 调用获取头像函数 - 使用用户编号
@@ -288,10 +288,7 @@ const fetchUserProfile = async () => {
 const fetchUserAvatar = async (employeeNumber) => {
   if (!employeeNumber) return;
   try {
-    // 假设后端API是 GET /api/employee/photo/{employeeNumber}
-    const response = await axios.get(`/api/employee/photo/${employeeNumber}`, {
-      responseType: 'blob' // 重要：将响应类型设置为blob
-    });
+    const response = await getPhoto(employeeNumber, { responseType: 'blob' });
     // 将Blob对象转换为URL
     profileData.value.avatarUrl = URL.createObjectURL(response.data);
   } catch (error) {
@@ -317,9 +314,7 @@ onMounted(async () => {
   lastLoginTime.value = profileData.value.lastLoginTime || t('empProfile.today');
   // 从仪表盘API获取真实统计数据
   try {
-    const resp = await axios.get('/api/employee/dashboard', {
-      params: { userNumber: userStore.userNumber }
-    });
+    const resp = await getDashboard();
     if (resp.data?.status) {
       dataCount.value = resp.data.data.my_downloads || 0;
     }
@@ -399,11 +394,7 @@ const saveProfile = async () => {
       formData.append('avatar', editForm.value.avatar);
     }
 
-    const response = await axios.put('/api/employee/profile', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    });
+    const response = await updateProfile(formData);
 
     if (response.data && response.data.code === 200) {
       ElMessage.success(t('empProfile.profileUpdateSuccess'));
@@ -433,7 +424,7 @@ const updatePassword = async () => {
   }
 
   try {
-    const response = await axios.put('/api/employee/password', {
+    const response = await changePassword({
       old_password: passwordForm.value.oldPassword,
       new_password: passwordForm.value.newPassword
     });

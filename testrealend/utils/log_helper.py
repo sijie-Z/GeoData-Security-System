@@ -1,3 +1,5 @@
+import logging
+
 from flask import request
 from model.Log_Info import LogInfo
 from extension.extension import db
@@ -17,4 +19,4 @@ def log_action(user_number, username, action, status='成功', details=None):
         db.session.add(log)
         db.session.commit()
     except Exception:
-        pass
+        logging.error('Failed to write audit log', exc_info=True)

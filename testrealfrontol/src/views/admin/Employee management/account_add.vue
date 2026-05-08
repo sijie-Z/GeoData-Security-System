@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Back } from '@element-plus/icons-vue';
-import Axios from '@/utils/Axios.js';
+import { getEmployeeList, createAccount } from '@/api/admin';
 
 const { t } = useI18n();
 
@@ -72,7 +72,7 @@ const handleBack = () => {
 const fetchEmployeesForSelection = async () => {
   try {
     // 假设此接口返回一个不分页的、包含所有员工基本信息的列表
-    const response = await Axios.get('/api/adm/get_emp_info_list');
+    const response = await getEmployeeList();
     if (response.data && response.data.status) {
       employeeList.value = response.data.data.list;
     } else {
@@ -106,7 +106,7 @@ const submitForm = async () => {
         // ==========================================================
         // === 这里是与后端接口交互的地方 ===
         // TODO: 请与后端确认接口地址和请求方法是否正确
-        const response = await Axios.post('/api/account/create', payload);
+        const response = await createAccount(payload);
         // ==========================================================
 
         if (response.data && response.data.status) {
@@ -126,7 +126,6 @@ const submitForm = async () => {
       }
     } else {
       // 校验不通过，提示用户检查
-      console.log('Validation failed on fields:', fields);
       ElMessage.warning(t('accountAdd.warningFormIncomplete'));
       return false;
     }

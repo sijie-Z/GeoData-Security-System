@@ -1,12 +1,21 @@
 import logging
 import os
 import random
+import hashlib
 from decimal import Decimal
 import numpy as np
 from PIL import Image
 from algorithm.get_coor import get_coor_nested, get_coor_array
+from algorithm.quality_metrics import capacity_report
 import zipfile
 from algorithm.to_geodataframe import to_geodataframe
+
+
+def _compute_seed(c1, c2):
+    """Compute a deterministic seed from two coordinate pairs using both x and y.
+    Uses MD5 hash to avoid seed=0 when coordinates are identical in one dimension."""
+    raw = f"{float(c1[0]):.15f},{float(c1[1]):.15f},{float(c2[0]):.15f},{float(c2[1]):.15f}"
+    return int(hashlib.md5(raw.encode()).hexdigest()[:8], 16)
 
 
 def watermark_embed(coor, coor_l, w, n, R):
@@ -23,25 +32,21 @@ def watermark_embed(coor, coor_l, w, n, R):
     # embed_x = xl + w * ((xr - xl) / 2 ** n) + k
     embed_x = xl + w * (R / 2 ** n) + k
     embed_y = y
-    # print(x, embed_x, xl)
-    # print(w,(embed_x-xl)// ((xr - xl) / 2 ** n))
-    # print(coor_l,x, w, embed_x)
-    # print(w)
     return np.vstack([embed_x, embed_y])
 
 
-def coor_process(coor, argument, dis):
+def coor_process(coor, argument, seed):
     """
     对坐标进行处理
     :param coor: 需要处理的坐标
+    :param seed: 确定性种子
     :return: 嵌入水印的坐标
     """
     n, R, W = argument.values()
 
-    random.seed(dis)
+    random.seed(seed)
 
     index = random.randint(0, len(W) - 1)  # 抵抗删点、平移、缩放 不抵抗旋转
-    # print(dis,index)
     w = int(''.join(map(str, W[index])), 2)
 
     coor = np.array([Decimal(str(x)) for x in np.nditer(coor)])
@@ -62,10 +67,9 @@ def coor_group_process(coor_group, argument):
         if i == coor_group.shape[1] - 1:
             embed_coor = coor[:, np.newaxis]
         else:
-            dis = abs(coor[1] - coor_group[:, i + 1][1])
-            # print(coor[1] ,coor_group[:, i + 1][1],dis)
-            embed_coor = coor_process(coor, argument, dis)
-            # print(embed_coor)
+            next_coor = coor_group[:, i + 1]
+            seed = _compute_seed(coor, next_coor)
+            embed_coor = coor_process(coor, argument, seed)
         embed_coor_group = np.concatenate((embed_coor_group, embed_coor), axis=1)
     return embed_coor_group
 
@@ -104,8 +108,6 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, argument):
     """
     # 遍历每个几何要素
     for feature_index in range(coor_nested.shape[1]):
-        # print(coor_nested)
-        # print(coor_nested[:, feature_index])
         coor_group = np.vstack(coor_nested[:, feature_index])
         feature_type = shp_type[feature_index]
         # 判断是否是多线、多面等的情况
@@ -124,17 +126,39 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, argument):
     return processed_shpfile
 
 
-def embed(shpfile_path, watermark_path, output_filename):
+def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
     import geopandas as gpd
-    # -------------------------预定义--------------------------------
-    n = 4  # 嵌入强度
-    tau = 10 ** (-6)  # 精度容差
-    R = Decimal('1e-7')
+    if output_dir is None:
+        from flask import current_app
+        output_dir = current_app.config['WATERMARK_FOLDER']
+    output_filename = f"watermarked_{os.path.basename(shp_path)}"
 
     # -------------------------数据读取--------------------------------
-    original_shpfile = gpd.read_file(shpfile_path)
+    original_shpfile = gpd.read_file(shp_path)
     coor_nested, feature_type = get_coor_nested(original_shpfile)
-    watermark = np.array(Image.open(watermark_path)).astype(int)
+    watermark = np.array(Image.open(qr_image_path)).astype(int)
+
+    # -------------------------容量检查--------------------------------
+    watermark_proc = watermark.copy()
+    replace_matrix_check = np.full((8, 8), -1)
+    watermark_proc[:8, :8] = watermark_proc[:8, -8:] = watermark_proc[-8:, :8] = replace_matrix_check
+    watermark_proc = watermark_proc.flatten()
+    watermark_proc = list(filter(lambda x: x != -1, watermark_proc))
+    n_bits_needed = len(watermark_proc)
+    total_vertices = sum(
+        coor_nested[:, i][0].size if not isinstance(coor_nested[:, i][0], (list, np.ndarray)) or
+        (isinstance(coor_nested[:, i][0], np.ndarray) and coor_nested[:, i][0].ndim == 1)
+        else sum(arr.size for arr in coor_nested[:, i][0])
+        for i in range(coor_nested.shape[1])
+    )
+    cap_report = capacity_report(total_vertices, n_bits_needed, n)
+    if not cap_report['sufficient']:
+        raise ValueError(
+            f"Insufficient embedding capacity: need {cap_report['needed_chunks']} chunks "
+            f"but only {cap_report['available_chunks']} available "
+            f"({cap_report['total_vertices']} vertices, utilization would be {cap_report['utilization_percent']}%)"
+        )
+    logging.info('Capacity report: %s', cap_report)
 
     # -------------------------数据预处理--------------------------------
     replace_matrix = np.full((8, 8), -1)
@@ -153,10 +177,9 @@ def embed(shpfile_path, watermark_path, output_filename):
     coor_array = get_coor_array(coor_nested, feature_type)
     vr = np.mean(coor_array, axis=1)
     vr = [float(format(coor, '.15f')) for coor in vr]
-    print(vr)
+    logging.info('vr: %s', vr)
 
     # -------------------------数据输出--------------------------------
-    output_dir = os.path.join(os.getcwd(), 'embed')
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
@@ -177,7 +200,7 @@ def embed(shpfile_path, watermark_path, output_filename):
             if os.path.exists(filepath):
                 zipf.write(filepath, os.path.basename(filepath))
 
-    print("ZIP文件创建完成，已保存为", zip_file_path)
+    logging.info("ZIP文件创建完成，已保存为 %s", zip_file_path)
 
     # -------------------------删除原始文件--------------------------------
     try:
@@ -185,15 +208,23 @@ def embed(shpfile_path, watermark_path, output_filename):
             filepath = shapefile_path.replace('.shp', ext)
             if os.path.exists(filepath):
                 os.remove(filepath)
-        print("原始文件已删除。")
+        logging.info("原始文件已删除。")
     except Exception as e:
-        print(f"删除文件时出错: {e}")
+        logging.error("删除文件时出错: %s", e)
 
-    return zip_file_path, vr
+    return {
+        'zip_path': zip_file_path,
+        'vr': vr,
+        'capacity_report': cap_report
+    }
 
 
 if __name__ == "__main__":
-    shpfile_path = r"E:\矢量数据\数据\Road\Road.shp"
-    watermark_path = "../temp_qrcode.png"
-    output_filename = "../embed/11WuJiang.shp"
-    embed(shpfile_path, watermark_path, output_filename)
+    import argparse
+    parser = argparse.ArgumentParser(description='Embed watermark into shapefile')
+    parser.add_argument('shp_path', help='Input shapefile path')
+    parser.add_argument('qr_image_path', help='QR code image path')
+    parser.add_argument('--output-dir', default=os.path.join(os.getcwd(), 'embed'))
+    args = parser.parse_args()
+    result = embed(args.shp_path, args.qr_image_path, output_dir=args.output_dir)
+    logging.info('Embed result: %s', result)

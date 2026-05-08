@@ -398,7 +398,9 @@ import {
   View, Download, Refresh, Grid, Collection, Compass, Coordinate, Check
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
-import axios from '@/utils/Axios';
+import { vectorDataViewing, rasterDataViewing, mapSearch } from '@/api/data';
+import { submitApplication } from '@/api/employee';
+import { axios as http } from '@/utils/Axios';
 import { useUserStore } from '@/stores/userStore';
 
 import 'ol/ol.css';
@@ -506,8 +508,8 @@ const fetchData = async () => {
     };
 
     const [vectorResp, rasterResp] = await Promise.all([
-      axios.get(`/api/vector_data_viewing`, { params }),
-      axios.get(`/api/raster_data_viewing`, { params })
+      vectorDataViewing(params),
+      rasterDataViewing(params)
     ]);
 
     const vectorResult = vectorResp.data;
@@ -588,9 +590,6 @@ const openMapDialog = (row) => {
 const openRequestDialog = (dataToApply) => {
   requestInformation.reason = ''; // 清空理由
 
-  // 打印日志，方便你在浏览器控制台看点的数据对不对
-  console.log("点击申请的数据:", dataToApply);
-
   Object.assign(requestInformation, {
     data_id: dataToApply.data_id,
     // 关键点：后端通常需要 data_name，如果原数据里没有，就用别名代替，防止为空
@@ -647,9 +646,7 @@ const submitForm = () => {
         reason: requestInformation.reason || ''
       };
 
-      console.log("🚀 [前端调试] 准备发送的数据:", payload);
-
-      axios.post(`/api/submit_application`, payload)
+      submitApplication(payload)
         .then((res) => {
           // 兼容后端返回格式 (有的返回 status 在外层，有的在 data 里)
           const isSuccess = res.data && (res.data.status === true || res.status === 200);
@@ -662,7 +659,6 @@ const submitForm = () => {
           }
         })
         .catch(error => {
-          console.error('❌ 申请提交失败:', error);
           // 获取后端返回的具体错误信息
           const errorMsg = error.response?.data?.msg || error.response?.data?.message || t('empDataViewNew.errorSubmit');
           ElMessage.error(errorMsg);
@@ -689,9 +685,7 @@ const handleMapSearch = async () => {
   }
 
   try {
-    const response = await axios.get(`/api/map/search`, {
-      params: { keyword: mapSearchKeyword.value.trim() }
-    });
+    const response = await mapSearch({ keyword: mapSearchKeyword.value.trim() });
 
     if (response.data && response.data.pois && response.data.pois.length > 0) {
       const lonlat = response.data.pois[0].lonlat.split(',').map(Number);
@@ -753,7 +747,7 @@ const initializeMapView = async (url, fullLayerName) => {
         })
       }));
 
-      const response = await axios.get(`${url}?service=WMS&version=1.3.0&request=GetCapabilities`);
+      const response = await http.get(`${url}?service=WMS&version=1.3.0&request=GetCapabilities`);
       const xmlDoc = new DOMParser().parseFromString(response.data, "text/xml");
       const layerNameToMatch = fullLayerName.includes(':') ? fullLayerName.split(':')[1] : fullLayerName;
       const layersNodes = xmlDoc.querySelectorAll('Layer > Name');
@@ -1699,6 +1693,6 @@ onMounted(() => {
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: #374151;
 }
-</style>
 :deep(.rounded-dialog) { border-radius: 12px; overflow: hidden; }
 :deep(.rounded-dialog .el-dialog__header) { margin-right: 0; padding-top: 20px; }
+</style>

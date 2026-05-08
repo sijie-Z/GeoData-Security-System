@@ -28,28 +28,32 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 ### Core Capabilities
 - **Dual-level Approval Workflow** — Two-admin review pipeline with real-time status tracking
 - **QR Code Watermark System** — Generate, embed, and extract QR-code watermarks in vector (SHP) and raster (GeoTIFF) data
+- **3 Raster Watermark Algorithms** — LSB, DWT (Discrete Wavelet Transform), and Histogram Shifting with GeoTIFF CRS preservation
 - **HMAC-SHA256 Signature** — Cryptographic signature prevents watermark forgery
 - **Tile-based Raster Rendering** — On-demand tile slicing via `rasterio` for large GeoTIFF files
+- **Application Withdrawal** — Users can cancel pending applications before review starts
 - **Data Recall Voting** — Democratic recall mechanism with admin voting (>50% opposition triggers recall)
 - **Admin Promotion System** — Employee-to-admin application with 66% approval threshold
 
 ### Platform Features
-- **Role-based Access Control** — Employee, Admin (adm1/adm2/adm3), fine-grained route-level permissions
+- **Role-based Access Control** — Employee, Admin (adm1/adm2/adm3) with stage-specific approval permissions
 - **JWT Authentication** — Access + refresh token flow with automatic renewal
-- **Real-time Chat** — Internal messaging with friend system and read receipts
+- **Real-time Chat** — Socket.IO event-driven messaging with HTTP polling fallback
 - **Notification System** — Targeted and broadcast announcements
 - **Operation Audit Log** — Full activity trail with filtering by user, action type, and time range
 - **Dashboard Analytics** — Admin and employee dashboards with ECharts visualizations
 - **Internationalization (i18n)** — Full Chinese/English support across all 49 views (1200+ translation keys) with runtime switching
 - **Grafana Dashboards** — Auto-provisioned monitoring dashboards with 11 panels (request rate, latency, error rate, business KPIs)
+- **Grafana Alerting** — Error rate, latency, DB connection, and cache hit rate alerts
+- **Loki Log Aggregation** — Centralized log viewing in Grafana via Promtail
 
 ### Technical Highlights
 - **Dual-database Architecture** — MySQL for business data, PostgreSQL + PostGIS for spatial data
 - **Redis Caching** — Hot query caching for dashboards and data listings with graceful fallback
 - **WebSocket Notifications** — Real-time push via Socket.IO for application status updates
 - **Prometheus Metrics** — Request latency, error rates, business KPIs exposed at `/metrics`
-- **Per-user Rate Limiting** — JWT-identity-based rate limiting (not just IP)
-- **Rate Limiting** — Flask-Limiter with configurable per-endpoint limits
+- **Per-user Rate Limiting** — JWT-identity-based rate limiting applied to all sensitive endpoints (not just IP)
+- **Centralized API Layer** — 10 frontend API modules (auth, admin, employee, watermark, chat, recall, upload, data, etc.)
 - **Request Interceptors** — Axios interceptors for automatic token injection and 401 refresh
 - **Lazy-loaded Routes** — Code splitting via dynamic imports for optimal bundle size
 - **3D Particle Background** — Three.js powered login page with responsive canvas
@@ -66,8 +70,8 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 │  │ (SFC)    │ │  (UI Kit)    │ │ (State)   │ │ (ZH/EN)   │ │
 │  └──────────┘ └──────────────┘ └───────────┘ └───────────┘ │
 │  ┌──────────┐ ┌──────────────┐ ┌───────────┐               │
-│  │ Vue Router│ │   Axios      │ │ Socket.IO │               │
-│  │ (Lazy)   │ │ (Intercept)  │ │ (Realtime)│               │
+│  │ Vue Router│ │  API Layer   │ │ Socket.IO │               │
+│  │ (Lazy)   │ │ (10 modules) │ │ (Realtime)│               │
 │  └──────────┘ └──────────────┘ └───────────┘               │
 └──────────────────────────┬──────────────────────────────────┘
                            │ HTTP/JSON (JWT Bearer) + WebSocket
@@ -83,7 +87,7 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 │  │  (ORM)       │ │ (Hot Query)  │ │   (Metrics)         │ │
 │  └──────────────┘ └──────────────┘ └─────────────────────┘ │
 │  ┌──────────────┐ ┌──────────────┐ ┌─────────────────────┐ │
-│  │ Flask-Limiter│ │  rasterio    │ │   qrcode + pyzbar   │ │
+│  │ Flask-Limiter│ │  rasterio    │ │ LSB/DWT/Histogram   │ │
 │  │ (Rate Limit) │ │ (Tile Slice) │ │   (Watermark)       │ │
 │  └──────────────┘ └──────────────┘ └─────────────────────┘ │
 └──────────┬──────────────────────────────────┬───────────────┘
@@ -92,6 +96,13 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 │   MySQL 8.0         │  │ Redis 7      │  │ PostgreSQL+PostGIS│
 │  users, apps, logs  │  │ Cache layer  │  │ vector/raster data│
 └─────────────────────┘  └──────────────┘  └──────────────────┘
+
+Monitoring Stack:
+┌──────────────┐  ┌──────────────┐  ┌──────────────────────┐
+│ Prometheus   │  │    Grafana   │  │  Loki + Promtail     │
+│ (Metrics)    │→ │ (Dashboards) │ ←│  (Log Aggregation)   │
+│              │  │ + Alerting   │  │                      │
+└──────────────┘  └──────────────┘  └──────────────────────┘
 ```
 
 ---
@@ -125,7 +136,8 @@ A full-stack platform for geospatial data (vector & raster) lifecycle management
 | | Redis 7 | Cache and session store |
 | **DevOps** | Docker + docker-compose | Containerized deployment (7 services) |
 | | Prometheus | Metrics monitoring |
-| | Grafana | Dashboard visualization (auto-provisioned) |
+| | Grafana | Dashboard visualization + alerting (auto-provisioned) |
+| | Loki + Promtail | Log aggregation and centralized viewing |
 | | GitHub Actions | CI/CD pipeline |
 | | Ruff | Python linting |
 | | ESLint | JS/Vue linting |
@@ -191,7 +203,7 @@ Frontend starts at **http://localhost:5173**
 ```bash
 docker-compose up -d
 ```
-This starts all 7 services: frontend, backend, MySQL, PostgreSQL, Redis, Prometheus, Grafana.
+This starts all 9 services: frontend, backend, MySQL, PostgreSQL, Redis, Prometheus, Grafana, Loki, Promtail.
 
 ---
 
@@ -208,7 +220,7 @@ GeoData-Security-System/
 │   │   └── extension.py            # Flask extensions (db, limiter)
 │   ├── model/                      # SQLAlchemy models (29 classes)
 │   ├── resource/                   # API endpoints (76 routes)
-│   ├── algorithm/                  # Watermark algorithms
+│   ├── algorithm/                  # Watermark algorithms (LSB, DWT, Histogram)
 │   ├── utils/
 │   │   ├── cache.py                # Redis caching layer
 │   │   ├── metrics.py              # Prometheus metrics
@@ -230,7 +242,8 @@ GeoData-Security-System/
 │   │   ├── stores/userStore.js     # Pinia auth state
 │   │   ├── utils/
 │   │   │   ├── Axios.js            # HTTP client + interceptors
-│   │   │   └── Time.js             # Time utilities
+│   │   │   ├── Time.js             # Time utilities
+│   │   │   └── socket.js           # Socket.IO client (chat)
 │   │   ├── views/                  # 49 view components (fully i18n)
 │   │   ├── components/             # Reusable components
 │   │   │   └── common/
@@ -238,16 +251,27 @@ GeoData-Security-System/
 │   │   │       ├── LoadingSkeleton.vue
 │   │   │       ├── EmptyState.vue
 │   │   │       └── NotificationCenter.vue
-│   │   └── api/                    # API service layer
+│   │   └── api/                    # Centralized API service layer (10 modules)
+│   │       ├── admin.js            # Admin endpoints
+│   │       ├── employee.js         # Employee endpoints
+│   │       ├── auth.js             # Auth endpoints
+│   │       ├── watermark.js        # Watermark endpoints
+│   │       ├── chat.js             # Chat endpoints
+│   │       ├── recall.js           # Recall endpoints
+│   │       ├── upload.js           # Upload endpoints
+│   │       └── data.js             # Data viewing endpoints
 │   ├── package.json
 │   └── Dockerfile
 │
-├── docker-compose.yml              # Multi-container orchestration (7 services)
+├── docker-compose.yml              # Multi-container orchestration (9 services)
 ├── prometheus.yml                  # Prometheus scrape config
+├── loki-config.yml                 # Loki log aggregation config
+├── promtail-config.yml             # Promtail log scraper config
 ├── grafana/                        # Grafana provisioning
 │   └── provisioning/
-│       ├── datasources/            # Prometheus datasource config
-│       └── dashboards/             # Dashboard JSON (11 panels)
+│       ├── datasources/            # Prometheus + Loki datasource config
+│       ├── dashboards/             # Dashboard JSON (overview + logs)
+│       └── alerting/               # Alert rules (error rate, latency, DB, cache)
 ├── .github/workflows/ci.yml        # GitHub Actions CI
 ├── .pre-commit-config.yaml         # Pre-commit hooks
 ├── .gitignore
@@ -275,8 +299,9 @@ The backend exposes a RESTful API. Key endpoints:
 |--------|----------|-------------|
 | POST | `/api/submit_application` | Submit data application |
 | GET | `/api/get_applications` | Get user's applications |
-| POST | `/api/adm1_pass` | Admin 1 approve |
-| POST | `/api/adm2_pass` | Admin 2 approve |
+| PUT | `/api/applications/{id}/withdraw` | Withdraw pending application |
+| POST | `/api/adm1_pass` | Admin 1 approve (admin1 only) |
+| POST | `/api/adm2_pass` | Admin 2 approve (admin2 only) |
 | POST | `/api/admin/batch_review` | Batch review |
 
 ### Watermark
@@ -307,13 +332,16 @@ Full API documentation available at `/apidocs/` when running (Swagger UI via Fla
 
 ### Docker Production
 ```bash
-# Build and start all services
+# Build and start all services (9 containers)
 docker-compose up -d --build
 
 # View logs
 docker-compose logs -f backend
 
 # Grafana dashboard (default: http://localhost:3000, admin/geodata_grafana)
+# - Overview dashboard: request rate, latency, error rate, business KPIs
+# - Logs dashboard: centralized log viewing via Loki
+# - Alerting: error rate, p95 latency, DB connection, cache hit rate
 
 # Stop all services
 docker-compose down

@@ -1,53 +1,3 @@
-# # -*- coding: utf-8 -*-
-# # @Time    : 2024/3/22 16:06
-# # @Author  :Fivem
-# # @File    : is_multiple.py
-# # @Software: PyCharm
-# # @last modified:2024/3/22 16:06
-# import glob
-# import os
-# import sys
-
-# import geopandas as gpd
-
-# sys.path.append(r'/watermark/vector_process')
-
-
-# # from get_coor import get_coor_nested
-# # from select_file import select_folder
-
-
-# def is_multiple(path):
-#     print(f'当前处理的文件：{os.path.basename(path)}')
-#     shpfile = gpd.read_file(path)
-#     feature_type = list(shpfile.geom_type)
-#     indices = [index for index, value in enumerate(feature_type) if value in ['MultiPolygon', 'MultiLineString']]
-#     if len(indices) != 0:
-#         new_shp = shpfile.drop(indices)
-#         pathname = os.path.join(os.path.dirname(path), os.path.basename(path))
-#         new_shp.to_file(pathname)
-#         # new_shp.to_file(os.path.basename(path))
-#         print(
-#             f'共删除{len(indices)}条数据，对应索引号为：{indices}，类型为：{list(set([feature_type[i] for i in indices]))}')
-#         print(f'数据保存为{os.path.basename(path)}')
-#     print('-----------------------------------')
-
-
-# if __name__ == '__main__':
-#     # 数据读取
-#     # folder_path = select_folder()
-#     # folder_path = r"E:\矢量数据\数据\吴江区"
-#     folder_path = r"E:\矢量数据\数据\Coastline"
-#     # 遍历文件夹所有数据
-#     shapefiles = glob.glob(os.path.join(folder_path, '*.shp'))
-#     for shpfile_path in shapefiles:
-#         is_multiple(shpfile_path)
-
-#     # shpfile_path = select_file('select shpfile', [("shpfile", '*.shp')])
-#     # is_multiple(shpfile_path)
-
-
-
 import glob
 import os
 import sys
@@ -66,37 +16,64 @@ sys.path.append(project_root)
 # 然后你可以正常导入你的模块
 # 例如：from vector_process import some_module
 
-def is_multiple(path):
+def is_multiple(path, output_path=None):
+    """Convert MultiPolygon/MultiLineString to single-part geometries.
+
+    Args:
+        path: Input shapefile path.
+        output_path: Output path. If None, appends '_single' to the filename.
+                     The original file is NEVER overwritten.
+    Returns:
+        Path to the output shapefile, or None if no conversion was needed.
+    """
+    import logging
     import geopandas as gpd
-    print(f'当前处理的文件：{os.path.basename(path)}')
+    from shapely.geometry import MultiPolygon, MultiLineString
+    logging.info('当前处理的文件：%s', os.path.basename(path))
     try:
         shpfile = gpd.read_file(path)
         feature_type = list(shpfile.geom_type)
         indices = [index for index, value in enumerate(feature_type) if value in ['MultiPolygon', 'MultiLineString']]
-        
+
         if indices:
-            new_shp = shpfile.drop(indices)
-            pathname = os.path.join(os.path.dirname(path), os.path.basename(path))
-            new_shp.to_file(pathname)
-            print(f'共删除 {len(indices)} 条数据，对应索引号为：{indices}，类型为：{list(set([feature_type[i] for i in indices]))}')
-            print(f'数据已覆盖保存为：{os.path.basename(path)}')
+            converted = 0
+            for idx in indices:
+                geom = shpfile.at[idx, 'geometry']
+                if geom is None:
+                    continue
+                if isinstance(geom, MultiPolygon) and len(geom.geoms) > 0:
+                    shpfile.at[idx, 'geometry'] = geom.geoms[0]
+                    converted += 1
+                elif isinstance(geom, MultiLineString) and len(geom.geoms) > 0:
+                    shpfile.at[idx, 'geometry'] = geom.geoms[0]
+                    converted += 1
+            if output_path is None:
+                base, ext = os.path.splitext(path)
+                output_path = f"{base}_single{ext}"
+            shpfile.to_file(output_path)
+            logging.info('共转换 %d 条多部分几何为单部分，对应索引号为：%s，类型为：%s',
+                         converted, indices, list(set([feature_type[i] for i in indices])))
+            logging.info('转换后数据保存为：%s', os.path.basename(output_path))
+            return output_path
         else:
-            print('文件中不含多部分几何类型，无需处理。')
+            logging.info('文件中不含多部分几何类型，无需处理。')
+            return path
     except Exception as e:
-        print(f"处理文件 {path} 时出错: {e}")
+        logging.error("处理文件 %s 时出错: %s", path, e)
+        return None
     finally:
-        print('-----------------------------------')
+        logging.info('-----------------------------------')
 
 def main():
-    # 数据读取，使用你提供的硬编码路径
-    folder_path = r"D:\Desktop\MyProjects\yingbianma"  
-    
+    import logging
+    folder_path = os.environ.get('SHP_FOLDER', os.path.join(os.getcwd(), 'data'))
+
     # 遍历文件夹所有数据
     shapefiles = glob.glob(os.path.join(folder_path, '*.shp'))
     if not shapefiles:
-        print(f"在 {folder_path} 目录下没有找到任何 .shp 文件。")
+        logging.warning("在 %s 目录下没有找到任何 .shp 文件。", folder_path)
         return
-        
+
     for shpfile_path in shapefiles:
         is_multiple(shpfile_path)
 

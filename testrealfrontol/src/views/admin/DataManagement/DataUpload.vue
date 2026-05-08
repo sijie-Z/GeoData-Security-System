@@ -113,7 +113,7 @@ import { ref, reactive, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Upload, UploadFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import axios from '@/utils/Axios';
+import { uploadShpData } from '@/api/upload';
 
 const { t } = useI18n()
 
@@ -191,8 +191,7 @@ const submitUpload = async () => {
     formData.append('data_introduction', form.data_introduction);
 
     try {
-      await axios.post('/api/upload_shp_data', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+      await uploadShpData(formData, {
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total) {
             uploadPercentage.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);

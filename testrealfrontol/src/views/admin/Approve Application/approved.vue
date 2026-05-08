@@ -50,7 +50,7 @@
 import { reactive, onMounted, ref, computed, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from 'vue-i18n';
-import axios from '@/utils/Axios';
+import { getApprovedApplications, reReview } from '@/api/admin';
 import { useUserStore } from "@/stores/userStore.js";
 
 const { t } = useI18n();
@@ -98,9 +98,7 @@ const getStatusText = (status) => {
 const admin2_get_approved = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/adm2_get_approved`, {
-      params: { page: page.value, pageSize: pageSize.value }
-    });
+    const response = await getApprovedApplications({ page: page.value, pageSize: pageSize.value });
     if (!response.data?.status) {
       data.list = [];
       total.value = 0;
@@ -127,7 +125,7 @@ const review = async (row, pass) => {
       confirmButtonText: t('approval.confirm'),
       cancelButtonText: t('approval.cancel')
     });
-    const resp = await axios.post(`/api/admin/re_review`, {
+    const resp = await reReview({
       id: row.id,
       stage: 'adm2',
       statu: pass,

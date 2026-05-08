@@ -111,11 +111,17 @@
     <section class="charts-grid">
       <el-card shadow="hover">
         <template #header><span>{{ $t('adminDashboard.trendChart') }}</span></template>
-        <div ref="trendChartRef" class="chart-container"></div>
+        <div v-if="chartData.length > 0" ref="trendChartRef" class="chart-container"></div>
+        <div v-else class="chart-empty">
+          <el-empty :description="$t('adminDashboard.noDownloadData')" :image-size="80" />
+        </div>
       </el-card>
       <el-card shadow="hover">
         <template #header><span>{{ $t('adminDashboard.statusDistribution') }}</span></template>
-        <div ref="statusChartRef" class="chart-container"></div>
+        <div v-if="statusDistribution.pending || statusDistribution.approved || statusDistribution.rejected" ref="statusChartRef" class="chart-container"></div>
+        <div v-else class="chart-empty">
+          <el-empty :description="$t('adminDashboard.noDownloadData')" :image-size="80" />
+        </div>
       </el-card>
     </section>
 
@@ -177,12 +183,12 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount, onUnmounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
-import axios from '@/utils/Axios';
+import { getDashboard } from '@/api/admin';
 import {
   User, Clock, FolderOpened, TrendCharts, Download, RefreshRight,
   Document, UserFilled, List, ChatDotRound, Upload
@@ -197,6 +203,7 @@ const lastUpdate = ref('-');
 const trendChartRef = ref(null);
 const statusChartRef = ref(null);
 let trendIns = null, statusIns = null;
+let autoRefreshTimer = null;
 
 const metrics = ref({ totalUsers: 0, totalAdmins: 0, pendingApprovals: 0, totalApplications: 0, totalDownloads: 0 });
 const todayStats = ref({ activeUsers: 0, logins: 0, applications: 0, downloads: 0 });
@@ -218,10 +225,10 @@ const greeting = computed(() => {
 });
 
 const adminRoleLabel = computed(() => {
-  const num = (userStore.userNumber || '').toString().toLowerCase();
-  if (num.includes('admin1') || num.includes('adm1')) return t('adminDashboard.adminRole1');
-  if (num.includes('admin2') || num.includes('adm2')) return t('adminDashboard.adminRole2');
-  if (num.includes('admin3') || num.includes('adm3')) return t('adminDashboard.adminRole3');
+  const subRole = userStore.adminSubRole || '';
+  if (subRole === 'adm1') return t('adminDashboard.adminRole1');
+  if (subRole === 'adm2') return t('adminDashboard.adminRole2');
+  if (subRole === 'adm3') return t('adminDashboard.adminRole3');
   return t('adminDashboard.adminRole');
 });
 
@@ -233,7 +240,7 @@ const getLogType = (action) => {
 const fetchDashboard = async () => {
   loading.value = true;
   try {
-    const res = await axios.get('/api/admin/dashboard');
+    const res = await getDashboard();
     const data = res.data?.data || {};
 
     metrics.value = {
@@ -335,10 +342,14 @@ const onResize = () => {
 onMounted(async () => {
   await fetchDashboard();
   window.addEventListener('resize', onResize);
+  autoRefreshTimer = setInterval(() => {
+    fetchDashboard();
+  }, 60000);
 });
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize);
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
   trendIns?.dispose();
   statusIns?.dispose();
 });
@@ -353,7 +364,7 @@ onBeforeUnmount(() => {
 
 /* Hero */
 .hero-section {
-  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 100%));
   border-radius: 12px;
   padding: 24px;
   display: flex;
@@ -385,14 +396,15 @@ onBeforeUnmount(() => {
 /* 快捷入口 */
 .quick-actions { margin-bottom: 20px; }
 .action-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
-.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-.action-item:hover { background: #f0f2f5; }
+.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: 8px; cursor: pointer; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
+.action-item:hover { background: #f0f2f5; transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
 .action-item span { font-size: 13px; color: #606266; }
 .action-item .el-icon { color: #409EFF; }
 
 /* 图表 */
 .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
 .chart-container { height: 280px; }
+.chart-empty { height: 280px; display: flex; align-items: center; justify-content: center; }
 
 /* 底部统计 */
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }

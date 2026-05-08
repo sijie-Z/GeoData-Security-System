@@ -11,7 +11,7 @@
       "title": "Request Rate (req/s)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "rate(flask_request_total[5m])",
@@ -30,7 +30,7 @@
       "title": "Response Latency (p50 / p95 / p99)",
       "type": "timeseries",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "histogram_quantile(0.50, rate(flask_request_duration_seconds_bucket[5m]))",
@@ -59,7 +59,7 @@
       "title": "In-Progress Requests",
       "type": "gauge",
       "gridPos": { "h": 6, "w": 6, "x": 0, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "sum(flask_requests_in_progress)",
@@ -83,7 +83,7 @@
       "title": "Error Rate (5xx)",
       "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 6, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "rate(flask_request_total{status=~\"5..\"}[5m])",
@@ -108,7 +108,7 @@
       "title": "Applications Submitted",
       "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 12, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_applications_total",
@@ -128,7 +128,7 @@
       "title": "Downloads",
       "type": "stat",
       "gridPos": { "h": 6, "w": 6, "x": 18, "y": 8 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_downloads_total",
@@ -147,7 +147,7 @@
       "title": "Approvals vs Rejections",
       "type": "piechart",
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_approvals_total{result=\"approved\"}",
@@ -165,7 +165,7 @@
       "title": "Watermarks Generated",
       "type": "bargauge",
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_watermarks_generated_total",
@@ -183,7 +183,7 @@
       "title": "Cache Hit Rate",
       "type": "gauge",
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 14 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_cache_hits_total{result=\"hit\"} / (geodata_cache_hits_total{result=\"hit\"} + geodata_cache_hits_total{result=\"miss\"})",
@@ -208,7 +208,7 @@
       "title": "Request Status Distribution",
       "type": "piechart",
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "sum by (status) (flask_request_total)",
@@ -221,7 +221,7 @@
       "title": "Database Errors",
       "type": "stat",
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 22 },
-      "datasource": { "type": "prometheus", "uid": "PBFA97CFB590B2093" },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [
         {
           "expr": "geodata_db_errors_total",

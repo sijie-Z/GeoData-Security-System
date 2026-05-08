@@ -81,7 +81,7 @@ import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Search, RefreshRight, RefreshLeft } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
-import axios from '@/utils/Axios';
+import { getMyLogs } from '@/api/employee';
 
 const { t } = useI18n();
 
@@ -95,12 +95,10 @@ const filters = reactive({ action: '' });
 const fetchLogs = async () => {
   loading.value = true;
   try {
-    const response = await axios.get(`/api/employee/my_logs`, {
-      params: {
-        page: currentPage.value,
-        pageSize: pageSize.value,
-        action: filters.action || undefined
-      }
+    const response = await getMyLogs({
+      page: currentPage.value,
+      pageSize: pageSize.value,
+      action: filters.action || undefined
     });
     const result = response.data;
     if (result?.status === true && result?.data) {

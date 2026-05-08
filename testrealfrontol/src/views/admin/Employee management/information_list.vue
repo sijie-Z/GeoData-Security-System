@@ -4,7 +4,8 @@ import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { Refresh, Plus, User as UserIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
-import Axios from '@/utils/Axios.js';
+import { getEmployeeList, deleteEmployee } from '@/api/admin';
+import { getPhoto } from '@/api/employee';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -15,7 +16,7 @@ const objectUrls = ref(new Set());
 const fetchEmployeePhoto = async (employeeNumber) => {
   if (!employeeNumber) return null;
   try {
-    const response = await Axios.get(`/api/employee/photo/${employeeNumber}`, { responseType: 'blob' });
+    const response = await getPhoto(employeeNumber, { responseType: 'blob' });
     const url = URL.createObjectURL(response.data);
     objectUrls.value.add(url);
     return url;
@@ -36,7 +37,7 @@ const fetchData = async () => {
   loading.value = true;
   state.employeeList = [];
   try {
-    const response = await Axios.get('/api/adm/get_emp_info_list');
+    const response = await getEmployeeList();
     if (response.data && response.data.status) {
       const rawList = response.data.data.list;
       state.employeeList = await Promise.all(rawList.map(async (item) => {
@@ -81,7 +82,7 @@ const handleDelete = (row) => {
     }
   ).then(async () => {
     try {
-      const response = await Axios.delete(`/api/admin/employee/${row.employee_number}`);
+      const response = await deleteEmployee(row.employee_number);
       ElMessage.success(response.data.message || t('employeeMgmt.deleteSuccess'));
       fetchData();
     } catch (error) {

@@ -63,7 +63,7 @@ import { Refresh, Download } from "@element-plus/icons-vue";
 import { reactive, onMounted, ref, watch, computed } from "vue";
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from "element-plus";
-import Axios from "@/utils/Axios";
+import { getApprovedApplications, downloadFile, recordDownloadFile } from '@/api/employee';
 import { useUserStore } from "@/stores/userStore.js";
 
 const { t } = useI18n();
@@ -95,7 +95,7 @@ const get_applications = async () => {
   loading.value = true;
   try {
     const params = { page: page.value, pageSize: pageSize.value, userNumber: userNumber.value };
-    const response = await Axios.get('/api/get_approved_applications', { params });
+    const response = await getApprovedApplications(params);
 
     if (response?.data == null) {
       data.list = [];
@@ -126,7 +126,7 @@ onMounted(() => {
 const download = async (row) => {
   downloadingStatus[row.application_id] = true; // 开始下载，设置对应按钮为加载状态
   try {
-    const response = await Axios.post('/api/emp_download_zip', {
+    const response = await downloadFile({
       application_id: row.application_id,
       data_id: row.data_id,
       applicant_user_number: row.applicant_user_number,
@@ -150,7 +150,7 @@ const download = async (row) => {
       }
     }
 
-    await Axios.post('/api/record_download_file', {
+    await recordDownloadFile({
       application_id: row.application_id,
       data_id: row.data_id,
       applicant_user_number: row.applicant_user_number,

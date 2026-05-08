@@ -1,0 +1,171 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: GeoData System Alerts
+    folder: geodata
+    interval: 1m
+    rules:
+      # High error rate (>5% for 5 minutes)
+      - uid: geodata-error-rate
+        title: High Error Rate
+        condition: threshold_error_rate
+        data:
+          - refId: error_rate
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(flask_request_total{status=~"5.."}[5m]))
+                /
+                sum(rate(flask_request_total[5m]))
+              instant: false
+          - refId: threshold_error_rate
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: error_rate
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0.05]
+                  operator:
+                    type: and
+                  query:
+                    params: [threshold_error_rate]
+                  reducer:
+                    type: last
+        for: 5m
+        labels:
+          severity: critical
+          team: geodata
+        annotations:
+          summary: "Error rate exceeds 5%"
+          description: "The 5xx error rate has been above 5% for the last 5 minutes. Current value: {{ $value | humanizePercentage }}"
+
+      # High p95 latency (>2s for 5 minutes)
+      - uid: geodata-latency
+        title: High Response Latency (p95)
+        condition: threshold_latency
+        data:
+          - refId: p95_latency
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                histogram_quantile(0.95, sum(rate(flask_request_duration_seconds_bucket[5m])) by (le))
+              instant: false
+          - refId: threshold_latency
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: p95_latency
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [2]
+                  operator:
+                    type: and
+                  query:
+                    params: [threshold_latency]
+                  reducer:
+                    type: last
+        for: 5m
+        labels:
+          severity: warning
+          team: geodata
+        annotations:
+          summary: "p95 latency exceeds 2 seconds"
+          description: "The 95th percentile response time has been above 2s for the last 5 minutes. Current value: {{ $value | humanizeDuration }}"
+
+      # Database errors
+      - uid: geodata-db-errors
+        title: Database Errors Detected
+        condition: threshold_db_errors
+        data:
+          - refId: db_errors
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                increase(geodata_db_errors_total[5m])
+              instant: false
+          - refId: threshold_db_errors
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: db_errors
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [0]
+                  operator:
+                    type: and
+                  query:
+                    params: [threshold_db_errors]
+                  reducer:
+                    type: last
+        for: 0s
+        labels:
+          severity: critical
+          team: geodata
+        annotations:
+          summary: "Database errors detected"
+          description: "{{ $value }} database errors in the last 5 minutes. Check application logs immediately."
+
+      # Low cache hit rate (<50% for 10 minutes)
+      - uid: geodata-cache-hit-rate
+        title: Low Cache Hit Rate
+        condition: threshold_cache_rate
+        data:
+          - refId: cache_hit_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: prometheus
+            model:
+              expr: |
+                sum(rate(geodata_cache_hits_total{result="hit"}[10m]))
+                /
+                (sum(rate(geodata_cache_hits_total{result="hit"}[10m])) + sum(rate(geodata_cache_hits_total{result="miss"}[10m])))
+              instant: false
+          - refId: threshold_cache_rate
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: __expr__
+            model:
+              type: threshold
+              expression: cache_hit_rate
+              conditions:
+                - evaluator:
+                    type: lt
+                    params: [0.5]
+                  operator:
+                    type: and
+                  query:
+                    params: [threshold_cache_rate]
+                  reducer:
+                    type: last
+        for: 10m
+        labels:
+          severity: warning
+          team: geodata
+        annotations:
+          summary: "Cache hit rate below 50%"
+          description: "The cache hit rate has been below 50% for 10 minutes. Current value: {{ $value | humanizePercentage }}. Check Redis connectivity."

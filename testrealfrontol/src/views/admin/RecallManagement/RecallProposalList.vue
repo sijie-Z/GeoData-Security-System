@@ -170,7 +170,8 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
-import axios from '@/utils/Axios';
+import { getRecallProposals, createRecall, voteRecall, getRecallDetail } from '@/api/recall';
+import { getApprovedApplications } from '@/api/admin';
 import { useUserStore } from '@/stores/userStore';
 
 const { t } = useI18n();
@@ -213,7 +214,7 @@ const getProposals = async () => {
   try {
     const params = { page: page.value, pageSize: pageSize.value };
     if (statusFilter.value) params.status = statusFilter.value;
-    const resp = await axios.get('/api/recall/list', { params });
+    const resp = await getRecallProposals(params);
     if (resp.data?.status) {
       proposals.value = resp.data.data.list || [];
       total.value = resp.data.data.total || 0;
@@ -229,7 +230,7 @@ const openCreateDialog = async () => {
   createForm.application_id = null;
   createForm.reason = '';
   try {
-    const resp = await axios.get('/api/adm2_get_approved', { params: { pageSize: 100 } });
+    const resp = await getApprovedApplications({ pageSize: 100 });
     if (resp.data?.status) {
       approvedApps.value = resp.data.approved_application_data || [];
     }
@@ -243,7 +244,7 @@ const submitCreate = async () => {
   await createFormRef.value?.validate();
   createLoading.value = true;
   try {
-    const resp = await axios.post('/api/recall/create', createForm);
+    const resp = await createRecall(createForm);
     if (resp.data?.status) {
       ElMessage.success(t('recall.createSuccess'));
       createDialogVisible.value = false;
@@ -265,7 +266,7 @@ const openVoteDialog = (row) => {
 
 const submitVote = async (voteType) => {
   try {
-    const resp = await axios.post(`/api/recall/${currentProposal.value.id}/vote`, { vote: voteType });
+    const resp = await voteRecall(currentProposal.value.id, { vote: voteType });
     if (resp.data?.status) {
       ElMessage.success(resp.data.msg);
       voteDialogVisible.value = false;
@@ -280,7 +281,7 @@ const submitVote = async (voteType) => {
 
 const viewDetail = async (row) => {
   try {
-    const resp = await axios.get(`/api/recall/${row.id}`);
+    const resp = await getRecallDetail(row.id);
     if (resp.data?.status) {
       currentProposal.value = resp.data.data;
       detailDialogVisible.value = true;
