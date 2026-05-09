@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import base64
 import qrcode
 import io
+import logging
 from utils.log_helper import log_action
 from resource.watermark_utils import (
     build_qr_text, get_qr_version
