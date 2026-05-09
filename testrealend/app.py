@@ -51,13 +51,31 @@ def _bootstrap_runtime_schema(app):
     from model.watermark_verification import WatermarkVerification
     from model.download_token import DownloadToken
     from model.TokenBlacklist import TokenBlacklist
+    from model.Permission import Permission
+    from model.AdmAccountPermission import AdmAccountPermissions
+    from model.Embed_File_Record import EmbedFileRecord
+    from model.Extract_Helper import ExtractHelper
+    from model.SendFileRecord import SendFileRecord
 
     models = [
         AdmAccount, AdmInfo, AdmNav, Announcement, Application, ChatMessage,
         DownloadRecord, EmployeeNotification, EmployeeAccount, EmployeeInfo,
         EmployeeNav, FriendRequest, LogInfo, RasterData, Shp,
-        RecallProposal, AdminApplication, WatermarkVerification, DownloadToken, TokenBlacklist
+        RecallProposal, AdminApplication, WatermarkVerification, DownloadToken, TokenBlacklist,
+        Permission, AdmAccountPermissions, EmbedFileRecord, ExtractHelper, SendFileRecord,
     ]
+
+    # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
+    try:
+        from model.Shp_File import ShpFile
+        models.append(ShpFile)
+    except ImportError:
+        pass
+    try:
+        from model.mysqlshpio import MysqlShpFile
+        models.append(MysqlShpFile)
+    except ImportError:
+        pass
 
     with app.app_context():
         for model in models:
@@ -210,9 +228,14 @@ def create_app():
         Adm1GetShpApplicationsResource, Adm1GetRasterApplicationsResource,
         ApplicationQRCodeResource, ApplicationQRCodeImageResource, ApplicationDetailResource, AllApplicationsResource
     )
-    from resource.watermark_resource import (
-        GenerateWatermarkResource, EmbeddingWatermarkResource, VectorExtractResource,
-        Adm1GetGenerateWatermarkApplications, Adm2GetEmbeddingWatermarkApplications,
+    from resource.watermark_generate_resource import (
+        GenerateWatermarkResource, Adm1GetGenerateWatermarkApplications
+    )
+    from resource.watermark_embed_resource import (
+        EmbeddingWatermarkResource, Adm2GetEmbeddingWatermarkApplications
+    )
+    from resource.watermark_extract_resource import VectorExtractResource
+    from resource.watermark_upload_resource import (
         UploadOriginalWatermarkResource, UploadExtractedWatermarkResource,
         UploadOriAndExtWatermarkResource, GetOriginalWatermarkResource,
         WatermarkVerificationRecordsResource, WatermarkPreviewResource,
@@ -393,6 +416,7 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5003))
     # Use SocketIO.run() for WebSocket support when available
     if hasattr(app, 'socketio') and app.socketio:
-        app.socketio.run(app, debug=app.config.get('DEBUG', False), port=port, allow_unsafe_werkzeug=True)
+        is_dev = app.config.get('DEBUG', False)
+        app.socketio.run(app, debug=is_dev, port=port, allow_unsafe_werkzeug=is_dev)
     else:
         app.run(debug=app.config.get('DEBUG', False), port=port, use_reloader=False)

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 import json
 
@@ -25,8 +25,8 @@ class AdminApplication(db.Model):
     reject_votes = db.Column(db.Integer, default=0)
 
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     closed_at = db.Column(db.DateTime, nullable=True)
     closed_by = db.Column(db.String(255), nullable=True)
 
@@ -78,7 +78,7 @@ class AdminApplication(db.Model):
             'name': voter_name,
             'approve': approve,
             'comment': comment or '',
-            'time': datetime.utcnow().isoformat()
+            'time': datetime.now(timezone.utc).isoformat()
         }
 
         self.total_votes += 1

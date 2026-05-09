@@ -26,6 +26,7 @@ fiona
 pyogrio
 rtree
 gdal
+geoalchemy2
 pyzbar
 PyWavelets
 qrcode

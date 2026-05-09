@@ -149,7 +149,8 @@
 import {useUserStore} from "@/stores/userStore.js";
 import {reactive, ref, onMounted, watch, nextTick, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
-import { ElMessage, ElMessageBox, QuestionFilled } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { QuestionFilled } from '@element-plus/icons-vue';
 import {
   getEmbeddingApplications,
   embedWatermark as embedWatermarkApi,

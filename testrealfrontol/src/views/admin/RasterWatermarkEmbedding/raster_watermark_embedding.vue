@@ -147,9 +147,9 @@
     getEmbeddingApplications,
     previewRaster,
     embedDispatch,
-    crmarkEmbed,
-    crmarkRecover,
-    crmarkDecode
+    crmarkEmbed as crmarkEmbedApi,
+    crmarkRecover as crmarkRecoverApi,
+    crmarkDecode as crmarkDecodeApi
   } from '@/api/watermark';
 
   const { t } = useI18n();
@@ -345,7 +345,7 @@
   const crmarkEmbed = async () => {
     if (!crmarkApplicationId.value) { ElMessage.error(t('rasterWmEmbed.fillApplicationIdFirst')); return; }
     try {
-      const resp = await crmarkEmbed({ application_id: crmarkApplicationId.value });
+      const resp = await crmarkEmbedApi({ application_id: crmarkApplicationId.value });
       crmarkResult.stego_path = resp.data?.stego_path || '';
       crmarkResult.wm_map_path = resp.data?.wm_map_path || '';
       crmarkResult.wm_meta_path = resp.data?.wm_meta_path || '';
@@ -379,7 +379,7 @@
   const crmarkRecover = async () => {
     if (!crmarkResult.stego_path || !crmarkResult.wm_map_path) { ElMessage.error(t('rasterWmEmbed.completeEmbedFirst')); return; }
     try {
-      const resp = await crmarkRecover({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path });
+      const resp = await crmarkRecoverApi({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path });
       const url = window.URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
       link.href = url;
@@ -402,7 +402,7 @@
   const crmarkDecode = async () => {
     if (!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path) { ElMessage.error(t('rasterWmEmbed.completeEmbedFirst')); return; }
     try {
-      const resp = await crmarkDecode({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path, wm_meta_path: crmarkResult.wm_meta_path });
+      const resp = await crmarkDecodeApi({ stego_path: crmarkResult.stego_path, wm_map_path: crmarkResult.wm_map_path, wm_meta_path: crmarkResult.wm_meta_path });
       const url = window.URL.createObjectURL(new Blob([resp.data]));
       const link = document.createElement('a');
       link.href = url;

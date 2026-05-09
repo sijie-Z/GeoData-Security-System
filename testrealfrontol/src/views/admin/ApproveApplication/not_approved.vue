@@ -50,7 +50,7 @@ import {
   getApplications,
   approveApplication,
   rejectApplication,
-  batchReview,
+  batchReview as batchReviewApi,
   batchReviewFailedExport
 } from '@/api/admin';
 import {useUserStore} from "@/stores/userStore.js";
@@ -243,7 +243,7 @@ const batchReview = async (action) => {
       t('approval.batchReviewConfirm'),
       { type: 'warning', confirmButtonText: t('approval.confirm'), cancelButtonText: t('approval.cancel') }
     );
-    const resp = await batchReview({
+    const resp = await batchReviewApi({
       ids: selectedIds.value,
       stage,
       action,

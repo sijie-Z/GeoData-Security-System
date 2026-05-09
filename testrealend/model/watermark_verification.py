@@ -1,5 +1,5 @@
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class WatermarkVerification(db.Model):
@@ -14,7 +14,7 @@ class WatermarkVerification(db.Model):
     original_hash = db.Column(db.String(64), nullable=True)
     extracted_hash = db.Column(db.String(64), nullable=True)
     verified_by = db.Column(db.String(255), nullable=True)
-    verified_at = db.Column(db.DateTime, default=datetime.utcnow)
+    verified_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     ip_address = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):

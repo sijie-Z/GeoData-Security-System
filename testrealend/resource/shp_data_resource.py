@@ -77,7 +77,7 @@ class ShpDataByIdResource(Resource):
     @jwt_required()
     def get(self):
         data_id = request.args.get('id', type=int)
-        item = Shp.query.get(data_id)
+        item = db.session.get(Shp, data_id)
         if item:
             return {'status': True, 'data': item.to_dict()}, 200
         return {'status': False, 'msg': '数据不存在'}, 404

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 
 class EmployeeNav(db.Model):
@@ -12,7 +12,7 @@ class EmployeeNav(db.Model):
     level = db.Column(db.Integer, nullable=True)
     sort = db.Column(db.Integer)
     status = db.Column(db.SmallInteger)
-    create_time = db.Column(db.DateTime, default=datetime.utcnow)
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         return {

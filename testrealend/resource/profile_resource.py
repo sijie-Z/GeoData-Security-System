@@ -6,7 +6,6 @@ from model.Employee_Account import EmployeeAccount
 from extension.extension import db, limiter
 from werkzeug.security import check_password_hash, generate_password_hash
 import io
-import os
 
 class EmployeeProfileResource(Resource):
     @jwt_required()

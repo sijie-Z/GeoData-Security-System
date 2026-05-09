@@ -1,8 +1,7 @@
 import os
-import shutil
 import time
 import zipfile
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 from flask import current_app, request, send_file
 from flask_restful import Resource
@@ -17,7 +16,6 @@ from model.Shp_Data import Shp
 from utils.log_helper import log_action
 from utils.metrics import record_download
 from utils.user_limiter import normal_limit, relaxed_limit
-from datetime import datetime, timedelta
 
 
 def _resolve_existing_path(path_value):
@@ -77,10 +75,10 @@ def _zip_shp_bundle(shp_path):
 
 def _resolve_download_file(app):
     candidate_paths = [app.watermark_path, app.data_url]
-    shp = Shp.query.get(app.data_id)
+    shp = db.session.get(Shp, app.data_id)
     if shp:
         candidate_paths.extend([shp.shp_file_path, shp.url])
-    raster = RasterData.query.get(app.data_id)
+    raster = db.session.get(RasterData, app.data_id)
     if raster:
         candidate_paths.extend([raster.raster_file_path, raster.url])
     for path_value in candidate_paths:
@@ -122,7 +120,7 @@ class EmpDownloadZipResource(Resource):
         data = request.get_json() or {}
         app_id = data.get('application_id')
         data_id = data.get('data_id')
-        app = Application.query.get(app_id)
+        app = db.session.get(Application, app_id)
         if not app or app.adm1_statu != True or app.adm2_statu != True:
             return {'status': False, 'msg': '无下载权限'}, 403
 
@@ -159,11 +157,11 @@ class RecordDownloadResource(Resource):
             data_id=data.get('data_id'),
             data_name=data.get('dataName', data.get('fileName') or f"data_{data.get('data_id')}"),
             download_user_number=user_number,
-            download_time=datetime.utcnow(),
+            download_time=datetime.now(timezone.utc),
             download_ip=request.remote_addr,
             applicant_user_number=user_number,
             filename=data.get('fileName') or f"data_{data.get('data_id')}",
-            timestamp=datetime.utcnow()
+            timestamp=datetime.now(timezone.utc)
         )
         db.session.add(new_record)
         db.session.commit()
@@ -200,7 +198,7 @@ class RequestDownloadTokenResource(Resource):
         if not app_id:
             return {'status': False, 'msg': '缺少申请编号'}, 400
 
-        app = Application.query.get(app_id)
+        app = db.session.get(Application, app_id)
         if not app:
             return {'status': False, 'msg': '申请不存在'}, 404
         if app.adm1_statu is not True or app.adm2_statu is not True:
@@ -210,7 +208,7 @@ class RequestDownloadTokenResource(Resource):
 
         existing = DownloadToken.query.filter_by(
             application_id=app_id, user_number=user_number, is_used=False
-        ).filter(DownloadToken.expires_at > datetime.utcnow()).first()
+        ).filter(DownloadToken.expires_at > datetime.now(timezone.utc)).first()
         if existing:
             return {
                 'status': True,
@@ -221,7 +219,7 @@ class RequestDownloadTokenResource(Resource):
         token = DownloadToken(
             application_id=app_id,
             user_number=user_number,
-            expires_at=datetime.utcnow() + timedelta(hours=1)
+            expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
         )
         db.session.add(token)
         db.session.commit()
@@ -259,10 +257,10 @@ class TokenDownloadResource(Resource):
             return {'status': False, 'msg': '下载链接无效'}, 404
         if token_record.is_used:
             return {'status': False, 'msg': '下载链接已使用'}, 403
-        if token_record.expires_at and token_record.expires_at < datetime.utcnow():
+        if token_record.expires_at and token_record.expires_at < datetime.now(timezone.utc):
             return {'status': False, 'msg': '下载链接已过期'}, 403
 
-        app = Application.query.get(token_record.application_id)
+        app = db.session.get(Application, token_record.application_id)
         if not app:
             return {'status': False, 'msg': '申请不存在'}, 404
 

@@ -3,7 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required
 from model.Announcement import Announcement
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy.exc import SQLAlchemyError
 from utils.required import admin_required
 import logging
@@ -74,7 +74,7 @@ class AnnouncementResource(Resource):
                 tag=data.get('tag', '重要'),
                 tag_color=data.get('tag_color', '#F59E0B'),
                 icon=data.get('icon', 'InfoFilled'),
-                created_at=datetime.utcnow()
+                created_at=datetime.now(timezone.utc)
             )
             db.session.add(new_ann)
             db.session.commit()

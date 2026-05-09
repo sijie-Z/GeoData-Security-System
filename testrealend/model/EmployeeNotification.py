@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 
 
@@ -13,7 +13,7 @@ class EmployeeNotification(db.Model):
     read = db.Column(db.Boolean, default=False, nullable=False, index=True)
     sender_number = db.Column(db.String(64), nullable=True)
     sender_name = db.Column(db.String(255), nullable=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     def to_dict(self):
         return {

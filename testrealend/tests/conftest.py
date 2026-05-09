@@ -30,7 +30,7 @@ def db(app):
     """Create a fresh database for each test."""
     with app.app_context():
         # Import all models to register them
-        from model import (  # noqa: F401
+        from model import (
             Adm_Account, Adm_Info, Employee_Account, Employee_Info,
             Application, Log_Info, Announcement, Download_Record,
         )

@@ -3,7 +3,6 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required
 from model.Adm_Nav import AdmNav
 from model.Employee_Nav import EmployeeNav
-from extension.extension import db
 
 def build_tree(items, parent_id=None):
     tree = []

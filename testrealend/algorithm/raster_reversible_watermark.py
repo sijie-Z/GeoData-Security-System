@@ -7,7 +7,7 @@ import numpy as np
 from PIL import Image
 
 from algorithm.quality_metrics import compute_psnr, capacity_report
-from algorithm.raster_geotiff_utils import is_geotiff, read_geotiff, save_geotiff
+from algorithm.raster_geotiff_utils import read_geotiff, save_geotiff
 
 
 def _ensure_dir(path: str) -> str:

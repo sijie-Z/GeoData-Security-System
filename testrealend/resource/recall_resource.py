@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 import logging
 from utils.required import is_admin_role
 import json
@@ -54,7 +54,7 @@ class RecallListResource(Resource):
         for item in pagination.items:
             data = item.to_dict()
             # Add application info
-            app = Application.query.get(item.application_id)
+            app = db.session.get(Application, item.application_id)
             if app:
                 data['application_info'] = {
                     'data_alias': app.data_alias,
@@ -95,7 +95,7 @@ class RecallCreateResource(Resource):
             return {'status': False, 'msg': '回收原因至少需要20个字符'}, 400
 
         # Check if application exists and is approved
-        app = Application.query.get(application_id)
+        app = db.session.get(Application, application_id)
         if not app:
             return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -126,7 +126,7 @@ class RecallCreateResource(Resource):
             proposer_role=proposer_role,
             reason=reason,
             status='voting',
-            voting_deadline=datetime.utcnow() + timedelta(days=7)
+            voting_deadline=datetime.now(timezone.utc) + timedelta(days=7)
         )
 
         try:
@@ -156,7 +156,7 @@ class RecallVoteResource(Resource):
         if not is_admin_role(voter_role):
             return {'status': False, 'msg': '只有管理员可以投票'}, 403
 
-        proposal = RecallProposal.query.get(proposal_id)
+        proposal = db.session.get(RecallProposal, proposal_id)
         if not proposal:
             return {'status': False, 'msg': '提议不存在'}, 404
 
@@ -168,10 +168,10 @@ class RecallVoteResource(Resource):
             return {'status': False, 'msg': '提议人不能投票自己的提议'}, 400
 
         # Check voting deadline
-        if proposal.voting_deadline and datetime.utcnow() > proposal.voting_deadline:
+        if proposal.voting_deadline and datetime.now(timezone.utc) > proposal.voting_deadline:
             # Auto-close the proposal
             proposal.status = 'rejected'
-            proposal.closed_at = datetime.utcnow()
+            proposal.closed_at = datetime.now(timezone.utc)
             db.session.commit()
             return {'status': False, 'msg': '投票已截止'}, 400
 
@@ -197,12 +197,12 @@ class RecallVoteResource(Resource):
             if result is True:
                 # Recall approved - mark application as recalled
                 proposal.status = 'approved'
-                proposal.closed_at = datetime.utcnow()
+                proposal.closed_at = datetime.now(timezone.utc)
                 proposal.closed_by = voter_number
 
-                app = Application.query.get(proposal.application_id)
+                app = db.session.get(Application, proposal.application_id)
                 app.is_recalled = True
-                app.recalled_at = datetime.utcnow()
+                app.recalled_at = datetime.now(timezone.utc)
                 app.recall_reason = proposal.reason
                 app.download_enabled = False
 
@@ -219,7 +219,7 @@ class RecallVoteResource(Resource):
             elif result is False:
                 # Recall rejected
                 proposal.status = 'rejected'
-                proposal.closed_at = datetime.utcnow()
+                proposal.closed_at = datetime.now(timezone.utc)
                 proposal.closed_by = voter_number
 
             db.session.commit()
@@ -243,14 +243,14 @@ class RecallDetailResource(Resource):
     """获取回收提议详情"""
     @jwt_required()
     def get(self, proposal_id):
-        proposal = RecallProposal.query.get(proposal_id)
+        proposal = db.session.get(RecallProposal, proposal_id)
         if not proposal:
             return {'status': False, 'msg': '提议不存在'}, 404
 
         data = proposal.to_dict()
 
         # Add application info
-        app = Application.query.get(proposal.application_id)
+        app = db.session.get(Application, proposal.application_id)
         if app:
             data['application'] = app.to_dict()
 
@@ -274,7 +274,7 @@ class RecallCloseResource(Resource):
     def post(self, proposal_id):
         identity = get_jwt_identity()
 
-        proposal = RecallProposal.query.get(proposal_id)
+        proposal = db.session.get(RecallProposal, proposal_id)
         if not proposal:
             return {'status': False, 'msg': '提议不存在'}, 404
 
@@ -291,9 +291,9 @@ class RecallCloseResource(Resource):
         try:
             if result is True:
                 proposal.status = 'approved'
-                app = Application.query.get(proposal.application_id)
+                app = db.session.get(Application, proposal.application_id)
                 app.is_recalled = True
-                app.recalled_at = datetime.utcnow()
+                app.recalled_at = datetime.now(timezone.utc)
                 app.recall_reason = proposal.reason
                 app.download_enabled = False
 
@@ -309,7 +309,7 @@ class RecallCloseResource(Resource):
             else:
                 proposal.status = 'rejected'
 
-            proposal.closed_at = datetime.utcnow()
+            proposal.closed_at = datetime.now(timezone.utc)
             proposal.closed_by = identity.get('number')
 
             db.session.commit()

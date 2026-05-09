@@ -78,7 +78,7 @@ class GenerateRasterWatermarkResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         try:
@@ -150,7 +150,7 @@ def _create_qrcode_base64(item):
 
 def _resolve_raster_source_path(item):
     candidates = [item.data_url, item.data_name]
-    raster = RasterData.query.get(item.data_id)
+    raster = db.session.get(RasterData, item.data_id)
     if raster:
         candidates.extend([raster.raster_file_path, raster.url, raster.name, raster.alias])
     for value in candidates:
@@ -198,7 +198,7 @@ class RasterEmbedDispatchResource(Resource):
         data = request.get_json() or {}
         app_id = data.get('application_id')
         algorithm = data.get('algorithm', 'lsb')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         embed_resource = CRMarkEmbedResource()
@@ -271,7 +271,7 @@ class CRMarkEmbedResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if not item:
             return {'status': False, 'message': '申请不存在'}, 404
         return self._embed(item)

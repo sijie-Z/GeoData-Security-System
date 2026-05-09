@@ -85,46 +85,45 @@ def get_coor_array(coor_nested, shp_type):
     """
     x_array = []
     y_array = []
-    # 遍历数组中的每个要素
     for i in range(coor_nested.shape[1]):
-        # todo 一组数据的所有点都被删除后 ，会报错
-        # 判断是否是要素内部是否还是数组 即判断是否是MultiPolygon等
-        try:
-            if isinstance(coor_nested[:, i][0][0], np.ndarray):
-                if len(coor_nested[:, i][0]) == 0:
+        x_val = coor_nested[0, i]
+        y_val = coor_nested[1, i]
+        # Skip empty features (all points deleted)
+        if isinstance(x_val, (list, np.ndarray)) and len(x_val) == 0:
+            continue
+        if isinstance(x_val, np.ndarray) and x_val.ndim == 0 and len(x_val) == 0:
+            continue
+        # Multi-geometry (MultiPolygon, MultiLineString): list of arrays
+        if shp_type[i] in ['MultiPolygon', 'MultiLineString']:
+            parts_x = x_val if isinstance(x_val, list) else [x_val]
+            parts_y = y_val if isinstance(y_val, list) else [y_val]
+            for j in range(len(parts_x)):
+                px = parts_x[j] if isinstance(parts_x[j], np.ndarray) else np.array(parts_x[j])
+                py = parts_y[j] if isinstance(parts_y[j], np.ndarray) else np.array(parts_y[j])
+                if px.size == 0 or py.size == 0:
                     continue
-                else:
-                    for j in range(len(coor_nested[:, i][0])):
-                        coor_group = np.vstack((coor_nested[:, i][0][j], coor_nested[:, i][1][j]))
-                        x_array = np.hstack((x_array, coor_group[0, :]))
-                        y_array = np.hstack((y_array, coor_group[1, :]))
-            else:
-                x_array = np.hstack((x_array, coor_nested[0, i]))
-                y_array = np.hstack((y_array, coor_nested[1, i]))
-        # 如果存在indexError 即该要素为空，然后再判断 shp_type，如果先判断这个的话，会存在问题
-        # todo:什么问题 一个数组会嵌套数组 但进入else判断中
-        except IndexError as e:
-            logging.warning("IndexError in get_coor_array at feature %d: %s", i, e)
-            if shp_type[i] in ['MultiPolygon', 'MultiLineString']:
-                if len(coor_nested[:, i][0]) == 0:
-                    continue
-                else:
-                    for j in range(len(coor_nested[:, i][0])):
-                        coor_group = np.vstack((coor_nested[:, i][0][j], coor_nested[:, i][1][j]))
-                        x_array = np.hstack((x_array, coor_group[0, :]))
-                        y_array = np.hstack((y_array, coor_group[1, :]))
-            else:
-                x_array = np.hstack((x_array, coor_nested[0, i]))
-                y_array = np.hstack((y_array, coor_nested[1, i]))
+                coor_group = np.vstack((px, py))
+                x_array = np.hstack((x_array, coor_group[0, :]))
+                y_array = np.hstack((y_array, coor_group[1, :]))
+        else:
+            # Simple geometry (Point, LineString, Polygon without holes)
+            x_arr = x_val if isinstance(x_val, np.ndarray) else np.array(x_val)
+            y_arr = y_val if isinstance(y_val, np.ndarray) else np.array(y_val)
+            if x_arr.size == 0 or y_arr.size == 0:
+                continue
+            x_array = np.hstack((x_array, x_arr))
+            y_array = np.hstack((y_array, y_arr))
     coor_array = np.vstack((x_array, y_array))
     return coor_array
 
 
 if __name__ == '__main__':
-    embed_shpfile_path = select_file('select embed shpfile', [("shpfile", '*.shp')])
-
-
-    embed_shpfile = gpd.read_file(embed_shpfile_path)
+    import sys
+    import geopandas as gpd
+    if len(sys.argv) < 2:
+        print("Usage: python get_coor.py <path_to_shpfile>")
+        sys.exit(1)
+    embed_shpfile = gpd.read_file(sys.argv[1])
     embed_coor_nested, file_type = get_coor_nested(embed_shpfile)
     embed_coor_array = get_coor_array(embed_coor_nested, file_type)
     logging.info("Coordinate array: %s", embed_coor_array)

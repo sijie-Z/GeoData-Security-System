@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 import os
-from PIL import Image, ImageFilter
+from PIL import Image
 
 
 def _to_bits(img):

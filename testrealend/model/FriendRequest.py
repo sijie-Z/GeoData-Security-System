@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 
 
@@ -13,4 +13,4 @@ class FriendRequest(db.Model):
     friend_number = db.Column(db.String(64), nullable=False, index=True)
     friend_role = db.Column(db.String(32), nullable=False, index=True)
     status = db.Column(db.String(16), nullable=False, default='pending', index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)

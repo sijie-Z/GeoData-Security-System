@@ -52,7 +52,7 @@
               <el-icon><Edit /></el-icon>
               {{ $t('empProfile.editProfile') }}
             </el-button>
-            <el-button @click="changePassword" size="large">
+            <el-button @click="openChangePasswordDialog" size="large">
               <el-icon><Key /></el-icon>
               {{ $t('empProfile.changePassword') }}
             </el-button>
@@ -369,8 +369,7 @@ const handleAvatarChange = (event) => {
   reader.readAsDataURL(file);
 };
 
-const changePassword = () => {
-  // 重置密码表单
+const openChangePasswordDialog = () => {
   passwordForm.value = {
     oldPassword: '',
     newPassword: '',

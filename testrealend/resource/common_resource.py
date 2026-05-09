@@ -14,7 +14,7 @@ from model.Employee_Info import EmployeeInfo
 from model.Adm_Account import AdmAccount
 from model.Adm_Info import AdmInfo
 from extension.extension import limiter
-from datetime import datetime
+from datetime import datetime, timezone
 from werkzeug.security import check_password_hash, generate_password_hash
 from utils.log_helper import log_action
 import logging
@@ -77,7 +77,7 @@ class LoginResource(Resource):
                     # Update last login
                     adm_info = AdmInfo.query.filter_by(adm_number=user.adm_number).first()
                     if adm_info:
-                        adm_info.last_login_time = datetime.utcnow()
+                        adm_info.last_login_time = datetime.now(timezone.utc)
                     db.session.commit()
 
                     log_action(user.adm_number, username, '登录', '成功', 'admin')
@@ -105,7 +105,7 @@ class LoginResource(Resource):
                     # Update last login
                     emp_info = EmployeeInfo.query.filter_by(employee_number=user.employee_number).first()
                     if emp_info:
-                        emp_info.last_login_time = datetime.utcnow()
+                        emp_info.last_login_time = datetime.now(timezone.utc)
                     db.session.commit()
 
                     log_action(user.employee_number, username, '登录', '成功', 'employee')
@@ -189,7 +189,7 @@ class RegisterResource(Resource):
             id_number=id_number,
             phone_number=phone,
             address='未填写',
-            create_time=datetime.utcnow(),
+            create_time=datetime.now(timezone.utc),
             face_photo=avatar.read() if avatar else None
         )
         

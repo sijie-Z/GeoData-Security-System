@@ -1,7 +1,7 @@
 from flask import request
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 import logging
 import json
 
@@ -53,7 +53,7 @@ class AdminApplicationEligibilityResource(Resource):
                 }
             }, 200
 
-        days_registered = (datetime.utcnow() - emp.create_time).days
+        days_registered = (datetime.now(timezone.utc) - emp.create_time).days
         if days_registered < 7:
             return {
                 'status': True,
@@ -115,7 +115,7 @@ class AdminApplicationSubmitResource(Resource):
 
         # Check registration time
         if emp.create_time:
-            days_registered = (datetime.utcnow() - emp.create_time).days
+            days_registered = (datetime.now(timezone.utc) - emp.create_time).days
             if days_registered < 7:
                 return {'status': False, 'msg': f'注册时间不足7天(当前{days_registered}天)'}, 400
 
@@ -200,7 +200,7 @@ class AdminApplicationDetailResource(Resource):
     """获取申请详情"""
     @jwt_required()
     def get(self, application_id):
-        application = AdminApplication.query.get(application_id)
+        application = db.session.get(AdminApplication, application_id)
         if not application:
             return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -238,7 +238,7 @@ class AdminApplicationVoteResource(Resource):
         if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以投票'}, 403
 
-        application = AdminApplication.query.get(application_id)
+        application = db.session.get(AdminApplication, application_id)
         if not application:
             return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -269,7 +269,7 @@ class AdminApplicationVoteResource(Resource):
             if result is True:
                 # Approved - convert employee to admin
                 application.status = 'approved'
-                application.closed_at = datetime.utcnow()
+                application.closed_at = datetime.now(timezone.utc)
                 application.closed_by = voter_number
 
                 # Get employee account
@@ -295,13 +295,13 @@ class AdminApplicationVoteResource(Resource):
                         adm_info = AdmInfo(
                             adm_number=application.employee_number,
                             name=emp_info.name,
-                            create_time=datetime.utcnow()
+                            create_time=datetime.now(timezone.utc)
                         )
                         db.session.add(adm_info)
 
             elif result is False:
                 application.status = 'rejected'
-                application.closed_at = datetime.utcnow()
+                application.closed_at = datetime.now(timezone.utc)
                 application.closed_by = voter_number
 
             db.session.commit()
@@ -327,7 +327,7 @@ class AdminApplicationCloseResource(Resource):
         if not is_admin_role(identity.get('role')):
             return {'status': False, 'msg': '只有管理员可以操作'}, 403
 
-        application = AdminApplication.query.get(application_id)
+        application = db.session.get(AdminApplication, application_id)
         if not application:
             return {'status': False, 'msg': '申请不存在'}, 404
 
@@ -360,14 +360,14 @@ class AdminApplicationCloseResource(Resource):
                         adm_info = AdmInfo(
                             adm_number=application.employee_number,
                             name=emp_info.name,
-                            create_time=datetime.utcnow()
+                            create_time=datetime.now(timezone.utc)
                         )
                         db.session.add(adm_info)
 
             else:
                 application.status = 'rejected'
 
-            application.closed_at = datetime.utcnow()
+            application.closed_at = datetime.now(timezone.utc)
             application.closed_by = identity.get('number')
 
             db.session.commit()

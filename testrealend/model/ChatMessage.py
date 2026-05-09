@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 
 
@@ -13,4 +13,4 @@ class ChatMessage(db.Model):
     receiver_role = db.Column(db.String(32), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
     read = db.Column(db.Boolean, default=False, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), nullable=False, index=True)

@@ -1,5 +1,5 @@
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class Announcement(db.Model):
     __bind_key__ = 'mysql_db'
@@ -10,7 +10,7 @@ class Announcement(db.Model):
     tag = db.Column(db.String(64), nullable=True, default='重要')
     tag_color = db.Column(db.String(32), nullable=True, default='#F59E0B')
     icon = db.Column(db.String(64), nullable=True, default='InfoFilled')
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     author_id = db.Column(db.String(255), nullable=True)
 
     def to_dict(self):

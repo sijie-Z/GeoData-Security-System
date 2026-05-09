@@ -2,7 +2,6 @@ import logging
 import math
 import os
 import random
-import sys
 from collections import Counter
 from decimal import Decimal
 
@@ -12,7 +11,6 @@ from flask import current_app
 
 from algorithm.get_coor import get_coor_nested, get_coor_array
 from algorithm.to_geodataframe import to_geodataframe
-from algorithm.NC import NC, image_to_array
 from algorithm.embed import _compute_seed
 
 

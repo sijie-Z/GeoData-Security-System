@@ -1,7 +1,7 @@
 """WebSocket (Socket.IO) for real-time notifications with JWT authentication."""
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +166,7 @@ def _register_handlers(sio, app):
         try:
             from model.ChatMessage import ChatMessage
             from extension.extension import db
-            from datetime import datetime
+            from datetime import datetime, timezone
 
             msg = ChatMessage(
                 sender_number=sender_number,
@@ -300,7 +300,7 @@ def notify_application_update(application_id, status, applicant_number):
         'type': 'application_update',
         'application_id': application_id,
         'status': status,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }
     notify_user(applicant_number, 'notification', payload)
     notify_admins('application_update', payload)
@@ -313,7 +313,7 @@ def notify_new_application(application_id, applicant_name, data_name):
         'application_id': application_id,
         'applicant_name': applicant_name,
         'data_name': data_name,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }
     notify_admins('new_application', payload)
 
@@ -324,7 +324,7 @@ def notify_recall_update(proposal_id, status):
         'type': 'recall_update',
         'proposal_id': proposal_id,
         'status': status,
-        'timestamp': datetime.utcnow().isoformat()
+        'timestamp': datetime.now(timezone.utc).isoformat()
     }
     if _socketio:
         _socketio.emit('recall_update', payload, room='admins')

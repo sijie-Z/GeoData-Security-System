@@ -61,7 +61,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { getEmployeeInfo, sendNotification } from '@/api/admin'
+import { getEmployeeInfo, sendNotification as sendNotificationApi } from '@/api/admin'
 
 const { t } = useI18n()
 
@@ -111,7 +111,7 @@ const sendNotification = async () => {
       content,
       user_numbers: sendMode.value === 'all' ? [] : form.user_numbers
     }
-    const { data } = await sendNotification(payload)
+    const { data } = await sendNotificationApi(payload)
     if (data?.status) {
       ElMessage.success(data?.msg || t('adminNotify.sendSuccess'))
       resetForm()

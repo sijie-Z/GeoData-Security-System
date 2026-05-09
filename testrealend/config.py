@@ -1,5 +1,4 @@
 import os
-import sys
 
 # Resolve the project root (parent of this config file)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

@@ -3,7 +3,7 @@ from flask_restful import Resource
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from model.Application import Application
 from extension.extension import db, limiter
-from datetime import datetime
+from datetime import datetime, timezone
 import base64
 import logging
 from utils.log_helper import log_action
@@ -81,12 +81,12 @@ def _update_review_result(item, stage, passed, user_name, user_number):
         item.adm1_statu = bool(passed)
         item.adm1_name = user_name
         item.adm1_user_number = user_number
-        item.adm1_approval_time = datetime.utcnow()
+        item.adm1_approval_time = datetime.now(timezone.utc)
         return
     item.adm2_statu = bool(passed)
     item.adm2_name = user_name
     item.adm2_user_number = user_number
-    item.adm2_approval_time = datetime.utcnow()
+    item.adm2_approval_time = datetime.now(timezone.utc)
 
 
 class SubmitApplicationResource(Resource):
@@ -135,7 +135,7 @@ class SubmitApplicationResource(Resource):
             applicant_name=jwt_name,
             applicant_user_number=jwt_number,
             reason=data.get('reason'),
-            application_submission_time=datetime.utcnow()
+            application_submission_time=datetime.now(timezone.utc)
         )
         try:
             db.session.add(new_app)
@@ -164,7 +164,7 @@ class WithdrawApplicationResource(Resource):
     def put(self, application_id):
         identity = get_jwt_identity() or {}
         user_number = identity.get('number')
-        item = Application.query.get(application_id)
+        item = db.session.get(Application, application_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         if item.applicant_user_number != user_number:
@@ -175,7 +175,7 @@ class WithdrawApplicationResource(Resource):
             return {'status': False, 'msg': '该申请已在审批中，无法撤回'}, 400
 
         item.is_recalled = True
-        item.recalled_at = datetime.utcnow()
+        item.recalled_at = datetime.now(timezone.utc)
         item.recall_reason = '申请人主动撤回'
         db.session.commit()
 
@@ -296,7 +296,7 @@ class Adm1PassResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if item:
             ok, msg = _validate_stage_transition(item, 'adm1')
             if not ok:
@@ -317,7 +317,7 @@ class Adm1FailResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if item:
             ok, msg = _validate_stage_transition(item, 'adm1')
             if not ok:
@@ -339,7 +339,7 @@ class Adm2PassResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if item:
             ok, msg = _validate_stage_transition(item, 'adm2')
             if not ok:
@@ -360,7 +360,7 @@ class Adm2FailResource(Resource):
     def post(self):
         data = request.get_json() or {}
         app_id = data.get('id') or data.get('application_id')
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if item:
             ok, msg = _validate_stage_transition(item, 'adm2')
             if not ok:
@@ -395,7 +395,7 @@ class BatchReviewResource(Resource):
         app_map = {app.id: app for app in apps}
         updated = []
         skipped = []
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         passed = action == 'pass'
         for app_id in ids:
             app = app_map.get(app_id)
@@ -435,7 +435,7 @@ class ReReviewResource(Resource):
         stage = data.get('stage')
         statu = data.get('statu')
         user_name, user_number = _review_actor()
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if item:
             if stage == 'adm2':
                 if item.adm1_statu is not True:
@@ -443,7 +443,7 @@ class ReReviewResource(Resource):
                 item.adm2_statu = statu
                 item.adm2_name = user_name
                 item.adm2_user_number = user_number
-                item.adm2_approval_time = datetime.utcnow()
+                item.adm2_approval_time = datetime.now(timezone.utc)
                 db.session.commit()
                 return {'status': True, 'msg': '二审结果提交成功', 'application': _to_dual_channel_dict(item)}, 200
         return {'status': False, 'msg': '提交失败'}, 400
@@ -458,7 +458,7 @@ class Adm3AdditionalReviewResource(Resource):
         reason = data.get('reason')
         user_name, user_number = _review_actor()
 
-        item = Application.query.get(app_id)
+        item = db.session.get(Application, app_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         if item.adm2_statu is not True:
@@ -466,7 +466,7 @@ class Adm3AdditionalReviewResource(Resource):
         item.adm2_statu = bool(statu)
         item.adm2_name = user_name
         item.adm2_user_number = user_number
-        item.adm2_approval_time = datetime.utcnow()
+        item.adm2_approval_time = datetime.now(timezone.utc)
         if reason:
             item.reason = str(reason)
         db.session.commit()
@@ -511,7 +511,7 @@ class ApplicationQRCodeResource(Resource):
     """获取申请的二维码数据"""
     @jwt_required()
     def get(self, application_id):
-        item = Application.query.get(application_id)
+        item = db.session.get(Application, application_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         
@@ -545,7 +545,7 @@ class ApplicationQRCodeImageResource(Resource):
     """获取二维码图片（直接返回图片）"""
     @jwt_required()
     def get(self, application_id):
-        item = Application.query.get(application_id)
+        item = db.session.get(Application, application_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         
@@ -557,7 +557,7 @@ class ApplicationQRCodeImageResource(Resource):
         if isinstance(qr_data, str):
             try:
                 qr_bytes = base64.b64decode(qr_data)
-            except:
+            except Exception:
                 qr_bytes = qr_data.encode('utf-8')
         else:
             qr_bytes = qr_data
@@ -573,7 +573,7 @@ class ApplicationDetailResource(Resource):
     """获取申请完整详情（包含二维码等）"""
     @jwt_required()
     def get(self, application_id):
-        item = Application.query.get(application_id)
+        item = db.session.get(Application, application_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
         

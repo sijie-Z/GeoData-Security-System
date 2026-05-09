@@ -4,6 +4,263 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v2.3.1] — 2026-05-09 (Codebase Cleanup, Bug Fixes, Deprecation Fix & Directory Normalization)
+
+### Summary
+Dead code removal, missing dependency fix, algorithm bug fix, security hardening, 5 pre-existing frontend build-breaking bugs fixed, `datetime.utcnow()` deprecation migrated across 29 files, frontend directory names normalized (17 directories renamed from spaces to camelCase), `watermark_resource.py` split into 4 focused modules, SQLAlchemy 2.0 `Query.get()` migration across 11 files, missing `@admin_required` on dashboard endpoint fixed, root temp files cleaned up, 22 more unused imports removed, dead `NC.py` deleted, 8 dead frontend files removed, duplicate APIs consolidated, bare `except:` fixed, QR_SECRET_KEY security hardened.
+
+**Files changed:** 70+ files, ~2700 lines removed
+
+---
+
+### Backend — Fixes
+
+#### 1. Missing `geoalchemy2` Dependency (`requirements.txt`)
+- `model/Shp_File.py` imports `geoalchemy2` but it was not in `requirements.txt`
+- Added `geoalchemy2` to prevent ImportError on clean install
+
+#### 2. Incomplete Model Bootstrap (`app.py`)
+- `_bootstrap_runtime_schema()` only included 20 of 27 models — 7 tables would not auto-create on first deploy
+- Added: `Permission`, `AdmAccountPermissions`, `EmbedFileRecord`, `ExtractHelper`, `SendFileRecord`
+- Added graceful import for `ShpFile` and `MysqlShpFile` (require geoalchemy2/mysql-specific types)
+
+#### 3. Algorithm Bug Fix (`algorithm/get_coor.py`)
+- **Empty feature crash:** When all points in a feature were deleted, `get_coor_array()` would throw an unhandled error. Now safely skips empty arrays.
+- **Multi-geometry detection:** The `isinstance(coor_nested[:, i][0][0], np.ndarray)` check failed for nested arrays, causing MultiPolygon/MultiLineString to be processed in the wrong branch. Rewritten to use `shp_type` for branching instead of runtime type guessing.
+- **`__main__` block:** Replaced undefined `select_file()` / `gpd` with `argparse`-style CLI.
+
+#### 4. Security — `allow_unsafe_werkzeug` (`app.py`)
+- Was always `True` regardless of environment. Now only enabled when `DEBUG=True`.
+
+#### 5. Hardcoded Credentials (`.env.example`, `add_user_script.py`)
+- `.env.example` had `root:root` database passwords — replaced with placeholders
+- `add_user_script.py` hardcoded `root:root` — now reads from `.env` via `dotenv`
+
+---
+
+### Backend — Dead Code Removal
+
+| Deleted File | Reason |
+|---|---|
+| `common/constants.py` | `LOGIN_SECRET = "MY_KEY"` never imported anywhere |
+| `common/api_tools.py` | Empty file (8 bytes, whitespace only) |
+| `common/__init__.py` | Package had no remaining modules |
+| `Adm_Info.py` (project root) | Duplicate of `model/Adm_Info.py`, leftover from early development |
+
+#### Filename Typo Fix
+- `server/appliaction_server.py` → `server/application_server.py`
+
+---
+
+### Frontend — Build-Breaking Bug Fixes (5 files)
+
+These were pre-existing bugs where imported API functions were redeclared as local `const`, causing either build failures or infinite recursion at runtime.
+
+| File | Conflict | Fix |
+|---|---|---|
+| `employee_profile.vue` | `changePassword` (import vs local) | Renamed local to `openChangePasswordDialog` |
+| `not_approved.vue` | `batchReview` (import vs local) | Aliased import as `batchReviewApi` |
+| `raster_watermark_embedding.vue` | `crmarkEmbed/Recover/Decode` (import vs local) | Aliased imports as `*Api` |
+| `employee_chat.vue` | `searchUsers` (import vs local) | Aliased import as `searchUsersApi` |
+| `AdminNotifications.vue` | `sendNotification` (import vs local) | Aliased import as `sendNotificationApi` |
+
+#### Import Source Fix
+- `watermark_embedding.vue`: `QuestionFilled` was imported from `element-plus` (not exported) — moved to `@element-plus/icons-vue`
+
+---
+
+### Frontend — Dead Code Removal
+
+| Deleted File | Lines | Reason |
+|---|---|---|
+| `api/data_viewing_api.js` | 23 | Marked `@deprecated`, replaced by `api/data.js`, zero imports |
+| `views/employee/Data Viewing/data_viewing.vue` | 1520 | Superseded by `data_viewing_new.vue` (used in router) |
+| `views/employee/Data Viewing/data_viewing_style.css` | 771 | Companion CSS for dead view |
+| `styles/design-tokens.css` | 56 | Overlapping CSS variables with `design-system.css`, zero unique variables used |
+| `stores/admin/nav.js` | 0 | Empty placeholder |
+| `stores/employee/nav.js` | 0 | Empty placeholder |
+| `types/data.ts` | 0 | Empty placeholder (abandoned TS migration) |
+
+#### Config Cleanup
+- `vite.config.js`: Removed 40-line commented-out proxy block (referenced stale port 5001)
+- `main.js`: Removed unused `design-tokens.css` import
+
+---
+
+### Backend — `datetime.utcnow()` Deprecation Fix (29 files)
+
+#### What
+Replaced all `datetime.utcnow()` calls with `datetime.now(timezone.utc)` for Python 3.12+ compatibility.
+
+#### How
+- Model defaults: `default=datetime.utcnow` → `default=lambda: datetime.now(timezone.utc)`
+- Direct calls: `datetime.utcnow()` → `datetime.now(timezone.utc)`
+- Added `timezone` to all `from datetime import datetime` statements
+- Fixed duplicate import in `download_file_resource.py` (two `from datetime import` lines consolidated)
+
+#### Files Changed
+- 18 model files (all `default=` and `onupdate=` parameters)
+- 9 resource files (direct calls in business logic)
+- 1 utility file (`websocket.py` — timestamp generation)
+- 1 server file (`raster_watermark_server.py`)
+
+---
+
+### Frontend — Directory Name Normalization (17 directories)
+
+#### What
+Renamed all view directories containing spaces to camelCase for toolchain compatibility and consistency.
+
+#### Before → After
+
+| Before | After |
+|---|---|
+| `admin/Adm Dashboard` | `admin/AdmDashboard` |
+| `admin/Approve Application` | `admin/ApproveApplication` |
+| `admin/Employee management` | `admin/EmployeeManagement` |
+| `admin/Log Management` | `admin/LogManagement` |
+| `admin/System Management` | `admin/SystemManagement` |
+| `admin/Watermark Embedding` | `admin/WatermarkEmbedding` |
+| `admin/Watermark Extraction` | `admin/WatermarkExtraction` |
+| `admin/Watermark Generation` | Deleted (empty directory) |
+| `employee/Data Application` | `employee/DataApplication` |
+| `employee/Data Download` | `employee/DataDownload` |
+| `employee/Data Viewing` | `employee/DataViewing` |
+| `employee/Employee About` | `employee/EmployeeAbout` |
+| `employee/Employee Dashboard` | `employee/EmployeeDashboard` |
+| `employee/Employee Help` | `employee/EmployeeHelp` |
+| `employee/Employee Profile` | `employee/EmployeeProfile` |
+| `employee/My Notifications` | `employee/MyNotifications` |
+| `employee/Operation History` | `employee/OperationHistory` |
+
+- Updated all 22 import paths in `router/index.js`
+
+---
+
+### Backend — watermark_resource.py Split (1234 → 4 files)
+
+#### What
+Monolithic `watermark_resource.py` (1234 lines, 13 classes) split into focused modules.
+
+| New File | Classes | Lines |
+|---|---|---|
+| `watermark_utils.py` | Shared utilities (QR_SECRET_KEY, safe_extract_zip, build_qr_text, etc.) | ~100 |
+| `watermark_generate_resource.py` | Adm1GetGenerateWatermarkApplications, GenerateWatermarkResource | ~110 |
+| `watermark_embed_resource.py` | Adm2GetEmbeddingWatermarkApplications, EmbeddingWatermarkResource | ~178 |
+| `watermark_extract_resource.py` | VectorExtractResource | ~209 |
+| `watermark_upload_resource.py` | Upload, Records, Preview, Batch classes | ~606 |
+
+- Updated `app.py` imports to reference new modules
+- Deleted old `watermark_resource.py`
+
+---
+
+### Backend — SQLAlchemy 2.0 Deprecation Fix (11 files)
+
+#### What
+Replaced all `Model.query.get(id)` calls with `db.session.get(Model, id)` for SQLAlchemy 2.0 compatibility.
+
+- 46 occurrences across 11 resource files
+- Eliminates `LegacyAPIWarning` in test output
+
+---
+
+### Backend — Missing `@admin_required` on AdminDashboard
+
+#### What
+`AdminDashboardResource` was missing the `@admin_required` decorator — employees could access admin dashboard data.
+
+- Added `@admin_required` decorator between `@jwt_required()` and `@relaxed_limit`
+
+---
+
+### Backend — Unused Import Cleanup (88 imports removed, 29 Python files)
+
+#### What
+Automated scan and removal of 88 unused Python imports across 29 backend files.
+
+#### Side Effect Fix
+The cleanup script broke 7 files by removing import lines but leaving references intact. All 7 manually fixed:
+- `algorithm/extract.py` — restored trailing comma in import
+- `algorithm/to_geodataframe.py` — restored `from shapely.geometry import (...)`
+- `resource/download_file_resource.py` — restored `from utils.user_limiter import normal_limit, relaxed_limit`
+- `utils/metrics.py` — restored `from prometheus_client import (...)`
+- `tests/conftest.py` — restored `from model import (...)`
+- `resource/watermark_generate_resource.py` — rewrote header with correct imports
+- `resource/watermark_embed_resource.py` — rewrote header with correct imports
+
+#### Additional Fixes (post-cleanup)
+- `resource/watermark_extract_resource.py` — rewrote broken header, fixed `safe_extract_zip` / `decode_qr_from_image` / `parse_qr_text` function calls (were underscore-prefixed)
+- `resource/watermark_upload_resource.py` — rewrote broken header, fixed `build_qr_text` / `get_qr_version` function calls
+- `resource/watermark_generate_resource.py` — fixed `build_qr_text` / `get_qr_version` function calls
+- `resource/watermark_extract_resource.py` — `datetime.now()` → `datetime.now(timezone.utc)`
+
+---
+
+### Backend — Dead Server File Removal (7 files)
+
+| Deleted File | Reason |
+|---|---|
+| `server/adm_server.py` | Zero imports, superseded by `app.py` factory |
+| `server/application_server.py` | Zero imports |
+| `server/emp_server.py` | Zero imports |
+| `server/nav_server.py` | Zero imports |
+| `server/raster_data_server.py` | Zero imports |
+| `server/raster_watermark_server.py` | Zero imports |
+| `server/shp_data_server.py` | Zero imports |
+
+---
+
+### Backend — Second-Pass Cleanup (22 unused imports, dead code, security)
+
+#### Unused Imports Removed (22 instances, 8 files)
+| File | Removed |
+|---|---|
+| `resource/watermark_embed_resource.py` | `datetime`, `timezone`, `build_qr_text`, `get_qr_version`, `decode_reversible`, `extract_dwt`, `recover_dwt`, `extract_histogram`, `recover_histogram`, `compute_nc`, `compute_ssim_simple`, `compute_ber`, `record_watermark` |
+| `resource/admin_application_resource.py` | `timedelta` |
+| `resource/adm_resource.py` | `get_jwt_identity` |
+| `resource/watermark_extract_resource.py` | `Shp` |
+| `resource/watermark_upload_resource.py` | `normal_limit` |
+| `algorithm/extract.py` | `NC` (from `algorithm.NC`) |
+| `algorithm/raster_reversible_watermark.py` | `is_geotiff` |
+| `tests/test_robustness.py` | `ImageFilter` |
+
+#### Dead Code Deleted
+| File | Reason |
+|---|---|
+| `algorithm/NC.py` | Duplicate of `quality_metrics.py`, zero runtime callers |
+| `src/views/admin/EChartBar/echarts.vue` | Not in router, zero imports |
+| `src/views/admin/EmployeeManagement/account_list.vue` | Not in router, zero imports |
+| `src/views/admin/EmployeeManagement/account_add.vue` | Not in router, zero imports |
+| `src/components/DataCard.vue` | Zero imports |
+| `src/components/DataView.vue` | Zero imports |
+| `src/components/common/LoadingSkeleton.vue` | Zero imports |
+| `src/components/common/EmptyState.vue` | Zero imports |
+| `src/api/NaviApi.js` | Zero imports |
+
+#### Security Fixes
+- `resource/application_resource.py:560` — Bare `except:` → `except Exception:` (was catching `KeyboardInterrupt`, `SystemExit`)
+- `resource/wmark_utils.py` — `QR_SECRET_KEY` fallback now only uses dev key when `FLASK_DEBUG=1`; logs `ERROR` in production instead of silently using insecure key
+
+#### Frontend Cleanup
+- `src/api/watermark.js` — Removed duplicate `getShpApplications` / `getRasterApplications` (already defined in `admin.js`)
+- `src/views/admin/AdmDashboard/adm_dashboard.vue` — Removed unused `onUnmounted` import
+
+---
+
+### Misc Cleanup
+- Added `QR_SECRET_KEY` placeholder to `.env.example`
+- Deleted root-level temp files: `temp_qrcode.png`, `filelist.txt` (both in `.gitignore`)
+
+---
+
+### Verification
+- **Backend:** `create_app()` succeeds, 106 routes registered, zero import errors
+- **Tests:** 126 passed, 1 failed (pre-existing numpy 2.0 compat), 2 skipped
+- **Frontend:** `vite build` succeeds (36 modules, 62s)
+
+---
+
 ## [v2.3.0] — 2026-05-09 (Security Hardening, Multi-Algorithm Watermark & Monitoring)
 
 ### Summary

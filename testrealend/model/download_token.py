@@ -1,5 +1,5 @@
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 import secrets
 
 
@@ -14,7 +14,7 @@ class DownloadToken(db.Model):
     user_number = db.Column(db.String(255), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     is_used = db.Column(db.Boolean, default=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     def to_dict(self):
         return {

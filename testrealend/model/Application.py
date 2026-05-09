@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import base64
-import json
 from extension.extension import db
 
 
@@ -58,7 +57,7 @@ class Application(db.Model):
     download_enabled = db.Column(db.Boolean, default=True)
 
     # Timestamps
-    application_submission_time = db.Column(db.DateTime, default=datetime.utcnow)
+    application_submission_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
 
     # Database indexes for query performance
     __table_args__ = (

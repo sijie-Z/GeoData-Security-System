@@ -1,7 +1,7 @@
 import uuid
 from sqlalchemy.dialects.postgresql import UUID
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class RasterData(db.Model):
     """
@@ -20,7 +20,7 @@ class RasterData(db.Model):
 
     # 通用字段
     introduction = db.Column(db.String(255))
-    datetime = db.Column(db.DateTime, default=datetime.utcnow)
+    datetime = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     url = db.Column(db.String(255))
     layer = db.Column(db.String(255))
     raster_file_path = db.Column(db.String(512))

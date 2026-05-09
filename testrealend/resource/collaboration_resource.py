@@ -187,7 +187,7 @@ class AdminAnnouncementManageResource(Resource):
         item_id = data.get('id')
         try:
             _ensure_announcement_table()
-            item = Announcement.query.get(item_id)
+            item = db.session.get(Announcement, item_id)
         except SQLAlchemyError as e:
             logging.error(str(e))
             return {'status': False, 'msg': '公告服务不可用，请检查数据库配置'}, 500
@@ -214,7 +214,7 @@ class AdminAnnouncementManageResource(Resource):
         item_id = request.args.get('id', type=int)
         try:
             _ensure_announcement_table()
-            item = Announcement.query.get(item_id)
+            item = db.session.get(Announcement, item_id)
         except SQLAlchemyError as e:
             logging.error(str(e))
             return {'status': False, 'msg': '公告服务不可用，请检查数据库配置'}, 500

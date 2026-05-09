@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from extension.extension import db
 import json
 
@@ -27,7 +27,7 @@ class RecallProposal(db.Model):
     votes_json = db.Column(db.Text, nullable=True)  # JSON: {"adm1": "for", "adm2": "against", ...}
 
     # Timestamps
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     voting_deadline = db.Column(db.DateTime, nullable=True)
     closed_at = db.Column(db.DateTime, nullable=True)
     closed_by = db.Column(db.String(255), nullable=True)
@@ -82,7 +82,7 @@ class RecallProposal(db.Model):
         votes[voter_number] = {
             'name': voter_name,
             'vote': vote_type,
-            'time': datetime.utcnow().isoformat()
+            'time': datetime.now(timezone.utc).isoformat()
         }
 
         if vote_type == 'for':

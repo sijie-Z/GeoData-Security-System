@@ -1,1 +1,0 @@
-LOGIN_SECRET = "MY_KEY"

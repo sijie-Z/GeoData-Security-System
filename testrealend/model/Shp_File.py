@@ -1,8 +1,6 @@
 from geoalchemy2 import Geometry
 from extension.extension import db
-from zoneinfo import ZoneInfo
 from datetime import datetime
-import shapefile
 
 
 class ShpFile(db.Model):

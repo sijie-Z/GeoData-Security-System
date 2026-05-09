@@ -1,5 +1,4 @@
 """Integration tests for end-to-end workflows."""
-import pytest
 
 
 class TestApprovalWorkflow:

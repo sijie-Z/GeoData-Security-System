@@ -12,17 +12,16 @@ from model.Log_Info import LogInfo
 from model.RecallProposal import RecallProposal
 from model.AdminApplication import AdminApplication
 from extension.extension import db
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from sqlalchemy import func, and_, or_
-import calendar
 import logging
 from utils.cache import cached
-from utils.required import is_admin_role
+from utils.required import admin_required, is_admin_role
 from utils.user_limiter import relaxed_limit
 
 
 def _day_window(days_ago):
-    end = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1 - days_ago)
+    end = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1 - days_ago)
     start = end - timedelta(days=1)
     return start, end
 
@@ -43,6 +42,7 @@ class AdminDashboardResource(Resource):
       403: {description: Not authorized}
     """
     @jwt_required()
+    @admin_required
     @relaxed_limit
     @cached(timeout=120, key_prefix='dashboard')
     def get(self):
@@ -70,7 +70,7 @@ class AdminDashboardResource(Resource):
         total_downloads = DownloadRecord.query.count()
 
         # ========== 今日活跃用户 ==========
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
         active_users_today = db.session.query(func.count(func.distinct(LogInfo.user_number))).filter(
             LogInfo.timestamp >= today_start,
@@ -172,7 +172,7 @@ class AdminDashboardResource(Resource):
             })
 
         # ========== 本周 vs 上周对比 ==========
-        this_week_start = datetime.utcnow() - timedelta(days=datetime.utcnow().weekday())
+        this_week_start = datetime.now(timezone.utc) - timedelta(days=datetime.now(timezone.utc).weekday())
         this_week_start = this_week_start.replace(hour=0, minute=0, second=0, microsecond=0)
         last_week_start = this_week_start - timedelta(days=7)
         last_week_end = this_week_start
@@ -255,7 +255,7 @@ class AdminDashboardResource(Resource):
         # ========== 14天趋势数据 ==========
         daily_trend = []
         for i in range(13, -1, -1):
-            date = (datetime.utcnow() - timedelta(days=i)).strftime('%m-%d')
+            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime('%m-%d')
             start, end = _day_window(i)
 
             app_count = Application.query.filter(
@@ -303,12 +303,12 @@ class AdminDashboardResource(Resource):
         # ========== 月度统计（最近6个月） ==========
         monthly_stats = []
         for i in range(5, -1, -1):
-            month_date = datetime.utcnow() - timedelta(days=i*30)
+            month_date = datetime.now(timezone.utc) - timedelta(days=i*30)
             month_start = month_date.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             if i > 0:
-                month_end = (datetime.utcnow() - timedelta(days=(i-1)*30)).replace(day=1)
+                month_end = (datetime.now(timezone.utc) - timedelta(days=(i-1)*30)).replace(day=1)
             else:
-                month_end = datetime.utcnow() + timedelta(days=1)
+                month_end = datetime.now(timezone.utc) + timedelta(days=1)
 
             month_apps = Application.query.filter(
                 Application.application_submission_time >= month_start,
@@ -410,7 +410,7 @@ class EmployeeDashboardResource(Resource):
         my_downloads = DownloadRecord.query.filter_by(applicant_user_number=user_number).count()
 
         # 今日活跃
-        today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
         today_visits = LogInfo.query.filter(
             LogInfo.user_number == user_number,
             LogInfo.action == 'login',
@@ -446,7 +446,7 @@ class EmployeeDashboardResource(Resource):
         # 14天趋势
         daily_trend = []
         for i in range(13, -1, -1):
-            date = (datetime.utcnow() - timedelta(days=i)).strftime('%m-%d')
+            date = (datetime.now(timezone.utc) - timedelta(days=i)).strftime('%m-%d')
             start, end = _day_window(i)
 
             app_count = Application.query.filter(
@@ -484,7 +484,7 @@ class EmployeeDashboardResource(Resource):
                 'downloadable_data': downloadable,
                 'my_downloads': my_downloads,
                 'today_visits': today_visits or 1,
-                'last_login_time': last_login.timestamp.strftime('%Y-%m-%d %H:%M') if last_login else datetime.utcnow().strftime('%Y-%m-%d %H:%M'),
+                'last_login_time': last_login.timestamp.strftime('%Y-%m-%d %H:%M') if last_login else datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M'),
                 'data_type_preference': {
                     'vector': vector_prefs,
                     'raster': raster_prefs

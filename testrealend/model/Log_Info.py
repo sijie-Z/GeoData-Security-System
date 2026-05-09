@@ -1,11 +1,11 @@
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class LogInfo(db.Model):
     __bind_key__ = 'mysql_db'
     __tablename__ = 'log_info'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     user_number = db.Column(db.String(255), nullable=False)
     username = db.Column(db.String(255), nullable=False)
     ip_address = db.Column(db.String(255), nullable=True)

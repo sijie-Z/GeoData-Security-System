@@ -119,24 +119,6 @@ export const getApplicationQRImage = (id) =>
   axios.get(`/api/application/${id}/qrcode-image`, { responseType: 'blob' })
 
 // ──────────────────────────────────────
-//  SHP / Raster Applications
-// ──────────────────────────────────────
-
-/**
- * Get SHP applications for watermark processing.
- * @param {Object} [params]
- * @returns {Promise<AxiosResponse>}
- */
-export const getShpApplications = (params) => axios.get('/api/adm1_get_shp_applications', { params })
-
-/**
- * Get raster applications for watermark processing.
- * @param {Object} [params]
- * @returns {Promise<AxiosResponse>}
- */
-export const getRasterApplications = (params) => axios.get('/api/adm1_get_raster_applications', { params })
-
-// ──────────────────────────────────────
 //  Raster Watermark (CRMark)
 // ──────────────────────────────────────
 

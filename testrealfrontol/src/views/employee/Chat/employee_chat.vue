@@ -120,7 +120,7 @@ import {
   getMessages,
   sendMessage as httpSendMessage,
   markRead as httpMarkRead,
-  searchUsers,
+  searchUsers as searchUsersApi,
   addFriend as httpAddFriend,
   getFriendRequests,
   respondFriend as httpRespondFriend
@@ -258,7 +258,7 @@ const searchUsers = async () => {
     return
   }
   try {
-    const { data } = await searchUsers({ keyword: kw })
+    const { data } = await searchUsersApi({ keyword: kw })
     searchResults.value = data?.data || []
   } catch (_e) {
     searchResults.value = []

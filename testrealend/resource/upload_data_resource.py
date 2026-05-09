@@ -6,7 +6,7 @@ from flask import request, current_app
 from flask_restful import Resource
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
-from datetime import datetime
+from datetime import datetime, timezone
 
 from extension.extension import db, limiter
 from model.Shp_Data import Shp
@@ -86,7 +86,7 @@ class ShpDataUploadResource(Resource):
                 alias=data_alias,
                 geomtype=geomtype,
                 introduction=data_introduction or '暂无简介',
-                datetime=datetime.utcnow(),
+                datetime=datetime.now(timezone.utc),
                 url='',
                 layer=layer_name,
                 shp_file_path=shp_file_path,
@@ -156,7 +156,7 @@ class RasterDataUploadResource(Resource):
                 name=os.path.splitext(filename)[0],
                 alias=data_alias,
                 introduction=data_introduction or '暂无简介',
-                datetime=datetime.utcnow(),
+                datetime=datetime.now(timezone.utc),
                 url='',
                 layer='',
                 raster_file_path=save_path,

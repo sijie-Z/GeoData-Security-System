@@ -1,8 +1,6 @@
 from flask import request
 from flask_restful import Resource
-from flask_jwt_extended import jwt_required
 from model.Log_Info import LogInfo
-from extension.extension import db
 from utils.required import admin_required
 
 class SystemLogResource(Resource):

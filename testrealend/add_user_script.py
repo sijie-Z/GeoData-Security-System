@@ -1,6 +1,7 @@
 # 这是一个用于添加新员工用户的脚本。
 # 它会使用项目中的 CommonServer.register_employee 方法来确保密码被正确哈希。
 
+import os
 from flask import Flask
 from server.common_server import CommonServer
 from extension.extension import db
@@ -10,12 +11,11 @@ from extension.extension import db
 # 所以我们需要像主应用 (app.py) 那样配置它。
 app = Flask(__name__)
 
-# 配置数据库连接 - 请确保这里的配置与您的 app.py 中的一致
-# 您可能需要根据您的实际数据库配置进行调整
+# 配置数据库连接 - 从环境变量读取，或根据实际情况修改
+from dotenv import load_dotenv
+load_dotenv()
 app.config['SQLALCHEMY_BINDS'] = {
-    'mysql_db': 'mysql+mysqldb://root:root@127.0.0.1/esri_test', # 根据您的实际情况修改
-    # 如果您使用其他数据库，也请相应配置
-    # 'postgres_db': 'postgresql://postgres:root@127.0.0.1/esri_test'
+    'mysql_db': os.environ.get('MYSQL_URI', 'mysql+mysqldb://user:password@localhost/esri_test'),
 }
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 

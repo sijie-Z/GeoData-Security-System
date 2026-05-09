@@ -8,7 +8,6 @@ import requests
 import time
 import json
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from collections import defaultdict
 import statistics
 
 BASE_URL = "http://127.0.0.1:5003"

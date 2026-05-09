@@ -1,5 +1,5 @@
 from extension.extension import db
-from datetime import datetime
+from datetime import datetime, timezone
 
 class EmployeeInfo(db.Model):
     __bind_key__ = 'mysql_db'
@@ -12,9 +12,9 @@ class EmployeeInfo(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=True)
     department = db.Column(db.String(255), nullable=True)
     address = db.Column(db.String(255), nullable=False)
-    hire_date = db.Column(db.DateTime, default=datetime.utcnow)
+    hire_date = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
     last_login_time = db.Column(db.DateTime)
-    create_time = db.Column(db.DateTime, default=datetime.utcnow)
-    update_time = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    create_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    update_time = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
     face_photo = db.Column(db.LargeBinary)
     avatar_path = db.Column(db.String(500), nullable=True)
