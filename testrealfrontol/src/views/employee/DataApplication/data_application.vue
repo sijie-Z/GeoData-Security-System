@@ -42,7 +42,7 @@
 
       <el-table-column :label="$t('empDataApp.actions')" width="180" align="center">
         <template #default="{ row }">
-          <el-button type="primary" link size="small">{{ $t('empDataApp.viewDetails') }}</el-button>
+          <el-button type="primary" link size="small" @click="openLifecycle(row)">{{ $t('empDataApp.viewDetails') }}</el-button>
           <el-button
             v-if="row.first_statu === null && !row.is_recalled"
             type="danger" link size="small"
@@ -66,6 +66,16 @@
         @current-change="pageChanged"
       />
     </div>
+
+    <!-- Lifecycle drawer -->
+    <el-drawer
+      v-model="drawerVisible"
+      :title="$t('lifecycle.appId') + ': #' + selectedAppId"
+      size="520px"
+      destroy-on-close
+    >
+      <ApplicationLifecycle v-if="selectedAppId" :application-id="selectedAppId" />
+    </el-drawer>
   </el-card>
 </template>
 
@@ -77,11 +87,14 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from "element-plus";
 import { getMyApplications, withdrawApplication } from '@/api/employee';
 import { useUserStore } from "@/stores/userStore.js";
+import ApplicationLifecycle from '@/components/common/ApplicationLifecycle.vue';
 
 const { t } = useI18n();
 
 // [新增] 加载状态，提升用户体验
 const loading = ref(true);
+const drawerVisible = ref(false);
+const selectedAppId = ref(null);
 
 const userStore = useUserStore();
 const userNumber = computed(() => userStore.userNumber);
@@ -166,6 +179,11 @@ const handleWithdraw = async (row) => {
       ElMessage.error(t('empDataApp.withdrawFailed') || '撤回失败');
     }
   }
+};
+
+const openLifecycle = (row) => {
+  selectedAppId.value = row.id;
+  drawerVisible.value = true;
 };
 
 onMounted(() => {

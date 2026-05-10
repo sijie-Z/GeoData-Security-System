@@ -44,6 +44,7 @@ const routes = [
       { path: 'recall', name: 'AdminRecallList', component: () => import('@/views/admin/RecallManagement/RecallProposalList.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'admin-application', name: 'AdminApplicationVoting', component: () => import('@/views/admin/AdminApplication/VotingPage.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'watermark-quality', name: 'WatermarkQualityDashboard', component: () => import('@/views/admin/WatermarkQuality/WatermarkQualityDashboard.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
+      { path: 'traceability', name: 'AdminTraceabilityDemo', component: () => import('@/views/admin/TraceabilityDemo/TraceabilityDemo.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
     ]
   },
   {

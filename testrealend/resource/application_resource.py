@@ -573,22 +573,34 @@ class ApplicationDetailResource(Resource):
     """获取申请完整详情（包含二维码等）"""
     @jwt_required()
     def get(self, application_id):
+        from model.Download_Record import DownloadRecord
+
         item = db.session.get(Application, application_id)
         if not item:
             return {'status': False, 'msg': '申请不存在'}, 404
-        
+
         data = item.to_dict()
-        
+
         # 添加额外信息
         data['status_text'] = {
             'pending': '待审批',
             'adm1_approved': '一审通过',
             'adm1_rejected': '一审驳回',
-            'adm2_approved': '二审通过',
-            'adm2_rejected': '二审驳回',
+            'approved': '已通过',
+            'rejected': '已驳回',
             'recalled': '已回收'
         }.get(item._get_status(), '未知')
-        
+
+        # 添加下载记录
+        downloads = DownloadRecord.query.filter_by(application_id=item.id).order_by(DownloadRecord.download_time.desc()).all()
+        data['download_records'] = [{
+            'id': d.id,
+            'download_user_number': d.download_user_number,
+            'download_time': d.download_time.isoformat() if d.download_time else None,
+            'download_ip': d.download_ip,
+            'filename': d.filename
+        } for d in downloads]
+
         return {'status': True, 'data': data}, 200
 
 

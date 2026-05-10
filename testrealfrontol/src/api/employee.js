@@ -50,6 +50,14 @@ export const submitApplication = (data) => axios.post('/api/submit_application',
 export const withdrawApplication = (applicationId) =>
   axios.put(`/api/applications/${applicationId}/withdraw`)
 
+/**
+ * Get full detail of a single application (including lifecycle data).
+ * @param {number|string} applicationId
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getApplicationDetail = (applicationId) =>
+  axios.get(`/api/applications/${applicationId}`)
+
 // ──────────────────────────────────────
 //  Profile
 // ──────────────────────────────────────

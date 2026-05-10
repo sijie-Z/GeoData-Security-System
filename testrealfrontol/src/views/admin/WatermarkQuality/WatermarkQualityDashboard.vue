@@ -115,6 +115,66 @@
       </template>
       <div ref="chartRef" class="chart-container"></div>
     </el-card>
+
+    <!-- Quality Metrics Explained -->
+    <el-card class="metrics-card" shadow="never">
+      <template #header>
+        <span>{{ t('watermarkQuality.metricsExplained') || 'Quality Metrics Explained' }}</span>
+      </template>
+      <div class="metrics-grid">
+        <div class="metric-item">
+          <div class="metric-header">
+            <el-tag effect="dark" round>PSNR</el-tag>
+            <span class="metric-range">{{ t('watermarkQuality.psnrRange') || '> 40 dB is good' }}</span>
+          </div>
+          <p class="metric-desc">{{ t('watermarkQuality.psnrDesc') || 'Peak Signal-to-Noise Ratio measures visual quality. Higher values mean the watermarked image looks more identical to the original.' }}</p>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header">
+            <el-tag effect="dark" type="success" round>NC</el-tag>
+            <span class="metric-range">{{ t('watermarkQuality.ncRange') || '> 0.95 is excellent' }}</span>
+          </div>
+          <p class="metric-desc">{{ t('watermarkQuality.ncDesc') || 'Normalized Correlation measures watermark extraction accuracy. Values close to 1.0 mean the extracted watermark matches the original perfectly.' }}</p>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header">
+            <el-tag effect="dark" type="warning" round>SSIM</el-tag>
+            <span class="metric-range">{{ t('watermarkQuality.ssimRange') || '> 0.95 is excellent' }}</span>
+          </div>
+          <p class="metric-desc">{{ t('watermarkQuality.ssimDesc') || 'Structural Similarity Index measures perceived quality. It considers luminance, contrast, and structure — closer to human perception than PSNR.' }}</p>
+        </div>
+        <div class="metric-item">
+          <div class="metric-header">
+            <el-tag effect="dark" type="danger" round>BER</el-tag>
+            <span class="metric-range">{{ t('watermarkQuality.berRange') || '< 0.01 is good' }}</span>
+          </div>
+          <p class="metric-desc">{{ t('watermarkQuality.berDesc') || 'Bit Error Rate measures how many watermark bits were incorrectly extracted. Lower is better — 0.01 means 1% of bits are wrong.' }}</p>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- Algorithm Comparison -->
+    <el-card class="algo-card" shadow="never">
+      <template #header>
+        <span>{{ t('watermarkQuality.algoComparison') || 'Algorithm Comparison' }}</span>
+      </template>
+      <el-table :data="algorithmData" stripe style="width: 100%">
+        <el-table-column prop="name" :label="t('watermarkQuality.algoName') || 'Algorithm'" width="120" />
+        <el-table-column prop="domain" :label="t('watermarkQuality.algoDomain') || 'Domain'" width="120" />
+        <el-table-column prop="reversible" :label="t('watermarkQuality.algoReversible') || 'Reversible'" width="100">
+          <template #default="{ row }">
+            <el-tag :type="row.reversible === 'Yes' ? 'success' : 'info'" size="small">{{ row.reversible }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="robustness" :label="t('watermarkQuality.algoRobustness') || 'Robustness'" width="120">
+          <template #default="{ row }">
+            <el-rate v-model="row.robustnessScore" disabled :max="3" />
+          </template>
+        </el-table-column>
+        <el-table-column prop="capacity" :label="t('watermarkQuality.algoCapacity') || 'Capacity'" width="100" />
+        <el-table-column prop="useCase" :label="t('watermarkQuality.algoUseCase') || 'Best For'" min-width="200" />
+      </el-table>
+    </el-card>
   </div>
 </template>
 
@@ -204,6 +264,12 @@ const renderChart = () => {
     grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true }
   })
 }
+
+const algorithmData = ref([
+  { name: 'LSB', domain: 'Spatial', reversible: 'Yes', robustnessScore: 1, capacity: 'High', useCase: 'Tamper detection, reversible recovery' },
+  { name: 'DWT', domain: 'Frequency', reversible: 'Yes', robustnessScore: 3, capacity: 'Medium', useCase: 'Robust watermarking, resistant to compression & noise' },
+  { name: 'Histogram', domain: 'Spatial', reversible: 'Yes', robustnessScore: 2, capacity: 'Medium', useCase: 'High-capacity embedding for concentrated histograms' },
+])
 
 onMounted(fetchRecords)
 </script>
@@ -301,5 +367,47 @@ onMounted(fetchRecords)
 .chart-container {
   width: 100%;
   height: 300px;
+}
+
+.metrics-card,
+.algo-card {
+  border-radius: 14px;
+  margin-top: 24px;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+}
+
+.metric-item {
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.metric-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.metric-range {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.metric-desc {
+  font-size: 13px;
+  color: #475569;
+  margin: 0;
+  line-height: 1.6;
+}
+
+.algo-card :deep(.el-rate) {
+  --el-rate-icon-size: 14px;
 }
 </style>

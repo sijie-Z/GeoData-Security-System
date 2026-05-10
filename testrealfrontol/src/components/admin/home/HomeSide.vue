@@ -42,6 +42,16 @@
         </el-sub-menu>
       </el-sub-menu>
 
+      <el-menu-item index="/admin/traceability">
+        <el-icon><Aim /></el-icon>
+        <template #title>{{ $t('sidebar.admin.traceability') }}</template>
+      </el-menu-item>
+
+      <el-menu-item index="/admin/watermark-quality">
+        <el-icon><DataAnalysis /></el-icon>
+        <template #title>{{ $t('sidebar.admin.watermarkQuality') }}</template>
+      </el-menu-item>
+
       <el-sub-menu index="data">
         <template #title>
           <el-icon><Folder /></el-icon>
@@ -78,7 +88,7 @@
 import { defineProps } from 'vue'
 import {
   HomeFilled, User, DocumentChecked, Setting,
-  Picture, Folder
+  Picture, Folder, Aim, DataAnalysis
 } from '@element-plus/icons-vue'
 
 defineProps({

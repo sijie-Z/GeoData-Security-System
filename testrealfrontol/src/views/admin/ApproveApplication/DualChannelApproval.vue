@@ -194,7 +194,6 @@
                 {{ $t('approval.additionalReview') }}
               </el-button>
               <el-button
-                v-if="scope.row.status === 'approved' || scope.row.status === 'adm2_approved'"
                 type="info"
                 size="small"
                 :icon="View"
@@ -225,36 +224,12 @@
     <el-dialog
       v-model="detailDialogVisible"
       :title="$t('approval.viewDetail')"
-      width="600px"
+      width="640px"
       destroy-on-close
     >
-      <el-descriptions :column="2" border>
-        <el-descriptions-item :label="$t('approval.applyId')">{{ detailRow.id }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.dataName')">{{ detailRow.data_alias }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.dataId')">{{ detailRow.data_id }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.dataType')">{{ getDataTypeText(detailRow.data_type) }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.applicant')">{{ detailRow.applicant_name }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.userId')">{{ detailRow.applicant_user_number }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.applyReason')" :span="2">{{ detailRow.reason || '—' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.applyTime')">{{ detailRow.application_time }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.reviewStatus')">
-          <el-tag :type="getStatusType(detailRow)" effect="dark">{{ getStatusText(detailRow) }}</el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.firstReviewInfo')">
-          {{ detailRow.first_reviewer || '—' }}
-          <template v-if="detailRow.first_review_time">
-            <br /><small>{{ formatTime(detailRow.first_review_time) }}</small>
-          </template>
-        </el-descriptions-item>
-        <el-descriptions-item :label="$t('approval.secondReviewInfo')">
-          {{ detailRow.second_reviewer || '—' }}
-          <template v-if="detailRow.second_review_time">
-            <br /><small>{{ formatTime(detailRow.second_review_time) }}</small>
-          </template>
-        </el-descriptions-item>
-      </el-descriptions>
+      <ApplicationLifecycle :application-id="detailRow.id" />
       <template #footer>
-        <el-button @click="detailDialogVisible = false">{{ $t('approval.cancel') }}</el-button>
+        <el-button @click="detailDialogVisible = false">{{ $t('common.close') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -273,6 +248,7 @@ import {
 } from '@/api/admin'
 import { useUserStore } from '@/stores/userStore.js'
 import { Location, Picture, Search, Check, Close, View, Refresh } from '@element-plus/icons-vue'
+import ApplicationLifecycle from '@/components/common/ApplicationLifecycle.vue'
 
 const { t } = useI18n()
 

@@ -47,6 +47,19 @@
           <p>{{ $t('firstHome.featureTracingDesc') }}</p>
         </div>
       </div>
+
+      <!-- 工作流程引导 -->
+      <div class="workflow-section">
+        <h3 class="workflow-title">{{ $t('firstHome.workflowTitle') }}</h3>
+        <div class="workflow-steps">
+          <div v-for="(step, idx) in workflowSteps" :key="idx" class="workflow-step">
+            <div class="step-number">{{ idx + 1 }}</div>
+            <div class="step-connector" v-if="idx < workflowSteps.length - 1"></div>
+            <h4>{{ step.title }}</h4>
+            <p>{{ step.desc }}</p>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Language switcher in top-right corner -->
@@ -70,12 +83,22 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import * as THREE from 'three';
 import { Plus, Key, Lock, Compass, TrendCharts } from '@element-plus/icons-vue';
 import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
 const router = useRouter();
+const { t } = useI18n();
+
+const workflowSteps = computed(() => [
+  { title: t('firstHome.wfStep1Title'), desc: t('firstHome.wfStep1Desc') },
+  { title: t('firstHome.wfStep2Title'), desc: t('firstHome.wfStep2Desc') },
+  { title: t('firstHome.wfStep3Title'), desc: t('firstHome.wfStep3Desc') },
+  { title: t('firstHome.wfStep4Title'), desc: t('firstHome.wfStep4Desc') },
+  { title: t('firstHome.wfStep5Title'), desc: t('firstHome.wfStep5Desc') },
+]);
 const bgCanvas = ref(null);
 let renderer, scene, camera, particles;
 let animationId = null;
@@ -414,6 +437,76 @@ const register_button = () => router.push('/register');
   to { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 
+/* 工作流程 */
+.workflow-section {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 20px;
+}
+
+.workflow-title {
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  color: #93c5fd;
+  text-align: center;
+  margin-bottom: 28px;
+  font-weight: 500;
+}
+
+.workflow-steps {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  position: relative;
+}
+
+.workflow-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+  padding: 0 8px;
+}
+
+.step-number {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+  position: relative;
+  z-index: 2;
+}
+
+.step-connector {
+  position: absolute;
+  top: 20px;
+  left: calc(50% + 24px);
+  width: calc(100% - 48px);
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, rgba(96, 165, 250, 0.3));
+  z-index: 1;
+}
+
+.workflow-step h4 {
+  font-size: 13px;
+  color: #fff;
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.workflow-step p {
+  font-size: 11px;
+  color: #94a3b8;
+  margin: 0;
+  line-height: 1.4;
+}
+
 /* 响应式设计 */
 @media (max-width: 768px) {
   .content-overlay {
@@ -435,6 +528,27 @@ const register_button = () => router.push('/register');
   .features-section {
     flex-direction: column;
     align-items: center;
+  }
+
+  .workflow-steps {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .step-connector {
+    display: none;
+  }
+
+  .workflow-step {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    text-align: left;
+  }
+
+  .step-number {
+    margin: 0;
+    flex-shrink: 0;
   }
 
   .system-title {

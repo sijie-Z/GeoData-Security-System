@@ -145,6 +145,10 @@ class TestLSBRobustness:
         assert np.array_equal(orig, recovered), "Recovery is not bit-exact!"
 
 
+@pytest.mark.skipif(
+    tuple(int(x) for x in np.__version__.split('.')[:2]) >= (2, 0),
+    reason="geopandas/fiona incompatible with numpy>=2.0 (np.array copy=False removed)"
+)
 class TestVectorRobustness:
     """Test vector watermark survival under coordinate transformations."""
 
