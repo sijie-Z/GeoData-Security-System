@@ -324,7 +324,7 @@ const initializeMap = async (row) => {
       initialExtent = response.extent.clone();
       await mapView.goTo(response.extent);
     }
-  } catch (_e) {}
+  } catch (_e) { /* ignore */ }
   mapView.ui.remove('attribution');
 };
 

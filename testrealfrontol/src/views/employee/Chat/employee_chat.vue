@@ -230,7 +230,7 @@ const markReadHTTP = async () => {
       peer_number: activePeer.value.peer_number,
       peer_role: activePeer.value.peer_role
     })
-  } catch (_e) {}
+  } catch (_e) { /* ignore */ }
 }
 
 /* ------------------------------------------------------------------ */
