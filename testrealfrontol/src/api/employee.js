@@ -134,14 +134,14 @@ export const getMyLogs = (params) => axios.get('/api/employee/my-logs', { params
  * @param {Object} data
  * @returns {Promise<AxiosResponse>} Blob response with content-disposition header
  */
-export const downloadFile = (data) => axios.post('/api/download/emp_download_zip', data, { responseType: 'blob' })
+export const downloadFile = (data) => axios.post('/api/emp_download_zip', data, { responseType: 'blob' })
 
 /**
  * Request a download token for an application.
  * @param {Object} data
  * @returns {Promise<AxiosResponse>}
  */
-export const requestDownloadToken = (data) => axios.post('/api/download/request-token', data)
+export const requestDownloadToken = (data) => axios.post('/api/request_download_token', data)
 
 /**
  * Record a file download event.

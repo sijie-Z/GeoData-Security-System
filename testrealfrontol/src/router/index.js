@@ -5,12 +5,6 @@ import i18n from '@/locales/index.js';
 
 const t = (key) => i18n.global.t(key);
 
-import EmployeeProfile from '@/views/employee/EmployeeProfile/employee_profile.vue';
-import EmployeeHelp from '@/views/employee/EmployeeHelp/employee_help.vue';
-import EmployeeAbout from '@/views/employee/EmployeeAbout/employee_about.vue';
-import EmployeeDashboard from '@/views/employee/EmployeeDashboard/employee_dashboard.vue';
-import AdminDashboard from '@/views/admin/AdmDashboard/adm_dashboard.vue';
-
 const routes = [
   { path: '/', redirect: '/first_home' },
   { path: '/first_home', component: () => import('@/views/first_home.vue') },
@@ -22,7 +16,7 @@ const routes = [
     component: () => import('@/views/admin/adm_home.vue'),
     meta: { requiresAuth: true, roles: ['admin'] },
     children: [
-      { path: '', name: 'AdminDashboard', component: AdminDashboard },
+      { path: '', name: 'AdminDashboard', component: () => import('@/views/admin/AdmDashboard/adm_dashboard.vue') },
       { path: 'employee_management/information_add', name: 'AdminEmployeeInfoAdd', component: () => import('@/views/admin/EmployeeManagement/information_add.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'employee_management/information_list', name: 'AdminEmployeeInfoList', component: () => import('@/views/admin/EmployeeManagement/information_list.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'employee_management/edit/:id', name: 'AdminEditEmployee', component: () => import('@/views/admin/EmployeeManagement/EditEmployee.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
@@ -53,7 +47,7 @@ const routes = [
     component: () => import('@/views/employee/employee_home.vue'),
     meta: { requiresAuth: true, roles: ['employee'] },
     children: [
-      { path: '', name: 'EmployeeDashboard', component: EmployeeDashboard },
+      { path: '', name: 'EmployeeDashboard', component: () => import('@/views/employee/EmployeeDashboard/employee_dashboard.vue') },
       { path: 'data_viewing', name: 'EmployeeDataViewing', component: () => import('@/views/employee/DataViewing/data_viewing_new.vue') },
       { path: 'data_download', name: 'EmployeeDataDownload', component: () => import('@/views/employee/DataDownload/data_download.vue') },
       { path: 'data_application', name: 'EmployeeDataApplication', component: () => import('@/views/employee/DataApplication/data_application.vue') },
@@ -61,16 +55,19 @@ const routes = [
       { path: 'notifications', name: 'EmployeeNotifications', component: () => import('@/views/employee/MyNotifications/my_notifications.vue') },
       { path: 'chat', name: 'EmployeeChat', component: () => import('@/views/employee/Chat/employee_chat.vue') },
       { path: 'apply_admin', name: 'EmployeeApplyAdmin', component: () => import('@/views/employee/AdminApplication/ApplicationForm.vue') },
-      { path: 'profile', name: 'EmployeeProfile', component: EmployeeProfile },
-      { path: 'help', name: 'EmployeeHelp', component: EmployeeHelp },
-      { path: 'about', name: 'EmployeeAbout', component: EmployeeAbout }
+      { path: 'profile', name: 'EmployeeProfile', component: () => import('@/views/employee/EmployeeProfile/employee_profile.vue') },
+      { path: 'help', name: 'EmployeeHelp', component: () => import('@/views/employee/EmployeeHelp/employee_help.vue') },
+      { path: 'about', name: 'EmployeeAbout', component: () => import('@/views/employee/EmployeeAbout/employee_about.vue') }
     ]
   },
 ];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes,
+  scrollBehavior() {
+    return { top: 0 };
+  }
 });
 
 router.beforeEach(async (to, from, next) => {
@@ -107,15 +104,25 @@ router.beforeEach(async (to, from, next) => {
 
       if (isAdmin && (to.meta.adminRole || to.meta.adminRoles)) {
         const subRole = (userStore.adminSubRole || '').toString().toLowerCase();
+        // Map admin_sub_role to adm1/adm2/adm3. The backend may return:
+        //   'admin1'/'admin2'/'admin3' (old format)
+        //   'adm1'/'adm2'/'adm3'       (adm_number based)
+        //   'admin'                     (default — grant full access)
         const adminRole =
+          subRole === 'admin'  ? null :  // null = super-admin, bypass role check
           subRole === 'admin1' ? 'adm1' :
           subRole === 'admin2' ? 'adm2' :
           subRole === 'admin3' ? 'adm3' :
-          'adm1';
-        const allowed = to.meta.adminRole ? [to.meta.adminRole] : (to.meta.adminRoles || []);
-        if (allowed.length && !allowed.includes(adminRole)) {
-          ElMessage.error(t('auth.noPermissionPage'));
-          return next({ name: 'AdminDashboard' });
+          subRole === 'adm1'   ? 'adm1' :
+          subRole === 'adm2'   ? 'adm2' :
+          subRole === 'adm3'   ? 'adm3' :
+          null;  // unknown sub-role — treat as super-admin
+        if (adminRole) {
+          const allowed = to.meta.adminRole ? [to.meta.adminRole] : (to.meta.adminRoles || []);
+          if (allowed.length && !allowed.includes(adminRole)) {
+            ElMessage.error(t('auth.noPermissionPage'));
+            return next({ name: 'AdminDashboard' });
+          }
         }
       }
 

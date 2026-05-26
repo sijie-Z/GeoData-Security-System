@@ -32,12 +32,21 @@
 
         <el-table-column :label="$t('rasterWmGen.colWatermark')">
           <template #default="scope">
-            <el-image class="qr-code-image"
-              :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
-              :preview-src-list="[scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : '']"
-              fit="cover"
-              style="width: 50px; height: 50px;"
-            />
+            <div class="qr-image-wrapper">
+              <el-image class="qr-code-image"
+                :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
+                :preview-src-list="[scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : '']"
+                fit="cover"
+                style="width: 50px; height: 50px;"
+              >
+                <template #error>
+                  <div class="qr-error-slot">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+              <span v-if="!scope.row.qrcode" class="qr-empty-text">—</span>
+            </div>
           </template>
         </el-table-column>
 
@@ -294,6 +303,29 @@
   .qr-code-image {
     width: 50px;
     height: 50px;
+  }
+
+  .qr-image-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .qr-error-slot {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    background: #f5f7fa;
+    border-radius: 4px;
+    color: #c0c4cc;
+    font-size: 24px;
+  }
+
+  .qr-empty-text {
+    font-size: 12px;
+    color: #c0c4cc;
   }
 
   .view-pagination{

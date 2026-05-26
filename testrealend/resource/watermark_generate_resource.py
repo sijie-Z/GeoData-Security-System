@@ -1,37 +1,34 @@
-from flask import request
-from flask_restful import Resource
-from flask_jwt_extended import jwt_required
-from model.Application import Application
-from extension.extension import db
-from datetime import datetime, timezone
 import base64
-import qrcode
 import io
 import logging
+from datetime import UTC, datetime
+
+import qrcode
+from flask import request
+from flask_jwt_extended import jwt_required
+from flask_restful import Resource
+
+from extension.extension import db
+from model.Application import Application
+from resource.watermark_utils import build_qr_text, get_qr_version
 from utils.log_helper import log_action
-from resource.watermark_utils import (
-    build_qr_text, get_qr_version
-)
 from utils.metrics import record_watermark
 
 
 class Adm1GetGenerateWatermarkApplications(Resource):
     @jwt_required()
     def get(self):
-        page = request.args.get('page', 1, type=int)
-        page_size = request.args.get('pageSize', 10, type=int)
-        
+        page = request.args.get("page", 1, type=int)
+        page_size = request.args.get("pageSize", 10, type=int)
+
         # Only get applications where adm1 has approved
         query = Application.query.filter(Application.adm1_statu == True)
         pagination = query.paginate(page=page, per_page=page_size, error_out=False)
-        
+
         items = [item.to_dict() for item in pagination.items]
-        
-        return {
-            'status': True,
-            'application_data': items,
-            'pages': {'total': pagination.total}
-        }, 200
+
+        return {"status": True, "application_data": items, "pages": {"total": pagination.total}}, 200
+
 
 class GenerateWatermarkResource(Resource):
     """
@@ -56,14 +53,18 @@ class GenerateWatermarkResource(Resource):
       200: {description: 水印生成成功}
       404: {description: 申请不存在}
     """
+
     @jwt_required()
     def post(self):
         data = request.get_json() or {}
-        app_id = data.get('application_id')
+        app_id = data.get("application_id")
 
         item = db.session.get(Application, app_id)
         if not item:
-            return {'status': False, 'msg': '申请不存在'}, 404
+            return {"status": False, "msg": "申请不存在"}, 404
+
+        if item.watermark_generated:
+            return {"status": False, "msg": "水印已生成，请勿重复操作"}, 400
 
         try:
             # Build QR content with signature
@@ -94,34 +95,35 @@ class GenerateWatermarkResource(Resource):
             item.watermark_generated = True
             item.qr_version = qr_version
             item.qr_signature = signature
-            item.generation_timestamp = datetime.now(timezone.utc)
+            item.generation_timestamp = datetime.now(UTC)
 
             # Save optional fields
-            for field in ['purpose', 'usage_scope', 'security_level', 'custom_tag']:
+            for field in ["purpose", "usage_scope", "security_level", "custom_tag"]:
                 if data.get(field):
                     setattr(item, field, str(data.get(field)).strip())
 
-            if data.get('reason'):
-                item.reason = str(data.get('reason')).strip()
+            if data.get("reason"):
+                item.reason = str(data.get("reason")).strip()
 
             db.session.commit()
 
             log_action(
-                item.applicant_user_number, item.applicant_name,
-                '水印生成', '成功',
-                f"app_id={item.id} data_alias={item.data_alias} qr_version={qr_version}"
+                item.applicant_user_number,
+                item.applicant_name,
+                "水印生成",
+                "成功",
+                f"app_id={item.id} data_alias={item.data_alias} qr_version={qr_version}",
             )
-            record_watermark(data_type=item.data_type or 'vector')
+            record_watermark(data_type=item.data_type or "vector")
 
             return {
-                'status': True,
-                'msg': '水印生成成功',
-                'qrcode': img_str,
-                'qr_text': qr_content,
-                'qr_version': qr_version,
-                'signature': signature
+                "status": True,
+                "msg": "水印生成成功",
+                "qrcode": img_str,
+                "qr_text": qr_content,
+                "qr_version": qr_version,
+                "signature": signature,
             }, 200
         except Exception as e:
             logging.error(str(e))
-            return {'status': False, 'msg': '操作失败，请稍后重试'}, 500
-
+            return {"status": False, "msg": "操作失败，请稍后重试"}, 500

@@ -1,5 +1,15 @@
 <template>
   <div class="admin-dashboard" v-loading="loading">
+    <template v-if="loading">
+      <div class="skeleton-hero">
+        <div class="sk-line long"></div>
+        <div class="sk-line medium"></div>
+      </div>
+      <div class="stats-grid">
+        <div v-for="n in 4" :key="n" class="stat-card"><div class="sk-line short"></div><div class="sk-line medium"></div></div>
+      </div>
+    </template>
+    <template v-else>
     <!-- Hero区域 -->
     <section class="hero-section">
       <div class="hero-content">
@@ -179,15 +189,16 @@
         </div>
       </el-card>
     </section>
+    </template>
   </div>
 </template>
 
 <script setup>
+defineOptions({ name: 'AdminDashboard' });
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
-import * as echarts from 'echarts';
 import { getDashboard } from '@/api/admin';
 import {
   User, Clock, FolderOpened, TrendCharts, Download, RefreshRight,
@@ -276,7 +287,8 @@ const fetchDashboard = async () => {
   }
 };
 
-const renderCharts = () => {
+const renderCharts = async () => {
+  const echarts = await import('echarts');
   // 趋势图
   if (trendChartRef.value) {
     trendIns?.dispose();
@@ -438,4 +450,23 @@ onBeforeUnmount(() => {
   .bottom-grid { grid-template-columns: 1fr; }
   .action-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
+.skeleton-hero {
+  padding: 40px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sk-line {
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.sk-line.long { width: 60%; }
+.sk-line.medium { width: 40%; }
+.sk-line.short { width: 25%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>

@@ -114,7 +114,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.firstReviewInfo')" width="150" align="center">
+        <el-table-column :label="$t('approval.firstReviewInfo')" width="200" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getFirstReviewClass(scope.row)">
@@ -126,11 +126,17 @@
               <div class="reviewer" v-if="scope.row.first_reviewer">
                 {{ scope.row.first_reviewer }}
               </div>
+              <el-tooltip v-if="scope.row.first_comment" :content="scope.row.first_comment" placement="top">
+                <el-tag size="small" type="info" effect="plain" style="margin-top:4px;cursor:pointer;">
+                  <el-icon style="margin-right:2px;"><ChatLineSquare /></el-icon>
+                  {{ $t('approval.hasComment') }}
+                </el-tag>
+              </el-tooltip>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.secondReviewInfo')" width="150" align="center">
+        <el-table-column :label="$t('approval.secondReviewInfo')" width="200" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getSecondReviewClass(scope.row)">
@@ -142,11 +148,17 @@
               <div class="reviewer" v-if="scope.row.second_reviewer">
                 {{ scope.row.second_reviewer }}
               </div>
+              <el-tooltip v-if="scope.row.second_comment" :content="scope.row.second_comment" placement="top">
+                <el-tag size="small" type="info" effect="plain" style="margin-top:4px;cursor:pointer;">
+                  <el-icon style="margin-right:2px;"><ChatLineSquare /></el-icon>
+                  {{ $t('approval.hasComment') }}
+                </el-tag>
+              </el-tooltip>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.operation')" width="180" align="center" fixed="right">
+        <el-table-column :label="$t('approval.operation')" width="220" align="center" fixed="right">
           <template #default="scope">
             <div class="action-buttons">
               <el-button
@@ -201,6 +213,14 @@
               >
                 {{ $t('approval.viewDetail') }}
               </el-button>
+              <el-button
+                type="primary"
+                size="small"
+                :icon="ChatDotSquare"
+                @click="contactApplicant(scope.row)"
+                circle
+                :title="$t('approval.contactApplicant')"
+              />
             </div>
           </template>
         </el-table-column>
@@ -247,10 +267,12 @@ import {
   getRasterApplications
 } from '@/api/admin'
 import { useUserStore } from '@/stores/userStore.js'
-import { Location, Picture, Search, Check, Close, View, Refresh } from '@element-plus/icons-vue'
+import { useRouter } from 'vue-router'
+import { Location, Picture, Search, Check, Close, View, Refresh, ChatDotSquare, ChatLineSquare } from '@element-plus/icons-vue'
 import ApplicationLifecycle from '@/components/common/ApplicationLifecycle.vue'
 
 const { t } = useI18n()
+const router = useRouter()
 
 const userStore = useUserStore()
 
@@ -400,16 +422,16 @@ const formatTime = (time) => {
 // 审核操作
 const handleFirstApprove = async (row) => {
   try {
-    await ElMessageBox.confirm(t('approval.confirmFirstApprove'), t('approval.firstReviewApproval'), {
+    const { value: comment } = await ElMessageBox.prompt(t('approval.approveCommentPlaceholder'), t('approval.firstReviewApproval'), {
       confirmButtonText: t('approval.approve'),
       cancelButtonText: t('approval.cancel'),
-      type: 'info'
+      inputType: 'textarea',
+      inputPlaceholder: t('approval.approveCommentPlaceholder')
     })
 
     const response = await approveApplication('adm1', {
       id: row.id,
-      user_name: userStore.userName,
-      user_number: userStore.userNumber
+      comment: comment || ''
     })
 
     if (response.data.status) {
@@ -456,10 +478,11 @@ const handleFirstReject = async (row) => {
 
 const handleSecondApprove = async (row) => {
   try {
-    await ElMessageBox.confirm(t('approval.confirmSecondApprove'), t('approval.secondReviewApproval'), {
+    const { value: comment } = await ElMessageBox.prompt(t('approval.approveCommentPlaceholder'), t('approval.secondReviewApproval'), {
       confirmButtonText: t('approval.approve'),
       cancelButtonText: t('approval.cancel'),
-      type: 'info'
+      inputType: 'textarea',
+      inputPlaceholder: t('approval.approveCommentPlaceholder')
     })
 
     const loadingInstance = ElLoading.service({
@@ -471,8 +494,7 @@ const handleSecondApprove = async (row) => {
     try {
       const response = await approveApplication('adm2', {
         id: row.id,
-        user_name: userStore.userName,
-        user_number: userStore.userNumber
+        comment: comment || ''
       })
 
       if (response.data.status) {
@@ -577,6 +599,18 @@ const handleAdditionalReview = async (row) => {
   } catch (error) {
     if (error !== 'cancel') ElMessage.error(t('approval.additionalReviewFailed'))
   }
+}
+
+// Contact applicant
+const contactApplicant = (row) => {
+  router.push({
+    path: '/admin/system/chat',
+    query: {
+      contact_number: row.applicant_user_number,
+      contact_name: row.applicant_name,
+      context: `app_${row.id}`
+    }
+  })
 }
 
 // Detail dialog state

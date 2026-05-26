@@ -1,6 +1,7 @@
-import numpy as np
 import imageio.v2 as imageio
+import numpy as np
 from PIL import Image
+
 
 def load_as_rgb_array(image_path: str) -> np.ndarray:
     """
@@ -16,7 +17,7 @@ def load_as_rgb_array(image_path: str) -> np.ndarray:
         return np.array(pil_img.convert("RGB"))
 
     # --- 数据类型转换 (处理高位深度和浮点数) ---
-    if 'float' in str(image_raw.dtype):
+    if "float" in str(image_raw.dtype):
         min_val, max_val = np.percentile(image_raw, [2, 98])
         clipped_raw = np.clip(image_raw, min_val, max_val)
         if (max_val - min_val) > 0:
@@ -24,21 +25,21 @@ def load_as_rgb_array(image_path: str) -> np.ndarray:
         else:
             normalized_float = np.zeros_like(clipped_raw, dtype=np.float32)
         image_uint8 = (normalized_float * 255).astype(np.uint8)
-    elif image_raw.dtype == 'uint16':
+    elif image_raw.dtype == "uint16":
         image_uint8 = (image_raw / 65535.0 * 255).astype(np.uint8)
-    elif image_raw.dtype == 'uint8':
+    elif image_raw.dtype == "uint8":
         image_uint8 = image_raw
     else:
         raise TypeError(f"Unsupported input data type: {image_raw.dtype}")
 
     # --- 通道处理 (灰度, RGBA, 多波段) ---
     if image_uint8.ndim == 2:
-        image_uint8 = np.stack([image_uint8]*3, axis=-1)
-    
+        image_uint8 = np.stack([image_uint8] * 3, axis=-1)
+
     if image_uint8.shape[2] == 4:
         image_uint8 = np.array(Image.fromarray(image_uint8).convert("RGB"))
     elif image_uint8.shape[2] > 3:
-        band_indices = [3, 2, 1] 
+        band_indices = [3, 2, 1]
         image_uint8 = image_uint8[:, :, band_indices]
 
     return image_uint8

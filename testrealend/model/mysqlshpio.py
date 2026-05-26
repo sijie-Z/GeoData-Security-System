@@ -2,8 +2,8 @@ from extension.extension import db
 
 
 class MysqlShpFile(db.Model):
-    __bind_key__ = 'mysql_db'
-    __tablename__ = 'MysqlShpIO'
+    __bind_key__ = "mysql_db"
+    __tablename__ = "MysqlShpIO"
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(255), unique=True, nullable=True)
     alias = db.Column(db.String(255), unique=True, nullable=True)

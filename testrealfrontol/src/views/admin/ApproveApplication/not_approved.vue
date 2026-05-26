@@ -20,10 +20,11 @@
         <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="100" align="center" />
         <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="160" show-overflow-tooltip />
 
-        <el-table-column :label="$t('approval.operation')" width="160" align="center" fixed="right">
+        <el-table-column :label="$t('approval.operation')" width="200" align="center" fixed="right">
           <template #default="scope">
             <el-button size="small" type="primary" @click="pass(scope.row)">{{ $t('approval.approve') }}</el-button>
             <el-button size="small" @click="fail(scope.row)">{{ $t('approval.reject') }}</el-button>
+            <el-button size="small" :icon="ChatDotSquare" circle type="primary" :title="$t('approval.contactApplicant')" @click="contactApplicant(scope.row)" />
           </template>
         </el-table-column>
       </el-table>
@@ -46,6 +47,7 @@
 import {reactive, onMounted, ref, computed, watch} from "vue";
 import {ElMessage, ElMessageBox, ElLoading} from "element-plus";
 import { useI18n } from 'vue-i18n';
+import { useRouter } from 'vue-router';
 import {
   getApplications,
   approveApplication,
@@ -55,9 +57,11 @@ import {
 } from '@/api/admin';
 import {useUserStore} from "@/stores/userStore.js";
 
+import { ChatDotSquare } from '@element-plus/icons-vue'
+
 const { t } = useI18n();
 
-// const router=useRouter()
+const router = useRouter()
 
 const userStore = useUserStore();
 const userNumber = computed(() => userStore.userNumber);
@@ -84,6 +88,17 @@ const pageChanged = (newPage) => {
 
 const onSelectionChange = (rows) => {
   selectedIds.value = (rows || []).map(r => r.id).filter(Boolean);
+};
+
+const contactApplicant = (row) => {
+  router.push({
+    path: '/admin/system/chat',
+    query: {
+      contact_number: row.applicant_user_number,
+      contact_name: row.applicant_name,
+      context: `app_${row.id}`
+    }
+  })
 };
 
 watch(page, (newValue, oldValue) => {
@@ -147,23 +162,13 @@ const pass = async (row) => {
         user_name: userName.value,
         user_number: userNumber.value
       };
-      let passResult;
-      if (isAdm1.value) {
-        passResult = await approveApplication('adm1', requestData);
-      } else {
-        passResult = await approveApplication('adm2', requestData);
-      }
-
+      const passResult = await approveApplication('adm1', requestData);
       if (!passResult.data.status) {
         ElMessage.error(passResult.data.msg || t('approval.reviewFailed'));
         return;
       }
       ElMessage.success(t('approval.reviewPassed'));
-      if (isAdm1.value) {
-        await admin1_get_applications();
-      } else {
-        await admin2_get_applications();
-      }
+      await admin1_get_applications();
     } finally {
       loadingInstance.close();
     }
@@ -189,11 +194,7 @@ const fail = async (row) => {
     };
 
     let failResult;
-    if (isAdm1.value) {
-      failResult = await rejectApplication('adm1', requestData);
-    } else {
-      failResult = await rejectApplication('adm2', requestData);
-    }
+    failResult = await rejectApplication('adm1', requestData);
 
     if (!failResult.data.status) {
       ElMessage.error(failResult.data.msg);
@@ -201,11 +202,7 @@ const fail = async (row) => {
     }
 
     ElMessage.success(t('approval.operationSuccess'));
-    if (isAdm1.value) {
-      await admin1_get_applications();
-    } else {
-      await admin2_get_applications();
-    }
+    await admin1_get_applications();
 
   } catch (err) {
     if (err !== 'cancel') {

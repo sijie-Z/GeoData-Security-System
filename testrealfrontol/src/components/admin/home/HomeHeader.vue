@@ -17,13 +17,14 @@ const router = useRouter();
 const userNumber = computed(() => userStore.userNumber);
 const userName = computed(() => userStore.userName);
 
-const roleLabel = computed(() => {
-  const num = (userNumber.value || '').toString().toLowerCase();
-  const name = (userName.value || '').toString().toLowerCase();
-  if (num === 'admin1' || num === '22200214135' || name === '管理员1') return t('header.admin') + '1';
-  if (num === 'admin2' || num === '33300214135' || name === '管理员2') return t('header.admin') + '2';
-  if (num === 'admin3' || num === '44400214135' || name === '管理员3') return t('header.admin') + '3';
-  return t('header.admin') + '1';
+const displayLabel = computed(() => {
+  const name = userName.value || userNumber.value || '';
+  const subRole = userStore.adminSubRole || '';
+  let roleText = t('header.admin');
+  if (subRole === 'admin1') roleText += '1';
+  else if (subRole === 'admin2') roleText += '2';
+  else if (subRole === 'admin3') roleText += '3';
+  return `${name} (${roleText})`;
 });
 
 const props = defineProps({
@@ -38,11 +39,12 @@ const toggleSidebar = () => {
 const fetchUserInfo = async () => {
   try {
     const response = await axiosInstance.get('/api/protected');
+    const respData = response.data?.data || response.data || {};
     userStore.setUserInfo({
       ...userStore.currentUser,
-      user_number: response.data.user_number,
-      role: response.data.role,
-      user_name: response.data.user_name || t('header.admin')
+      user_number: respData.user_number,
+      role: respData.role,
+      user_name: respData.user_name || t('header.admin')
     });
   } catch (err) {
     console.error('获取管理员信息失败', err);
@@ -92,7 +94,7 @@ const logout = async () => {
       <NotificationCenter />
       <div class="user-info-display">
         <el-icon><UserFilled /></el-icon>
-        <span>{{ roleLabel }}</span>
+        <span>{{ displayLabel }}</span>
       </div>
       <el-button type="danger" :icon="SwitchButton" circle @click="logout" :title="$t('header.logout')"></el-button>
     </div>

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Comprehensive end-to-end test — all API endpoints."""
 
-import requests
-import json
 import sys
+
+import requests
 
 BASE = "http://127.0.0.1:5003"
 passed = 0
@@ -55,27 +55,36 @@ print("=" * 60)
 
 # ── 1. AUTH ──
 print("\n── 1. Auth ──")
-r = test("Login admin", "POST", "/api/login",
-         json={"username": "admin", "password": "admin123", "role": "admin"})
+r = test("Login admin", "POST", "/api/login", json={"username": "admin", "password": "admin123", "role": "admin"})
 admin_token = r["access_token"] if r else None
 
 # Register a test employee, or login if already exists
-reg = requests.post(f"{BASE}/api/register",
-                    data={"name": "Tester", "employeeId": "TEST001",
-                          "idNumber": "888888888888888888",
-                          "phone": "19900000001", "password": "test123456"})
+reg = requests.post(
+    f"{BASE}/api/register",
+    data={
+        "name": "Tester",
+        "employeeId": "TEST001",
+        "idNumber": "888888888888888888",
+        "phone": "19900000001",
+        "password": "test123456",
+    },
+)
 if reg.status_code in (201, 400):
     print(f"  [INFO] Register employee -> {reg.status_code} (user ready)")
 
-r2 = test("Login employee", "POST", "/api/login",
-          json={"username": "TEST001", "password": "test123456", "role": "employee"})
+r2 = test(
+    "Login employee", "POST", "/api/login", json={"username": "TEST001", "password": "test123456", "role": "employee"}
+)
 emp_token = r2["access_token"] if r2 else None
 
-test("Login bad password", "POST", "/api/login", 401,
-     json={"username": "admin", "password": "wrong", "role": "admin"})
+test("Login bad password", "POST", "/api/login", 401, json={"username": "admin", "password": "wrong", "role": "admin"})
 
-test("Refresh token", "POST", "/api/refresh-token",
-     json={"refresh_token": r["refresh_token"]} if r and "refresh_token" in r else {})
+test(
+    "Refresh token",
+    "POST",
+    "/api/refresh-token",
+    json={"refresh_token": r["refresh_token"]} if r and "refresh_token" in r else {},
+)
 
 test("Logout", "POST", "/api/logout", headers=auth_header(admin_token) if admin_token else {})
 
@@ -88,12 +97,21 @@ test("Admin nav list", "GET", "/api/admin/nav/list", headers=auth_header(admin_t
 # ── 3. PROFILE ──
 print("\n── 3. Profile ──")
 test("Employee profile GET", "GET", "/api/employee/profile", headers=auth_header(emp_token))
-test("Employee profile PUT", "PUT", "/api/employee/profile",
-     data={"userName": "TestUser"},
-     headers=auth_header(emp_token))
-test("Employee password (empty)", "PUT", "/api/employee/password", 400,
-     json={"old_password": "", "new_password": ""},
-     headers=auth_header(emp_token))
+test(
+    "Employee profile PUT",
+    "PUT",
+    "/api/employee/profile",
+    data={"userName": "TestUser"},
+    headers=auth_header(emp_token),
+)
+test(
+    "Employee password (empty)",
+    "PUT",
+    "/api/employee/password",
+    400,
+    json={"old_password": "", "new_password": ""},
+    headers=auth_header(emp_token),
+)
 
 # ── 4. DATA VIEWING ──
 print("\n── 4. Data Viewing ──")
@@ -107,19 +125,31 @@ test("Map search", "GET", "/api/map/search?keyword=test", headers=auth_header(em
 print("\n── 5. Admin Employee Management ──")
 test("Get emp list", "GET", "/api/adm/get_emp_info_list", headers=auth_header(admin_token))
 test("Employee details", "GET", "/api/employee/details/TEST001", headers=auth_header(admin_token))
-test("Employee update", "PUT", "/api/employee/TEST001",
-     data={"name": "UpdatedName"},
-     headers=auth_header(admin_token))
+test("Employee update", "PUT", "/api/employee/TEST001", data={"name": "UpdatedName"}, headers=auth_header(admin_token))
 
 # ── 6. APPLICATIONS (user) ──
 print("\n── 6. Applications (Employee) ──")
-test("Submit application", "POST", "/api/submit_application",
-     json={"data_id": 1, "data_name": "test", "data_alias": "test_alias",
-           "data_url": "", "data_type": "vector", "applicant_name": "Test",
-           "applicant_user_number": "TEST001", "reason": "testing"},
-     headers=auth_header(emp_token), expected_status=201)
+test(
+    "Submit application",
+    "POST",
+    "/api/submit_application",
+    json={
+        "data_id": 1,
+        "data_name": "test",
+        "data_alias": "test_alias",
+        "data_url": "",
+        "data_type": "vector",
+        "applicant_name": "Test",
+        "applicant_user_number": "TEST001",
+        "reason": "testing",
+    },
+    headers=auth_header(emp_token),
+    expected_status=201,
+)
 test("My applications", "GET", "/api/get_applications?userNumber=TEST001", headers=auth_header(emp_token))
-test("Approved applications", "GET", "/api/get_approved_applications?userNumber=TEST001", headers=auth_header(emp_token))
+test(
+    "Approved applications", "GET", "/api/get_approved_applications?userNumber=TEST001", headers=auth_header(emp_token)
+)
 test("All applications", "GET", "/api/applications?page=1&pageSize=3", headers=auth_header(admin_token))
 
 # ── 7. APPLICATION REVIEW ──
@@ -131,26 +161,52 @@ test("Adm2 get approved", "GET", "/api/adm2_get_approved", headers=auth_header(a
 
 # ── 8. WATERMARK ──
 print("\n── 8. Watermark ──")
-test("Adm1 get generate wm apps", "GET", "/api/adm1_get_applications_generate_watermark", headers=auth_header(admin_token))
-test("Adm1 get raster gen wm apps", "GET", "/api/adm1_get_raster_applications_generate_watermark", headers=auth_header(admin_token))
-test("Adm2 embedding wm apps (vector)", "GET", "/api/adm2_embedding_watermark_applications?data_type=vector", headers=auth_header(admin_token))
-test("Adm2 embedding wm apps (raster)", "GET", "/api/adm2_embedding_watermark_applications?data_type=raster", headers=auth_header(admin_token))
+test(
+    "Adm1 get generate wm apps",
+    "GET",
+    "/api/adm1_get_applications_generate_watermark",
+    headers=auth_header(admin_token),
+)
+test(
+    "Adm1 get raster gen wm apps",
+    "GET",
+    "/api/adm1_get_raster_applications_generate_watermark",
+    headers=auth_header(admin_token),
+)
+test(
+    "Adm2 embedding wm apps (vector)",
+    "GET",
+    "/api/adm2_embedding_watermark_applications?data_type=vector",
+    headers=auth_header(admin_token),
+)
+test(
+    "Adm2 embedding wm apps (raster)",
+    "GET",
+    "/api/adm2_embedding_watermark_applications?data_type=raster",
+    headers=auth_header(admin_token),
+)
 test("Upload original wm", "POST", "/api/upload_original_watermark", headers=auth_header(admin_token))
 test("Upload extracted wm", "POST", "/api/upload_extracted_watermark", headers=auth_header(admin_token))
 
 # ── 9. RASTER ──
 print("\n── 9. Raster ──")
-test("Raster preview", "POST", "/api/raster/preview",
-     json={"file_path": "nonexistent"},
-     headers=auth_header(admin_token), expected_status=404)
+test(
+    "Raster preview",
+    "POST",
+    "/api/raster/preview",
+    json={"file_path": "nonexistent"},
+    headers=auth_header(admin_token),
+    expected_status=404,
+)
 
 # ── 10. DOWNLOADS ──
 print("\n── 10. Downloads ──")
 # Record download — test that endpoint is reachable (test data may not satisfy FK constraints)
-rd_resp = requests.post(f"{BASE}/api/record_download_file",
-                        json={"application_id": 1, "data_id": 1,
-                              "applicant_user_number": "TEST001", "fileName": "test.shp"},
-                        headers=auth_header(emp_token))
+rd_resp = requests.post(
+    f"{BASE}/api/record_download_file",
+    json={"application_id": 1, "data_id": 1, "applicant_user_number": "TEST001", "fileName": "test.shp"},
+    headers=auth_header(emp_token),
+)
 if rd_resp.status_code in (200, 201, 500):
     print(f"  [INFO] Record download -> {rd_resp.status_code} (endpoint reachable)")
     passed += 1
@@ -167,9 +223,13 @@ test("System logs", "GET", "/api/admin/logs", headers=auth_header(admin_token))
 # ── 12. ANNOUNCEMENTS ──
 print("\n── 12. Announcements ──")
 test("Get announcements", "GET", "/api/announcements", headers=auth_header(emp_token))
-test("Admin create announcement", "POST", "/api/admin/announcements",
-     json={"title": "Test", "content": "Test announcement", "author_id": "ADM001"},
-     headers=auth_header(admin_token))
+test(
+    "Admin create announcement",
+    "POST",
+    "/api/admin/announcements",
+    json={"title": "Test", "content": "Test announcement", "author_id": "ADM001"},
+    headers=auth_header(admin_token),
+)
 
 # ── 13. NOTIFICATIONS ──
 print("\n── 13. Notifications ──")

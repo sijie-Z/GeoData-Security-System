@@ -14,12 +14,27 @@ const axiosInstance = axios.create({
   },
 })
 
+// Refresh token lock — prevents multiple simultaneous refresh attempts
+let isRefreshing = false
+let failedQueue = []
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error)
+    } else {
+      resolve(token)
+    }
+  })
+  failedQueue = []
+}
+
 // Request interceptor — inject JWT token
 axiosInstance.interceptors.request.use(
   (config) => {
     const userStore = useUserStore()
     const token = userStore.token
-    if (token) {
+    if (token && !config.url.includes('/api/login') && !config.url.includes('/api/refresh-token')) {
       config.headers.Authorization = `Bearer ${token}`
     }
     return config
@@ -34,8 +49,22 @@ axiosInstance.interceptors.response.use(
     const originalRequest = error.config
 
     // Attempt token refresh on 401 (once)
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry
+        && !originalRequest.url.includes('/api/refresh-token')
+        && !originalRequest.url.includes('/api/login')) {
+
+      if (isRefreshing) {
+        // Queue this request until refresh completes
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject })
+        }).then(token => {
+          originalRequest.headers.Authorization = `Bearer ${token}`
+          return axiosInstance.request(originalRequest)
+        }).catch(err => Promise.reject(err))
+      }
+
       originalRequest._retry = true
+      isRefreshing = true
       const userStore = useUserStore()
 
       try {
@@ -50,12 +79,16 @@ axiosInstance.interceptors.response.use(
         })
 
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`
+        processQueue(null, data.access_token)
         return axiosInstance.request(originalRequest)
       } catch (refreshError) {
+        processQueue(refreshError, null)
         userStore.clearUserInfo()
         ElMessage.error(t('auth.tokenExpired'))
         router.push('/login')
         return Promise.reject(refreshError)
+      } finally {
+        isRefreshing = false
       }
     }
 

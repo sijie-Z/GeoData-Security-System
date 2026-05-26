@@ -108,7 +108,7 @@ export const extractWatermark = (data) => axios.post('/api/vector/extract', data
  * @param {number|string} id - Application ID
  * @returns {Promise<AxiosResponse>}
  */
-export const getApplicationQRCode = (id) => axios.get(`/api/application/${id}/qrcode`)
+export const getApplicationQRCode = (id) => axios.get(`/api/applications/${id}/qrcode`)
 
 /**
  * Get QR code image for an application (blob).
@@ -116,7 +116,7 @@ export const getApplicationQRCode = (id) => axios.get(`/api/application/${id}/qr
  * @returns {Promise<AxiosResponse>} Blob response
  */
 export const getApplicationQRImage = (id) =>
-  axios.get(`/api/application/${id}/qrcode-image`, { responseType: 'blob' })
+  axios.get(`/api/applications/${id}/qrcode/image`, { responseType: 'blob' })
 
 // ──────────────────────────────────────
 //  Raster Watermark (CRMark)
@@ -156,6 +156,13 @@ export const crmarkRecover = (data) => axios.post('/api/crmark/recover', data, {
  */
 export const crmarkDecode = (data) => axios.post('/api/crmark/decode', data, { responseType: 'blob' })
 
+/**
+ * Decode a QR code (image upload or text paste) and return provenance info.
+ * @param {FormData|Object} data - FormData with 'file' for QR image, or { qr_text: '...' } for text
+ * @returns {Promise<AxiosResponse>}
+ */
+export const decodeQRCode = (data) => axios.post('/api/qrcode/decode', data)
+
 // ──────────────────────────────────────
 //  Verification Records
 // ──────────────────────────────────────
@@ -169,3 +176,17 @@ export const crmarkDecode = (data) => axios.post('/api/crmark/decode', data, { r
  */
 export const getVerificationRecords = (params) =>
   axios.get('/api/watermark/verification_records', { params })
+
+/**
+ * Generate XYZ tiles for raster map preview.
+ * @param {Object} data
+ * @param {number} data.data_id - Raster data ID
+ * @returns {Promise<AxiosResponse>}
+ */
+export const generateRasterTiles = (data) => axios.post('/api/raster/generate_tiles', data)
+
+/**
+ * Get robustness benchmark results for algorithm comparison.
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getBenchmarkResults = () => axios.get('/api/benchmark/results')

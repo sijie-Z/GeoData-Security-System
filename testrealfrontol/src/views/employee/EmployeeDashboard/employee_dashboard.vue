@@ -1,5 +1,16 @@
 <template>
   <div class="employee-dashboard" v-loading="loading">
+    <template v-if="loading">
+      <div class="skeleton-hero glass">
+        <div class="sk-line long"></div>
+        <div class="sk-line medium"></div>
+        <div class="sk-line short"></div>
+      </div>
+      <div class="kpi-grid">
+        <div v-for="n in 4" :key="n" class="kpi glass"><div class="sk-line short"></div><div class="sk-line medium"></div></div>
+      </div>
+    </template>
+    <template v-else>
     <section class="hero glass">
       <div>
         <h1>{{ $t('empDashboard.title') }} · {{ greeting }}，{{ userStore.user_name || $t('empDashboard.defaultEmployee') }}</h1>
@@ -86,15 +97,16 @@
         </div>
       </el-card>
     </section>
+    </template>
   </div>
 </template>
 
 <script setup>
+defineOptions({ name: 'EmployeeDashboard' });
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
-import * as echarts from 'echarts';
 import { getDashboard } from '@/api/employee';
 import { getAnnouncements } from '@/api/admin';
 
@@ -129,8 +141,11 @@ const greeting = computed(() => {
 const fetchDashboard = async () => {
   loading.value = true;
   try {
-    const response = await getDashboard();
-    const data = response.data?.data || {};
+    const [response, ann] = await Promise.all([
+      getDashboard(),
+      getAnnouncements({ page: 1, pageSize: 5 })
+    ]);
+    const data = response?.data?.data || {};
     metrics.value = {
       totalApplications: data.total_applications || 0,
       pendingApplications: data.pending_applications || 0,
@@ -142,8 +157,6 @@ const fetchDashboard = async () => {
     applicationStatusDist.value = data.application_status_distribution || { pending: 0, approved: 0, rejected: 0 };
     todayVisits.value = data.today_visits || 0;
     lastLoginTime.value = data.last_login_time || '—';
-
-    const ann = await getAnnouncements({ page: 1, pageSize: 5 });
     announcements.value = ann.data?.data?.list || [];
 
     await nextTick();
@@ -153,7 +166,8 @@ const fetchDashboard = async () => {
   }
 };
 
-const renderCharts = () => {
+const renderCharts = async () => {
+  const echarts = await import('echarts');
   if (trendChartRef.value) {
     trendIns?.dispose();
     trendIns = echarts.init(trendChartRef.value);
@@ -301,4 +315,23 @@ onBeforeUnmount(() => {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .grid { grid-template-columns: 1fr; }
 }
+
+.skeleton-hero {
+  padding: 40px;
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sk-line {
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.sk-line.long { width: 60%; }
+.sk-line.medium { width: 40%; }
+.sk-line.short { width: 25%; }
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>

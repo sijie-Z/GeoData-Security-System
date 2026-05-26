@@ -32,16 +32,27 @@
             </div>
           </div>
 
-          <el-descriptions :column="1" border class="profile-descriptions">
+          <el-descriptions :column="2" border class="profile-descriptions">
+            <el-descriptions-item :label="$t('empProfile.jobNumber')">
+              <strong>{{ profileData.jobNumber || 'N/A' }}</strong>
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('empProfile.idNumber')">
+              <strong>{{ profileData.idNumber || 'N/A' }}</strong>
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('empProfile.department')">
+              <strong>{{ profileData.department || 'N/A' }}</strong>
+            </el-descriptions-item>
             <el-descriptions-item :label="$t('empProfile.email')">
-              <strong>{{ profileData.email || profileData.userName + '@company.com' }}</strong>
+              <strong>{{ profileData.email || 'N/A' }}</strong>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('empProfile.phone')">
               <strong>{{ profileData.phoneNumber || 'N/A' }}</strong>
             </el-descriptions-item>
             <el-descriptions-item :label="$t('empProfile.hireDate')">
-              <strong>{{ profileData.hireDate || $t('empProfile.newEmployee') }}</strong>
+              <strong>{{ profileData.hireDate || 'N/A' }}</strong>
             </el-descriptions-item>
+          </el-descriptions>
+          <el-descriptions :column="1" border class="profile-descriptions" style="margin-top: 16px;">
             <el-descriptions-item :label="$t('empProfile.address')">
               <strong>{{ profileData.address || 'N/A' }}</strong>
             </el-descriptions-item>
@@ -225,6 +236,8 @@ const loading = ref(false);
 const profileData = ref({
   userName: '',
   userNumber: '',
+  jobNumber: '',
+  idNumber: '',
   department: '',
   email: '',
   phoneNumber: '',
@@ -264,17 +277,17 @@ const fetchUserProfile = async () => {
   loading.value = true;
   try {
     const response = await getProfile();
-    if (response.data && response.data.code === 200) {
-      profileData.value = response.data.data;
+    const body = response?.data;
+    if (body?.status) {
+      profileData.value = body.data;
       // 调用获取头像函数 - 使用用户编号
       if (userNumber.value) {
         await fetchUserAvatar(userNumber.value);
       }
       // 同步最近登录时间到统计卡片
       lastLoginTime.value = profileData.value.lastLoginTime || t('empProfile.today');
-      ElMessage.success(t('empProfile.profileLoadSuccess'));
     } else {
-      ElMessage.error(response.data.message || t('empProfile.profileLoadFail'));
+      ElMessage.error(body?.msg || t('empProfile.profileLoadFail'));
     }
   } catch (error) {
     console.error('获取用户资料时出错:', error);
@@ -315,8 +328,9 @@ onMounted(async () => {
   // 从仪表盘API获取真实统计数据
   try {
     const resp = await getDashboard();
-    if (resp.data?.status) {
-      dataCount.value = resp.data.data.my_downloads || 0;
+    const dashBody = resp?.data;
+    if (dashBody?.status) {
+      dataCount.value = dashBody.data?.my_downloads || 0;
     }
   } catch {
     dataCount.value = 0;
@@ -395,13 +409,13 @@ const saveProfile = async () => {
 
     const response = await updateProfile(formData);
 
-    if (response.data && response.data.code === 200) {
-      ElMessage.success(t('empProfile.profileUpdateSuccess'));
+    if (response.data && response.data.status) {
+      ElMessage.success(response.data.msg || t('empProfile.profileUpdateSuccess'));
       editDialogVisible.value = false;
       // 重新获取用户资料
       await fetchUserProfile();
     } else {
-      ElMessage.error(response.data.message || t('empProfile.profileUpdateFail'));
+      ElMessage.error(response.data?.msg || t('empProfile.profileUpdateFail'));
     }
   } catch (error) {
     console.error('更新个人资料失败:', error);
@@ -428,11 +442,11 @@ const updatePassword = async () => {
       new_password: passwordForm.value.newPassword
     });
 
-    if (response.data && response.data.code === 200) {
-      ElMessage.success(t('empProfile.passwordChangeSuccess'));
+    if (response.data && response.data.status) {
+      ElMessage.success(response.data.msg || t('empProfile.passwordChangeSuccess'));
       passwordDialogVisible.value = false;
     } else {
-      ElMessage.error(response.data.message || t('empProfile.passwordChangeFail'));
+      ElMessage.error(response.data?.msg || t('empProfile.passwordChangeFail'));
     }
   } catch (error) {
     console.error('修改密码失败:', error);

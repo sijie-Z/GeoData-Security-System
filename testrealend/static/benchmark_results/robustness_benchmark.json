@@ -1,0 +1,743 @@
+{
+  "benchmark_metadata": {
+    "timestamp": "2026-05-15T23:24:51.326291",
+    "host_images": {
+      "natural": "256×256 simulated terrain (gradients + wave patterns + hotspots)",
+      "concentrated": "128×128 near-uniform background (~98% at one value) with small bright ROI"
+    },
+    "watermark": "64×64 QR-like binary pattern",
+    "metrics": [
+      "PSNR",
+      "SSIM",
+      "NC",
+      "BER",
+      "recovery_psnr",
+      "recovery_perfect"
+    ],
+    "attacks": [
+      "JPEG compression (q=90,70,50,30)",
+      "Gaussian noise (σ=1,3,5,10)",
+      "Crop+resize (5%,10%,25%)"
+    ]
+  },
+  "results": [
+    {
+      "algorithm": "LSB",
+      "embed_time": 0.0476,
+      "embed_success": true,
+      "stego_psnr": 55.66,
+      "stego_ssim": 0.999995,
+      "baseline_nc": 1.0,
+      "baseline_ber": 0.0,
+      "recovery_psnr": 999.0,
+      "recovery_perfect": true,
+      "wm_bit_count": 65536,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=90",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 90
+      },
+      "nc": 0.231983,
+      "ber": 0.487305,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 49.83,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=70",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 70
+      },
+      "nc": 0.244916,
+      "ber": 0.479248,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 45.94,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=50",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 50
+      },
+      "nc": 0.264673,
+      "ber": 0.506104,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 43.54,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=30",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 30
+      },
+      "nc": 0.225727,
+      "ber": 0.534668,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 40.96,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=1",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 1
+      },
+      "nc": 0.240945,
+      "ber": 0.51001,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 47.76,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=3",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 3
+      },
+      "nc": 0.222028,
+      "ber": 0.510742,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 39.39,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=5",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 5
+      },
+      "nc": 0.22844,
+      "ber": 0.51416,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 35.09,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=10",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 10
+      },
+      "nc": 0.244835,
+      "ber": 0.512207,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 29.16,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 5%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.05
+      },
+      "nc": 0.278317,
+      "ber": 0.423828,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 27.14,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 10%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.1
+      },
+      "nc": 0.225281,
+      "ber": 0.428711,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 21.19,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 25%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.25
+      },
+      "nc": 0.216572,
+      "ber": 0.462402,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 13.97,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "embed_time": 0.0463,
+      "embed_success": true,
+      "stego_psnr": 39.52,
+      "stego_ssim": 0.999348,
+      "baseline_nc": 0.23276,
+      "baseline_ber": 0.469238,
+      "recovery_psnr": 42.24,
+      "recovery_perfect": false,
+      "wm_bit_count": null,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=90",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 90
+      },
+      "nc": 0.232636,
+      "ber": 0.469727,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 41.12,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=70",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 70
+      },
+      "nc": 0.233442,
+      "ber": 0.470215,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 41.0,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=50",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 50
+      },
+      "nc": 0.232084,
+      "ber": 0.471924,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 40.17,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=30",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 30
+      },
+      "nc": 0.232575,
+      "ber": 0.469971,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 39.63,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=1",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 1
+      },
+      "nc": 0.232575,
+      "ber": 0.469971,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 41.08,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=3",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 3
+      },
+      "nc": 0.23474,
+      "ber": 0.472412,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 37.08,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=5",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 5
+      },
+      "nc": 0.234499,
+      "ber": 0.477051,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 33.69,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=10",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 10
+      },
+      "nc": 0.238273,
+      "ber": 0.525391,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 28.25,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 5%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.05
+      },
+      "nc": 0.254718,
+      "ber": 0.462891,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 38.34,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 10%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.1
+      },
+      "nc": 0.230386,
+      "ber": 0.463867,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 35.47,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 25%",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.25
+      },
+      "nc": 0.240135,
+      "ber": 0.444824,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 30.14,
+      "recovery_perfect": false,
+      "host_type": "natural"
+    },
+    {
+      "algorithm": "Histogram",
+      "embed_error": "Insufficient histogram capacity: need 16384 bits but peak bin has only 11693 pixels. Capacity report: {'total_vertices': 11693, 'available_chunks': 11693, 'needed_chunks': 16384, 'utilization_percent': 140.12, 'sufficient': False}",
+      "embed_success": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "embed_time": 0.006,
+      "embed_success": true,
+      "stego_psnr": 59.2,
+      "stego_ssim": 0.999995,
+      "baseline_nc": 1.0,
+      "baseline_ber": 0.0,
+      "recovery_psnr": 999.0,
+      "recovery_perfect": true,
+      "wm_bit_count": 16384,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=90 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 90
+      },
+      "nc": 0.152986,
+      "ber": 0.322754,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 39.79,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=70 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 70
+      },
+      "nc": 0.314391,
+      "ber": 0.691162,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 31.3,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=50 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 50
+      },
+      "nc": 0.158228,
+      "ber": 0.322021,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 27.77,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "JPEG q=30 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 30
+      },
+      "nc": 0.307578,
+      "ber": 0.699951,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 24.65,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=1 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 1
+      },
+      "nc": 0.265062,
+      "ber": 0.487793,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 47.23,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=3 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 3
+      },
+      "nc": 0.222405,
+      "ber": 0.500977,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 38.79,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=5 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 5
+      },
+      "nc": 0.241911,
+      "ber": 0.498535,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 34.43,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Noise σ=10 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 10
+      },
+      "nc": 0.247239,
+      "ber": 0.505859,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 28.5,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 5% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.05
+      },
+      "nc": 0.230503,
+      "ber": 0.284668,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 18.07,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 10% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.1
+      },
+      "nc": 0.193355,
+      "ber": 0.302979,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 16.56,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "LSB",
+      "attack": "Crop 25% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.25
+      },
+      "nc": 0.120091,
+      "ber": 0.359619,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 13.27,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "embed_time": 0.0091,
+      "embed_success": true,
+      "stego_psnr": 40.98,
+      "stego_ssim": 0.999244,
+      "baseline_nc": 0.319863,
+      "baseline_ber": 0.723633,
+      "recovery_psnr": 59.12,
+      "recovery_perfect": false,
+      "wm_bit_count": null,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=90 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 90
+      },
+      "nc": 0.319863,
+      "ber": 0.723633,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 39.23,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=70 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 70
+      },
+      "nc": 0.320058,
+      "ber": 0.722656,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 30.75,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=50 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 50
+      },
+      "nc": 0.316701,
+      "ber": 0.729004,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 27.14,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "JPEG q=30 [conc]",
+      "attack_type": "jpeg",
+      "attack_params": {
+        "quality": 30
+      },
+      "nc": 0.319005,
+      "ber": 0.742188,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 23.97,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=1 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 1
+      },
+      "nc": 0.319863,
+      "ber": 0.723633,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 45.01,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=3 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 3
+      },
+      "nc": 0.319863,
+      "ber": 0.723633,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 38.03,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=5 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 5
+      },
+      "nc": 0.317882,
+      "ber": 0.726562,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 33.96,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Noise σ=10 [conc]",
+      "attack_type": "noise",
+      "attack_params": {
+        "sigma": 10
+      },
+      "nc": 0.324146,
+      "ber": 0.668945,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 28.18,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 5% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.05
+      },
+      "nc": 0.323067,
+      "ber": 0.725098,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 18.26,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 10% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.1
+      },
+      "nc": 0.336092,
+      "ber": 0.702637,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 17.81,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    },
+    {
+      "algorithm": "DWT",
+      "attack": "Crop 25% [conc]",
+      "attack_type": "crop",
+      "attack_params": {
+        "pct": 0.25
+      },
+      "nc": 0.320633,
+      "ber": 0.668457,
+      "decode_success": true,
+      "decode_error": null,
+      "recovery_psnr": 17.39,
+      "recovery_perfect": false,
+      "host_type": "concentrated"
+    }
+  ]
+}

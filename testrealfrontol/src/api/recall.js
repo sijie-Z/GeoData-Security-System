@@ -38,3 +38,12 @@ export const voteRecall = (id, data) => axios.post(`/api/recall/${id}/vote`, dat
  * @returns {Promise<AxiosResponse>}
  */
 export const getRecallDetail = (id) => axios.get(`/api/recall/${id}`)
+
+/**
+ * Restore a recalled application (un-recall).
+ * @param {Object} data
+ * @param {number} data.application_id - Application to restore
+ * @param {string} data.reason - Reason for restoring
+ * @returns {Promise<AxiosResponse>}
+ */
+export const restoreRecall = (data) => axios.post('/api/recall/restore', data)

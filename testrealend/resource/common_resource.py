@@ -1,23 +1,26 @@
-from flask import request
-from flask_restful import Resource
+import json
+import logging
+import os
+from datetime import UTC, datetime
+
+from flask import current_app, request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
-    jwt_required,
-    get_jwt_identity,
-    verify_jwt_in_request,
     decode_token,
+    get_jwt_identity,
+    jwt_required,
+    verify_jwt_in_request,
 )
-from extension.extension import db
-from model.Employee_Account import EmployeeAccount
-from model.Employee_Info import EmployeeInfo
+from flask_restful import Resource
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from extension.extension import db, limiter
 from model.Adm_Account import AdmAccount
 from model.Adm_Info import AdmInfo
-from extension.extension import limiter
-from datetime import datetime, timezone
-from werkzeug.security import check_password_hash, generate_password_hash
+from model.Employee_Account import EmployeeAccount
+from model.Employee_Info import EmployeeInfo
 from utils.log_helper import log_action
-import logging
 
 
 def _password_matches(stored_password, input_password):
@@ -31,12 +34,14 @@ def _password_matches(stored_password, input_password):
     except Exception:
         pass
     # Auto-upgrade legacy plaintext passwords
-    if not stored_password.startswith(('pbkdf2:', 'sha$', '$2b$', '$2a$')):
+    if not stored_password.startswith(("pbkdf2:", "sha$", "$2b$", "$2a$")):
         if stored_password == input_password:
             from werkzeug.security import generate_password_hash
+
             return True, generate_password_hash(input_password)
         return False, None
     return False, None
+
 
 class LoginResource(Resource):
     """
@@ -57,40 +62,54 @@ class LoginResource(Resource):
       200: {description: 登录成功}
       401: {description: 用户名或密码错误}
     """
+
     @limiter.limit("10 per minute")
     def post(self):
         data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
-        role_type = data.get('role') # 'employee' or 'admin'
-        
-        if role_type == 'admin':
+        username = data.get("username")
+        password = data.get("password")
+        role_type = data.get("role")  # 'employee' or 'admin'
+
+        if role_type == "admin":
             user = AdmAccount.query.filter_by(adm_user_name=username).first()
             if user:
                 ok, new_hash = _password_matches(user.adm_user_password, password)
                 if ok:
                     if new_hash:
                         user.adm_user_password = new_hash
-                    access_token = create_access_token(identity={'username': username, 'role': user.role, 'number': user.adm_number})
-                    refresh_token = create_refresh_token(identity={'username': username, 'role': user.role, 'number': user.adm_number})
+                    access_token = create_access_token(
+                        identity={"username": username, "role": user.role, "number": user.adm_number}
+                    )
+                    refresh_token = create_refresh_token(
+                        identity={"username": username, "role": user.role, "number": user.adm_number}
+                    )
 
-                    # Update last login
+                    # Update last login (non-fatal — login succeeds even if this write fails)
+                    try:
+                        adm_info = AdmInfo.query.filter_by(adm_number=user.adm_number).first()
+                        if adm_info:
+                            adm_info.last_login_time = datetime.now(UTC)
+                        if new_hash:
+                            db.session.commit()
+                        else:
+                            db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                        logging.warning(f"Failed to update last_login_time for admin {username}", exc_info=True)
+
                     adm_info = AdmInfo.query.filter_by(adm_number=user.adm_number).first()
-                    if adm_info:
-                        adm_info.last_login_time = datetime.now(timezone.utc)
-                    db.session.commit()
-
-                    log_action(user.adm_number, username, '登录', '成功', 'admin')
+                    display_name = adm_info.name if adm_info and adm_info.name else username
+                    log_action(user.adm_number, display_name, "登录", "成功", "admin")
 
                     return {
-                        'status': True,
-                        'user_number': user.adm_number,
-                        'role': user.role,
-                        'admin_sub_role': user.role,
-                        'access_token': access_token,
-                        'refresh_token': refresh_token,
-                        'user_name': username,
-                        'permissions': ['*']
+                        "status": True,
+                        "user_number": user.adm_number,
+                        "role": user.role,
+                        "admin_sub_role": user.adm_number if user.adm_number else user.role,
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                        "user_name": display_name,
+                        "permissions": ["*"],
                     }, 200
         else:
             user = EmployeeAccount.query.filter_by(employee_user_name=username).first()
@@ -99,29 +118,40 @@ class LoginResource(Resource):
                 if ok:
                     if new_hash:
                         user.employee_user_password = new_hash
-                    access_token = create_access_token(identity={'username': username, 'role': 'employee', 'number': user.employee_number})
-                    refresh_token = create_refresh_token(identity={'username': username, 'role': 'employee', 'number': user.employee_number})
+                    access_token = create_access_token(
+                        identity={"username": username, "role": "employee", "number": user.employee_number}
+                    )
+                    refresh_token = create_refresh_token(
+                        identity={"username": username, "role": "employee", "number": user.employee_number}
+                    )
 
-                    # Update last login
+                    # Update last login (non-fatal — login succeeds even if this write fails)
+                    try:
+                        emp_info = EmployeeInfo.query.filter_by(employee_number=user.employee_number).first()
+                        if emp_info:
+                            emp_info.last_login_time = datetime.now(UTC)
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
+                        logging.warning(f"Failed to update last_login_time for employee {username}", exc_info=True)
+
                     emp_info = EmployeeInfo.query.filter_by(employee_number=user.employee_number).first()
-                    if emp_info:
-                        emp_info.last_login_time = datetime.now(timezone.utc)
-                    db.session.commit()
-
-                    log_action(user.employee_number, username, '登录', '成功', 'employee')
+                    display_name = emp_info.name if emp_info and emp_info.name else username
+                    log_action(user.employee_number, display_name, "登录", "成功", "employee")
 
                     return {
-                        'status': True,
-                        'user_number': user.employee_number,
-                        'role': 'employee',
-                        'access_token': access_token,
-                        'refresh_token': refresh_token,
-                        'user_name': username,
-                        'permissions': ['view', 'apply', 'download']
+                        "status": True,
+                        "user_number": user.employee_number,
+                        "role": "employee",
+                        "access_token": access_token,
+                        "refresh_token": refresh_token,
+                        "user_name": display_name,
+                        "permissions": ["view", "apply", "download"],
                     }, 200
 
-        log_action('unknown', username or 'unknown', '登录', '失败', f'role={role_type}')
-        return {'status': False, 'msg': '用户名或密码错误', 'message': '用户名或密码错误'}, 401
+        log_action("unknown", username or "unknown", "登录", "失败", f"role={role_type}")
+        return {"status": False, "msg": "用户名或密码错误", "message": "用户名或密码错误"}, 401
+
 
 class RegisterResource(Resource):
     """
@@ -161,26 +191,27 @@ class RegisterResource(Resource):
       201: {description: 注册成功}
       400: {description: 员工编号已存在}
     """
+
     @limiter.limit("5 per minute")
     def post(self):
         # Multipart form data
-        name = request.form.get('name')
-        employee_id = request.form.get('employeeId')
-        id_number = request.form.get('idNumber')
-        phone = request.form.get('phone')
-        password = request.form.get('password')
-        avatar = request.files.get('avatar')
-        
+        name = request.form.get("name")
+        employee_id = request.form.get("employeeId")
+        id_number = request.form.get("idNumber")
+        phone = request.form.get("phone")
+        password = request.form.get("password")
+        avatar = request.files.get("avatar")
+
         # Validate password complexity
         if not password or len(password) < 8:
-            return {'status': False, 'msg': '密码长度至少8位'}, 400
+            return {"status": False, "msg": "密码长度至少8位"}, 400
         if not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
-            return {'status': False, 'msg': '密码必须包含字母和数字'}, 400
+            return {"status": False, "msg": "密码必须包含字母和数字"}, 400
 
         # Check if already exists
         if EmployeeInfo.query.filter_by(employee_number=employee_id).first():
-            return {'status': False, 'msg': '员工编号已存在'}, 400
-            
+            return {"status": False, "msg": "员工编号已存在"}, 400
+
         # Create Info
         new_info = EmployeeInfo(
             employee_number=employee_id,
@@ -188,40 +219,44 @@ class RegisterResource(Resource):
             job_number=employee_id,
             id_number=id_number,
             phone_number=phone,
-            address='未填写',
-            create_time=datetime.now(timezone.utc),
-            face_photo=avatar.read() if avatar else None
+            address="未填写",
+            create_time=datetime.now(UTC),
+            face_photo=avatar.read() if avatar else None,
         )
-        
+
         # Create Account
         new_account = EmployeeAccount(
             employee_user_name=employee_id,
             employee_user_password=generate_password_hash(password),
             employee_number=employee_id,
-            role='employee'
+            role="employee",
         )
-        
+
         try:
             db.session.add(new_info)
             db.session.flush()
             db.session.add(new_account)
             db.session.commit()
-            return {'status': True, 'msg': '注册成功', 'message': '注册成功'}, 201
+            return {"status": True, "msg": "注册成功", "message": "注册成功"}, 201
         except Exception as e:
             db.session.rollback()
             logging.error(str(e))
-            return {'status': False, 'msg': '操作失败，请稍后重试', 'message': '操作失败，请稍后重试'}, 500
+            return {"status": False, "msg": "操作失败，请稍后重试", "message": "操作失败，请稍后重试"}, 500
+
 
 class LogoutResource(Resource):
     @jwt_required()
     def post(self):
         from flask_jwt_extended import get_jwt
+
         from model.TokenBlacklist import TokenBlacklist
-        jti = get_jwt().get('jti')
+
+        jti = get_jwt().get("jti")
         if jti:
             db.session.add(TokenBlacklist(jti=jti))
             db.session.commit()
-        return {'status': True, 'msg': '登出成功'}, 200
+        return {"status": True, "msg": "登出成功"}, 200
+
 
 class RefreshTokenResource(Resource):
     """
@@ -239,6 +274,7 @@ class RefreshTokenResource(Resource):
       200: {description: 刷新成功}
       401: {description: 令牌无效或过期}
     """
+
     def post(self):
         identity = None
 
@@ -250,26 +286,53 @@ class RefreshTokenResource(Resource):
             identity = get_jwt_identity()
         except Exception:
             data = request.get_json(silent=True) or {}
-            refresh_token = data.get('refresh_token')
+            refresh_token = data.get("refresh_token")
             if not refresh_token:
-                return {'status': False, 'msg': '缺少 refresh_token', 'message': '缺少 refresh_token'}, 401
+                return {"status": False, "msg": "缺少 refresh_token", "message": "缺少 refresh_token"}, 401
             try:
                 decoded = decode_token(refresh_token)
-                if decoded.get('type') != 'refresh':
-                    return {'status': False, 'msg': 'refresh_token 无效', 'message': 'refresh_token 无效'}, 401
-                identity = decoded.get('sub')
+                if decoded.get("type") != "refresh":
+                    return {"status": False, "msg": "refresh_token 无效", "message": "refresh_token 无效"}, 401
+                identity = decoded.get("sub")
             except Exception:
-                return {'status': False, 'msg': 'refresh_token 无效或已过期', 'message': 'refresh_token 无效或已过期'}, 401
+                return {
+                    "status": False,
+                    "msg": "refresh_token 无效或已过期",
+                    "message": "refresh_token 无效或已过期",
+                }, 401
 
         if not identity:
-            return {'status': False, 'msg': '无法解析用户身份', 'message': '无法解析用户身份'}, 401
+            return {"status": False, "msg": "无法解析用户身份", "message": "无法解析用户身份"}, 401
 
         access_token = create_access_token(identity=identity)
         refresh_token = create_refresh_token(identity=identity)
         return {
-            'status': True,
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'msg': '刷新成功',
-            'message': '刷新成功'
+            "status": True,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "msg": "刷新成功",
+            "message": "刷新成功",
         }, 200
+
+
+class BenchmarkResultsResource(Resource):
+    """Serve robustness benchmark results for the WatermarkQualityDashboard."""
+
+    @jwt_required()
+    def get(self):
+        benchmark_path = os.path.join(
+            current_app.config.get("STATIC_FOLDER", current_app.static_folder or "static"),
+            "benchmark_results",
+            "robustness_benchmark.json",
+        )
+        if not os.path.exists(benchmark_path):
+            return {
+                "status": False,
+                "msg": "Benchmark results not found. Run tests/benchmark_all_algorithms.py first.",
+            }, 404
+        try:
+            with open(benchmark_path, encoding="utf-8") as f:
+                data = json.load(f)
+            return {"status": True, "data": data}, 200
+        except Exception as e:
+            return {"status": False, "msg": str(e)}, 500

@@ -151,7 +151,7 @@ const { t } = useI18n();
          ...userStore.currentUser,
          user_number: userData.user_number,
          role: userData.role,
-         userName: userData.user_name || t('header.employee'),
+         user_name: userData.user_name || t('header.employee'),
        });
      } else {
        console.warn('Protected API 未返回预期的用户数据。');

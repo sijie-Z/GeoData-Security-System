@@ -6,7 +6,8 @@ Uses Redis when available (for production clustering), falls back to in-memory.
 import logging
 import time
 from functools import wraps
-from flask import request, jsonify
+
+from flask import jsonify, request
 from flask_jwt_extended import get_jwt_identity
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,7 @@ def init_user_limiter(app):
     global _redis_client
     try:
         from utils.cache import get_redis
+
         _redis_client = get_redis()
         if _redis_client:
             logger.info("Per-user rate limiter using Redis backend")
@@ -42,19 +44,25 @@ def _get_user_key():
 
 
 def _check_rate_redis(key, max_requests, window):
-    """Check rate limit using Redis sliding window."""
-    now = time.time()
-    pipe = _redis_client.pipeline()
-    pipe.zremrangebyscore(key, 0, now - window)
-    pipe.zcard(key)
-    pipe.zadd(key, {f"{now}": now})
-    pipe.expire(key, window + 1)
-    results = pipe.execute()
-    current_count = results[1]
-    if current_count >= max_requests:
-        retry_after = int(window - (now - _redis_client.zrange(key, 0, 0, withscores=True)[0][1]))
-        return False, retry_after
-    return True, 0
+    """Check rate limit using Redis sliding window.
+
+    Falls back to in-memory if Redis is unreachable.
+    """
+    try:
+        now = time.time()
+        pipe = _redis_client.pipeline()
+        pipe.zremrangebyscore(key, 0, now - window)
+        pipe.zcard(key)
+        pipe.zadd(key, {f"{now}": now})
+        pipe.expire(key, window + 1)
+        results = pipe.execute()
+        current_count = results[1]
+        if current_count >= max_requests:
+            retry_after = int(window - (now - _redis_client.zrange(key, 0, 0, withscores=True)[0][1]))
+            return False, retry_after
+        return True, 0
+    except Exception:
+        return _check_rate_memory(key, max_requests, window)
 
 
 def _check_rate_memory(key, max_requests, window):
@@ -92,6 +100,7 @@ def user_rate_limit(max_requests=60, window=60, per_user=True):
         window: Time window in seconds.
         per_user: If True, limit per JWT user; if False, per IP.
     """
+
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
@@ -103,14 +112,14 @@ def user_rate_limit(max_requests=60, window=60, per_user=True):
                 allowed, retry_after = _check_rate_memory(key, max_requests, window)
 
             if not allowed:
-                return jsonify({
-                    'status': False,
-                    'msg': f'请求过于频繁，请{retry_after}秒后重试',
-                    'retry_after': retry_after
-                }), 429
+                return jsonify(
+                    {"status": False, "msg": f"请求过于频繁，请{retry_after}秒后重试", "retry_after": retry_after}
+                ), 429
 
             return f(*args, **kwargs)
+
         return wrapper
+
     return decorator
 
 

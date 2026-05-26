@@ -1,0 +1,11 @@
+app.config['UPLOAD_FOLDER'] = 'D:/数据上传/'
+app.config['WATERMARK_FOLDER'] = 'D:/水印提取/watermark/'
+app.config['STATIC_URL_PATH'] = '/uploads'
+app.config['STATIC_FOLDER'] = app.config['WATERMARK_FOLDER']
+
+
+请创建这三个文件夹：
+
+D:/数据上传
+D:/水印提取/watermark
+D:/水印提取/shp

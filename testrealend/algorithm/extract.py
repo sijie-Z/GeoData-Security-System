@@ -6,12 +6,12 @@ from collections import Counter
 from decimal import Decimal
 
 import numpy as np
-from PIL import Image
 from flask import current_app
+from PIL import Image
 
-from algorithm.get_coor import get_coor_nested, get_coor_array
-from algorithm.to_geodataframe import to_geodataframe
 from algorithm.embed import _compute_seed
+from algorithm.get_coor import get_coor_array, get_coor_nested
+from algorithm.to_geodataframe import to_geodataframe
 
 
 def watermark_extract(coor, coor_l, R, n):
@@ -23,8 +23,8 @@ def watermark_extract(coor, coor_l, R, n):
     """
     x, y = coor
     xl, yl = coor_l
-    w = (x - xl) // (R / 2 ** n)
-    original_x = xl + 2 ** n * (x - xl) - w * R
+    w = (x - xl) // (R / 2**n)
+    original_x = xl + 2**n * (x - xl) - w * R
     original_y = y
     return np.vstack([original_x, original_y]), int(w)
 
@@ -80,9 +80,11 @@ def traversal_nested_coor_group(coor_nested, feature_type, W, argument):
     for feature_index in range(coor_nested.shape[1]):
         coor_group = np.vstack(coor_nested[:, feature_index])
         processed_coor_group, W = coor_group_process(coor_group, W, argument)
-        if (feature_type == 'MultiPolygon'
-                and np.size(processed_coor_group) not in [0, 2]
-                and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])):
+        if (
+            feature_type == "MultiPolygon"
+            and np.size(processed_coor_group) not in [0, 2]
+            and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])
+        ):
             processed_coor_group[:, -1] = processed_coor_group[:, 0]
         processed_x_nested.append(processed_coor_group[0, :])
         processed_y_nested.append(processed_coor_group[1, :])
@@ -100,21 +102,34 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, l, argument):
     W = [[] for _ in range(l)]
 
     for feature_index in range(coor_nested.shape[1]):
-        coor_group = np.vstack(coor_nested[:, feature_index])
-        if isinstance(coor_nested[:, feature_index][0], list):
-            logging.warning('Skipping feature_index=%d: coor_group[0] is a list (nested geometry not supported for extraction)', feature_index)
-            continue
+        x_col = coor_nested[0, feature_index]
+        y_col = coor_nested[1, feature_index]
         feature_type = shp_type[feature_index]
+        if isinstance(x_col, (list, np.ndarray)) and len(x_col) > 0 and isinstance(x_col[0], (list, np.ndarray)):
+            logging.warning("Skipping feature_index=%d: nested geometry not supported for extraction", feature_index)
+            continue
+        if isinstance(x_col, list):
+            n_parts = len(x_col)
+            coor_group = np.empty((2, n_parts), dtype=object)
+            for j in range(n_parts):
+                coor_group[0, j] = x_col[j]
+                coor_group[1, j] = y_col[j]
+        else:
+            coor_group = np.vstack([x_col, y_col])
+
         if isinstance(coor_group[0, 0], np.ndarray):
             processed_coor_group, W = traversal_nested_coor_group(coor_group, feature_type, W, argument)
         else:
             processed_coor_group, W = coor_group_process(coor_group, W, argument)
-            if (feature_type == 'Polygon'
-                    and np.size(processed_coor_group) not in [0, 2]
-                    and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])):
+            if (
+                feature_type == "Polygon"
+                and np.size(processed_coor_group) not in [0, 2]
+                and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])
+            ):
                 processed_coor_group[:, -1] = processed_coor_group[:, 0]
-        processed_shpfile = to_geodataframe(processed_shpfile, feature_index, processed_coor_group,
-                                             shp_type[feature_index])
+        processed_shpfile = to_geodataframe(
+            processed_shpfile, feature_index, processed_coor_group, shp_type[feature_index]
+        )
     return processed_shpfile, W
 
 
@@ -123,8 +138,7 @@ def calculate_watermark_and_nc(watermarked_shpfile, l, argument):
     n, R, side_length, ratio = argument.values()
 
     original_shpfile = watermarked_shpfile.copy()
-    original_shpfile, W = traversal_coor_group(watermarked_coor_nested, feature_type, original_shpfile, l,
-                                               argument)
+    original_shpfile, W = traversal_coor_group(watermarked_coor_nested, feature_type, original_shpfile, l, argument)
 
     empty_array_flag = False
     for i in range(len(W)):
@@ -137,60 +151,69 @@ def calculate_watermark_and_nc(watermarked_shpfile, l, argument):
             empty_array_flag = True
             W[i] = [0] * n
     if empty_array_flag:
-        logging.warning('存在空数组，补零')
+        logging.warning("存在空数组，补零")
     W = [item for w in W for item in w]
 
-    W = W[:side_length ** 2 - 192]
+    W = W[: side_length**2 - 192]
     watermark = np.full((side_length, side_length), 1)
     detection_pattern = np.full((7, 7), 0)
     detection_pattern[1:6, 1:6] = np.full((5, 5), 1)
     detection_pattern[2:5, 2:5] = np.full((3, 3), 0)
     watermark[:7, :7] = watermark[:7, -7:] = watermark[-7:, :7] = detection_pattern
-    watermark[0:8, 8: -8] = np.reshape(W[0:(side_length - 16) * 8], (8, side_length - 16))
-    watermark[8:-8, :] = np.reshape(W[(side_length - 16) * 8:-(side_length - 8) * 8], (side_length - 16, side_length))
-    watermark[-8:, 8:] = np.reshape(W[-(side_length - 8) * 8:], (8, side_length - 8))
+    watermark[0:8, 8:-8] = np.reshape(W[0 : (side_length - 16) * 8], (8, side_length - 16))
+    watermark[8:-8, :] = np.reshape(W[(side_length - 16) * 8 : -(side_length - 8) * 8], (side_length - 16, side_length))
+    watermark[-8:, 8:] = np.reshape(W[-(side_length - 8) * 8 :], (8, side_length - 8))
 
     return original_shpfile, watermark
 
 
-def extract(watermarked_shpfile_path, vr, n=4, R=Decimal('1e-7'), side_length=45, output_dir=None):
+def extract(watermarked_shpfile_path, vr, n=4, R=Decimal("1e-7"), side_length=45, output_dir=None):
     import geopandas as gpd
-    l = math.ceil((side_length ** 2 - 192) / n)
+
+    l = math.ceil((side_length**2 - 192) / n)
 
     watermarked_shpfile = gpd.read_file(watermarked_shpfile_path)
 
     watermarked_coor_nested, feature_type = get_coor_nested(watermarked_shpfile)
     coor_array = get_coor_array(watermarked_coor_nested, feature_type)
     coor_mean = np.mean(coor_array, axis=1)
-    logging.debug('coor_mean=%s, vr=%s', coor_mean, vr)
+    logging.debug("coor_mean=%s, vr=%s", coor_mean, vr)
     # Compute separate ratios for x and y to handle different magnitudes
     vr_arr = np.array(vr, dtype=np.float64)
     coor_mean_arr = np.array(coor_mean, dtype=np.float64)
     # Avoid division by zero
     ratios = np.where(np.abs(coor_mean_arr) > 1e-15, vr_arr / coor_mean_arr, 1.0)
     ratio = float(np.mean(ratios))
-    logging.info('倍数 %s (x_ratio=%.10f, y_ratio=%.10f)', ratio, ratios[0], ratios[1])
-    argument = {'n': n, 'R': R, 'side_length': side_length, 'ratio': ratio, }
+    logging.info("倍数 %s (x_ratio=%.10f, y_ratio=%.10f)", ratio, ratios[0], ratios[1])
+    argument = {
+        "n": n,
+        "R": R,
+        "side_length": side_length,
+        "ratio": ratio,
+    }
     original_shpfile, watermark = calculate_watermark_and_nc(watermarked_shpfile, l, argument)
 
     if output_dir is None:
-        output_dir = current_app.config['EXTRACTED_FOLDER']
-    shp_output_folder = os.path.join(output_dir, 'shp')
-    watermark_output_folder = os.path.join(output_dir, 'watermark')
+        output_dir = current_app.config["EXTRACTED_FOLDER"]
+    shp_output_folder = os.path.join(output_dir, "shp")
+    watermark_output_folder = os.path.join(output_dir, "watermark")
 
     os.makedirs(shp_output_folder, exist_ok=True)
     os.makedirs(watermark_output_folder, exist_ok=True)
 
-    output_shapefile_path = os.path.join(
-        shp_output_folder,
-        os.path.basename(watermarked_shpfile_path)
-    )
+    # Fix pandas 3.x StringDtype / ArrowDtype incompatibility with geopandas to_file
+    for col in original_shpfile.columns:
+        if col != original_shpfile.geometry.name:
+            col_dtype = original_shpfile[col].dtype
+            if hasattr(col_dtype, "storage") or "StringDtype" in str(col_dtype) or "ArrowDtype" in str(col_dtype):
+                original_shpfile[col] = original_shpfile[col].astype(object)
+
+    output_shapefile_path = os.path.join(shp_output_folder, os.path.basename(watermarked_shpfile_path))
     original_shpfile.to_file(output_shapefile_path)
     logging.info("Shapefile创建完成，已保存为 %s", output_shapefile_path)
 
     output_watermark_path = os.path.join(
-        watermark_output_folder,
-        f'{os.path.splitext(os.path.basename(watermarked_shpfile_path))[0]}.png'
+        watermark_output_folder, f"{os.path.splitext(os.path.basename(watermarked_shpfile_path))[0]}.png"
     )
     Image.fromarray(watermark.astype(bool)).save(output_watermark_path)
     logging.info("水印创建完成，已保存为 %s", output_watermark_path)

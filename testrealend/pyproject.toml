@@ -17,6 +17,25 @@ ignore = [
     "E501",   # line too long (handled by formatter)
     "B008",   # function call in default argument (Flask pattern)
     "SIM108", # ternary operator (readability preference)
+    "RUF001", # ambiguous unicode in string (Chinese punctuation)
+    "RUF002", # ambiguous unicode in docstring
+    "RUF003", # ambiguous unicode in comment
+    "E712",   # true-false-comparison (common in SQLAlchemy)
+    "E711",   # none-comparison (common in SQLAlchemy)
+    "E402",   # module-import-not-at-top (conditional imports)
+    "E741",   # ambiguous variable name
+    "RUF012", # mutable class default (common in Flask/SQLAlchemy)
+    "RUF059", # unused unpacked variable
+    "B905",   # zip without explicit strict
+    "SIM105", # suppressible exception
+    "SIM101", # duplicate isinstance
+    "SIM102", # collapsible if
+    "SIM103", # needless bool
+    "SIM115", # open file with context handler
+    "RUF034", # useless if-else
+    "E731",   # lambda assignment
+    "F401",   # unused import (may be needed for availability check)
+    "F841",   # unused variable
 ]
 
 [tool.ruff.lint.isort]

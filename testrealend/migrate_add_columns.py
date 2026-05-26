@@ -1,9 +1,12 @@
 """
 One-time migration script to add missing columns.
 """
+
 import os
+
 if os.name == "nt":
     import platform
+
     platform.machine = lambda: os.environ.get("PROCESSOR_ARCHITECTURE", "AMD64")
 
 from app import create_app
@@ -17,6 +20,9 @@ MYSQL_ALTERS = [
     "ALTER TABLE application ADD COLUMN qrcode TEXT NULL",
     "ALTER TABLE application ADD COLUMN watermark_path VARCHAR(500) NULL",
     "ALTER TABLE application ADD COLUMN vr_data TEXT NULL",
+    # Fix TEXT truncation for QR code and vector data columns
+    "ALTER TABLE application MODIFY COLUMN qrcode MEDIUMTEXT NULL",
+    "ALTER TABLE application MODIFY COLUMN vr_data MEDIUMTEXT NULL",
     "ALTER TABLE download_record ADD COLUMN applicant_user_number VARCHAR(255) NULL",
     "ALTER TABLE download_record ADD COLUMN filename VARCHAR(255) NULL",
     "ALTER TABLE download_record ADD COLUMN timestamp DATETIME NULL",
@@ -26,13 +32,15 @@ MYSQL_ALTERS = [
     "ALTER TABLE employee_info ADD COLUMN last_login_time DATETIME NULL",
     "ALTER TABLE employee_info ADD COLUMN avatar_path VARCHAR(500) NULL",
     "ALTER TABLE employee_nav ADD COLUMN icon VARCHAR(255) NULL",
+    "ALTER TABLE application ADD COLUMN adm1_comment TEXT NULL",
+    "ALTER TABLE application ADD COLUMN adm2_comment TEXT NULL",
 ]
 
 
 def run():
     app = create_app()
     with app.app_context():
-        mysql_engine = db.get_engine(bind='mysql_db')
+        mysql_engine = db.get_engine(bind="mysql_db")
         ok = 0
         skip = 0
         fail = 0
@@ -47,9 +55,9 @@ def run():
                 except Exception as e:
                     conn.rollback()
                     err = str(e)
-                    if 'Duplicate column' in err:
+                    if "Duplicate column" in err:
                         skip += 1
-                        print(f"  [SKIP] already exists")
+                        print("  [SKIP] already exists")
                     else:
                         fail += 1
                         print(f"  [FAIL] {err[:60]}")
@@ -57,5 +65,5 @@ def run():
         print(f"\nDone. {ok} added, {skip} already existed, {fail} failed.")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     run()

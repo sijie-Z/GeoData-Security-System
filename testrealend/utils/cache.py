@@ -1,9 +1,10 @@
 """Redis caching layer with graceful fallback to no-op when Redis is unavailable."""
 
-import json
 import hashlib
+import json
 import logging
 from functools import wraps
+
 from flask import request
 
 logger = logging.getLogger(__name__)
@@ -13,15 +14,25 @@ _cache_available = False
 
 
 def init_cache(app):
-    """Initialize Redis connection from app config."""
+    """Initialize Redis connection from app config.
+
+    On Windows, the socket-close path during connection timeout can hang, so we
+    skip the eager ``ping()`` and let runtime operations fail gracefully.
+    """
     global _redis_client, _cache_available
-    redis_url = app.config.get('REDIS_URL', 'redis://localhost:6379/0')
+    redis_url = app.config.get("REDIS_URL", "redis://localhost:6379/0")
     try:
         import redis
-        _redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=2)
-        _redis_client.ping()
+
+        _redis_client = redis.from_url(
+            redis_url,
+            decode_responses=True,
+            socket_connect_timeout=3,
+            socket_timeout=3,
+            retry_on_timeout=False,
+        )
         _cache_available = True
-        logger.info(f"Redis connected: {redis_url}")
+        logger.info(f"Redis client ready: {redis_url}")
     except Exception as e:
         _cache_available = False
         _redis_client = None
@@ -39,28 +50,30 @@ def is_cache_available():
 
 def cache_key(*args, **kwargs):
     """Build a deterministic cache key from arguments."""
-    raw = json.dumps({'args': args, 'kwargs': kwargs}, sort_keys=True, default=str)
+    raw = json.dumps({"args": args, "kwargs": kwargs}, sort_keys=True, default=str)
     return hashlib.md5(raw.encode()).hexdigest()
 
 
-def cached(timeout=300, key_prefix='cache'):
+def cached(timeout=300, key_prefix="cache"):
     """Decorator to cache GET endpoint responses in Redis.
 
     Falls through to the original function if Redis is unavailable.
     """
+
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            if not _cache_available or request.method != 'GET':
+            if not _cache_available or request.method != "GET":
                 return f(*args, **kwargs)
 
             # Build cache key from endpoint + query params + user identity
             from flask_jwt_extended import get_jwt_identity
+
             try:
                 identity = get_jwt_identity()
-                user_id = identity.get('number', 'anon') if identity else 'anon'
+                user_id = identity.get("number", "anon") if identity else "anon"
             except Exception:
-                user_id = 'anon'
+                user_id = "anon"
 
             ckey = f"{key_prefix}:{f.__name__}:{user_id}:{request.full_path}"
             ckey = hashlib.md5(ckey.encode()).hexdigest()
@@ -82,7 +95,9 @@ def cached(timeout=300, key_prefix='cache'):
                 pass
 
             return result
+
         return wrapper
+
     return decorator
 
 

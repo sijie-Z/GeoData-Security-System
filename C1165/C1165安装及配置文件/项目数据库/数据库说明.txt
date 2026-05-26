@@ -1,0 +1,10 @@
+
+1.mysql版本:8.4
+
+
+2.postgresql版本:16.3
+
+
+3.postgresql数据库安装了postgis插件
+
+

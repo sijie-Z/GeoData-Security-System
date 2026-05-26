@@ -176,6 +176,22 @@
       <template #header>
         <div class="card-header">
           <el-icon><Search /></el-icon>
+          <span>{{ $t('rasterWmExtract.rawQrTitle') }}</span>
+        </div>
+      </template>
+      <el-input
+        type="textarea"
+        :rows="6"
+        :model-value="decodedInfo.normalized?._qr_raw || decodedInfo.parsed?._raw || ''"
+        readonly
+        class="raw-qr-textarea"
+      />
+    </el-card>
+
+    <el-card v-if="decodedInfo" class="comparison-card" style="margin-top: 16px;">
+      <template #header>
+        <div class="card-header">
+          <el-icon><Search /></el-icon>
           <span>{{ $t('rasterWmExtract.onlineDecodeInfo') }}</span>
         </div>
       </template>
@@ -193,9 +209,17 @@
         <el-descriptions-item :label="$t('rasterWmExtract.applicant')">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.applicantId')">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.approver1')">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver1Id')">{{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver1Time')">{{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.approver2')">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver2Id')">{{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver2Time')">{{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.submittedAt')">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.generatedAt')">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.purpose')">{{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.usageScope')">{{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.securityLevel')">{{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.customTag')">{{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('rasterWmExtract.reason')" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -652,6 +676,13 @@ const handleUploadError = (err, file) => {
   font-size: 14px;
   color: #606266;
   line-height: 1.5;
+}
+
+.raw-qr-textarea :deep(.el-textarea__inner) {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: #fafafa;
 }
 
 /* 响应式设计 */

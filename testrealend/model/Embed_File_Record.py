@@ -2,8 +2,8 @@ from extension.extension import db
 
 
 class EmbedFileRecord(db.Model):
-    __bind_key__ = 'mysql_db'
-    __tablename__ = 'embed_file_record'
+    __bind_key__ = "mysql_db"
+    __tablename__ = "embed_file_record"
     id = db.Column(db.Integer, primary_key=True)
     data_id = db.Column(db.Integer, unique=False, nullable=False)
     application_id = db.Column(db.Integer, unique=False, nullable=False)

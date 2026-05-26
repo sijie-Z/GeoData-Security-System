@@ -4,6 +4,7 @@ Uses QIM (Quantization Index Modulation) on the LL subband of the DWT
 decomposition to embed watermark bits. This approach is more robust against
 image attacks (compression, cropping, noise) compared to spatial-domain LSB.
 """
+
 import json
 import logging
 import os
@@ -13,7 +14,7 @@ import numpy as np
 import pywt
 from PIL import Image
 
-from algorithm.quality_metrics import compute_psnr, capacity_report
+from algorithm.quality_metrics import capacity_report, compute_psnr
 
 
 def _ensure_dir(path: str) -> str:
@@ -21,8 +22,7 @@ def _ensure_dir(path: str) -> str:
     return path
 
 
-def _to_binary_watermark(watermark_img: Image.Image, width: int, height: int,
-                         threshold: int = 127) -> np.ndarray:
+def _to_binary_watermark(watermark_img: Image.Image, width: int, height: int, threshold: int = 127) -> np.ndarray:
     """Convert a watermark image to a binary bit array of given dimensions."""
     wm = watermark_img.convert("L").resize((width, height), Image.Resampling.NEAREST)
     return (np.array(wm, dtype=np.uint8) > threshold).astype(np.uint8)
@@ -33,7 +33,7 @@ def _multi_level_dwt2(coeffs, level):
     cA = coeffs
     details_list = []
     for _ in range(level):
-        cA, (cH, cV, cD) = pywt.dwt2(cA, 'haar')
+        cA, (cH, cV, cD) = pywt.dwt2(cA, "haar")
         details_list.append((cH, cV, cD))
     return cA, details_list
 
@@ -41,12 +41,11 @@ def _multi_level_dwt2(coeffs, level):
 def _multi_level_idwt2(cA, details_list):
     """Inverse multi-level dwt2, restoring from the deepest LL subband."""
     for details in reversed(details_list):
-        cA = pywt.idwt2((cA, details), 'haar')
+        cA = pywt.idwt2((cA, details), "haar")
     return cA
 
 
-def embed_dwt(host_path: str, watermark_img: Image.Image, output_dir: str,
-              prefix: str, level: int = 2) -> dict:
+def embed_dwt(host_path: str, watermark_img: Image.Image, output_dir: str, prefix: str, level: int = 2) -> dict:
     """Embed a watermark into a raster image using DWT + QIM.
 
     Args:
@@ -63,9 +62,9 @@ def embed_dwt(host_path: str, watermark_img: Image.Image, output_dir: str,
 
     # Load host image and convert to YCbCr
     host_pil = Image.open(host_path)
-    if host_pil.mode == 'L':
-        host_pil = host_pil.convert('RGB')
-    host_ycbcr = np.array(host_pil.convert('YCbCr'), dtype=np.float64)
+    if host_pil.mode == "L":
+        host_pil = host_pil.convert("RGB")
+    host_ycbcr = np.array(host_pil.convert("YCbCr"), dtype=np.float64)
     h, w, _ = host_ycbcr.shape
 
     # Extract Y channel and apply multi-level DWT
@@ -111,7 +110,7 @@ def embed_dwt(host_path: str, watermark_img: Image.Image, output_dir: str,
     # Reconstruct RGB image
     stego_ycbcr = host_ycbcr.copy()
     stego_ycbcr[:, :, 0] = y_watermarked
-    stego_rgb = Image.fromarray(stego_ycbcr.astype(np.uint8), mode='YCbCr').convert('RGB')
+    stego_rgb = Image.fromarray(stego_ycbcr.astype(np.uint8), mode="YCbCr").convert("RGB")
     stego_arr = np.array(stego_rgb, dtype=np.uint8)
 
     # Save stego image and metadata
@@ -127,31 +126,19 @@ def embed_dwt(host_path: str, watermark_img: Image.Image, output_dir: str,
         "dwt_level": level,
         "wavelet": "haar",
         "shape": {"height": int(h), "width": int(w), "channels": 3},
-        "watermark": {
-            "height": int(wm_h),
-            "width": int(wm_w),
-            "bit_count": bit_count
-        },
+        "watermark": {"height": int(wm_h), "width": int(wm_w), "bit_count": bit_count},
         "changed_idx": changed_idx.tolist(),
-        "changed_vals": changed_vals.tolist()
+        "changed_vals": changed_vals.tolist(),
     }
     with open(wm_meta_path, "w", encoding="utf-8") as fp:
         json.dump(meta, fp, ensure_ascii=False)
 
     # Compute PSNR
-    psnr_value = compute_psnr(
-        np.array(host_pil.convert('RGB'), dtype=np.uint8),
-        stego_arr
-    )
+    psnr_value = compute_psnr(np.array(host_pil.convert("RGB"), dtype=np.uint8), stego_arr)
     cap_report = capacity_report(total_coeffs, bit_count, n=1)
-    logging.info('DWT embed PSNR=%.2f dB, capacity report: %s', psnr_value, cap_report)
+    logging.info("DWT embed PSNR=%.2f dB, capacity report: %s", psnr_value, cap_report)
 
-    return {
-        "stego_path": stego_path,
-        "wm_meta_path": wm_meta_path,
-        "psnr": psnr_value,
-        "capacity_report": cap_report
-    }
+    return {"stego_path": stego_path, "wm_meta_path": wm_meta_path, "psnr": psnr_value, "capacity_report": cap_report}
 
 
 def extract_dwt(stego_path: str, wm_meta_path: str, output_path: str) -> str:
@@ -165,14 +152,14 @@ def extract_dwt(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     Returns:
         output_path.
     """
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     # Load stego image and convert to YCbCr
     stego_pil = Image.open(stego_path)
-    if stego_pil.mode == 'L':
-        stego_pil = stego_pil.convert('RGB')
-    stego_ycbcr = np.array(stego_pil.convert('YCbCr'), dtype=np.float64)
+    if stego_pil.mode == "L":
+        stego_pil = stego_pil.convert("RGB")
+    stego_ycbcr = np.array(stego_pil.convert("YCbCr"), dtype=np.float64)
 
     # Apply DWT to Y channel
     level = int(meta.get("dwt_level", 2))
@@ -195,7 +182,7 @@ def extract_dwt(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     wm = (bits.reshape(wm_h, wm_w) * 255).astype(np.uint8)
     Image.fromarray(wm, mode="L").save(output_path, format="PNG")
 
-    logging.info('DWT extract: recovered %d-bit watermark (%dx%d)', bit_count, wm_w, wm_h)
+    logging.info("DWT extract: recovered %d-bit watermark (%dx%d)", bit_count, wm_w, wm_h)
     return output_path
 
 
@@ -213,14 +200,14 @@ def recover_dwt(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     Returns:
         output_path.
     """
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     # Load stego image and convert to YCbCr
     stego_pil = Image.open(stego_path)
-    if stego_pil.mode == 'L':
-        stego_pil = stego_pil.convert('RGB')
-    stego_ycbcr = np.array(stego_pil.convert('YCbCr'), dtype=np.float64)
+    if stego_pil.mode == "L":
+        stego_pil = stego_pil.convert("RGB")
+    stego_ycbcr = np.array(stego_pil.convert("YCbCr"), dtype=np.float64)
 
     # Apply DWT to Y channel
     level = int(meta.get("dwt_level", 2))
@@ -241,8 +228,8 @@ def recover_dwt(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     # Reconstruct RGB image
     recovered_ycbcr = stego_ycbcr.copy()
     recovered_ycbcr[:, :, 0] = y_recovered
-    recovered_rgb = Image.fromarray(recovered_ycbcr.astype(np.uint8), mode='YCbCr').convert('RGB')
+    recovered_rgb = Image.fromarray(recovered_ycbcr.astype(np.uint8), mode="YCbCr").convert("RGB")
     recovered_rgb.save(output_path, format="PNG")
 
-    logging.info('DWT recover: restored original image to %s', output_path)
+    logging.info("DWT recover: restored original image to %s", output_path)
     return output_path

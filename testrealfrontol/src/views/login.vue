@@ -132,6 +132,7 @@ const rules = reactive({
 // [核心修复] 登录函数，增加更详细的错误处理
 const login = async () => {
   if (!elFormRef.value) return;
+  userStore.clearUserInfo()
   try {
     const valid = await elFormRef.value.validate();
     if (!valid) {

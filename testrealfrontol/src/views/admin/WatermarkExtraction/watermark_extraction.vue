@@ -35,6 +35,19 @@
 
     <el-card v-if="decodedInfo" class="decode-card" shadow="never" style="margin-top: 16px;">
       <template #header>
+        <div class="card-header"><span>{{ $t('wmExtract.rawQrTitle') }}</span></div>
+      </template>
+      <el-input
+        type="textarea"
+        :rows="6"
+        :model-value="decodedInfo.normalized?._qr_raw || decodedInfo.parsed?._raw || ''"
+        readonly
+        class="raw-qr-textarea"
+      />
+    </el-card>
+
+    <el-card v-if="decodedInfo" class="decode-card" shadow="never" style="margin-top: 16px;">
+      <template #header>
         <div class="card-header"><span>{{ $t('wmExtract.decodeInfoTitle') }}</span></div>
       </template>
       <el-alert
@@ -51,9 +64,17 @@
         <el-descriptions-item :label="$t('wmExtract.descApplicant')">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descApplicantId')">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descApprover1')">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1Id')">{{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1Time')">{{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descApprover2')">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2Id')">{{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2Time')">{{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descSubmittedAt')">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descGeneratedAt')">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descPurpose')">{{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descUsageScope')">{{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descSecurityLevel')">{{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}</el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descCustomTag')">{{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}</el-descriptions-item>
         <el-descriptions-item :label="$t('wmExtract.descReason')" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -265,5 +286,12 @@ const resetForm = () => {
 .send_file_uploader .el-upload-dragger {
   width: 100%;
   padding: 30px;
+}
+
+.raw-qr-textarea :deep(.el-textarea__inner) {
+  font-family: 'Courier New', Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  background: #fafafa;
 }
 </style>

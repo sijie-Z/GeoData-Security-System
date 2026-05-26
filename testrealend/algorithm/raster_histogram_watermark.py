@@ -14,6 +14,7 @@ Algorithm overview
   two adjacent values) and read the bits back.
 * **Recover**: reverse the shift to losslessly restore the original image.
 """
+
 import json
 import logging
 import os
@@ -22,7 +23,7 @@ from datetime import datetime
 import numpy as np
 from PIL import Image
 
-from algorithm.quality_metrics import compute_psnr, capacity_report
+from algorithm.quality_metrics import capacity_report, compute_psnr
 from algorithm.raster_geotiff_utils import read_geotiff, save_geotiff
 
 
@@ -73,8 +74,8 @@ def _find_peak_and_zero(hist: np.ndarray):
 
 # ── public API ────────────────────────────────────────────────────────────
 
-def embed_histogram(host_path: str, watermark_img: Image.Image,
-                    output_dir: str, prefix: str) -> dict:
+
+def embed_histogram(host_path: str, watermark_img: Image.Image, output_dir: str, prefix: str) -> dict:
     """Embed a binary watermark into *host_path* using Histogram Shifting.
 
     Parameters
@@ -119,8 +120,9 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
     hist, _ = np.histogram(channel, bins=256, range=(0, 255))
     peak, peak_count, zero_point, direction = _find_peak_and_zero(hist)
 
-    logging.info("Histogram shifting: peak=%d (count=%d), zero_point=%d, "
-                 "direction=%s", peak, peak_count, zero_point, direction)
+    logging.info(
+        "Histogram shifting: peak=%d (count=%d), zero_point=%d, direction=%s", peak, peak_count, zero_point, direction
+    )
 
     # Track whether the zero point is "soft" (has non-zero frequency).
     # When soft, its original pixel positions must be saved to guarantee
@@ -128,9 +130,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
     soft_zero = bool(hist[zero_point] > 0)
     zero_point_positions = np.array([], dtype=np.int64)
     if soft_zero:
-        zero_point_positions = np.where(channel == zero_point)[0].astype(
-            np.int64
-        )
+        zero_point_positions = np.where(channel == zero_point)[0].astype(np.int64)
 
     # ── convert watermark to bit array ──────────────────────────────────
     wm_arr = np.array(
@@ -174,9 +174,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     stego_filename = f"{prefix}_{timestamp}_stego{'_geotiff' if is_gt else ''}.{'tif' if is_gt else 'png'}"
     stego_path = os.path.join(output_dir, stego_filename)
-    wm_meta_path = os.path.join(
-        output_dir, f"{prefix}_{timestamp}_wm_meta.json"
-    )
+    wm_meta_path = os.path.join(output_dir, f"{prefix}_{timestamp}_wm_meta.json")
 
     # --- Save stego image (GeoTIFF if input was GeoTIFF) ---
     if is_gt:
@@ -213,9 +211,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
         "zero_point": zero_point,
         "direction": direction,
         "soft_zero": soft_zero,
-        "zero_point_positions": (
-            zero_point_positions.tolist() if soft_zero else []
-        ),
+        "zero_point_positions": (zero_point_positions.tolist() if soft_zero else []),
         "shape": {"height": int(h), "width": int(w), "channels": 3},
         "watermark": {
             "height": int(wm_arr.shape[0]),
@@ -231,8 +227,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
     # ── quality metrics ─────────────────────────────────────────────────
     psnr_value = compute_psnr(host_arr.astype(np.uint8), stego_arr)
     cap_report = capacity_report(peak_count, bit_count, n=1)
-    logging.info("Histogram embed PSNR=%.2f dB, capacity report: %s",
-                 psnr_value, cap_report)
+    logging.info("Histogram embed PSNR=%.2f dB, capacity report: %s", psnr_value, cap_report)
 
     return {
         "stego_path": stego_path,
@@ -242,8 +237,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image,
     }
 
 
-def extract_histogram(stego_path: str, wm_meta_path: str,
-                      output_path: str) -> str:
+def extract_histogram(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     """Extract the watermark from a histogram-shifted stego image.
 
     Parameters
@@ -260,7 +254,7 @@ def extract_histogram(stego_path: str, wm_meta_path: str,
     str
         The *output_path*.
     """
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     peak = int(meta["peak"])
@@ -309,8 +303,7 @@ def extract_histogram(stego_path: str, wm_meta_path: str,
     return output_path
 
 
-def recover_histogram(stego_path: str, wm_meta_path: str,
-                      output_path: str) -> str:
+def recover_histogram(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     """Losslessly recover the original host image from the stego image.
 
     Parameters
@@ -327,7 +320,7 @@ def recover_histogram(stego_path: str, wm_meta_path: str,
     str
         The *output_path*.
     """
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     peak = int(meta["peak"])
@@ -377,12 +370,14 @@ def recover_histogram(stego_path: str, wm_meta_path: str,
         if "crs" in geo_profile:
             try:
                 import rasterio.crs
+
                 geo_profile["crs"] = rasterio.crs.CRS.from_wkt(geo_profile["crs"])
             except Exception:
                 pass
         if "transform" in geo_profile and isinstance(geo_profile["transform"], list):
             try:
                 import affine
+
                 geo_profile["transform"] = affine.Affine(*geo_profile["transform"])
             except Exception:
                 pass

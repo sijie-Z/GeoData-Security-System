@@ -4,13 +4,14 @@ Stress testing script for Flask backend at http://127.0.0.1:5003
 Uses ThreadPoolExecutor for concurrent requests.
 """
 
-import requests
-import time
-import json
-from concurrent.futures import ThreadPoolExecutor, as_completed
 import statistics
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+import requests
 
 BASE_URL = "http://127.0.0.1:5003"
+
 
 class StressTestResult:
     def __init__(self):
@@ -19,6 +20,7 @@ class StressTestResult:
         self.failed = 0
         self.response_times = []
         self.errors = []
+
 
 def stress_test_get(endpoint_path, concurrent_users, requests_per_user, params=None, token=None):
     """Test a GET endpoint with concurrent users."""
@@ -38,17 +40,11 @@ def stress_test_get(endpoint_path, concurrent_users, requests_per_user, params=N
                 "response_time": elapsed,
                 "success": 200 <= response.status_code < 300,
                 "text": response.text[:500] if response.status_code >= 400 else None,
-                "error": None
+                "error": None,
             }
         except Exception as e:
-            elapsed = (time.time() - start) * 1000 if 'start' in dir() else 0
-            return {
-                "status": 0,
-                "response_time": elapsed,
-                "success": False,
-                "text": None,
-                "error": str(e)
-            }
+            elapsed = (time.time() - start) * 1000 if "start" in dir() else 0
+            return {"status": 0, "response_time": elapsed, "success": False, "text": None, "error": str(e)}
 
     with ThreadPoolExecutor(max_workers=concurrent_users) as executor:
         futures = []
@@ -69,6 +65,7 @@ def stress_test_get(endpoint_path, concurrent_users, requests_per_user, params=N
                     result.errors.append(f"Error: {res['error']}")
 
     return result
+
 
 def stress_test_post(endpoint_path, concurrent_users, requests_per_user, json_data):
     """Test a POST endpoint with concurrent users."""
@@ -87,16 +84,10 @@ def stress_test_post(endpoint_path, concurrent_users, requests_per_user, json_da
                 "response_time": elapsed,
                 "success": 200 <= response.status_code < 300,
                 "text": response.text[:500] if response.status_code >= 400 else None,
-                "error": None
+                "error": None,
             }
         except Exception as e:
-            return {
-                "status": 0,
-                "response_time": 0,
-                "success": False,
-                "text": None,
-                "error": str(e)
-            }
+            return {"status": 0, "response_time": 0, "success": False, "text": None, "error": str(e)}
 
     with ThreadPoolExecutor(max_workers=concurrent_users) as executor:
         futures = []
@@ -118,11 +109,12 @@ def stress_test_post(endpoint_path, concurrent_users, requests_per_user, json_da
 
     return result
 
+
 def print_result(endpoint_name, result):
     """Print stress test results for an endpoint."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"ENDPOINT: {endpoint_name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"Total requests sent:    {result.total_requests}")
     print(f"Successful (2xx):        {result.successful}")
     print(f"Failed (4xx/5xx):       {result.failed}")
@@ -143,9 +135,10 @@ def print_result(endpoint_name, result):
         if len(result.errors) > 5:
             print(f"  ... and {len(result.errors) - 5} more errors")
 
+
 def main():
     print("Starting Stress Test for Flask Backend at http://127.0.0.1:5003")
-    print("="*60)
+    print("=" * 60)
 
     # Get auth token first
     print("Getting auth token...")
@@ -156,73 +149,49 @@ def main():
 
     # Test 1: GET /api/vector_data_viewing
     result1 = stress_test_get(
-        "/api/vector_data_viewing",
-        concurrent_users=20, requests_per_user=10,
-        params={"page": 1, "pageSize": 10}
+        "/api/vector_data_viewing", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 10}
     )
     print_result("GET /api/vector_data_viewing (public, 200 req)", result1)
 
     # Test 2: GET /api/raster_data_viewing
     result2 = stress_test_get(
-        "/api/raster_data_viewing",
-        concurrent_users=20, requests_per_user=10,
-        params={"page": 1, "pageSize": 10}
+        "/api/raster_data_viewing", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 10}
     )
     print_result("GET /api/raster_data_viewing (public, 200 req)", result2)
 
     # Test 3: GET /api/announcements
     result3 = stress_test_get(
-        "/api/announcements",
-        concurrent_users=20, requests_per_user=10,
-        params={"page": 1, "pageSize": 5}
+        "/api/announcements", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 5}
     )
     print_result("GET /api/announcements (public, 200 req)", result3)
 
     # Test 4: GET /api/protected (auth)
-    result4 = stress_test_get(
-        "/api/protected",
-        concurrent_users=20, requests_per_user=10,
-        token=token
-    )
+    result4 = stress_test_get("/api/protected", concurrent_users=20, requests_per_user=10, token=token)
     print_result("GET /api/protected (auth, 200 req)", result4)
 
     # Test 5: GET /api/admin/dashboard (auth)
-    result5 = stress_test_get(
-        "/api/admin/dashboard",
-        concurrent_users=20, requests_per_user=5,
-        token=token
-    )
+    result5 = stress_test_get("/api/admin/dashboard", concurrent_users=20, requests_per_user=5, token=token)
     print_result("GET /api/admin/dashboard (auth, 100 req)", result5)
 
     # Test 6: GET /api/adm1_get_applications (auth)
-    result6 = stress_test_get(
-        "/api/adm1_get_applications",
-        concurrent_users=20, requests_per_user=5,
-        token=token
-    )
+    result6 = stress_test_get("/api/adm1_get_applications", concurrent_users=20, requests_per_user=5, token=token)
     print_result("GET /api/adm1_get_applications (auth, 100 req)", result6)
 
     # Test 7: POST /api/login
     login_payload = {"username": "admin", "password": "admin123", "role": "admin"}
-    result7 = stress_test_post(
-        "/api/login",
-        concurrent_users=5, requests_per_user=6,
-        json_data=login_payload
-    )
+    result7 = stress_test_post("/api/login", concurrent_users=5, requests_per_user=6, json_data=login_payload)
     print_result("POST /api/login (rate-limited, 30 req)", result7)
 
     # Test 8: GET /api/adm1_get_applications_generate_watermark (auth)
     result8 = stress_test_get(
-        "/api/adm1_get_applications_generate_watermark",
-        concurrent_users=10, requests_per_user=5,
-        token=token
+        "/api/adm1_get_applications_generate_watermark", concurrent_users=10, requests_per_user=5, token=token
     )
     print_result("GET /api/adm1 watermark list (auth, 50 req)", result8)
 
     # Summary
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("FINAL SUMMARY")
-    print("="*60)
+    print("=" * 60)
     all_results = [
         ("GET /api/vector_data_viewing", result1),
         ("GET /api/raster_data_viewing", result2),
@@ -239,16 +208,19 @@ def main():
     for name, res in all_results:
         success_rate = (res.successful / res.total_requests * 100) if res.total_requests > 0 else 0
         avg_time = statistics.mean(res.response_times) if res.response_times else 0
-        err_5xx = sum(1 for t in res.errors if '500' in t)
+        err_5xx = sum(1 for t in res.errors if "500" in t)
         total_2xx += res.successful
         total_5xx += err_5xx
         print(f"  {name}:")
-        print(f"    2xx={res.successful}/{res.total_requests} ({success_rate:.1f}%) | "
-              f"AvgRT={avg_time:.1f}ms | 5xx={err_5xx}")
+        print(
+            f"    2xx={res.successful}/{res.total_requests} ({success_rate:.1f}%) | "
+            f"AvgRT={avg_time:.1f}ms | 5xx={err_5xx}"
+        )
 
     print(f"\n  TOTAL 2xx: {total_2xx} | TOTAL 5xx: {total_5xx}")
     print(f"  SYSTEM STATUS: {'STABLE' if total_5xx == 0 else 'HAS 5xx ERRORS'}")
-    print("="*60)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
     main()

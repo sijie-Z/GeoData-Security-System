@@ -2,9 +2,11 @@
 # 它会使用项目中的 CommonServer.register_employee 方法来确保密码被正确哈希。
 
 import os
+
 from flask import Flask
-from server.common_server import CommonServer
+
 from extension.extension import db
+from server.common_server import CommonServer
 
 # 创建一个 Flask 应用实例
 # 这个脚本需要一个应用上下文来与数据库交互，
@@ -13,14 +15,16 @@ app = Flask(__name__)
 
 # 配置数据库连接 - 从环境变量读取，或根据实际情况修改
 from dotenv import load_dotenv
+
 load_dotenv()
-app.config['SQLALCHEMY_BINDS'] = {
-    'mysql_db': os.environ.get('MYSQL_URI', 'mysql+mysqldb://user:password@localhost/esri_test'),
+app.config["SQLALCHEMY_BINDS"] = {
+    "mysql_db": os.environ.get("MYSQL_URI", "mysql+mysqldb://user:password@localhost/esri_test"),
 }
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 初始化 SQLAlchemy 实例
 db.init_app(app)
+
 
 def add_new_employee():
     """
@@ -44,19 +48,16 @@ def add_new_employee():
     # 调用注册员工的方法
     # 这个方法应该处理密码哈希和数据库存储
     result = CommonServer.register_employee(
-        name=name,
-        employee_number=employee_number,
-        id_number=id_number,
-        phone_number=phone_number,
-        password=password
+        name=name, employee_number=employee_number, id_number=id_number, phone_number=phone_number, password=password
     )
 
-    if result.get('status'):
+    if result.get("status"):
         print(f"用户 {employee_number} 添加成功！")
     else:
         print(f"添加用户 {employee_number} 失败: {result.get('message')}")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # 使用 Flask 应用上下文来执行数据库操作
     with app.app_context():
         print("开始执行添加用户脚本...")

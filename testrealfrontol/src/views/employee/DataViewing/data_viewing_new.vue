@@ -117,7 +117,21 @@
       </div>
 
       <!-- 数据卡片网格 -->
-      <div class="data-grid" v-loading="loading">
+      <div class="data-grid" v-loading="loading && !data.list.length">
+        <!-- 骨架屏 -->
+        <template v-if="loading && !data.list.length">
+          <div v-for="n in pageSize" :key="'skel-' + n" class="skeleton-card">
+            <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
+              <div class="skeleton-line badge"></div>
+              <div class="skeleton-line short" style="width:30px;"></div>
+            </div>
+            <div class="skeleton-line title"></div>
+            <div class="skeleton-line long" style="margin-bottom:8px;"></div>
+            <div class="skeleton-line medium" style="margin-bottom:20px;"></div>
+            <div class="skeleton-line short" style="margin-bottom:8px;"></div>
+            <div class="skeleton-line short" style="margin-bottom:8px;"></div>
+          </div>
+        </template>
         <div
           v-for="item in data.list"
           :key="item.data_id"
@@ -200,7 +214,6 @@
         @size-change="sizeChanged"
       />
     </div>
-  </div>
 
   <!-- 数据详情对话框 -->
   <el-dialog
@@ -225,6 +238,12 @@
     <div class="data-detail-layout">
       <div class="map-preview-section">
         <div class="map-container" ref="mapContainer">
+          <transition name="fade">
+            <div class="map-loading-overlay" v-if="mapLoading">
+              <div class="map-spinner"></div>
+              <span>{{ $t('empDataViewNew.loadingMap') || '加载地图中...' }}</span>
+            </div>
+          </transition>
           <div class="map-controls">
             <el-button
               circle
@@ -384,6 +403,7 @@
       </div>
     </template>
   </el-dialog>
+  </div>
 </template>
 
 
@@ -391,24 +411,18 @@
 
 
 <script setup>
+defineOptions({ name: 'EmployeeDataViewing' });
 import { ref, reactive, onMounted, computed, nextTick, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import {
   Search, Close, ArrowLeftBold, Location, Picture, DataAnalysis,
-  View, Download, Refresh, Grid, Collection, Compass, Coordinate, Check
+  Download, Refresh, Grid, Collection, Compass, Coordinate, Check
 } from '@element-plus/icons-vue';
 import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
-import { vectorDataViewing, rasterDataViewing, mapSearch } from '@/api/data';
+import { vectorDataViewing, rasterDataViewing } from '@/api/data';
 import { submitApplication } from '@/api/employee';
 import { axios as http } from '@/utils/Axios';
 import { useUserStore } from '@/stores/userStore';
-
-import 'ol/ol.css';
-import Map from 'ol/Map';
-import OlView from 'ol/View';
-import TileLayer from 'ol/layer/Tile';
-import { TileWMS, XYZ } from 'ol/source';
-import { ScaleLine, Rotate, defaults as defaultControls } from 'ol/control';
 
 const { t } = useI18n();
 
@@ -436,6 +450,8 @@ const mapContainer = ref(null);
 const mapView = ref(null);
 const mapSearchKeyword = ref('');
 const requestFormRef = ref(null);
+const mapLoading = ref(false);
+const geocodedCenter = ref(null); // { center, zoom } from last geocoding search
 
 // 用户状态
 const userStore = useUserStore();
@@ -558,6 +574,29 @@ const fetchData = async () => {
 const handleSearch = () => {
   page.value = 1;
   fetchData();
+  // Geocode via TianDiTu (browser key) so map opens at searched location
+  const kw = keyword.value.trim();
+  if (kw) {
+    const params = new URLSearchParams({
+      postStr: JSON.stringify({ keyword: kw }),
+      type: 'query',
+      tk: tiandituKey,
+    });
+    fetch(`https://api.tianditu.gov.cn/v2/search?${params}`)
+      .then(resp => resp.json())
+      .then(data => {
+        const pois = data.pois || [];
+        if (pois.length > 0 && pois[0].lonlat) {
+          const [lon, lat] = String(pois[0].lonlat).split(',').map(Number);
+          if (!Number.isNaN(lon) && !Number.isNaN(lat)) {
+            geocodedCenter.value = { center: [lon, lat], zoom: 13 };
+          }
+        }
+      })
+      .catch(() => { geocodedCenter.value = null; });
+  } else {
+    geocodedCenter.value = null;
+  }
 };
 
 const pageChanged = (newPage) => {
@@ -684,18 +723,27 @@ const handleMapSearch = async () => {
     return;
   }
 
+  const kw = mapSearchKeyword.value.trim();
   try {
-    const response = await mapSearch({ keyword: mapSearchKeyword.value.trim() });
+    // Geocode via TianDiTu (browser key)
+    const params = new URLSearchParams({
+      postStr: JSON.stringify({ keyword: kw }),
+      type: 'query',
+      tk: tiandituKey,
+    });
+    const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
+    const geoData = await geoResp.json();
+    const pois = geoData.pois || [];
 
-    if (response.data && response.data.pois && response.data.pois.length > 0) {
-      const lonlat = response.data.pois[0].lonlat.split(',').map(Number);
+    if (pois.length > 0 && pois[0].lonlat) {
+      const [lon, lat] = String(pois[0].lonlat).split(',').map(Number);
       mapView.value.getView().animate({
-        center: lonlat,
+        center: [lon, lat],
         zoom: 14,
         duration: 1000
       });
     } else {
-      ElMessage.warning(t('empDataViewNew.mapSearchNotFound', { keyword: mapSearchKeyword.value }));
+      ElMessage.warning(t('empDataViewNew.mapSearchNotFound', { keyword: kw }));
     }
   } catch (error) {
     console.error('地图搜索失败:', error);
@@ -707,72 +755,109 @@ const initializeMapView = async (url, fullLayerName) => {
   if (!mapContainer.value) return;
 
   destroyMapView();
+  mapLoading.value = true;
 
-  const baseLayers = [
-    new TileLayer({
+  try {
+    // Lazy-load OpenLayers only when map dialog opens
+    const [{ default: Map }, { default: OlView }, { default: TileLayer }, olSource, olControl] =
+      await Promise.all([
+        import('ol/Map'),
+        import('ol/View'),
+        import('ol/layer/Tile'),
+        import('ol/source'),
+        import('ol/control')
+      ]);
+    await import('ol/ol.css');
+
+    const { TileWMS, XYZ, OSM } = olSource;
+    const { ScaleLine, Rotate, defaults: defaultControls } = olControl;
+
+    const tiandituBase = new TileLayer({
       source: new XYZ({
         url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      })
-    }),
-    new TileLayer({
+      }),
+      zIndex: 0
+    });
+    const tiandituLabel = new TileLayer({
       source: new XYZ({
         url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      })
-    })
-  ];
+      }),
+      zIndex: 1
+    });
+    const osmFallback = new TileLayer({
+      source: new OSM(),
+      zIndex: 0,
+      visible: false
+    });
 
-  const map = new Map({
-    target: mapContainer.value,
-    layers: baseLayers,
-    view: new OlView({
-      projection: 'EPSG:4326',
-      center: [104.0, 35.0],
-      zoom: 4
-    }),
-    controls: defaultControls().extend([
-      new ScaleLine({ units: 'metric' }),
-      new Rotate({ autoHide: false, className: 'ol-rotate ol-control-custom-rotate' })
-    ])
-  });
+    tiandituBase.getSource().on('error', () => {
+      tiandituBase.setVisible(false);
+      tiandituLabel.setVisible(false);
+      osmFallback.setVisible(true);
+    });
 
-  mapView.value = map;
+    const center = geocodedCenter.value?.center || [104.0, 35.0];
+    const zoom = geocodedCenter.value?.zoom || 4;
 
-  if (url && fullLayerName) {
-    try {
-      map.addLayer(new TileLayer({
+    const map = new Map({
+      target: mapContainer.value,
+      layers: [osmFallback, tiandituBase, tiandituLabel],
+      view: new OlView({
+        projection: 'EPSG:4326',
+        center,
+        zoom
+      }),
+      controls: defaultControls().extend([
+        new ScaleLine({ units: 'metric' }),
+        new Rotate({ autoHide: false, className: 'ol-rotate ol-control-custom-rotate' })
+      ])
+    });
+
+    mapView.value = map;
+
+    if (url && fullLayerName) {
+      const wmsLayer = new TileLayer({
         source: new TileWMS({
           url: url,
           params: { 'LAYERS': fullLayerName, 'TILED': true },
           serverType: 'geoserver'
         })
-      }));
+      });
+      wmsLayer.getSource().once('tileloadend', () => { mapLoading.value = false; });
+      wmsLayer.getSource().once('tileloaderror', () => { mapLoading.value = false; });
+      map.addLayer(wmsLayer);
 
-      const response = await http.get(`${url}?service=WMS&version=1.3.0&request=GetCapabilities`);
-      const xmlDoc = new DOMParser().parseFromString(response.data, "text/xml");
-      const layerNameToMatch = fullLayerName.includes(':') ? fullLayerName.split(':')[1] : fullLayerName;
-      const layersNodes = xmlDoc.querySelectorAll('Layer > Name');
-      const targetLayerNode = Array.from(layersNodes).find(node => node.textContent === layerNameToMatch)?.parentNode;
-
-      if (targetLayerNode) {
-        const bboxNode = targetLayerNode.querySelector('BoundingBox[CRS="CRS:84"]');
-        if (bboxNode) {
-          const bbox = [
-            parseFloat(bboxNode.getAttribute('minx')),
-            parseFloat(bboxNode.getAttribute('miny')),
-            parseFloat(bboxNode.getAttribute('maxx')),
-            parseFloat(bboxNode.getAttribute('maxy'))
-          ];
-          map.getView().fit(bbox, {
-            size: map.getSize(),
-            duration: 1000,
-            padding: [50, 50, 50, 50]
-          });
-        }
-      }
-    } catch (error) {
-      console.error('地图加载失败:', error);
-      ElMessage.error(t('empDataViewNew.errorMapLoad'));
+      http.get(`${url}?service=WMS&version=1.3.0&request=GetCapabilities`)
+        .then(response => {
+          const xmlDoc = new DOMParser().parseFromString(response.data, "text/xml");
+          const layerNameToMatch = fullLayerName.includes(':') ? fullLayerName.split(':')[1] : fullLayerName;
+          const layersNodes = xmlDoc.querySelectorAll('Layer > Name');
+          const targetLayerNode = Array.from(layersNodes).find(node => node.textContent === layerNameToMatch)?.parentNode;
+          if (targetLayerNode) {
+            const bboxNode = targetLayerNode.querySelector('BoundingBox[CRS="CRS:84"]');
+            if (bboxNode) {
+              const bbox = [
+                parseFloat(bboxNode.getAttribute('minx')),
+                parseFloat(bboxNode.getAttribute('miny')),
+                parseFloat(bboxNode.getAttribute('maxx')),
+                parseFloat(bboxNode.getAttribute('maxy'))
+              ];
+              map.getView().fit(bbox, {
+                size: map.getSize(),
+                duration: 800,
+                padding: [50, 50, 50, 50]
+              });
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      mapLoading.value = false;
     }
+  } catch (error) {
+    console.error('地图加载失败:', error);
+    mapLoading.value = false;
+    ElMessage.error(t('empDataViewNew.errorMapLoad'));
   }
 };
 
@@ -781,16 +866,19 @@ const destroyMapView = () => {
     mapView.value.setTarget(null);
     mapView.value = null;
   }
+  geocodedCenter.value = null;
 };
 
 const exportData = () => {
   ElMessage.success(t('empDataViewNew.exportInProgress'));
 };
 
-// 监听筛选条件变化
+// 监听筛选条件变化（带防抖）
+let filterTimer;
 watch([activeDataType, dataSourceFilter, timeFilter], () => {
   page.value = 1;
-  fetchData();
+  clearTimeout(filterTimer);
+  filterTimer = setTimeout(fetchData, 150);
 });
 
 // 生命周期
@@ -902,12 +990,6 @@ onMounted(() => {
   width: 160px;
   height: 160px;
   filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-  animation: rotate 20s linear infinite;
-}
-
-@keyframes rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
 }
 
 /* 搜索区域 */
@@ -1695,4 +1777,99 @@ onMounted(() => {
 }
 :deep(.rounded-dialog) { border-radius: 12px; overflow: hidden; }
 :deep(.rounded-dialog .el-dialog__header) { margin-right: 0; padding-top: 20px; }
+
+/* 地图加载遮罩 */
+.map-loading-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  background: rgba(248, 250, 252, 0.85);
+  backdrop-filter: blur(4px);
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.map-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
+}
+
+/* 卡片入场动画 */
+.data-card {
+  animation: cardIn 0.4s ease both;
+}
+
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 每张卡片延迟入场 */
+.data-card:nth-child(1) { animation-delay: 0s; }
+.data-card:nth-child(2) { animation-delay: 0.05s; }
+.data-card:nth-child(3) { animation-delay: 0.1s; }
+.data-card:nth-child(4) { animation-delay: 0.15s; }
+.data-card:nth-child(5) { animation-delay: 0.2s; }
+.data-card:nth-child(6) { animation-delay: 0.25s; }
+.data-card:nth-child(7) { animation-delay: 0.3s; }
+.data-card:nth-child(8) { animation-delay: 0.35s; }
+.data-card:nth-child(9) { animation-delay: 0.4s; }
+.data-card:nth-child(10) { animation-delay: 0.45s; }
+.data-card:nth-child(11) { animation-delay: 0.5s; }
+.data-card:nth-child(12) { animation-delay: 0.55s; }
+
+/* 骨架屏加载 */
+.skeleton-card {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: 6px;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+.skeleton-line.short { width: 40%; }
+.skeleton-line.medium { width: 70%; }
+.skeleton-line.long { width: 100%; }
+.skeleton-line.title { height: 20px; width: 60%; margin-bottom: 12px; }
+.skeleton-line.badge { height: 24px; width: 60px; border-radius: 12px; }
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
 </style>

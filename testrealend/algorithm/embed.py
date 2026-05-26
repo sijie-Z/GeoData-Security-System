@@ -1,13 +1,15 @@
+import hashlib
 import logging
 import os
 import random
-import hashlib
+import zipfile
 from decimal import Decimal
+
 import numpy as np
 from PIL import Image
-from algorithm.get_coor import get_coor_nested, get_coor_array
+
+from algorithm.get_coor import get_coor_array, get_coor_nested
 from algorithm.quality_metrics import capacity_report
-import zipfile
 from algorithm.to_geodataframe import to_geodataframe
 
 
@@ -28,9 +30,9 @@ def watermark_embed(coor, coor_l, w, n, R):
     """
     x, y = coor
     xl, yl = coor_l
-    k = (x - xl) / 2 ** n
+    k = (x - xl) / 2**n
     # embed_x = xl + w * ((xr - xl) / 2 ** n) + k
-    embed_x = xl + w * (R / 2 ** n) + k
+    embed_x = xl + w * (R / 2**n) + k
     embed_y = y
     return np.vstack([embed_x, embed_y])
 
@@ -47,7 +49,7 @@ def coor_process(coor, argument, seed):
     random.seed(seed)
 
     index = random.randint(0, len(W) - 1)  # 抵抗删点、平移、缩放 不抵抗旋转
-    w = int(''.join(map(str, W[index])), 2)
+    w = int("".join(map(str, W[index])), 2)
 
     coor = np.array([Decimal(str(x)) for x in np.nditer(coor)])
     coor_l = coor // R * R
@@ -89,9 +91,11 @@ def traversal_nested_coor_group(coor_nested, feature_type, argument):
         # 对坐标进行平移
         processed_coor_group = coor_group_process(coor_group, argument)
         # 如果要素为多面，则需要满足首位顶点的坐标相同
-        if (feature_type == 'MultiPolygon'
-                and np.size(processed_coor_group) not in [0, 2]
-                and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])):
+        if (
+            feature_type == "MultiPolygon"
+            and np.size(processed_coor_group) not in [0, 2]
+            and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])
+        ):
             processed_coor_group[:, -1] = processed_coor_group[:, 0]
         processed_x_nested.append(processed_coor_group[0, :])
         processed_y_nested.append(processed_coor_group[1, :])
@@ -108,29 +112,44 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, argument):
     """
     # 遍历每个几何要素
     for feature_index in range(coor_nested.shape[1]):
-        coor_group = np.vstack(coor_nested[:, feature_index])
+        x_col = coor_nested[0, feature_index]
+        y_col = coor_nested[1, feature_index]
         feature_type = shp_type[feature_index]
-        # 判断是否是多线、多面等的情况
+        # 判断是否是多线、多面等的情况 (NumPy 2.x safe: detect before vstack)
+        if isinstance(x_col, list):
+            n_parts = len(x_col)
+            coor_group = np.empty((2, n_parts), dtype=object)
+            for j in range(n_parts):
+                coor_group[0, j] = x_col[j]
+                coor_group[1, j] = y_col[j]
+        else:
+            coor_group = np.vstack([x_col, y_col])
+
         if isinstance(coor_group[0, 0], np.ndarray):
             processed_coor_group = traversal_nested_coor_group(coor_group, feature_type, argument)
         else:
             processed_coor_group = coor_group_process(coor_group, argument)
             # 如果要素为面，则需要满足首尾顶点的坐标相同
-            if (feature_type == 'Polygon'
-                    and np.size(processed_coor_group) not in [0, 2]
-                    and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])):
+            if (
+                feature_type == "Polygon"
+                and np.size(processed_coor_group) not in [0, 2]
+                and not np.array_equal(processed_coor_group[:, 0], processed_coor_group[:, -1])
+            ):
                 processed_coor_group[:, -1] = processed_coor_group[:, 0]
         # 将改变的要素坐标组更新到geodataframe
-        processed_shpfile = to_geodataframe(processed_shpfile, feature_index, processed_coor_group,
-                                            shp_type[feature_index])
+        processed_shpfile = to_geodataframe(
+            processed_shpfile, feature_index, processed_coor_group, shp_type[feature_index]
+        )
     return processed_shpfile
 
 
-def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
+def embed(shp_path, qr_image_path, n=4, R=Decimal("1e-7"), output_dir=None):
     import geopandas as gpd
+
     if output_dir is None:
         from flask import current_app
-        output_dir = current_app.config['WATERMARK_FOLDER']
+
+        output_dir = current_app.config["WATERMARK_FOLDER"]
     output_filename = f"watermarked_{os.path.basename(shp_path)}"
 
     # -------------------------数据读取--------------------------------
@@ -146,19 +165,20 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
     watermark_proc = list(filter(lambda x: x != -1, watermark_proc))
     n_bits_needed = len(watermark_proc)
     total_vertices = sum(
-        coor_nested[:, i][0].size if not isinstance(coor_nested[:, i][0], (list, np.ndarray)) or
-        (isinstance(coor_nested[:, i][0], np.ndarray) and coor_nested[:, i][0].ndim == 1)
+        coor_nested[:, i][0].size
+        if not isinstance(coor_nested[:, i][0], (list, np.ndarray))
+        or (isinstance(coor_nested[:, i][0], np.ndarray) and coor_nested[:, i][0].ndim == 1)
         else sum(arr.size for arr in coor_nested[:, i][0])
         for i in range(coor_nested.shape[1])
     )
     cap_report = capacity_report(total_vertices, n_bits_needed, n)
-    if not cap_report['sufficient']:
+    if not cap_report["sufficient"]:
         raise ValueError(
             f"Insufficient embedding capacity: need {cap_report['needed_chunks']} chunks "
             f"but only {cap_report['available_chunks']} available "
             f"({cap_report['total_vertices']} vertices, utilization would be {cap_report['utilization_percent']}%)"
         )
-    logging.info('Capacity report: %s', cap_report)
+    logging.info("Capacity report: %s", cap_report)
 
     # -------------------------数据预处理--------------------------------
     replace_matrix = np.full((8, 8), -1)
@@ -167,7 +187,7 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
     watermark = list(filter(lambda x: x != -1, watermark))
     watermark += [0] * ((n - len(watermark) % n) % n)
     W = np.array_split(watermark, len(watermark) // n)
-    argument = {'n': n, 'R': R, 'W': W}
+    argument = {"n": n, "R": R, "W": W}
 
     # -------------------------水印嵌入--------------------------------
     watermarked_shpfile = original_shpfile.copy()
@@ -176,8 +196,8 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
     coor_nested, feature_type = get_coor_nested(watermarked_shpfile)
     coor_array = get_coor_array(coor_nested, feature_type)
     vr = np.mean(coor_array, axis=1)
-    vr = [float(format(coor, '.15f')) for coor in vr]
-    logging.info('vr: %s', vr)
+    vr = [float(format(coor, ".15f")) for coor in vr]
+    logging.info("vr: %s", vr)
 
     # -------------------------数据输出--------------------------------
     if not os.path.exists(output_dir):
@@ -185,18 +205,24 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
 
     # Create Shapefile
     shapefile_path = os.path.join(output_dir, output_filename)
+    # Fix pandas 3.x StringDtype / ArrowDtype incompatibility with geopandas to_file
+    for col in watermarked_shpfile.columns:
+        if col != watermarked_shpfile.geometry.name:
+            col_dtype = watermarked_shpfile[col].dtype
+            if hasattr(col_dtype, "storage") or "StringDtype" in str(col_dtype) or "ArrowDtype" in str(col_dtype):
+                watermarked_shpfile[col] = watermarked_shpfile[col].astype(object)
     watermarked_shpfile.to_file(shapefile_path)
 
     # 定义 Shapefile 相关的文件扩展名
-    shapefile_extensions = ['.shp', '.shx', '.dbf', '.prj', '.cpg']
+    shapefile_extensions = [".shp", ".shx", ".dbf", ".prj", ".cpg"]
 
     # 创建一个新的 ZIP 文件，并将 Shapefile 的各个部分添加到 ZIP 中
     zip_filename = f"{output_filename.replace('.shp', '.zip')}"
     zip_file_path = os.path.join(output_dir, zip_filename)
 
-    with zipfile.ZipFile(zip_file_path, 'w') as zipf:
+    with zipfile.ZipFile(zip_file_path, "w") as zipf:
         for ext in shapefile_extensions:
-            filepath = shapefile_path.replace('.shp', ext)
+            filepath = shapefile_path.replace(".shp", ext)
             if os.path.exists(filepath):
                 zipf.write(filepath, os.path.basename(filepath))
 
@@ -205,26 +231,23 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal('1e-7'), output_dir=None):
     # -------------------------删除原始文件--------------------------------
     try:
         for ext in shapefile_extensions:
-            filepath = shapefile_path.replace('.shp', ext)
+            filepath = shapefile_path.replace(".shp", ext)
             if os.path.exists(filepath):
                 os.remove(filepath)
         logging.info("原始文件已删除。")
     except Exception as e:
         logging.error("删除文件时出错: %s", e)
 
-    return {
-        'zip_path': zip_file_path,
-        'vr': vr,
-        'capacity_report': cap_report
-    }
+    return {"zip_path": zip_file_path, "vr": vr, "capacity_report": cap_report}
 
 
 if __name__ == "__main__":
     import argparse
-    parser = argparse.ArgumentParser(description='Embed watermark into shapefile')
-    parser.add_argument('shp_path', help='Input shapefile path')
-    parser.add_argument('qr_image_path', help='QR code image path')
-    parser.add_argument('--output-dir', default=os.path.join(os.getcwd(), 'embed'))
+
+    parser = argparse.ArgumentParser(description="Embed watermark into shapefile")
+    parser.add_argument("shp_path", help="Input shapefile path")
+    parser.add_argument("qr_image_path", help="QR code image path")
+    parser.add_argument("--output-dir", default=os.path.join(os.getcwd(), "embed"))
     args = parser.parse_args()
     result = embed(args.shp_path, args.qr_image_path, output_dir=args.output_dir)
-    logging.info('Embed result: %s', result)
+    logging.info("Embed result: %s", result)

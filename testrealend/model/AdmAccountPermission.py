@@ -15,8 +15,8 @@ from extension.extension import db
 
 
 class AdmAccountPermissions(db.Model):
-    __bind_key__ = 'mysql_db'
-    __tablename__ = 'adm_account_permissions'
+    __bind_key__ = "mysql_db"
+    __tablename__ = "adm_account_permissions"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    adm_account_id = db.Column(db.Integer, db.ForeignKey('adm_account.id'), nullable=False)
-    permission_id = db.Column(db.Integer, db.ForeignKey('permissions.id'), nullable=False)
+    adm_account_id = db.Column(db.Integer, db.ForeignKey("adm_account.id"), nullable=False)
+    permission_id = db.Column(db.Integer, db.ForeignKey("permissions.id"), nullable=False)

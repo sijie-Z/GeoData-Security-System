@@ -1,4 +1,5 @@
 """Watermark quality metrics: PSNR, SSIM, BER, NC, capacity report."""
+
 import numpy as np
 from PIL import Image
 
@@ -34,7 +35,7 @@ def compute_psnr(original_img, watermarked_img):
         watermarked_img = np.array(watermarked_img, dtype=np.float64)
     mse = np.mean((original_img - watermarked_img) ** 2)
     if mse == 0:
-        return float('inf')
+        return float("inf")
     return float(10 * np.log10(255.0**2 / mse))
 
 
@@ -55,7 +56,7 @@ def compute_ssim_simple(original_img, watermarked_img):
     sigma1_sq = original_img.var()
     sigma2_sq = watermarked_img.var()
     sigma12 = np.mean((original_img - mu1) * (watermarked_img - mu2))
-    ssim_val = ((2*mu1*mu2 + C1) * (2*sigma12 + C2)) / ((mu1**2 + mu2**2 + C1) * (sigma1_sq + sigma2_sq + C2))
+    ssim_val = ((2 * mu1 * mu2 + C1) * (2 * sigma12 + C2)) / ((mu1**2 + mu2**2 + C1) * (sigma1_sq + sigma2_sq + C2))
     return float(ssim_val)
 
 
@@ -65,9 +66,9 @@ def capacity_report(n_vertices, n_bits_needed, n=4):
     needed_chunks = int(np.ceil(n_bits_needed / n))
     utilization = needed_chunks / max(available_chunks, 1) * 100
     return {
-        'total_vertices': n_vertices,
-        'available_chunks': available_chunks,
-        'needed_chunks': needed_chunks,
-        'utilization_percent': round(utilization, 2),
-        'sufficient': available_chunks >= needed_chunks
+        "total_vertices": n_vertices,
+        "available_chunks": available_chunks,
+        "needed_chunks": needed_chunks,
+        "utilization_percent": round(utilization, 2),
+        "sufficient": available_chunks >= needed_chunks,
     }

@@ -1,6 +1,6 @@
 import logging
-import numpy as np
 
+import numpy as np
 
 
 def get_coor_nested(shpfile):
@@ -17,16 +17,16 @@ def get_coor_nested(shpfile):
     for geom in shpfile.geometry:
         # 对于空的Point，LineString来说保存为文件之后再读取得到的geom就是None
         if geom is not None:
-            if geom.geom_type == 'Point':
+            if geom.geom_type == "Point":
                 x_coords.append(np.array([geom.x]))
                 y_coords.append(np.array([geom.y]))
 
-            elif geom.geom_type == 'LineString':
+            elif geom.geom_type == "LineString":
                 # 处理线几何对象的坐标
                 x_coords.append(np.array(geom.xy[0]))
                 y_coords.append(np.array(geom.xy[1]))
 
-            elif geom.geom_type == 'MultiLineString':
+            elif geom.geom_type == "MultiLineString":
                 x_mult = []
                 y_mult = []
                 for line in geom.geoms:
@@ -36,7 +36,7 @@ def get_coor_nested(shpfile):
                 x_coords.append(x_mult)
                 y_coords.append(y_mult)
 
-            elif geom.geom_type == 'Polygon':
+            elif geom.geom_type == "Polygon":
                 # 处理多边形几何对象的坐标
                 # 处理多边形几何对象的外部环坐标
                 if geom.interiors:
@@ -54,7 +54,7 @@ def get_coor_nested(shpfile):
                     x_coords.append(np.array(coords).T[0, :])
                     y_coords.append(np.array(coords).T[1, :])
 
-            elif geom.geom_type == 'MultiPolygon':
+            elif geom.geom_type == "MultiPolygon":
                 x_mult = []
                 y_mult = []
                 for polygon in geom.geoms:
@@ -93,8 +93,8 @@ def get_coor_array(coor_nested, shp_type):
             continue
         if isinstance(x_val, np.ndarray) and x_val.ndim == 0 and len(x_val) == 0:
             continue
-        # Multi-geometry (MultiPolygon, MultiLineString): list of arrays
-        if shp_type[i] in ['MultiPolygon', 'MultiLineString']:
+        # Multi-geometry (MultiPolygon, MultiLineString) or nested (Polygon with holes): list of arrays
+        if shp_type[i] in ["MultiPolygon", "MultiLineString"] or isinstance(x_val, list):
             parts_x = x_val if isinstance(x_val, list) else [x_val]
             parts_y = y_val if isinstance(y_val, list) else [y_val]
             for j in range(len(parts_x)):
@@ -117,9 +117,11 @@ def get_coor_array(coor_nested, shp_type):
     return coor_array
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
+
     import geopandas as gpd
+
     if len(sys.argv) < 2:
         print("Usage: python get_coor.py <path_to_shpfile>")
         sys.exit(1)

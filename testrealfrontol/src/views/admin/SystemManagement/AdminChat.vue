@@ -125,6 +125,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import {
@@ -150,6 +151,7 @@ import {
 } from '@/utils/socket'
 
 const { t } = useI18n()
+const route = useRoute()
 const userStore = useUserStore()
 
 const conversations = ref([])
@@ -450,7 +452,30 @@ const initChat = async () => {
   }, 5000)
 }
 
-onMounted(initChat)
+/* ------------------------------------------------------------------ */
+/*  Handle route query params (contact from approval page)             */
+/* ------------------------------------------------------------------ */
+const handleRouteParams = async () => {
+  const contactNumber = route.query.contact_number
+  const contactName = route.query.contact_name
+  if (contactNumber && contactName) {
+    // Wait for user list to load, then auto-start chat
+    await loadAllUsers()
+    const isEmployee = !contactNumber.startsWith('adm')
+    if (isEmployee) {
+      const emp = employees.value.find(e => e.employee_number === contactNumber)
+      if (emp) startChat(emp, 'employee')
+    } else {
+      const adm = admins.value.find(a => a.adm_number === contactNumber)
+      if (adm) startChat(adm, 'admin')
+    }
+  }
+}
+
+onMounted(async () => {
+  initChat()
+  await handleRouteParams()
+})
 
 onBeforeUnmount(() => {
   offAllChatEvents()

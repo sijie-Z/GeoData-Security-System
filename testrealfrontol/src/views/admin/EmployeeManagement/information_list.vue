@@ -121,6 +121,7 @@ onBeforeUnmount(() => {
       <el-table-column prop="employee_number" :label="$t('employeeMgmt.employeeNumber')" width="180" sortable />
       <el-table-column prop="name" :label="$t('employeeMgmt.name')" width="120" />
       <el-table-column prop="job_number" :label="$t('employeeMgmt.jobNumber')" width="150" sortable />
+      <el-table-column prop="id_number" :label="$t('employeeMgmt.idNumber')" width="180" />
       <el-table-column prop="phone_number" :label="$t('employeeMgmt.phoneNumber')" width="180" />
       <el-table-column prop="address" :label="$t('employeeMgmt.address')" min-width="250" show-overflow-tooltip />
       <el-table-column :label="$t('employeeMgmt.actions')" width="150" align="center" fixed="right">

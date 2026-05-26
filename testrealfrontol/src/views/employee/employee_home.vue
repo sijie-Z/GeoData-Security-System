@@ -56,7 +56,13 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
        <HomeSide :is-collapse="isSideCollapse" />
 
        <div :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]">
-         <router-view />
+         <router-view v-slot="{ Component }">
+           <transition name="page-fade" mode="out-in">
+             <keep-alive :include="['EmployeeDashboard', 'EmployeeDataViewing', 'EmployeeNotifications']">
+               <component :is="Component" />
+             </keep-alive>
+           </transition>
+         </router-view>
        </div>
      </div>
    </div>
@@ -90,5 +96,20 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
    overflow-y: auto;
    overflow-x: hidden;
+ }
+
+ .page-fade-enter-active,
+ .page-fade-leave-active {
+   transition: opacity 0.2s ease, transform 0.2s ease;
+ }
+
+ .page-fade-enter-from {
+   opacity: 0;
+   transform: translateY(8px);
+ }
+
+ .page-fade-leave-to {
+   opacity: 0;
+   transform: translateY(-4px);
  }
  </style>

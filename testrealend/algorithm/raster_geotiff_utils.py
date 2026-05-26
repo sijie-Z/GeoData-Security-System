@@ -22,13 +22,13 @@ def _check_rasterio() -> bool:
     global _RASTERIO_AVAILABLE
     if _RASTERIO_AVAILABLE is None:
         try:
-            import rasterio  # noqa: F401
+            import rasterio
+
             _RASTERIO_AVAILABLE = True
         except ImportError:
             _RASTERIO_AVAILABLE = False
             logger.warning(
-                "rasterio is not installed. GeoTIFF metadata will NOT be "
-                "preserved. Install with: pip install rasterio"
+                "rasterio is not installed. GeoTIFF metadata will NOT be preserved. Install with: pip install rasterio"
             )
     return _RASTERIO_AVAILABLE
 
@@ -36,6 +36,7 @@ def _check_rasterio() -> bool:
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
 
 def is_geotiff(path: str) -> bool:
     """Check whether *path* is a GeoTIFF file.
@@ -55,6 +56,7 @@ def is_geotiff(path: str) -> bool:
         return False
     try:
         import rasterio
+
         with rasterio.open(path) as src:
             driver = src.driver
             crs = src.crs
@@ -87,6 +89,7 @@ def read_geotiff(path: str) -> tuple[np.ndarray, dict]:
     if is_geotiff(path):
         try:
             import rasterio
+
             with rasterio.open(path) as src:
                 # Read all bands; rasterio returns (bands, H, W)
                 arr = src.read()
@@ -106,6 +109,7 @@ def read_geotiff(path: str) -> tuple[np.ndarray, dict]:
 
     # --- PIL fallback (non-GeoTIFF or rasterio unavailable) ---
     from PIL import Image
+
     img = Image.open(path).convert("RGB")
     arr = np.array(img, dtype=np.uint8)
     h, w = arr.shape[:2]
@@ -141,6 +145,7 @@ def save_geotiff(arr: np.ndarray, profile: dict, output_path: str) -> str:
     if is_gt and _check_rasterio():
         try:
             import rasterio
+
             # Build write-profile from the original one
             write_profile = {k: v for k, v in profile.items() if k != "geotiff"}
             # Ensure output extension is .tif / .tiff
@@ -153,13 +158,15 @@ def save_geotiff(arr: np.ndarray, profile: dict, output_path: str) -> str:
             else:
                 h, w = arr.shape
                 c = 1
-            write_profile.update({
-                "driver": "GTiff",
-                "height": h,
-                "width": w,
-                "count": c,
-                "dtype": str(arr.dtype),
-            })
+            write_profile.update(
+                {
+                    "driver": "GTiff",
+                    "height": h,
+                    "width": w,
+                    "count": c,
+                    "dtype": str(arr.dtype),
+                }
+            )
             # Convert HWC -> CHW for rasterio
             if arr.ndim == 3:
                 write_arr = np.moveaxis(arr, -1, 0)
@@ -167,13 +174,19 @@ def save_geotiff(arr: np.ndarray, profile: dict, output_path: str) -> str:
                 write_arr = arr[np.newaxis, :, :]
             with rasterio.open(output_path, "w", **write_profile) as dst:
                 dst.write(write_arr)
-            logger.info("Saved GeoTIFF %s  crs=%s  transform=%s", output_path, write_profile.get("crs"), write_profile.get("transform"))
+            logger.info(
+                "Saved GeoTIFF %s  crs=%s  transform=%s",
+                output_path,
+                write_profile.get("crs"),
+                write_profile.get("transform"),
+            )
             return output_path
         except Exception as exc:
             logger.warning("Failed to write GeoTIFF (%s), falling back to PNG: %s", output_path, exc)
 
     # --- PIL fallback (non-GeoTIFF or rasterio unavailable) ---
     from PIL import Image
+
     base, ext = os.path.splitext(output_path)
     if ext.lower() in (".tif", ".tiff"):
         output_path = base + ".png"

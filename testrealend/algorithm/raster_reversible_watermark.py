@@ -6,7 +6,7 @@ from datetime import datetime
 import numpy as np
 from PIL import Image
 
-from algorithm.quality_metrics import compute_psnr, capacity_report
+from algorithm.quality_metrics import capacity_report, compute_psnr
 from algorithm.raster_geotiff_utils import read_geotiff, save_geotiff
 
 
@@ -20,8 +20,15 @@ def _to_binary_watermark(watermark_img: Image.Image, width: int, height: int, th
     return (np.array(wm, dtype=np.uint8) > threshold).astype(np.uint8)
 
 
-def embed_reversible(host_path: str, watermark_img: Image.Image, output_dir: str, prefix: str,
-                     min_wm_size: int = 64, max_wm_size: int = 512, threshold: int = 127) -> dict:
+def embed_reversible(
+    host_path: str,
+    watermark_img: Image.Image,
+    output_dir: str,
+    prefix: str,
+    min_wm_size: int = 64,
+    max_wm_size: int = 512,
+    threshold: int = 127,
+) -> dict:
     _ensure_dir(output_dir)
 
     # --- Read host image (GeoTIFF-aware) ---
@@ -101,13 +108,9 @@ def embed_reversible(host_path: str, watermark_img: Image.Image, output_dir: str
     np.savez_compressed(wm_map_path, changed_idx=changed_idx, changed_vals=changed_vals)
     meta = {
         "shape": {"height": int(h), "width": int(w), "channels": 3},
-        "watermark": {
-            "height": int(wm_h),
-            "width": int(wm_w),
-            "bit_count": bit_count
-        },
+        "watermark": {"height": int(wm_h), "width": int(wm_w), "bit_count": bit_count},
         "geotiff": is_gt,
-        "geotiff_profile": geo_profile_for_meta
+        "geotiff_profile": geo_profile_for_meta,
     }
     with open(wm_meta_path, "w", encoding="utf-8") as fp:
         json.dump(meta, fp, ensure_ascii=False)
@@ -115,7 +118,7 @@ def embed_reversible(host_path: str, watermark_img: Image.Image, output_dir: str
     # Compute PSNR between original and stego image
     psnr_value = compute_psnr(host_arr, stego_arr)
     cap_report = capacity_report(channel.size, bit_count, n=1)
-    logging.info('Raster embed PSNR=%.2f dB, capacity report: %s', psnr_value, cap_report)
+    logging.info("Raster embed PSNR=%.2f dB, capacity report: %s", psnr_value, cap_report)
 
     return {
         "stego_path": stego_path,
@@ -125,12 +128,12 @@ def embed_reversible(host_path: str, watermark_img: Image.Image, output_dir: str
         "changed_count": int(changed_idx.size),
         "psnr": psnr_value,
         "capacity_report": cap_report,
-        "geotiff": is_gt
+        "geotiff": is_gt,
     }
 
 
 def recover_reversible(stego_path: str, wm_map_path: str, wm_meta_path: str, output_path: str) -> str:
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     # --- Read stego image (GeoTIFF-aware) ---
@@ -164,6 +167,7 @@ def recover_reversible(stego_path: str, wm_map_path: str, wm_meta_path: str, out
         if "crs" in geo_profile:
             try:
                 import rasterio.crs
+
                 geo_profile["crs"] = rasterio.crs.CRS.from_wkt(geo_profile["crs"])
             except Exception:
                 pass
@@ -171,6 +175,7 @@ def recover_reversible(stego_path: str, wm_map_path: str, wm_meta_path: str, out
         if "transform" in geo_profile and isinstance(geo_profile["transform"], list):
             try:
                 import affine
+
                 geo_profile["transform"] = affine.Affine(*geo_profile["transform"])
             except Exception:
                 pass
@@ -182,7 +187,7 @@ def recover_reversible(stego_path: str, wm_map_path: str, wm_meta_path: str, out
 
 
 def decode_reversible(stego_path: str, wm_meta_path: str, output_path: str) -> str:
-    with open(wm_meta_path, "r", encoding="utf-8") as fp:
+    with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
 
     # --- Read stego image (GeoTIFF-aware) ---

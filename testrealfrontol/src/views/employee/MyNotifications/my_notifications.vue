@@ -58,6 +58,7 @@
 </template>
 
 <script setup>
+defineOptions({ name: 'EmployeeNotifications' });
 import { ref, reactive, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RefreshRight } from '@element-plus/icons-vue';
