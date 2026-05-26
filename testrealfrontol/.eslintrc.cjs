@@ -23,6 +23,7 @@ module.exports = {
     "no-debugger": "warn",
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     "prefer-const": "warn",
-    "no-var": "error",
+    "no-var": "warn",
+    "no-empty": "warn",
   },
 };
