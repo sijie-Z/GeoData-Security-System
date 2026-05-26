@@ -7,6 +7,7 @@ flask-cors
 flask-limiter
 flasgger
 flask-socketio
+simple-websocket
 gunicorn
 eventlet
 redis
@@ -19,7 +20,6 @@ pillow
 werkzeug
 pandas
 python-dotenv
-shapetree
 pyproj
 shapely
 fiona
