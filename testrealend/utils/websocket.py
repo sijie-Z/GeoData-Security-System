@@ -20,8 +20,8 @@ def init_socketio(app):
         )
         _register_handlers(_socketio, app)
         logger.info("Socket.IO initialized")
-    except ImportError:
-        logger.warning("flask-socketio not installed, WebSocket disabled")
+    except BaseException:
+        logger.warning("flask-socketio import failed (aiohttp issue on Windows), WebSocket disabled")
     return _socketio
 
 

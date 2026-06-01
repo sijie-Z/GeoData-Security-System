@@ -45,9 +45,9 @@ class Config:
     JWT_REFRESH_TOKEN_EXPIRES = 604800  # 7 days in seconds
     JWT_BLOCKLIST_ENABLED = True
 
-    # Rate limiter — uses Redis for multi-worker consistency
+    # Rate limiter — uses Redis for multi-worker consistency (falls back to memory)
     RATELIMIT_STORAGE_URI = os.environ.get(
-        "RATELIMIT_STORAGE_URI", os.environ.get("REDIS_URL", "redis://localhost:6379/0")
+        "RATELIMIT_STORAGE_URI", os.environ.get("REDIS_URL", "memory://")
     )
     RATELIMIT_STRATEGY = "fixed-window"
 

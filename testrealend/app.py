@@ -1,6 +1,5 @@
 import os
 import platform
-import sys
 
 # Work around Windows WMI hangs triggered by platform.uname() / platform.machine()
 # during imports (SQLAlchemy, Alembic, prometheus_client, etc.) on some environments.
@@ -601,68 +600,57 @@ def _kill_stale_on_port(port):
                 if pid and pid.isdigit() and int(pid) != os.getpid():
                     _subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
                     print(f"Killed stale process (PID {pid}) occupying port {port}")
-    except Exception:
+    except BaseException:
         pass
 
 
 app = create_app()
 
 if __name__ == "__main__":
-    import sys
     import time as _time
 
     port = int(os.environ.get("PORT", 5003))
 
-    # Kill any stale process on our port before starting
-    _kill_stale_on_port(port)
-    _time.sleep(0.5)  # Let Windows release the socket
+    # Retry loop: Windows + Python 3.12.8 can fire spurious KeyboardInterrupt
+    # at nearly any point during startup (sleep, subprocess, module imports).
+    # Instead of crashing, we retry a few times.
+    for _attempt in range(5):
+        _server_started = False
+        try:
+            _kill_stale_on_port(port)
+            _time.sleep(0.5)
 
-    # Write port file so Vite frontend can auto-discover it
-    port_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".backend-port")
-    try:
-        with open(port_file, "w") as f:
-            f.write(str(port))
-    except Exception:
-        pass
-
-    print("")
-    print("=" * 60)
-    print("  SERVER STARTING")
-    print(f"  Backend:  http://127.0.0.1:{port}")
-    print(f"  API Doc:  http://127.0.0.1:{port}/apidocs/")
-    print(f"  Health:   http://127.0.0.1:{port}/api/health")
-    print("  Frontend: http://localhost:5173")
-    print("=" * 60)
-    print("  Press CTRL+C to stop")
-    print("")
-
-    use_socketio = hasattr(app, "socketio") and app.socketio
-
-    def _run_flask():
-        """Plain Flask dev server — always blocks, always works (like the working version)."""
-        app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
-
-    def _run_socketio():
-        """Socket.IO server — wraps Flask with WebSocket support via simple-websocket."""
-        app.socketio.run(app, host="0.0.0.0", port=port, debug=False, allow_unsafe_werkzeug=True)
-
-    try:
-        if use_socketio:
-            # Try Socket.IO first. If it returns immediately (Windows threading quirk),
-            # fall through to plain Flask so the process does not just exit.
+            port_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".backend-port")
             try:
-                _run_socketio()
-            except KeyboardInterrupt:
-                raise
-            except Exception as _se:
-                print(f"\n * Socket.IO server error: {_se}", file=sys.stderr)
-                import traceback
+                with open(port_file, "w") as f:
+                    f.write(str(port))
+            except Exception:
+                pass
 
-                traceback.print_exc()
-            # socketio.run() returned — do NOT let the process exit
-            print(" * Socket.IO server stopped unexpectedly. Falling back to Flask built-in server...")
-            _run_flask()
-        else:
-            _run_flask()
-    except KeyboardInterrupt:
-        print("\n * Server stopped by user (Ctrl+C)")
+            print("")
+            print("=" * 60)
+            print("  SERVER STARTING")
+            print(f"  Backend:  http://127.0.0.1:{port}")
+            print(f"  API Doc:  http://127.0.0.1:{port}/apidocs/")
+            print(f"  Health:   http://127.0.0.1:{port}/api/health")
+            print("  Frontend: http://localhost:5173")
+            print("=" * 60)
+            print("  Press CTRL+C to stop")
+            print("")
+
+            # SocketIO with async_mode="threading" works on top of Flask's built-in server.
+            # socketio.run() is unreliable on Windows (can return silently), so we always
+            # use app.run() — SocketIO long-polling works fine through the regular WSGI stack.
+            _server_started = True
+            app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+            break
+        except KeyboardInterrupt:
+            if _server_started:
+                print("\n * Server stopped by user (Ctrl+C)")
+                break
+            # Spurious interrupt during pre-flight — retry
+        except BaseException:
+            pass
+        _time.sleep(1)
+    else:
+        print(" * Failed to start after 5 attempts.")
