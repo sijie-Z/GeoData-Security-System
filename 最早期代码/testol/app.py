@@ -1,10 +1,10 @@
 import os
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 from flask_migrate import Migrate
-from extension.extension import db, limiter
-from flask_restful import Api, Resource
+from extension.extension import db
+from flask_restful import Api
 from flask_cors import CORS
 
 # 导入资源

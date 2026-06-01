@@ -1,6 +1,7 @@
 """WebSocket (Socket.IO) for real-time notifications with JWT authentication."""
 
 import logging
+import os
 from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
@@ -9,8 +10,17 @@ _socketio = None
 
 
 def init_socketio(app):
-    """Initialize Flask-SocketIO with the app."""
+    """Initialize Flask-SocketIO with the app.
+
+    On Windows + Python 3.12, ``SocketIO(app, async_mode="threading")``
+    modifies the Flask WSGI stack in a way that causes ``app.run()`` to
+    return immediately.  We skip the call entirely so the server stays up;
+    real-time notifications degrade to HTTP polling transparently.
+    """
     global _socketio
+    if os.name == "nt":
+        logger.warning("Socket.IO disabled on Windows (Python 3.12 compat), notifications fall back to HTTP polling")
+        return None
     try:
         from flask_socketio import SocketIO, emit, join_room, leave_room
 
@@ -21,7 +31,7 @@ def init_socketio(app):
         _register_handlers(_socketio, app)
         logger.info("Socket.IO initialized")
     except BaseException:
-        logger.warning("flask-socketio import failed (aiohttp issue on Windows), WebSocket disabled")
+        logger.warning("flask-socketio import failed (WebSocket disabled)")
     return _socketio
 
 

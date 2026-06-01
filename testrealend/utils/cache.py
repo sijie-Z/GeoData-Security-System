@@ -33,7 +33,7 @@ def init_cache(app):
         )
         _cache_available = True
         logger.info(f"Redis client ready: {redis_url}")
-    except Exception as e:
+    except BaseException as e:
         _cache_available = False
         _redis_client = None
         logger.warning(f"Redis unavailable ({e}), caching disabled")

@@ -153,7 +153,7 @@ def _startup_health_check(app):
             results.append(("  Redis", True, "connected"))
         else:
             results.append(("  Redis", False, "client not initialized (not critical)"))
-    except Exception as e:
+    except BaseException as e:
         results.append(("  Redis", False, str(e)))
 
     # Print health check results
@@ -604,10 +604,31 @@ def _kill_stale_on_port(port):
         pass
 
 
-app = create_app()
+# Wrap create_app() in a retry for Windows Python 3.12 spurious KeyboardInterrupt
+# that can fire during socket cleanup after a connection error.
+_app_created = False
+for _startup_try in range(3):
+    try:
+        app = create_app()
+        _app_created = True
+        break
+    except KeyboardInterrupt:
+        print(f"\n[WARN] Spurious KeyboardInterrupt during startup (attempt {_startup_try + 1}), retrying...\n")
+        continue
+if not _app_created:
+    msg = "FATAL: Could not initialize application after 3 attempts (persistent KeyboardInterrupt)"
+    print(msg)
+    import sys as _sys
+
+    _sys.exit(1)
 
 if __name__ == "__main__":
+    import threading as _threading
     import time as _time
+
+    # Ensure CWD is the script directory so all relative paths work
+    # regardless of how/where the user launches the app (PowerShell, VS Code, etc.)
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
 
     port = int(os.environ.get("PORT", 5003))
 
@@ -638,11 +659,21 @@ if __name__ == "__main__":
             print("  Press CTRL+C to stop")
             print("")
 
-            # SocketIO with async_mode="threading" works on top of Flask's built-in server.
-            # socketio.run() is unreliable on Windows (can return silently), so we always
-            # use app.run() — SocketIO long-polling works fine through the regular WSGI stack.
+            # Use Werkzeug's make_server + main-thread block so the process
+            # stays alive unconditionally, regardless of CWD, shell, or IDE.
             _server_started = True
-            app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+            from werkzeug.serving import make_server as _make_server
+
+            _wsgi_server = _make_server("0.0.0.0", port, app, threaded=True)
+            _wsgi_thread = _threading.Thread(target=_wsgi_server.serve_forever, daemon=True)
+            _wsgi_thread.start()
+            # Block main thread forever — Ctrl+C raises KeyboardInterrupt
+            try:
+                while _wsgi_thread.is_alive():
+                    _wsgi_thread.join(timeout=3600)
+            except KeyboardInterrupt:
+                _wsgi_server.shutdown()
+                raise
             break
         except KeyboardInterrupt:
             if _server_started:
