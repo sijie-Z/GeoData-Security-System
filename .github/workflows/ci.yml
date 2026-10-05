@@ -42,7 +42,7 @@ jobs:
         run: ruff format --check .
 
       - name: Run tests
-        run: pytest --tb=short -q || true
+        run: pytest --tb=short -q
         env:
           FLASK_ENV: testing
 

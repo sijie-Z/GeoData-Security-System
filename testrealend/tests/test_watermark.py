@@ -20,8 +20,8 @@ class TestWatermarkEmbedding:
         resp = client.post("/api/embedding_watermark", json={"application_id": 1})
         assert resp.status_code in (401, 422)
 
-    def test_get_embedding_applications(self, client, auth_headers):
-        resp = client.get("/api/adm2_embedding_watermark_applications", headers=auth_headers)
+    def test_get_embedding_applications(self, client, adm2_headers):
+        resp = client.get("/api/adm2_embedding_watermark_applications", headers=adm2_headers)
         assert resp.status_code == 200
 
 
@@ -30,6 +30,6 @@ class TestVectorExtract:
         resp = client.post("/api/vector/extract")
         assert resp.status_code in (401, 422)
 
-    def test_missing_fields(self, client, auth_headers):
-        resp = client.post("/api/vector/extract", headers=auth_headers)
+    def test_missing_fields(self, client, adm3_headers):
+        resp = client.post("/api/vector/extract", headers=adm3_headers)
         assert resp.status_code in (400, 422)
