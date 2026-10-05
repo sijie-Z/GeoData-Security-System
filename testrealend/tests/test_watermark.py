@@ -123,6 +123,74 @@ def _build_qr_png_b64(text, box_size=2):
     return base64.b64encode(buf.getvalue()).decode(), qr_img.size[0]
 
 
+def _signed_qr_text(app_id, alias):
+    """Compact payload following the build_qr_text convention (Signature line last)."""
+    import hashlib
+    import hmac
+
+    from resource.watermark_utils import QR_SECRET_KEY
+
+    content = "\n".join(
+        [
+            "=== SPATIAL DATA TRACKING SYSTEM ===",
+            f"AppID: {app_id}",
+            "DataType: vector",
+            f"Data: {alias}",
+        ]
+    )
+    sig = hmac.new(QR_SECRET_KEY.encode(), content.encode(), hashlib.sha256).hexdigest()[:16]
+    return f"{content}\nSignature: {sig}\n=== END ==="
+
+
+def _create_vector_application(db, shp_path, alias):
+    """Persist a Shp record + approved Application awaiting its QR watermark."""
+    from model.Application import Application
+    from model.Shp_Data import Shp
+
+    shp = Shp(
+        name=f"v_{alias}",
+        alias=alias,
+        geomtype="Polygon",
+        introduction="vector watermark test",
+        datetime=datetime.now(UTC),
+        url="",
+        layer=f"v_{alias}",
+        shp_file_path=shp_path,
+        coordinate_system="EPSG:2334",
+        data_source="test",
+    )
+    db.session.add(shp)
+    db.session.commit()
+
+    item = Application(
+        data_id=shp.id,
+        data_name=f"v_{alias}",
+        data_alias=alias,
+        data_type="vector",
+        applicant_name="Tester",
+        applicant_user_number="E001",
+        reason="watermark test",
+        adm1_statu=True,
+        adm2_statu=True,
+        adm1_name="A1",
+        adm1_user_number="admin1",
+        adm2_name="A2",
+        adm2_user_number="admin2",
+        application_submission_time=datetime.now(UTC),
+    )
+    db.session.add(item)
+    db.session.commit()
+    return item
+
+
+def _attach_qr(db, item, qr_text):
+    """Render qr_text into item.qrcode; returns the PNG pixel size (watermark side)."""
+    item.qrcode, qr_side = _build_qr_png_b64(qr_text)
+    item.watermark_generated = True
+    db.session.commit()
+    return qr_side
+
+
 class TestVectorWatermarkRoundtrip:
     """Regression (N2): embed -> extract must recover the QR watermark.
 
@@ -133,64 +201,15 @@ class TestVectorWatermarkRoundtrip:
     """
 
     def test_embed_extract_roundtrip_decodes(self, client, db, adm2_headers, adm3_headers, tmp_path):
-        import hashlib
-        import hmac
-
         from model.Application import Application
-        from model.Shp_Data import Shp
-        from resource.watermark_utils import QR_SECRET_KEY
 
         # A compact signed payload (same convention as build_qr_text) keeps the
         # QR small so the test data comfortably passes the capacity check.
         # Enough vertices so nearly every embedding chunk receives votes.
         shp_path = _build_roundtrip_shp(tmp_path, n_lines=50, n_pts=400)
-        unique = uuid.uuid4().hex[:8]
-        shp = Shp(
-            name=f"rt_{unique}",
-            alias=f"rt-{unique}",
-            geomtype="Polygon",
-            introduction="roundtrip test",
-            datetime=datetime.now(UTC),
-            url="",
-            layer=f"rt_{unique}",
-            shp_file_path=shp_path,
-            coordinate_system="EPSG:2334",
-            data_source="test",
-        )
-        db.session.add(shp)
-        db.session.commit()
-
-        item = Application(
-            data_id=shp.id,
-            data_name=f"rt_{unique}",
-            data_alias=f"rt-{unique}",
-            data_type="vector",
-            applicant_name="Tester",
-            applicant_user_number="E001",
-            reason="roundtrip",
-            adm1_statu=True,
-            adm2_statu=True,
-            adm1_name="A1",
-            adm1_user_number="admin1",
-            adm2_name="A2",
-            adm2_user_number="admin2",
-            application_submission_time=datetime.now(UTC),
-        )
-        db.session.add(item)
-        db.session.commit()
-        content = "\n".join(
-            [
-                "=== SPATIAL DATA TRACKING SYSTEM ===",
-                f"AppID: {item.id}",
-                "DataType: vector",
-                f"Data: rt-{unique}",
-            ]
-        )
-        sig = hmac.new(QR_SECRET_KEY.encode(), content.encode(), hashlib.sha256).hexdigest()[:16]
-        qr_text = f"{content}\nSignature: {sig}\n=== END ==="
-        item.qrcode, expected_side = _build_qr_png_b64(qr_text)
-        item.watermark_generated = True
-        db.session.commit()
+        alias = f"rt-{uuid.uuid4().hex[:8]}"
+        item = _create_vector_application(db, shp_path, alias)
+        expected_side = _attach_qr(db, item, _signed_qr_text(item.id, alias))
 
         embed_resp = client.post("/api/embedding_watermark", json={"application_id": item.id}, headers=adm2_headers)
         assert embed_resp.status_code == 200, embed_resp.get_data(as_text=True)
@@ -252,3 +271,40 @@ class TestVectorWatermarkRoundtrip:
         mask[:8, :8] = mask[:8, -8:] = mask[-8:, :8] = False
         inner_agreement = float((orig[mask] == rec[mask]).mean())
         assert inner_agreement >= 0.9, f"watermark pixels barely recovered: {inner_agreement:.4f}"
+
+
+class TestVectorEmbedCapacity:
+    """Regression (N3): a watermark too large for the data must surface as a
+    readable 4xx carrying the required vs available chunk counts, not a generic
+    500 (the pre-fix behavior for e.g. 11WuJiang: 49,958 vertices < 180,577)."""
+
+    def test_resource_returns_readable_400(self, client, db, adm2_headers, tmp_path):
+        import re
+
+        # ~290 vertices vs a compact QR needing ~2,300 chunks -> far insufficient
+        shp_path = _build_roundtrip_shp(tmp_path, n_lines=3, n_pts=50)
+        alias = f"cap-{uuid.uuid4().hex[:8]}"
+        item = _create_vector_application(db, shp_path, alias)
+        qr_side = _attach_qr(db, item, _signed_qr_text(item.id, alias))
+
+        resp = client.post("/api/embedding_watermark", json={"application_id": item.id}, headers=adm2_headers)
+        assert resp.status_code == 400, resp.get_data(as_text=True)
+        msg = resp.get_json()["msg"]
+        m = re.search(r"需要 (\d+) 个嵌入区块，当前数据最多可提供 (\d+) 个（共 (\d+) 个顶点）", msg)
+        assert m, msg
+        needed, available, vertices = (int(g) for g in m.groups())
+        assert needed == (qr_side * qr_side - 192 + 3) // 4
+        assert 0 < available == vertices
+
+    def test_algorithm_raises_capacity_error(self, tmp_path):
+        from algorithm.embed import CapacityError
+        from algorithm.embed import embed as vector_embed
+
+        shp_path = _build_roundtrip_shp(tmp_path, n_lines=3, n_pts=50)
+        qr_b64, qr_side = _build_qr_png_b64(_signed_qr_text(999, "cap"))
+        qr_path = tmp_path / "cap_qr.png"
+        with open(qr_path, "wb") as fh:
+            fh.write(base64.b64decode(qr_b64))
+        needed = (qr_side * qr_side - 192 + 3) // 4
+        with pytest.raises(CapacityError, match=rf"需要 {needed} 个嵌入区块"):
+            vector_embed(shp_path, str(qr_path), output_dir=str(tmp_path / "embed"))

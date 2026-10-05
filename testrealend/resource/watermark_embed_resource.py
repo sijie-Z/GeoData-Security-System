@@ -11,6 +11,7 @@ from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 from PIL import Image
 
+from algorithm.embed import CapacityError
 from algorithm.embed import embed as vector_embed
 from algorithm.quality_metrics import compute_psnr
 from algorithm.raster_dwt_watermark import embed_dwt
@@ -87,6 +88,10 @@ class EmbeddingWatermarkResource(Resource):
             else:
                 return self._embed_vector(item)
 
+        except CapacityError as e:
+            # Readable 4xx instead of a generic 500 when the data has too few
+            # vertices to carry the generated watermark.
+            return {"status": False, "msg": str(e)}, 400
         except Exception as e:
             logging.error(str(e))
             return {"status": False, "msg": "操作失败，请稍后重试"}, 500

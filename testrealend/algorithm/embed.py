@@ -13,6 +13,10 @@ from algorithm.quality_metrics import capacity_report
 from algorithm.to_geodataframe import to_geodataframe
 
 
+class CapacityError(ValueError):
+    """The vector data cannot carry the requested watermark (too few vertices)."""
+
+
 def _grid_anchor(x, R):
     """Return floor(x / R) * R as an exact Decimal.
 
@@ -194,10 +198,9 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal("1e-7"), output_dir=None):
     )
     cap_report = capacity_report(total_vertices, n_bits_needed, n)
     if not cap_report["sufficient"]:
-        raise ValueError(
-            f"Insufficient embedding capacity: need {cap_report['needed_chunks']} chunks "
-            f"but only {cap_report['available_chunks']} available "
-            f"({cap_report['total_vertices']} vertices, utilization would be {cap_report['utilization_percent']}%)"
+        raise CapacityError(
+            f"数据容量不足：水印需要 {cap_report['needed_chunks']} 个嵌入区块，"
+            f"当前数据最多可提供 {cap_report['available_chunks']} 个（共 {cap_report['total_vertices']} 个顶点）"
         )
     logging.info("Capacity report: %s", cap_report)
 
