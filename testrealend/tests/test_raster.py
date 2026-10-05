@@ -134,6 +134,49 @@ class TestRaster:
         assert resp.status_code == 200
 
 
+class TestRasterPreview:
+    """Regression (API campaign domain02): /api/raster/preview opened
+    caller-supplied server paths directly — a non-image file produced
+    PIL.UnidentifiedImageError mapped to a generic 500, and any image anywhere
+    on the server could be rendered (information exposure). Unparseable files
+    now yield a readable 400 and previews are confined to the application's
+    own data roots (out-of-root paths -> 404)."""
+
+    @staticmethod
+    def _runtime_probe_dir():
+        from flask import current_app
+
+        path = os.path.join(current_app.root_path, "runtime", "preview_tests")
+        os.makedirs(path, exist_ok=True)
+        return path
+
+    def test_preview_non_image_returns_400(self, client, employee_headers):
+        txt = os.path.join(self._runtime_probe_dir(), "not_an_image.txt")
+        with open(txt, "w", encoding="utf-8") as fh:
+            fh.write("definitely not an image")
+        resp = client.post("/api/raster/preview", json={"file_path": txt}, headers=employee_headers)
+        assert resp.status_code == 400, resp.get_data(as_text=True)
+        assert resp.get_json()["message"] == "文件不是可解析的图片"
+
+    def test_preview_image_inside_root_returns_200(self, client, employee_headers):
+        from PIL import Image as PILImage
+
+        png = os.path.join(self._runtime_probe_dir(), "tiny.png")
+        PILImage.new("RGB", (8, 8), (200, 30, 30)).save(png)
+        resp = client.post("/api/raster/preview", json={"file_path": png}, headers=employee_headers)
+        assert resp.status_code == 200, resp.get_data(as_text=True)
+        decoded = base64.b64decode(resp.get_json()["base64"])
+        assert decoded[:8] == b"\x89PNG\r\n\x1a\n"
+
+    def test_preview_outside_roots_returns_404(self, client, employee_headers, tmp_path):
+        from PIL import Image as PILImage
+
+        png = tmp_path / "outside.png"
+        PILImage.new("RGB", (8, 8), (10, 10, 10)).save(png)
+        resp = client.post("/api/raster/preview", json={"file_path": str(png)}, headers=employee_headers)
+        assert resp.status_code == 404, resp.get_data(as_text=True)
+
+
 class TestGeoTIFFEmbed:
     """BUG-1 regression: embedded GeoTIFF stego must be a real on-disk artifact
     and the DB must only ever record a path that exists (no dirty state)."""
