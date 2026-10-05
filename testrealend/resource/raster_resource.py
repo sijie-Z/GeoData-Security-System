@@ -8,6 +8,7 @@ import os
 import time
 from datetime import datetime
 
+import numpy as np
 import qrcode
 from flask import Response, current_app, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
@@ -232,6 +233,31 @@ class RasterPreviewResource(Resource):
 TILE_TOKEN_TTL_SECONDS = 3600
 
 
+def _normalize_tile_for_png(img):
+    """Make a freshly read rio-tiler tile displayable as uint8 PNG.
+
+    PNG can only encode uint8/uint16 arrays. rio-tiler's built-in fallback for
+    other dtypes rescales against the raw dtype range; for float64 that span
+    (+/-1.8e308) overflows to +inf, so every pixel collapses to 0 — all-black
+    tiles even though valid data exists. Stretch each band over its finite
+    2-98 percentile range instead; non-finite (no-data) pixels are masked so
+    they come out transparent.
+    """
+    array = img.array
+    array.mask = np.ma.getmaskarray(array) | ~np.isfinite(array.data)
+    in_range = []
+    for band in array.data:
+        finite = band[np.isfinite(band)]
+        if finite.size:
+            lo, hi = (float(v) for v in np.percentile(finite, (2, 98)))
+            if hi <= lo:
+                hi = lo + 1.0
+        else:
+            lo, hi = 0.0, 1.0
+        in_range.append((lo, hi))
+    return img.rescale(in_range=in_range)
+
+
 def generate_tile_token(data_id, expires_in=TILE_TOKEN_TTL_SECONDS):
     """Create a short-lived token scoped to one raster's tiles.
 
@@ -290,6 +316,10 @@ class RasterTilesResource(Resource):
             with Reader(src_path) as reader:
                 indexes = (1, 2, 3) if reader.dataset.count > 4 else None
                 img = reader.tile(x, y, z, indexes=indexes)
+            # PNG can only encode uint8/uint16; float rasters need an explicit
+            # stretch or they render as opaque black (see helper docstring).
+            if img.array.dtype not in ("uint8", "uint16"):
+                img = _normalize_tile_for_png(img)
             return Response(img.render(img_format="PNG"), mimetype="image/png")
         except TileOutsideBounds:
             return {"msg": "Tile out of range"}, 400
