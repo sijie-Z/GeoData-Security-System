@@ -24,6 +24,7 @@ pyproj
 shapely
 fiona
 pyogrio
+rio-tiler
 rtree
 geoalchemy2
 pyzbar
