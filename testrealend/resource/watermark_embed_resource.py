@@ -122,7 +122,9 @@ class EmbeddingWatermarkResource(Resource):
 
         item.watermark_embedded = True
         item.watermark_path = zip_path
-        item.vr_data = json.dumps(vr)
+        # Keep the extraction key material together: the mean coordinates (vr) and
+        # the pixel size of the QR watermark that was actually embedded.
+        item.vr_data = json.dumps({"vr": vr, "side_length": embed_result.get("side_length")})
         db.session.commit()
 
         cap = embed_result.get("capacity_report", {})

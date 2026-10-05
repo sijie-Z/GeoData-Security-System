@@ -13,10 +13,26 @@ from algorithm.quality_metrics import capacity_report
 from algorithm.to_geodataframe import to_geodataframe
 
 
-def _compute_seed(c1, c2):
-    """Compute a deterministic seed from two coordinate pairs using both x and y.
-    Uses MD5 hash to avoid seed=0 when coordinates are identical in one dimension."""
-    raw = f"{float(c1[0]):.15f},{float(c1[1]):.15f},{float(c2[0]):.15f},{float(c2[1]):.15f}"
+def _grid_anchor(x, R):
+    """Return floor(x / R) * R as an exact Decimal.
+
+    Embedding moves x inside its R-grid cell (floor(x / R) * R <= x' < cell + R),
+    so this anchor is identical before and after embedding — it can be recomputed
+    from the watermarked coordinates during extraction.
+    """
+    return Decimal(str(float(x))) // R * R
+
+
+def _compute_seed(c1, c2, R=Decimal("1e-7")):
+    """Compute a deterministic seed from two coordinate pairs.
+
+    Only embedding-invariant values may enter the hash: the R-grid anchor of x
+    (x itself is rewritten inside that cell) plus y (left untouched). Hashing the
+    raw x values — as this used to — makes extraction, which can only observe the
+    watermarked coordinates, derive a different W index per vertex and recover a
+    statistically independent watermark.
+    """
+    raw = f"{_grid_anchor(c1[0], R)},{float(c1[1]):.15f},{_grid_anchor(c2[0], R)},{float(c2[1]):.15f}"
     return int(hashlib.md5(raw.encode()).hexdigest()[:8], 16)
 
 
@@ -72,7 +88,7 @@ def coor_group_process(coor_group, argument):
             embed_coor = coor[:, np.newaxis]
         else:
             next_coor = coor_group[:, i + 1]
-            seed = _compute_seed(coor, next_coor)
+            seed = _compute_seed(coor, next_coor, argument["R"])
             embed_coor = coor_process(coor, argument, seed)
         embed_coor_group = np.concatenate((embed_coor_group, embed_coor), axis=1)
     return embed_coor_group
@@ -158,6 +174,9 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal("1e-7"), output_dir=None):
     original_shpfile = gpd.read_file(shp_path)
     coor_nested, feature_type = get_coor_nested(original_shpfile)
     watermark = np.array(Image.open(qr_image_path)).astype(int)
+    # Pixel size of the generated QR watermark — extraction must rebuild the
+    # watermark grid at exactly this size.
+    side_length = int(watermark.shape[0])
 
     # -------------------------容量检查--------------------------------
     watermark_proc = watermark.copy()
@@ -240,7 +259,7 @@ def embed(shp_path, qr_image_path, n=4, R=Decimal("1e-7"), output_dir=None):
     except Exception as e:
         logging.error("删除文件时出错: %s", e)
 
-    return {"zip_path": zip_file_path, "vr": vr, "capacity_report": cap_report}
+    return {"zip_path": zip_file_path, "vr": vr, "capacity_report": cap_report, "side_length": side_length}
 
 
 if __name__ == "__main__":

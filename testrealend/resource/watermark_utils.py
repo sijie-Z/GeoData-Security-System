@@ -29,11 +29,34 @@ if not QR_SECRET_KEY:
         QR_SECRET_KEY = "INSECURE-PRODUCTION-FALLBACK-SET-ENV-VAR"
 
 
+def _module_majority_images(img):
+    """Yield crisp QR module grids obtained by majority-voting square pixel blocks.
+
+    The platform QR generator renders codes at box_size=10 (border=4), and the
+    vector watermark pipeline embeds the rendered pixels. A watermark rebuilt
+    from coordinates can still contain isolated missing pixels (embedding chunks
+    that received no votes); pixel-level decoders choke on those speckles, but
+    each QR module is 10x10 identical pixels, so majority voting recovers the
+    module grid that the QR encoder actually produced.
+    """
+    import numpy as np
+
+    arr = np.asarray(img.convert("L"), dtype=np.float64)
+    h, w = arr.shape
+    if h != w:
+        return
+    for block in (10, 8, 6, 5, 4, 2):
+        if h % block:
+            continue
+        grid = arr.reshape(h // block, block, w // block, block).mean(axis=(1, 3)) >= 128
+        yield block, Image.fromarray((grid * 255).astype(np.uint8)).convert("L")
+
+
 def decode_qr_from_image(image_path):
     """Decode QR code from image file. Returns decoded text or None.
 
-    The extracted watermark may be a small 45x45 binary image.
-    We scale it up and try multiple preprocessing strategies for best results.
+    The extracted watermark may be a small binary image (e.g. 45x45). We scale
+    it up and try multiple preprocessing strategies for best results.
     """
     import numpy as np
 
@@ -74,6 +97,23 @@ def decode_qr_from_image(image_path):
                         return text
             except Exception:
                 continue
+
+        # ── Module-grid majority read-out (tolerates isolated missing pixels) ──
+        try:
+            for _block, module_img in _module_majority_images(img):
+                mw, mh = module_img.size
+                for scale in (1, 3, 5):
+                    pim = module_img if scale == 1 else module_img.resize((mw * scale, mh * scale), Image.NEAREST)
+                    try:
+                        decoded_objects = pyzbar_decode(pim)
+                        if decoded_objects:
+                            text = decoded_objects[0].data.decode("utf-8")
+                            if text:
+                                return text
+                    except Exception:
+                        continue
+        except Exception:
+            pass
     except Exception:
         pass
 

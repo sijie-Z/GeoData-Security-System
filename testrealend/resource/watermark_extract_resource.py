@@ -119,8 +119,17 @@ class VectorExtractResource(Resource):
         if not shp_file:
             return {"status": False, "msg": "ZIP包中未找到 .shp 文件"}, 400
 
-        vr = json.loads(item.vr_data)
-        _, watermark_img_path = vector_extract(shp_file, vr)
+        # vr_data payload: {"vr": [...], "side_length": N, ...} for records
+        # embedded with the side_length contract; legacy records store the bare
+        # vr list and fall back to the historical default watermark size.
+        payload = json.loads(item.vr_data)
+        if isinstance(payload, dict):
+            vr = payload.get("vr") or []
+            side_length = int(payload.get("side_length") or 45)
+        else:
+            vr = payload
+            side_length = 45
+        _, watermark_img_path = vector_extract(shp_file, vr, side_length=side_length)
 
         with open(watermark_img_path, "rb") as image_file:
             encoded_string = base64.b64encode(image_file.read()).decode()

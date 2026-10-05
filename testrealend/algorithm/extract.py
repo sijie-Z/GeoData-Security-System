@@ -62,7 +62,7 @@ def coor_group_process(coor_group, W, argument):
             original_coor = coor[:, np.newaxis]
         else:
             next_coor = coor_group[:, i + 1]
-            seed = _compute_seed(coor, next_coor)
+            seed = _compute_seed(coor, next_coor, R)
             original_coor, W = coor_process(coor, W, seed, argument)
         original_coor_group = np.concatenate((original_coor_group, original_coor), axis=1)
     return original_coor_group, W
@@ -105,9 +105,6 @@ def traversal_coor_group(coor_nested, shp_type, processed_shpfile, l, argument):
         x_col = coor_nested[0, feature_index]
         y_col = coor_nested[1, feature_index]
         feature_type = shp_type[feature_index]
-        if isinstance(x_col, (list, np.ndarray)) and len(x_col) > 0 and isinstance(x_col[0], (list, np.ndarray)):
-            logging.warning("Skipping feature_index=%d: nested geometry not supported for extraction", feature_index)
-            continue
         if isinstance(x_col, list):
             n_parts = len(x_col)
             coor_group = np.empty((2, n_parts), dtype=object)
