@@ -1,7 +1,9 @@
 """Tests for raster endpoints."""
 
+import base64
 import io
 import os
+import re
 import shutil
 
 import numpy as np
@@ -259,6 +261,93 @@ class TestDWTMultibandRoundtrip:
         )
         assert dec.status_code == 200, dec.get_data(as_text=True)
         assert dec.data[:8] == b"\x89PNG\r\n\x1a\n"
+
+
+class TestRasterCapacityMapping:
+    """Regression (API campaign domain05): the histogram algorithm raises
+    ValueError("Insufficient histogram capacity: need N bits but peak bin has
+    only M pixels...") when the host cannot carry the watermark (7-band MODIS
+    TIFF: 4,141,368 bits vs 5,749; grayscale PNG: 262,144 vs 1,108 cold-run
+    numbers). Both raster embed entry points mapped it to a generic 500; they
+    must return a readable 400 carrying the need-vs-available numbers, the
+    same pattern as the vector CapacityError path."""
+
+    _CAPACITY_RE = re.compile(r"need (\d+) bits but peak bin has only (\d+) pixels")
+
+    def _assert_capacity_400(self, resp, expected_bits):
+        assert resp.status_code == 400, resp.get_data(as_text=True)
+        msg = resp.get_json()["message"]
+        m = self._CAPACITY_RE.search(msg)
+        assert m, msg
+        needed, available = int(m.group(1)), int(m.group(2))
+        assert needed == expected_bits
+        assert 0 < available < needed
+
+    def test_histogram_capacity_400_multiband_geotiff(self, client, db, adm2_headers, tmp_path):
+        host = _make_multiband_geotiff(tmp_path / "hist7.tif", width=192, height=192, bands=7)
+        item, _ = _seed_raster_app(db, host, alias="hist7-host")
+        resp = client.post(
+            "/api/admin/embed_dispatch",
+            json={"application_id": item.id, "algorithm": "histogram"},
+            headers=adm2_headers,
+        )
+        self._assert_capacity_400(resp, 192 * 192)
+
+    def test_histogram_capacity_400_gray_png(self, client, db, adm2_headers, tmp_path):
+        from PIL import Image as PILImage
+
+        rng = np.random.default_rng(21)
+        path = tmp_path / "gray_host.png"
+        PILImage.fromarray((rng.random((128, 128)) * 255).astype(np.uint8), mode="L").save(path)
+        item, _ = _seed_raster_app(db, path, alias="hist-gray-host")
+        resp = client.post(
+            "/api/admin/embed_dispatch",
+            json={"application_id": item.id, "algorithm": "histogram"},
+            headers=adm2_headers,
+        )
+        self._assert_capacity_400(resp, 128 * 128)
+
+    def test_embedding_watermark_raster_capacity_400(self, client, db, adm2_headers, tmp_path):
+        from io import BytesIO
+
+        from PIL import Image as PILImage
+
+        from model.Application import Application
+        from model.Raster_Data import RasterData
+
+        host = _make_multiband_geotiff(tmp_path / "hist7_legacy.tif", width=192, height=192, bands=7)
+        record = RasterData(name="hist7_legacy", alias="hist7_legacy", raster_file_path=str(host), url="", layer="")
+        db.session.add(record)
+        db.session.commit()
+
+        buf = BytesIO()
+        PILImage.new("L", (16, 16), 255).save(buf, format="PNG")
+        item = Application(
+            data_id=record.id,
+            data_name="hist7_legacy",
+            data_alias="hist7_legacy",
+            data_type="raster",
+            applicant_name="Tester",
+            applicant_user_number="E001",
+            reason="capacity mapping",
+            adm1_statu=True,
+            adm2_statu=True,
+            qrcode=base64.b64encode(buf.getvalue()).decode(),
+        )
+        db.session.add(item)
+        db.session.commit()
+
+        resp = client.post(
+            "/api/embedding_watermark",
+            json={"application_id": item.id, "algorithm": "histogram"},
+            headers=adm2_headers,
+        )
+        assert resp.status_code == 400, resp.get_data(as_text=True)
+        msg = resp.get_json()["msg"]
+        m = self._CAPACITY_RE.search(msg)
+        assert m, msg
+        assert int(m.group(1)) == 192 * 192
+        assert 0 < int(m.group(2)) < int(m.group(1))
 
 
 class TestRasterExtractAfterEmbed:

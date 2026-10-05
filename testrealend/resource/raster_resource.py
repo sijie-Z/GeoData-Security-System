@@ -395,6 +395,17 @@ class CRMarkEmbedResource(Resource):
             # left with watermark_embedded=1 pointing at a missing file.
             db.session.commit()
             return response, 200
+        except ValueError as e:
+            db.session.rollback()
+            # Insufficient embedding capacity is a client-visible condition:
+            # the raster algorithms raise ValueError with the need-vs-available
+            # numbers ("Insufficient histogram capacity: need N bits but peak
+            # bin has only M pixels..."). Mirror the vector CapacityError ->
+            # 400 pattern; other ValueErrors are real defects -> 500 below.
+            if str(e).startswith("Insufficient"):
+                return {"status": False, "message": str(e)}, 400
+            logging.error(str(e))
+            return {"status": False, "message": "操作失败，请稍后重试"}, 500
         except Exception as e:
             db.session.rollback()
             logging.error(str(e))
