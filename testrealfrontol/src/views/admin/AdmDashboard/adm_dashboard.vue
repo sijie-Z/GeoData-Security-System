@@ -376,7 +376,7 @@ const C = {
   indigo: ['#5C6BC0', '#283593'],
 };
 
-// ── 图表 option（vue-echarts 响应式渲染，替代手写 init/setOption/resize/dispose） ──
+// ── 图表 option（vue-echarts 响应式渲染，替代手写实例生命周期管理） ──
 
 // ========== 1. 趋势图：面积渐变 + 数据缩放 + 峰值标记 ==========
 const trendOption = computed(() => {
@@ -776,7 +776,7 @@ const exportSnapshot = () => {
   URL.revokeObjectURL(url);
 };
 
-// ── keep-alive 兼容：图表实例由 v-chart 托管（deactivate 保持挂载，unmount 自动 dispose，autoresize 处理尺寸） ──
+// ── keep-alive 兼容：图表由 v-chart 组件托管（deactivate 保持挂载，unmount 自动销毁，autoresize 处理尺寸） ──
 onMounted(async () => {
   // Vue 3.4 keep-alive 下 onActivated 有时不触发，用 onMounted 兜底
   await fetchDashboard();
