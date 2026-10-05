@@ -284,15 +284,22 @@ class TestVectorWatermarkLifecycle:
         schema = {"geometry": "LineString", "properties": {"id": "int"}}
         shp_path = os.path.join(tmp_dir, "test_data.shp")
         with fiona.open(shp_path, "w", driver="ESRI Shapefile", schema=schema, crs="EPSG:4326") as dst:
-            # 生成多条折线，总顶点数 > 120000，确保水印容量足够
-            # QR版本7的图片约530x530像素，需要约70000个chunk
-            coords = []
-            for i in range(130000):
-                angle = i * 0.001
-                x = 116.397 + 0.05 * math.cos(angle) + i * 0.000001
-                y = 39.908 + 0.05 * math.sin(angle) + i * 0.000001
-                coords.append((x, y))
-            dst.write({"geometry": {"type": "LineString", "coordinates": coords}, "properties": {"id": 1}})
+            # 多个小要素而非单条巨型折线：embed 逐顶点拼接输出对单要素是 O(V^2)
+            # （实测单要素 260k 顶点 >10 分钟，260 条 1000 顶点折线约 15 秒）。
+            # 顶点总数 260000：水印 QR 版本随申请内容自适应（本测试实测 v17，
+            # 890x890 像素，需要 ceil((890^2-192)/4)=197977 个 chunk），留出余量。
+            idx = 0
+            for feature_id in range(260):
+                coords = []
+                for _ in range(1000):
+                    angle = idx * 0.001
+                    x = 116.397 + 0.05 * math.cos(angle) + idx * 0.000001
+                    y = 39.908 + 0.05 * math.sin(angle) + idx * 0.000001
+                    coords.append((x, y))
+                    idx += 1
+                dst.write(
+                    {"geometry": {"type": "LineString", "coordinates": coords}, "properties": {"id": feature_id}}
+                )
         return shp_path
 
     def test_full_vector_lifecycle(self, client, auth_headers, adm2_headers, employee_headers, db):
@@ -372,20 +379,15 @@ class TestVectorWatermarkLifecycle:
         assert app.qrcode is not None
         print(f"  [4/6] 水印QR生成成功 version={gen['qr_version']}")
 
-        # ── Step 5: 嵌入水印（受 numpy 2.0 + Decimal 兼容性限制，验证到 API 入口） ──
-        # 嵌入算法使用 Decimal 精度坐标，与 numpy 2.0 不兼容（已知第三方库问题）
-        # 验证 API 能正确接收请求并进入算法逻辑（错误来自算法层，非路由/鉴权层）
+        # ── Step 5: 嵌入水印 ──
+        # numpy 2.x ABI 已修复（pandas/geopandas/pyogrio 升级），矢量嵌入必须真实成功
         resp = client.post(
             "/api/embedding_watermark", json={"application_id": app_id, "algorithm": "lsb"}, headers=adm2_headers
         )
-        # 嵌入可能因 numpy 2.0 问题返回 500，但不应返回 401/403/404
-        assert resp.status_code in (200, 500), f"意外状态码: {resp.status_code}"
-        if resp.status_code == 200:
-            app = db.session.get(Application, app_id)
-            assert app.watermark_embedded is True
-            print("  [5/6] 水印嵌入成功")
-        else:
-            print("  [5/6] 嵌入API可达，numpy 2.0兼容性问题（预期行为）")
+        assert resp.status_code == 200, f"嵌入失败: {resp.get_json()}"
+        app = db.session.get(Application, app_id)
+        assert app.watermark_embedded is True
+        print("  [5/6] 水印嵌入成功")
 
         # ── Step 6: 验证下载令牌流程 ──
         resp = client.post("/api/request_download_token", json={"application_id": app_id}, headers=employee_headers)
