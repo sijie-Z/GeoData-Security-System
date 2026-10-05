@@ -160,7 +160,8 @@
     crmarkEmbed as crmarkEmbedApi,
     crmarkRecover as crmarkRecoverApi,
     crmarkDecode as crmarkDecodeApi,
-    generateRasterTiles
+    generateRasterTiles,
+    getRasterTileToken
   } from '@/api/watermark';
 
   const { t } = useI18n();
@@ -273,7 +274,11 @@
           import('ol/proj').then(m => m),
         ]);
       if (rasterMapSeq !== seq || !rasterMapContainer.value) return;
-      const tileUrl = `/api/raster_tiles/${selectedData.data_id}/{z}/{x}/{y}.png`;
+      const tokenResp = await getRasterTileToken(selectedData.data_id);
+      if (rasterMapSeq !== seq || !rasterMapContainer.value) return;
+      const tileToken = tokenResp.data?.token;
+      if (!tileToken) throw new Error('missing raster tile token');
+      const tileUrl = `/api/raster_tiles/${selectedData.data_id}/{z}/{x}/{y}.png?token=${encodeURIComponent(tileToken)}`;
       rasterMapInstance = new Map({
         target: rasterMapContainer.value,
         layers: [new TileLayer({ source: new XYZ({ url: tileUrl, maxZoom: 18 }) })],

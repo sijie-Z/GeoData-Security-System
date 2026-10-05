@@ -178,6 +178,14 @@ export const getVerificationRecords = (params) =>
   axios.get('/api/watermark/verification_records', { params })
 
 /**
+ * Get a short-lived signed token that authorizes bare raster tile URLs
+ * (appended as ?token= to the XYZ url template).
+ * @param {number} dataId - Raster data ID
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getRasterTileToken = (dataId) => axios.get(`/api/raster_tiles_token/${dataId}`)
+
+/**
  * Generate XYZ tiles for raster map preview.
  * @param {Object} data
  * @param {number} data.data_id - Raster data ID
