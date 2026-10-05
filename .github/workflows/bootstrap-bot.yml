@@ -21,40 +21,80 @@ jobs:
             const { owner, repo } = context.repo;
             const read = (p) => fs.readFileSync(p, 'utf8');
 
-            async function ensureIssue(title, body) {
-              const res = await github.rest.issues.listForRepo({ owner, repo, state: 'all', per_page: 100 });
-              const found = res.data.find((i) => i.title === title && !i.pull_request);
-              if (found) { core.info(`issue already exists: #${found.number} ${title}`); return found.number; }
-              const created = await github.rest.issues.create({ owner, repo, title, body });
-              core.info(`created issue #${created.data.number}: ${title}`);
-              return created.data.number;
+            const issueFailures = [];
+            const prFailures = [];
+
+            async function tryIssue(title, body) {
+              try {
+                const res = await github.rest.issues.listForRepo({ owner, repo, state: 'all', per_page: 100 });
+                const found = res.data.find((i) => i.title === title && !i.pull_request);
+                if (found) { core.info(`issue exists #${found.number} ${title}`); return found.number; }
+                const c = await github.rest.issues.create({ owner, repo, title, body });
+                core.info(`created issue #${c.data.number}: ${title}`);
+                return c.data.number;
+              } catch (e) {
+                issueFailures.push(`${title}: ${e.message}`);
+                core.error(`${title}: ${e.message}`);
+                return null;
+              }
             }
 
-            async function ensurePR(head, title, body) {
-              const res = await github.rest.pulls.list({ owner, repo, state: 'open', head: `${owner}:${head}` });
-              if (res.data.length) { core.info(`PR already exists for ${head}: #${res.data[0].number}`); return res.data[0].number; }
-              const created = await github.rest.pulls.create({ owner, repo, base: 'main', head, title, body });
-              core.info(`created PR #${created.data.number} for ${head}`);
-              return created.data.number;
+            async function tryPR(head, title, body) {
+              try {
+                const res = await github.rest.pulls.list({ owner, repo, state: 'open', head: `${owner}:${head}` });
+                if (res.data.length) { core.info(`PR exists for ${head}: #${res.data[0].number}`); return; }
+                const c = await github.rest.pulls.create({ owner, repo, base: 'main', head, title, body });
+                core.info(`created PR #${c.data.number} for ${head}`);
+              } catch (e) {
+                prFailures.push(`${head}: ${e.message}`);
+                core.error(`${head}: ${e.message}`);
+              }
             }
 
-            const issue1 = await ensureIssue(
+            const issue1 = await tryIssue(
               '栅格瓦片接口取不到任何瓦片：生成与读取路径不一致',
               read('_bootstrap/issue01.md')
             );
-            const issue2 = await ensureIssue(
+            const issue2 = await tryIssue(
               '栅格瓦片端点的浏览器端鉴权缺口：JWT 校验与前端瓦片请求方式不匹配',
               read('_bootstrap/issue02.md')
             );
-            await ensurePR(
+            const ciIssue = await tryIssue(
+              'CI 自 6 月起持续失败：后端 ruff 与前端 eslint 门禁未通过',
+              read('_bootstrap/ci-issue.md')
+            );
+            const pyIssue = await tryIssue(
+              '后端测试套件存在 2 个既有失败用例（CI 测试转硬门禁的前置项）',
+              read('_bootstrap/pytest-issue.md')
+            );
+
+            await tryPR(
               'fix/raster-tile-path',
               'fix: raster tile endpoint could never find generated tiles (path layout mismatch)',
               read('_bootstrap/pr-raster.md')
-                .replace('{{CLOSES}}', `Closes #${issue1}`)
-                .replace('{{ISSUE2}}', `#${issue2}`)
+                .replace('{{CLOSES}}', issue1 ? `Closes #${issue1}` : '')
+                .replace('{{ISSUE2}}', issue2 ? `#${issue2}` : '#')
             );
-            await ensurePR(
+            await tryPR(
               'chore/github-infra',
               'chore: add GitHub issue/PR templates and CodeRabbit config',
               read('_bootstrap/pr-infra.md')
             );
+            await tryPR(
+              'fix/ci-lint-cleanup',
+              'fix(ci): restore CI lint gates (ruff + eslint)',
+              read('_bootstrap/pr-lint.md')
+                .replace('{{CI}}', ciIssue ? `#${ciIssue}` : '')
+                .replace('{{PYTEST}}', pyIssue ? `#${pyIssue}` : '')
+            );
+
+            if (issueFailures.length || prFailures.length) {
+              const summary = `Bootstrap run 失败摘要：\n- issue 失败：${issueFailures.join(' | ') || '无'}\n- PR 失败：${prFailures.join(' | ') || '无'}`;
+              if (issue1) {
+                try {
+                  await github.rest.issues.createComment({ owner, repo, issue_number: issue1, body: summary });
+                } catch (e) { /* comment is best-effort */ }
+              }
+              throw new Error(summary);
+            }
+            core.info('bootstrap completed successfully');
