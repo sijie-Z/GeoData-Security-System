@@ -147,23 +147,31 @@ def main():
     token = resp.json()["access_token"]
     print(f"Token obtained: ...{token[-20:]}")
 
-    # Test 1: GET /api/vector_data_viewing
+    # Test 1: GET /api/vector_data_viewing  (requires JWT)
     result1 = stress_test_get(
-        "/api/vector_data_viewing", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 10}
+        "/api/vector_data_viewing",
+        concurrent_users=20,
+        requests_per_user=10,
+        params={"page": 1, "pageSize": 10},
+        token=token,
     )
-    print_result("GET /api/vector_data_viewing (public, 200 req)", result1)
+    print_result("GET /api/vector_data_viewing (auth, 200 req)", result1)
 
-    # Test 2: GET /api/raster_data_viewing
+    # Test 2: GET /api/raster_data_viewing  (requires JWT)
     result2 = stress_test_get(
-        "/api/raster_data_viewing", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 10}
+        "/api/raster_data_viewing",
+        concurrent_users=20,
+        requests_per_user=10,
+        params={"page": 1, "pageSize": 10},
+        token=token,
     )
-    print_result("GET /api/raster_data_viewing (public, 200 req)", result2)
+    print_result("GET /api/raster_data_viewing (auth, 200 req)", result2)
 
-    # Test 3: GET /api/announcements
+    # Test 3: GET /api/announcements  (requires JWT)
     result3 = stress_test_get(
-        "/api/announcements", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 5}
+        "/api/announcements", concurrent_users=20, requests_per_user=10, params={"page": 1, "pageSize": 5}, token=token
     )
-    print_result("GET /api/announcements (public, 200 req)", result3)
+    print_result("GET /api/announcements (auth, 200 req)", result3)
 
     # Test 4: GET /api/protected (auth)
     result4 = stress_test_get("/api/protected", concurrent_users=20, requests_per_user=10, token=token)

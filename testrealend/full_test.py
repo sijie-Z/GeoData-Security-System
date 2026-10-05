@@ -86,7 +86,23 @@ test(
     json={"refresh_token": r["refresh_token"]} if r and "refresh_token" in r else {},
 )
 
-test("Logout", "POST", "/api/logout", headers=auth_header(admin_token) if admin_token else {})
+# Logout blacklists the token it is called with, so run it on a throwaway
+# session and keep the admin_token above valid for the rest of the suite.
+logout_login = test(
+    "Login admin (logout session)",
+    "POST",
+    "/api/login",
+    json={"username": "admin", "password": "admin123", "role": "admin"},
+)
+logout_token = logout_login["access_token"] if logout_login else None
+test("Logout", "POST", "/api/logout", headers=auth_header(logout_token) if logout_token else {})
+test(
+    "Logged-out token is rejected",
+    "GET",
+    "/api/protected",
+    401,
+    headers=auth_header(logout_token) if logout_token else {},
+)
 
 # ── 2. NAVIGATION ──
 print("\n── 2. Navigation ──")
@@ -262,7 +278,9 @@ test("User list", "GET", "/api/admin/users", headers=auth_header(admin_token))
 
 # ── 19. STATIC FILES (employee photo) ──
 print("\n── 19. Employee Photo ──")
-test("Employee photo", "GET", "/api/employee/photo/TEST001", headers=auth_header(emp_token), expected_status=404)
+# EmployeePhotoResource returns 204 ("", 204) when no photo is on record
+# (profile_resource.py), and 200 with the image when one exists.
+test("Employee photo", "GET", "/api/employee/photo/TEST001", headers=auth_header(emp_token), expected_status=204)
 
 # ──────────────────────────────────────────────
 print("\n" + "=" * 60)
