@@ -349,7 +349,6 @@ class CRMarkEmbedResource(Resource):
 
             item.watermark_embedded = True
             item.watermark_path = result["stego_path"]
-            db.session.commit()
 
             response = {
                 "status": True,
@@ -361,6 +360,10 @@ class CRMarkEmbedResource(Resource):
             # LSB stores a separate wm_map file; DWT stores everything in meta
             if "wm_map_path" in result:
                 response["wm_map_path"] = result["wm_map_path"]
+            # Commit only after the full response (including the preview) was
+            # built: any failure above rolls back, so the application is never
+            # left with watermark_embedded=1 pointing at a missing file.
+            db.session.commit()
             return response, 200
         except Exception as e:
             db.session.rollback()

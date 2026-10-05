@@ -77,12 +77,19 @@ def embed_reversible(
 
     # --- Save stego image (GeoTIFF if input was GeoTIFF) ---
     if is_gt:
-        # Build a write profile from the original rasterio profile
-        stego_profile = {k: v for k, v in raster_profile.items() if k != "geotiff"}
+        # Keep the original rasterio profile (including the "geotiff" marker) so
+        # save_geotiff takes the GTiff path and preserves CRS/transform; it
+        # strips the marker itself when building the write profile.
+        stego_profile = dict(raster_profile)
         stego_profile.update({"driver": "GTiff", "height": h, "width": w, "count": 3, "dtype": "uint8"})
-        save_geotiff(stego_arr, stego_profile, stego_path)
+        # Trust the returned path: on a write failure save_geotiff falls back to
+        # PNG and reports that path, so callers never record a file that does
+        # not exist on disk.
+        stego_path = save_geotiff(stego_arr, stego_profile, stego_path)
     else:
         Image.fromarray(stego_arr, mode="RGB").save(stego_path, format="PNG")
+    if not os.path.isfile(stego_path):
+        raise RuntimeError(f"stego image was not written to disk: {stego_path}")
 
     # --- Save change map & metadata ---
     # Include the original geotiff profile so recovery can restore it
