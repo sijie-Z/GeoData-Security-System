@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Comprehensive end-to-end test — all API endpoints."""
 
+import base64
+import io
 import sys
 
 import requests
@@ -162,7 +164,7 @@ test(
     headers=auth_header(emp_token),
     expected_status=201,
 )
-test("My applications", "GET", "/api/get_applications?userNumber=TEST001", headers=auth_header(emp_token))
+my_apps = test("My applications", "GET", "/api/get_applications?userNumber=TEST001", headers=auth_header(emp_token))
 test(
     "Approved applications", "GET", "/api/get_approved_applications?userNumber=TEST001", headers=auth_header(emp_token)
 )
@@ -201,8 +203,31 @@ test(
     "/api/adm2_embedding_watermark_applications?data_type=raster",
     headers=auth_header(admin_token),
 )
-test("Upload original wm", "POST", "/api/upload_original_watermark", headers=auth_header(admin_token))
-test("Upload extracted wm", "POST", "/api/upload_extracted_watermark", headers=auth_header(admin_token))
+# The upload endpoints expect a real multipart upload with an existing
+# application id; prefer the throwaway application this run just submitted
+# (data_alias "test_alias") so no demo data is touched.
+_my_app_list = (my_apps or {}).get("emp_get_applications") or []
+_upload_candidates = [a for a in _my_app_list if a.get("data_alias") == "test_alias"] or _my_app_list
+_upload_app_id = _upload_candidates[-1]["id"] if _upload_candidates else 1
+_tiny_png = base64.b64decode(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+)
+test(
+    "Upload original wm",
+    "POST",
+    "/api/upload_original_watermark",
+    files={"file": ("wm_original.png", io.BytesIO(_tiny_png), "image/png")},
+    data={"application_id": str(_upload_app_id)},
+    headers=auth_header(admin_token),
+)
+test(
+    "Upload extracted wm",
+    "POST",
+    "/api/upload_extracted_watermark",
+    files={"file": ("wm_extracted.png", io.BytesIO(_tiny_png), "image/png")},
+    data={"application_id": str(_upload_app_id)},
+    headers=auth_header(admin_token),
+)
 
 # ── 9. RASTER ──
 print("\n── 9. Raster ──")
