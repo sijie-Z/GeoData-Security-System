@@ -286,7 +286,7 @@ class TestVectorWatermarkLifecycle:
         with fiona.open(shp_path, "w", driver="ESRI Shapefile", schema=schema, crs="EPSG:4326") as dst:
             # 多个小要素而非单条巨型折线：embed 逐顶点拼接输出对单要素是 O(V^2)
             # （实测单要素 260k 顶点 >10 分钟，260 条 1000 顶点折线约 15 秒）。
-            # 顶点总数 260000：水印 QR 版本随申请内容自适应（本测试实测 v17，
+            # 顶点总数 260000：水印 QR 版本随申请内容自适应（本测试实测 v16，
             # 890x890 像素，需要 ceil((890^2-192)/4)=197977 个 chunk），留出余量。
             idx = 0
             for feature_id in range(260):
@@ -297,9 +297,7 @@ class TestVectorWatermarkLifecycle:
                     y = 39.908 + 0.05 * math.sin(angle) + idx * 0.000001
                     coords.append((x, y))
                     idx += 1
-                dst.write(
-                    {"geometry": {"type": "LineString", "coordinates": coords}, "properties": {"id": feature_id}}
-                )
+                dst.write({"geometry": {"type": "LineString", "coordinates": coords}, "properties": {"id": feature_id}})
         return shp_path
 
     def test_full_vector_lifecycle(self, client, auth_headers, adm2_headers, employee_headers, db):
