@@ -417,6 +417,7 @@ def create_app():
         RasterGenerateTilesResource,
         RasterPreviewResource,
         RasterTilesResource,
+        RasterTilesTokenResource,
     )
     from resource.recall_resource import (
         RecallCloseResource,
@@ -543,6 +544,7 @@ def create_app():
     api.add_resource(GenerateRasterWatermarkResource, "/api/generate_raster_watermark")
     api.add_resource(RasterPreviewResource, "/api/raster/preview")
     api.add_resource(RasterTilesResource, "/api/raster_tiles/<int:data_id>/<int:z>/<int:x>/<int:y>.png")
+    api.add_resource(RasterTilesTokenResource, "/api/raster_tiles_token/<int:data_id>")
     api.add_resource(RasterGenerateTilesResource, "/api/raster/generate_tiles")
     api.add_resource(RasterEmbedDispatchResource, "/api/admin/embed_dispatch")
     api.add_resource(CRMarkEmbedResource, "/api/crmark/embed")

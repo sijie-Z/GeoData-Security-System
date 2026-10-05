@@ -1,13 +1,16 @@
 import base64
+import hashlib
+import hmac
 import io
 import json
 import logging
 import os
+import time
 from datetime import datetime
 
 import qrcode
 from flask import Response, current_app, request, send_file
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from PIL import Image
 
@@ -228,9 +231,58 @@ class RasterPreviewResource(Resource):
             return {"status": False, "message": "操作失败，请稍后重试"}, 500
 
 
-class RasterTilesResource(Resource):
+TILE_TOKEN_TTL_SECONDS = 3600
+
+
+def generate_tile_token(data_id, expires_in=TILE_TOKEN_TTL_SECONDS):
+    """Create a short-lived token scoped to one raster's tiles.
+
+    Format: ``<data_id>.<exp>.<hmac_sha256(SECRET_KEY, "data_id:exp")>``.
+    A plain HMAC (rather than a flask-jwt-extended access token) is used on
+    purpose: an access token minted here would also be accepted by every plain
+    @jwt_required() endpoint, so one leaked via URL/logs would double as a full
+    API credential. This token is useless outside the tile endpoint of exactly
+    this data_id, and it expires.
+    """
+    expires = int(time.time()) + int(expires_in)
+    message = f"{data_id}:{expires}"
+    signature = hmac.new(str(current_app.config["SECRET_KEY"]).encode(), message.encode(), hashlib.sha256).hexdigest()
+    return f"{data_id}.{expires}.{signature}"
+
+
+def verify_tile_token(token, data_id):
+    """Validate a token produced by generate_tile_token for this data_id."""
+    try:
+        token_data_id, expires_str, signature = str(token).split(".")
+        if token_data_id != str(data_id) or int(expires_str) < int(time.time()):
+            return False
+        expected = hmac.new(
+            str(current_app.config["SECRET_KEY"]).encode(),
+            f"{token_data_id}:{expires_str}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected)
+    except Exception:
+        return False
+
+
+class RasterTilesTokenResource(Resource):
+    """Issue a short-lived signed token so browsers can load bare tile URLs."""
+
     @jwt_required()
+    def get(self, data_id):
+        return {"token": generate_tile_token(data_id), "expires_in": TILE_TOKEN_TTL_SECONDS}, 200
+
+
+class RasterTilesResource(Resource):
+    @jwt_required(optional=True)
     def get(self, data_id, z, x, y):
+        # Browsers load XYZ tiles as bare <img> URLs and cannot attach an
+        # Authorization header; they authenticate with the short-lived signed
+        # ?token= instead. API clients keep using the Authorization header.
+        if not get_jwt_identity() and not verify_tile_token(request.args.get("token"), data_id):
+            return {"msg": "Missing Authorization header or token parameter"}, 401
+
         raster = db.session.get(RasterData, data_id)
         src_path = _resolve_existing_path(raster.raster_file_path) if raster else None
         if not src_path or not os.path.isfile(src_path):
