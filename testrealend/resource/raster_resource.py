@@ -1,13 +1,16 @@
 import base64
+import hashlib
+import hmac
 import io
 import json
 import logging
 import os
+import time
 from datetime import datetime
 
 import qrcode
-from flask import current_app, request, send_file
-from flask_jwt_extended import jwt_required
+from flask import Response, current_app, request, send_file
+from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from PIL import Image
 
@@ -23,6 +26,47 @@ from model.Application import Application
 from model.Raster_Data import RasterData
 from resource.watermark_utils import build_qr_text, get_qr_version
 from utils.required import admin_required, admin_role_required
+
+
+def _ensure_proj_data_env():
+    """Neutralize an incompatible PROJ data override before rasterio is imported.
+
+    PostgreSQL/PostGIS installers (seen with PostgreSQL 14 / PostGIS 3.5) export
+    user-level PROJ_LIB/GDAL_DATA pointing at an ancient proj.db
+    (DATABASE.LAYOUT.VERSION.MINOR < 6). rasterio bundles its own PROJ data; an
+    incompatible override makes every CRS lookup fail ("The EPSG code is unknown")
+    and breaks rio_tiler at import time. Only a verifiably incompatible override is
+    removed, so healthy environments (CI, Linux) are left untouched.
+    """
+    import sqlite3
+
+    def _layout_minor_ok(proj_dir):
+        db_path = os.path.join(proj_dir, "proj.db")
+        if not os.path.isfile(db_path):
+            return False
+        try:
+            con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+            try:
+                row = con.execute("SELECT value FROM metadata WHERE key = 'DATABASE.LAYOUT.VERSION.MINOR'").fetchone()
+            finally:
+                con.close()
+            return row is not None and int(row[0]) >= 6
+        except Exception:
+            return False
+
+    active = os.environ.get("PROJ_DATA") or os.environ.get("PROJ_LIB")
+    if active and not _layout_minor_ok(active):
+        os.environ.pop("PROJ_DATA", None)
+        os.environ.pop("PROJ_LIB", None)
+        logging.warning("Ignoring incompatible PROJ_LIB/PROJ_DATA %r - using rasterio's bundled PROJ data", active)
+
+
+_ensure_proj_data_env()
+
+# Note: imported below the guard on purpose — rasterio/PROJ read PROJ_* at import time.
+from rasterio.errors import CRSError
+from rio_tiler.errors import MissingCRS, TileOutsideBounds
+from rio_tiler.io import Reader
 
 
 class Adm1GetRasterApplicationsGenerateWatermark(Resource):
@@ -101,111 +145,12 @@ def _runtime_dir(*parts):
     return path
 
 
-def generate_raster_tiles(src_path, tiles_root, data_id, min_zoom=0, max_zoom=12):
-    """Generate XYZ slippy-map tiles from a georeferenced raster file using GDAL.
-
-    Only tiles that intersect the raster extent are generated, keeping the
-    total count manageable even for high zoom levels.  Empty tiles (ocean or
-    no-data regions outside the raster) are skipped.
-
-    Returns a dict with ``{tile_count, zoom_range}`` for logging.
-    """
-    from osgeo import gdal
-
-    src_ds = gdal.Open(src_path)
-    if not src_ds:
-        raise RuntimeError(f"Cannot open raster: {src_path}")
-
-    warp_opts = gdal.WarpOptions(dstSRS="EPSG:3857", resampleAlg="bilinear", format="VRT")
-    warped = gdal.Warp("", src_ds, options=warp_opts)
-    if not warped:
-        src_ds = None
-        raise RuntimeError("Failed to reproject raster to EPSG:3857")
-
-    gt = warped.GetGeoTransform()
-    width = warped.RasterXSize
-    height = warped.RasterYSize
-
-    xmin = gt[0]
-    ymax = gt[3]
-    xmax = xmin + gt[1] * width
-    ymin = ymax + gt[5] * height
-    if ymin > ymax:
-        ymin, ymax = ymax, ymin
-    if xmin > xmax:
-        xmin, xmax = xmax, xmin
-
-    tile_size = 256
-    origin_x = -20037508.34
-    origin_y = 20037508.34
-    total_tiles = 0
-
-    for z in range(min_zoom, max_zoom + 1):
-        n_tiles = 2**z
-        res = (origin_y * 2.0) / (tile_size * n_tiles)
-
-        tx_start = int((xmin - origin_x) / (tile_size * res))
-        tx_end = int((xmax - origin_x) / (tile_size * res))
-        ty_start = int((origin_y - ymax) / (tile_size * res))
-        ty_end = int((origin_y - ymin) / (tile_size * res))
-
-        tx_start = max(0, tx_start)
-        tx_end = min(n_tiles - 1, tx_end)
-        ty_start = max(0, ty_start)
-        ty_end = min(n_tiles - 1, ty_end)
-
-        for tx in range(tx_start, tx_end + 1):
-            for ty in range(ty_start, ty_end + 1):
-                tile_dir = os.path.join(tiles_root, str(data_id), str(z), str(tx))
-                os.makedirs(tile_dir, exist_ok=True)
-                out_path = os.path.join(tile_dir, f"{ty}.png")
-
-                tile_xmin = origin_x + tx * tile_size * res
-                tile_ymax = origin_y - ty * tile_size * res
-                tile_xmax = tile_xmin + tile_size * res
-                tile_ymin = tile_ymax - tile_size * res
-
-                gdal.Translate(
-                    out_path,
-                    warped,
-                    projWin=[tile_xmin, tile_ymax, tile_xmax, tile_ymin],
-                    width=tile_size,
-                    height=tile_size,
-                    format="PNG",
-                    outputType=gdal.GDT_Byte,
-                )
-                total_tiles += 1
-
-    warped = None
-    src_ds = None
-    return {"tile_count": total_tiles, "zoom_range": f"{min_zoom}-{max_zoom}"}
-
-
 class RasterGenerateTilesResource(Resource):
-    """手动触发瓦片生成（用于已上传的栅格数据）"""
+    """预生成已退役：瓦片改为按需动态出图。保留端点以兼容旧前端调用（no-op）。"""
 
     @jwt_required()
     def post(self):
-        data = request.get_json() or {}
-        data_id = data.get("data_id")
-        if not data_id:
-            return {"status": False, "msg": "缺少 data_id"}, 400
-
-        raster = db.session.get(RasterData, data_id)
-        if not raster or not raster.raster_file_path:
-            return {"status": False, "msg": "栅格数据不存在或路径无效"}, 404
-
-        src_path = _resolve_existing_path(raster.raster_file_path)
-        if not src_path:
-            return {"status": False, "msg": "栅格文件在磁盘上不存在"}, 404
-
-        tiles_root = os.path.join(current_app.config["UPLOAD_FOLDER"], "tiles")
-        try:
-            result = generate_raster_tiles(src_path, tiles_root, data_id)
-            return {"status": True, "msg": f"瓦片生成完成，共 {result['tile_count']} 张", "data": result}, 200
-        except Exception as e:
-            logging.error("Tile generation failed: %s", e)
-            return {"status": False, "msg": f"瓦片生成失败: {e!s}"}, 500
+        return {"status": True, "message": "dynamic tiles enabled"}, 200
 
 
 def _resolve_existing_path(path_value):
@@ -284,13 +229,75 @@ class RasterPreviewResource(Resource):
             return {"status": False, "message": "操作失败，请稍后重试"}, 500
 
 
-class RasterTilesResource(Resource):
+TILE_TOKEN_TTL_SECONDS = 3600
+
+
+def generate_tile_token(data_id, expires_in=TILE_TOKEN_TTL_SECONDS):
+    """Create a short-lived token scoped to one raster's tiles.
+
+    Format: ``<data_id>.<exp>.<hmac_sha256(SECRET_KEY, "data_id:exp")>``.
+    A plain HMAC (rather than a flask-jwt-extended access token) is used on
+    purpose: an access token minted here would also be accepted by every plain
+    @jwt_required() endpoint, so one leaked via URL/logs would double as a full
+    API credential. This token is useless outside the tile endpoint of exactly
+    this data_id, and it expires.
+    """
+    expires = int(time.time()) + int(expires_in)
+    message = f"{data_id}:{expires}"
+    signature = hmac.new(str(current_app.config["SECRET_KEY"]).encode(), message.encode(), hashlib.sha256).hexdigest()
+    return f"{data_id}.{expires}.{signature}"
+
+
+def verify_tile_token(token, data_id):
+    """Validate a token produced by generate_tile_token for this data_id."""
+    try:
+        token_data_id, expires_str, signature = str(token).split(".")
+        if token_data_id != str(data_id) or int(expires_str) < int(time.time()):
+            return False
+        expected = hmac.new(
+            str(current_app.config["SECRET_KEY"]).encode(),
+            f"{token_data_id}:{expires_str}".encode(),
+            hashlib.sha256,
+        ).hexdigest()
+        return hmac.compare_digest(signature, expected)
+    except Exception:
+        return False
+
+
+class RasterTilesTokenResource(Resource):
+    """Issue a short-lived signed token so browsers can load bare tile URLs."""
+
     @jwt_required()
+    def get(self, data_id):
+        return {"token": generate_tile_token(data_id), "expires_in": TILE_TOKEN_TTL_SECONDS}, 200
+
+
+class RasterTilesResource(Resource):
+    @jwt_required(optional=True)
     def get(self, data_id, z, x, y):
-        tile_path = os.path.join(current_app.config["UPLOAD_FOLDER"], "tiles", str(data_id), str(z), str(x), f"{y}.png")
-        if os.path.exists(tile_path):
-            return send_file(tile_path, mimetype="image/png")
-        return {"msg": "Tile not found"}, 404
+        # Browsers load XYZ tiles as bare <img> URLs and cannot attach an
+        # Authorization header; they authenticate with the short-lived signed
+        # ?token= instead. API clients keep using the Authorization header.
+        if not get_jwt_identity() and not verify_tile_token(request.args.get("token"), data_id):
+            return {"msg": "Missing Authorization header or token parameter"}, 401
+
+        raster = db.session.get(RasterData, data_id)
+        src_path = _resolve_existing_path(raster.raster_file_path) if raster else None
+        if not src_path or not os.path.isfile(src_path):
+            return {"msg": "Tile not found"}, 404
+
+        try:
+            with Reader(src_path) as reader:
+                indexes = (1, 2, 3) if reader.dataset.count > 4 else None
+                img = reader.tile(x, y, z, indexes=indexes)
+            return Response(img.render(img_format="PNG"), mimetype="image/png")
+        except TileOutsideBounds:
+            return {"msg": "Tile out of range"}, 400
+        except (CRSError, MissingCRS):
+            return {"msg": "Raster has no usable coordinate reference system"}, 422
+        except Exception:
+            logging.error("Tile render failed for data_id=%s z=%s x=%s y=%s", data_id, z, x, y, exc_info=True)
+            return {"msg": "Tile render failed"}, 500
 
 
 class RasterEmbedDispatchResource(Resource):

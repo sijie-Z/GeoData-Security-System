@@ -14,22 +14,6 @@ from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 
 
-def _bg_generate_tiles(src_path, tiles_root, data_id):
-    """Background tile generation — runs in a daemon thread."""
-    try:
-        from resource.raster_resource import generate_raster_tiles
-
-        result = generate_raster_tiles(src_path, tiles_root, data_id)
-        logging.info(
-            "Background tile generation for data_id=%s: %s tiles (zoom %s)",
-            data_id,
-            result["tile_count"],
-            result["zoom_range"],
-        )
-    except Exception as e:
-        logging.warning("Background tile generation failed for data_id=%s: %s", data_id, e)
-
-
 def _bg_publish_geoserver(file_path, layer_name, data_type, record_id, model_class, app):
     """Background: publish file to GeoServer and update DB with WMS URL."""
     try:
@@ -344,15 +328,7 @@ class RasterDataUploadResource(Resource):
 
             app_obj = current_app._get_current_object()
 
-            # Generate map tiles in background thread (fallback for non-GeoTIFF)
-            try:
-                tiles_root = os.path.join(current_app.config["UPLOAD_FOLDER"], "tiles")
-                src = save_path
-                rid = record.id
-                t = threading.Thread(target=lambda: _bg_generate_tiles(src, tiles_root, rid), daemon=True)
-                t.start()
-            except Exception:
-                logging.warning("Failed to start background tile generation")
+            # (tiles are rendered on demand from the source file — no pre-generation)
 
             # Auto-publish to GeoServer in background thread
             raster_layer_name = os.path.splitext(filename)[0]
