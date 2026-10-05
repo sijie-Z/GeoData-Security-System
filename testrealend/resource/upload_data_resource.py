@@ -1,5 +1,6 @@
 import logging
 import os
+import shutil
 import threading
 import zipfile
 from datetime import UTC, datetime
@@ -164,6 +165,17 @@ def _safe_extract_zip(zip_ref, dest_dir):
     zip_ref.extractall(dest_dir)
 
 
+def _cleanup_upload_artifacts(save_path, extract_dir):
+    """Best-effort removal of the saved zip and extracted directory of a failed upload."""
+    try:
+        if save_path and os.path.exists(save_path):
+            os.remove(save_path)
+        if extract_dir and os.path.isdir(extract_dir):
+            shutil.rmtree(extract_dir, ignore_errors=True)
+    except Exception:
+        logging.warning("上传失败后清理残留文件时出错 (save_path=%s, extract_dir=%s)", save_path, extract_dir)
+
+
 class ShpDataUploadResource(Resource):
     @jwt_required()
     @limiter.limit("10 per minute")
@@ -182,6 +194,8 @@ class ShpDataUploadResource(Resource):
         if not file.filename or not file.filename.lower().endswith(".zip"):
             return {"status": False, "msg": "仅支持 .zip 格式文件"}, 400
 
+        save_path = None
+        extract_dir = None
         try:
             filename = secure_filename(file.filename)
             upload_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "shp_uploads")
@@ -203,6 +217,7 @@ class ShpDataUploadResource(Resource):
                         shp_files.append(os.path.join(root, f))
 
             if len(shp_files) != 1:
+                _cleanup_upload_artifacts(save_path, extract_dir)
                 return {
                     "status": False,
                     "msg": f"ZIP包中应包含且仅包含一个 .shp 文件，当前找到 {len(shp_files)} 个",
@@ -223,9 +238,10 @@ class ShpDataUploadResource(Resource):
                         from pyproj import CRS
 
                         try:
-                            coordinate_system = CRS.from_user_input(src.crs).to_string()
+                            epsg = CRS.from_user_input(src.crs).to_epsg()
+                            coordinate_system = f"EPSG:{epsg}" if epsg else str(src.crs)[:95]
                         except Exception:
-                            coordinate_system = str(src.crs)
+                            coordinate_system = str(src.crs)[:95]
             except Exception:
                 logging.warning(f"无法读取SHP元数据: {shp_file_path}")
 
@@ -273,10 +289,12 @@ class ShpDataUploadResource(Resource):
             return {"status": True, "msg": "数据上传成功", "data": record.to_dict()}, 201
 
         except ValueError as e:
+            _cleanup_upload_artifacts(save_path, extract_dir)
             return {"status": False, "msg": str(e)}, 400
         except Exception as e:
             db.session.rollback()
             logging.error(str(e))
+            _cleanup_upload_artifacts(save_path, extract_dir)
             return {"status": False, "msg": "上传失败，请稍后重试"}, 500
 
 
