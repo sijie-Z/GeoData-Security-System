@@ -823,7 +823,6 @@ export default {
     firstReviewPass: 'First Review Passed',
     firstReviewReject: 'First Review Rejected',
     secondReviewPass: 'Second Review Passed',
-    secondReviewReject: 'Second Review Rejected',
     additionalReview: 'Additional Review',
     viewDetail: 'View Detail',
     firstReviewApproval: 'First Review',
@@ -1426,7 +1425,6 @@ export default {
   },
   adminDataManage: {
     title: 'Data Management',
-    description: 'Manage uploaded vector and raster data: edit metadata, publish to GeoServer, delete data.',
     vectorData: 'Vector Data',
     rasterData: 'Raster Data',
     searchPlaceholder: 'Search by name...',

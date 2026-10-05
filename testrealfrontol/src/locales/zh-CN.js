@@ -790,7 +790,6 @@ export default {
     secondReviewSubmitted: '二审已提交',
     secondReviewFailed: '二审操作失败',
     secondReviewReject: '二审不通过',
-    searchPlaceholder: '搜索申请编号或数据名称...',
     confirmApprove: '确定通过?',
     confirmReject: '确定不通过?',
     review: '审批',
@@ -824,7 +823,6 @@ export default {
     firstReviewPass: '一审通过',
     firstReviewReject: '一审拒绝',
     secondReviewPass: '二审通过',
-    secondReviewReject: '二审拒绝',
     additionalReview: '附加审议',
     viewDetail: '查看详情',
     firstReviewApproval: '一审审核',
@@ -1427,7 +1425,6 @@ export default {
   },
   adminDataManage: {
     title: '数据管理',
-    description: '管理已上传的矢量和栅格数据：编辑元信息、发布到 GeoServer、删除数据。',
     vectorData: '矢量数据',
     rasterData: '栅格数据',
     searchPlaceholder: '搜索数据名称...',

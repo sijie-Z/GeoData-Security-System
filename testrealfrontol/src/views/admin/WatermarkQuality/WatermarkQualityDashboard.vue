@@ -462,7 +462,7 @@ let recBenchChart = null
 let stegoBenchChart = null
 
 const disposeAllCharts = () => {
-  ;[ncDistChart, ncBenchChart, berBenchChart, recBenchChart, stegoBenchChart].forEach(c => {
+  [ncDistChart, ncBenchChart, berBenchChart, recBenchChart, stegoBenchChart].forEach(c => {
     try { c?.dispose() } catch (_) {}
   })
   ncDistChart = ncBenchChart = berBenchChart = recBenchChart = stegoBenchChart = null

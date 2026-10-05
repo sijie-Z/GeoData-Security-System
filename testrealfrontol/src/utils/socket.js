@@ -50,7 +50,7 @@ export function connectSocket (_token, _opts = {}) {
 
     socket.on('connect', () => {
       _authenticated = false
-      socket.emit('authenticate', { token })
+      socket.emit('authenticate', { token: _token })
     })
 
     socket.on('authenticated', (data) => {
@@ -60,7 +60,7 @@ export function connectSocket (_token, _opts = {}) {
         for (const room of _joinedRooms) {
           socket.emit('join_chat', { user_number: room })
         }
-        if (opts.onAuthenticated) opts.onAuthenticated(data)
+        if (_opts.onAuthenticated) _opts.onAuthenticated(data)
       } else {
         ElMessage.warning(data.msg || 'WebSocket authentication failed')
       }
@@ -80,7 +80,7 @@ export function connectSocket (_token, _opts = {}) {
     })
   } else {
     // Socket exists but was disconnected -- update token and reconnect
-    socket.auth = { token }
+    socket.auth = { token: _token }
     socket.connect()
   }
 
