@@ -51,7 +51,9 @@ def coor_process(coor, argument, seed):
     index = random.randint(0, len(W) - 1)  # 抵抗删点、平移、缩放 不抵抗旋转
     w = int("".join(map(str, W[index])), 2)
 
-    coor = np.array([Decimal(str(x)) for x in np.nditer(coor)])
+    # NumPy 2.x: nditer over object-dtype arrays (equal-length features broadcast
+    # to 3-D object arrays in get_coor_nested) requires the refs_ok flag
+    coor = np.array([Decimal(str(x)) for x in np.nditer(coor, flags=["refs_ok"])])
     coor_l = coor // R * R
     embed_coor = watermark_embed(coor, coor_l, w, n, R)
     return embed_coor
