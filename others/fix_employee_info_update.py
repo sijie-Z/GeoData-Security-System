@@ -5,6 +5,7 @@
 """
 
 import pymysql
+import os
 
 def fix_employee_info_with_update():
     """修复员工信息数据"""
@@ -13,7 +14,7 @@ def fix_employee_info_with_update():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             charset='utf8mb4'
         )

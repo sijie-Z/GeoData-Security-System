@@ -4,6 +4,7 @@
 """
 
 import pymysql
+import os
 
 def create_missing_employee_info_direct():
     """直接连接数据库创建缺失的员工信息"""
@@ -12,7 +13,7 @@ def create_missing_employee_info_direct():
     connection = pymysql.connect(
         host='127.0.0.1',
         user='root',
-        password='root',
+        password=os.environ.get("MYSQL_PASSWORD", "root"),
         database='esri_test',
         charset='utf8mb4'
     )

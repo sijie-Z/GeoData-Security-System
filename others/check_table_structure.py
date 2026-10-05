@@ -5,6 +5,7 @@
 """
 
 import pymysql
+import os
 
 def check_table_structure():
     """检查表结构"""
@@ -14,7 +15,7 @@ def check_table_structure():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             charset='utf8mb4'
         )

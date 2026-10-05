@@ -7,6 +7,7 @@
 import psycopg2
 import pymysql
 import logging
+import os
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -20,7 +21,7 @@ def check_postgres_structure():
             port=5432,
             database='esri_test',
             user='postgres',
-            password='root'
+            password=os.environ.get("MYSQL_PASSWORD", "root")
         )
         cursor = conn.cursor()
         
@@ -80,7 +81,7 @@ def check_mysql_structure():
             port=3306,
             database='spatial_data_sys',
             user='root',
-            password='root'
+            password=os.environ.get("MYSQL_PASSWORD", "root")
         )
         cursor = conn.cursor()
         
@@ -129,7 +130,7 @@ def check_mysql_esri_test():
             port=3306,
             database='esri_test',
             user='root',
-            password='root'
+            password=os.environ.get("MYSQL_PASSWORD", "root")
         )
         cursor = conn.cursor()
         

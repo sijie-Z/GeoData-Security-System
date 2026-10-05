@@ -1,11 +1,12 @@
 import psycopg2
+import os
 
 conn = psycopg2.connect(
     host='127.0.0.1',
     port=5432,
     dbname='esri_test',
     user='postgres',
-    password='root',
+    password=os.environ.get("MYSQL_PASSWORD", "root"),
 )
 
 try:

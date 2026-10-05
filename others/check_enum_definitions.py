@@ -5,6 +5,7 @@
 """
 
 import mysql.connector  # pyright: ignore[reportMissingImports]
+import os
 
 def check_enum_definitions():
     """
@@ -15,7 +16,7 @@ def check_enum_definitions():
         conn = mysql.connector.connect(
             host='localhost',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             port=3306
         )
