@@ -47,9 +47,7 @@ def _ensure_proj_data_env():
         try:
             con = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
             try:
-                row = con.execute(
-                    "SELECT value FROM metadata WHERE key = 'DATABASE.LAYOUT.VERSION.MINOR'"
-                ).fetchone()
+                row = con.execute("SELECT value FROM metadata WHERE key = 'DATABASE.LAYOUT.VERSION.MINOR'").fetchone()
             finally:
                 con.close()
             return row is not None and int(row[0]) >= 6
