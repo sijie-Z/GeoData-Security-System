@@ -287,7 +287,7 @@ class RasterPreviewResource(Resource):
 class RasterTilesResource(Resource):
     @jwt_required()
     def get(self, data_id, z, x, y):
-        tile_path = os.path.join(current_app.config["UPLOAD_FOLDER"], "tiles", str(data_id), f"{z}_{x}_{y}.png")
+        tile_path = os.path.join(current_app.config["UPLOAD_FOLDER"], "tiles", str(data_id), str(z), str(x), f"{y}.png")
         if os.path.exists(tile_path):
             return send_file(tile_path, mimetype="image/png")
         return {"msg": "Tile not found"}, 404
