@@ -39,6 +39,32 @@ def _make_geotiff(path, size=512, fill=None):
     return path
 
 
+def _make_multiband_geotiff(path, width=192, height=192, bands=7, low=0.0, high=254.0):
+    """A 7-band float64 GeoTIFF, by default in the 0-255 range.
+
+    PIL cannot open it at all ("More samples per pixel than can be decoded: 7")
+    — exactly the host class (7-band MODIS GeoTIFF) that made embed_dwt fail
+    with a generic 500 before band selection was added. Odd sizes exercise the
+    even-dimension crop; ``low``/``high`` outside 0-255 exercise the clipping
+    path of saturated physical-unit rasters.
+    """
+    rng = np.random.default_rng(11)
+    data = rng.random((bands, height, width)) * (high - low) + low
+    with rasterio.open(
+        path,
+        "w",
+        driver="GTiff",
+        width=width,
+        height=height,
+        count=bands,
+        dtype="float64",
+        crs="EPSG:4326",
+        transform=from_bounds(*FIXTURE_BOUNDS, width, height),
+    ) as dst:
+        dst.write(data)
+    return path
+
+
 def _seed_raster_app(db, tif_path, alias="tif-host"):
     """An approved raster application backed by *tif_path* on disk."""
     from flask import current_app
@@ -164,6 +190,75 @@ class TestGeoTIFFEmbed:
         row = db.session.get(Application, item.id)
         assert not row.watermark_embedded
         assert not row.watermark_path
+
+
+class TestDWTMultibandRoundtrip:
+    """Regression (API campaign domain05): embed_dwt unconditionally converted
+    the host to YCbCr, so a 7-band MODIS GeoTIFF raised PIL "More samples per
+    pixel" -> generic 500. Multi-band hosts now use their first three bands as
+    RGB (same convention as the reversible/histogram algorithms), odd sizes are
+    cropped to what the multi-level haar transform round-trips exactly, and
+    extract decodes the QIM quarter-step offset the embed writes (plus exact
+    float BT.601 conversions) — the embed -> extract roundtrip is now exact."""
+
+    def test_embed_extract_roundtrip_on_7band_geotiff(self, tmp_path):
+        from PIL import Image as PILImage
+
+        from algorithm.raster_dwt_watermark import embed_dwt, extract_dwt
+
+        # Odd sizes exercise the even-dimension crop; in-range float samples
+        # keep every pixel embeddable (no gamut saturation).
+        host = _make_multiband_geotiff(tmp_path / "host_7band.tif", width=171, height=131, bands=7)
+        rng = np.random.default_rng(3)
+        wm = PILImage.fromarray((rng.random((32, 32)) > 0.5).astype(np.uint8) * 255, mode="L")
+
+        result = embed_dwt(str(host), wm, str(tmp_path / "out"), "t7")
+        assert os.path.isfile(result["stego_path"])
+        assert os.path.isfile(result["wm_meta_path"])
+
+        decoded_path = str(tmp_path / "decoded.png")
+        extract_dwt(result["stego_path"], result["wm_meta_path"], decoded_path)
+        with PILImage.open(decoded_path) as dec:
+            decoded = np.array(dec.convert("L"))
+
+        # Deterministic decoder: recovered bits must match the embedded ones.
+        resized = wm.convert("L").resize((decoded.shape[1], decoded.shape[0]), PILImage.Resampling.NEAREST)
+        expected = (np.array(resized) > 127).astype(np.uint8) * 255
+        assert decoded.shape == expected.shape
+        assert np.array_equal(decoded, expected)
+
+    def test_embed_dispatch_dwt_on_multiband_geotiff(self, client, db, adm2_headers, tmp_path):
+        from model.Application import Application
+
+        # Saturated physical-unit values + odd size: the full hostile path the
+        # real MODIS raster takes. Must embed and decode without a 500.
+        host = _make_multiband_geotiff(
+            tmp_path / "host7_api.tif", width=187, height=149, bands=7, low=-100.0, high=1900.0
+        )
+        item, _ = _seed_raster_app(db, host, alias="mb7-host")
+        resp = client.post(
+            "/api/admin/embed_dispatch",
+            json={"application_id": item.id, "algorithm": "dwt"},
+            headers=adm2_headers,
+        )
+        assert resp.status_code == 200, resp.get_json()
+        data = resp.get_json()["data"]
+        stego, meta = data["stego_path"], data["wm_meta_path"]
+        assert os.path.isfile(stego)
+        assert os.path.isfile(meta)
+
+        db.session.expire_all()
+        row = db.session.get(Application, item.id)
+        assert row.watermark_embedded is True
+        assert row.watermark_path == stego
+
+        dec = client.post(
+            "/api/crmark/decode",
+            json={"stego_path": stego, "wm_meta_path": meta},
+            headers=adm2_headers,
+        )
+        assert dec.status_code == 200, dec.get_data(as_text=True)
+        assert dec.data[:8] == b"\x89PNG\r\n\x1a\n"
 
 
 class TestRasterExtractAfterEmbed:
