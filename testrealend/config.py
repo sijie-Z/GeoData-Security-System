@@ -64,6 +64,12 @@ class Config:
     CACHE_DEFAULT_TIMEOUT = int(os.environ.get("CACHE_DEFAULT_TIMEOUT", "300"))
     CACHE_DASHBOARD_TIMEOUT = int(os.environ.get("CACHE_DASHBOARD_TIMEOUT", "120"))
 
+    # GeoServer
+    GEOSERVER_URL = os.environ.get("GEOSERVER_URL", "http://localhost:8080/geoserver")
+    GEOSERVER_USER = os.environ.get("GEOSERVER_USER", "admin")
+    GEOSERVER_PASSWORD = os.environ.get("GEOSERVER_PASSWORD", "geoserver")
+    GEOSERVER_WORKSPACE = os.environ.get("GEOSERVER_WORKSPACE", "test")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

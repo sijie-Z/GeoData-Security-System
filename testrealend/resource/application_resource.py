@@ -60,10 +60,12 @@ def _review_actor():
 
     identity = get_jwt_identity() or {}
     user_number = str(identity.get("number", ""))
-    user_name = identity.get("username", "")
-    if not user_name and user_number:
+    # 优先从 JWT 的 name 字段取真实姓名
+    user_name = identity.get("name") or identity.get("username", "")
+    # 如果 name 还是空的或等于工号，查数据库补全
+    if not user_name or user_name == user_number or user_name.isdigit():
         adm = AdmInfo.query.filter_by(adm_number=user_number).first()
-        if adm:
+        if adm and adm.name:
             user_name = adm.name
     return user_name, user_number
 
@@ -132,11 +134,20 @@ class SubmitApplicationResource(Resource):
         # Get identity from JWT to prevent impersonation
         identity = get_jwt_identity()
         if isinstance(identity, dict):
-            jwt_name = identity.get("name", "")
+            jwt_name = identity.get("name") or identity.get("username") or data.get("applicant_name", "")
             jwt_number = identity.get("number", "")
         else:
             jwt_name = data.get("applicant_name", "")
             jwt_number = str(identity)
+        # 如果 applicant_name 是工号或为空，查 employee_info 补全真实姓名
+        if not jwt_name or jwt_name == jwt_number or jwt_name.isdigit():
+            try:
+                from model.Employee_Info import EmployeeInfo
+                emp = EmployeeInfo.query.filter_by(employee_number=jwt_number).first()
+                if emp and emp.name:
+                    jwt_name = emp.name
+            except Exception:
+                pass
         new_app = Application(
             data_id=data.get("data_id"),
             data_name=data.get("data_name"),

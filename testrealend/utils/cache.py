@@ -1,51 +1,55 @@
-"""Redis caching layer with graceful fallback to no-op when Redis is unavailable."""
+"""In-memory caching layer for GET endpoint responses.
+
+No external dependencies (Redis etc.) — sufficient for single-process
+deployments and small-to-medium workloads.
+"""
 
 import hashlib
 import json
 import logging
+import threading
+import time
 from functools import wraps
 
 from flask import request
 
 logger = logging.getLogger(__name__)
 
-_redis_client = None
-_cache_available = False
+_cache = {}
+_lock = threading.Lock()
+
+
+def _get(key):
+    with _lock:
+        entry = _cache.get(key)
+        if entry and entry[1] > time.time():
+            return entry[0]
+        if entry:
+            del _cache[key]
+    return None
+
+
+def _set(key, value, timeout):
+    with _lock:
+        _cache[key] = (value, time.time() + timeout)
+        # 超过 500 条淘汰最旧的
+        if len(_cache) > 500:
+            oldest = min(_cache, key=lambda k: _cache[k][1])
+            del _cache[oldest]
 
 
 def init_cache(app):
-    """Initialize Redis connection from app config.
-
-    On Windows, the socket-close path during connection timeout can hang, so we
-    skip the eager ``ping()`` and let runtime operations fail gracefully.
-    """
-    global _redis_client, _cache_available
-    redis_url = app.config.get("REDIS_URL", "redis://localhost:6379/0")
-    try:
-        import redis
-
-        _redis_client = redis.from_url(
-            redis_url,
-            decode_responses=True,
-            socket_connect_timeout=3,
-            socket_timeout=3,
-            retry_on_timeout=False,
-        )
-        _cache_available = True
-        logger.info(f"Redis client ready: {redis_url}")
-    except BaseException as e:
-        _cache_available = False
-        _redis_client = None
-        logger.warning(f"Redis unavailable ({e}), caching disabled")
+    """No-op — kept for API compatibility."""
+    logger.info("In-memory cache ready (no Redis required)")
 
 
 def get_redis():
-    """Get the Redis client (may be None)."""
-    return _redis_client
+    """No-op — kept for API compatibility."""
+    return None
 
 
 def is_cache_available():
-    return _cache_available
+    return True
 
 
 def cache_key(*args, **kwargs):
@@ -55,18 +59,14 @@ def cache_key(*args, **kwargs):
 
 
 def cached(timeout=300, key_prefix="cache"):
-    """Decorator to cache GET endpoint responses in Redis.
-
-    Falls through to the original function if Redis is unavailable.
-    """
+    """Decorator to cache GET endpoint responses in memory."""
 
     def decorator(f):
         @wraps(f)
         def wrapper(*args, **kwargs):
-            if not _cache_available or request.method != "GET":
+            if request.method != "GET":
                 return f(*args, **kwargs)
 
-            # Build cache key from endpoint + query params + user identity
             from flask_jwt_extended import get_jwt_identity
 
             try:
@@ -75,22 +75,19 @@ def cached(timeout=300, key_prefix="cache"):
             except Exception:
                 user_id = "anon"
 
-            ckey = f"{key_prefix}:{f.__name__}:{user_id}:{request.full_path}"
-            ckey = hashlib.md5(ckey.encode()).hexdigest()
+            ckey = hashlib.md5(
+                f"{key_prefix}:{f.__name__}:{user_id}:{request.full_path}".encode()
+            ).hexdigest()
 
-            try:
-                cached_val = _redis_client.get(ckey)
-                if cached_val:
-                    return json.loads(cached_val)
-            except Exception:
-                pass
+            cached_val = _get(ckey)
+            if cached_val is not None:
+                return cached_val
 
             result = f(*args, **kwargs)
 
             try:
-                # result is (body, status_code) tuple
                 if isinstance(result, tuple) and len(result) >= 1:
-                    _redis_client.setex(ckey, timeout, json.dumps(result[0], default=str))
+                    _set(ckey, result[0], timeout)
             except Exception:
                 pass
 
@@ -103,21 +100,13 @@ def cached(timeout=300, key_prefix="cache"):
 
 def invalidate_prefix(prefix):
     """Invalidate all cache keys matching a prefix."""
-    if not _cache_available:
-        return
-    try:
-        pattern = f"{prefix}:*"
-        for key in _redis_client.scan_iter(match=pattern, count=100):
-            _redis_client.delete(key)
-    except Exception:
-        pass
+    with _lock:
+        for key in list(_cache.keys()):
+            if key.startswith(prefix):
+                del _cache[key]
 
 
 def invalidate_all():
-    """Flush all cached data (use sparingly)."""
-    if not _cache_available:
-        return
-    try:
-        _redis_client.flushdb()
-    except Exception:
-        pass
+    """Flush all cached data."""
+    with _lock:
+        _cache.clear()

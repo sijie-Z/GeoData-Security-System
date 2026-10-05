@@ -29,10 +29,8 @@ class HealthCheckResource(Resource):
             health["status"] = "degraded"
             health["database"] = f"error: {str(e)[:100]}"
 
-        # Check Redis connectivity
-        from utils.cache import is_cache_available
-
-        health["cache"] = "connected" if is_cache_available() else "unavailable"
+        # Cache status (in-memory, always available)
+        health["cache"] = "in-memory"
 
         # Check metrics
         health["metrics"] = "enabled"

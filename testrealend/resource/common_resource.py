@@ -77,11 +77,19 @@ class LoginResource(Resource):
                 if ok:
                     if new_hash:
                         user.adm_user_password = new_hash
+
+                    # Look up display name BEFORE using it in token creation
+                    try:
+                        adm_info = AdmInfo.query.filter_by(adm_number=user.adm_number).first()
+                    except Exception:
+                        adm_info = None
+                    display_name = adm_info.name if adm_info and adm_info.name else username
+
                     access_token = create_access_token(
-                        identity={"username": username, "role": user.role, "number": user.adm_number}
+                        identity={"username": username, "name": display_name, "role": user.role, "number": user.adm_number}
                     )
                     refresh_token = create_refresh_token(
-                        identity={"username": username, "role": user.role, "number": user.adm_number}
+                        identity={"username": username, "name": display_name, "role": user.role, "number": user.adm_number}
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)
@@ -96,16 +104,13 @@ class LoginResource(Resource):
                     except Exception:
                         db.session.rollback()
                         logging.warning(f"Failed to update last_login_time for admin {username}", exc_info=True)
-
-                    adm_info = AdmInfo.query.filter_by(adm_number=user.adm_number).first()
-                    display_name = adm_info.name if adm_info and adm_info.name else username
                     log_action(user.adm_number, display_name, "登录", "成功", "admin")
 
                     return {
                         "status": True,
                         "user_number": user.adm_number,
                         "role": user.role,
-                        "admin_sub_role": user.adm_number if user.adm_number else user.role,
+                        "admin_sub_role": user.role,
                         "access_token": access_token,
                         "refresh_token": refresh_token,
                         "user_name": display_name,
@@ -118,11 +123,19 @@ class LoginResource(Resource):
                 if ok:
                     if new_hash:
                         user.employee_user_password = new_hash
+                    # 查出真实姓名放入 JWT
+                    emp_info_name = None
+                    try:
+                        emp = EmployeeInfo.query.filter_by(employee_number=user.employee_number).first()
+                        emp_info_name = emp.name if emp and emp.name else None
+                    except Exception:
+                        pass
+                    display_name = emp_info_name or username
                     access_token = create_access_token(
-                        identity={"username": username, "role": "employee", "number": user.employee_number}
+                        identity={"username": username, "name": display_name, "role": "employee", "number": user.employee_number}
                     )
                     refresh_token = create_refresh_token(
-                        identity={"username": username, "role": "employee", "number": user.employee_number}
+                        identity={"username": username, "name": display_name, "role": "employee", "number": user.employee_number}
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)

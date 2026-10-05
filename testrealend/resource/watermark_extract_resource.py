@@ -27,11 +27,12 @@ from resource.watermark_utils import (
     parse_qr_text,
     safe_extract_zip,
 )
+from utils.required import admin_role_required
 from utils.user_limiter import normal_limit
 
 
 class VectorExtractResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin3")
     @normal_limit
     def post(self):
         app_id = request.form.get("application_id")
@@ -45,9 +46,21 @@ class VectorExtractResource(Resource):
         if file.filename == "":
             return {"status": False, "msg": "没有选择文件"}, 400
 
+        # 优先按申请编号查找，若找不到或无 vr_data，则按数据编号查找
         item = db.session.get(Application, app_id)
+        if not item or not item.vr_data:
+            alt = Application.query.filter(
+                Application.data_id == app_id,
+                Application.watermark_embedded == True,
+                Application.vr_data.isnot(None),
+            ).order_by(Application.id.desc()).first()
+            if alt:
+                item = alt
+
         if not item:
             return {"status": False, "msg": "未找到对应的申请记录"}, 404
+        if not item.vr_data:
+            return {"status": False, "msg": "该申请尚未完成水印嵌入，无法提取"}, 404
 
         temp_dir = None
         try:

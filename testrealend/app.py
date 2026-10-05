@@ -143,18 +143,8 @@ def _startup_health_check(app):
     except Exception as e:
         results.append(("  Database (MySQL)", False, str(e)))
 
-    # Redis check
-    try:
-        from utils.cache import get_redis
-
-        r = get_redis()
-        if r:
-            r.ping()
-            results.append(("  Redis", True, "connected"))
-        else:
-            results.append(("  Redis", False, "client not initialized (not critical)"))
-    except BaseException as e:
-        results.append(("  Redis", False, str(e)))
+    # Cache check (in-memory, no Redis required)
+    results.append(("  Cache", True, "in-memory (no Redis needed)"))
 
     # Print health check results
     print("\n" + "=" * 60)
@@ -206,6 +196,29 @@ def create_app():
             return TokenBlacklist.query.filter_by(jti=jti).first() is not None
         except Exception:
             return False
+
+    # JWT error handlers — Flask-JWT-Extended returns 422 by default for
+    # expired/invalid tokens, but the frontend only triggers token refresh
+    # on 401.  Override these so the frontend can auto-refresh seamlessly.
+    @jwt.expired_token_loader
+    def handle_expired_token(jwt_header, jwt_payload):
+        return jsonify({"status": False, "msg": "令牌已过期，请重新登录"}), 401
+
+    @jwt.invalid_token_loader
+    def handle_invalid_token(error_msg):
+        return jsonify({"status": False, "msg": f"无效令牌: {error_msg}"}), 401
+
+    @jwt.unauthorized_loader
+    def handle_missing_token(error_msg):
+        return jsonify({"status": False, "msg": "缺少访问令牌"}), 401
+
+    @jwt.needs_fresh_token_loader
+    def handle_needs_fresh_token(jwt_header, jwt_payload):
+        return jsonify({"status": False, "msg": "需要重新验证身份"}), 401
+
+    @jwt.revoked_token_loader
+    def handle_revoked_token(jwt_header, jwt_payload):
+        return jsonify({"status": False, "msg": "令牌已被撤销"}), 401
 
     _bootstrap_runtime_schema(app)
 
@@ -421,7 +434,15 @@ def create_app():
         ShpDataListResource,
         VectorDataViewingResource,
     )
-    from resource.upload_data_resource import RasterDataUploadResource, ShpDataUploadResource
+    from resource.upload_data_resource import (
+        DataDeleteResource,
+        DataEditResource,
+        DataListResource,
+        GeoServerPublishResource,
+        GeoServerStatusResource,
+        RasterDataUploadResource,
+        ShpDataUploadResource,
+    )
     from resource.watermark_embed_resource import Adm2GetEmbeddingWatermarkApplications, EmbeddingWatermarkResource
     from resource.watermark_extract_resource import QRCodeDecodeResource, VectorExtractResource
     from resource.watermark_generate_resource import Adm1GetGenerateWatermarkApplications, GenerateWatermarkResource
@@ -535,6 +556,11 @@ def create_app():
     api.add_resource(TokenDownloadResource, "/api/download/<string:download_token>")
     api.add_resource(ShpDataUploadResource, "/api/upload_shp_data")
     api.add_resource(RasterDataUploadResource, "/api/upload_raster_data")
+    api.add_resource(GeoServerPublishResource, "/api/geoserver/publish")
+    api.add_resource(GeoServerStatusResource, "/api/geoserver/status")
+    api.add_resource(DataEditResource, "/api/data/<string:data_type>/<int:data_id>")
+    api.add_resource(DataListResource, "/api/data/<string:data_type>")
+    api.add_resource(DataDeleteResource, "/api/data/<string:data_type>/<int:data_id>/delete")
 
     # Logs & Dashboard
     api.add_resource(SystemLogResource, "/api/admin/logs")
@@ -554,6 +580,10 @@ def create_app():
     api.add_resource(ChatFriendRequestsResource, "/api/chat/friend_requests", "/api/chat/friend-requests")
     api.add_resource(ChatFriendRespondResource, "/api/chat/friend_respond", "/api/chat/friend-respond")
     api.add_resource(ChatSendResource, "/api/chat/send")
+    from resource.ai_chat_resource import AIChatResource, AIChatStreamResource
+
+    api.add_resource(AIChatResource, "/api/ai/chat")
+    api.add_resource(AIChatStreamResource, "/api/ai/chat/stream")
     api.add_resource(AdminUserListResource, "/api/admin/users")
 
     # Profile

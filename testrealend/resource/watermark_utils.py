@@ -30,26 +30,69 @@ if not QR_SECRET_KEY:
 
 
 def decode_qr_from_image(image_path):
-    """Decode QR code from image file. Returns decoded text or None."""
+    """Decode QR code from image file. Returns decoded text or None.
+
+    The extracted watermark may be a small 45x45 binary image.
+    We scale it up and try multiple preprocessing strategies for best results.
+    """
+    import numpy as np
+
+    # ── Load image ──
+    try:
+        img = Image.open(image_path)
+    except Exception:
+        return None
+    w, h = img.size
+
+    # ── Build multiple preprocessing strategies ──
+    strategies = [
+        ("original", img),
+        ("3x_nearest", img.resize((w * 3, h * 3), Image.NEAREST)),
+        ("5x_nearest", img.resize((w * 5, h * 5), Image.NEAREST)),
+        ("3x_lanczos", img.resize((w * 3, h * 3), Image.LANCZOS)),
+        ("rgb", img.convert("RGB")),
+    ]
+    rgb_img = img.convert("RGB")
+    strategies.append(("3x_rgb", rgb_img.resize((w * 3, h * 3), Image.NEAREST)))
+    try:
+        inv = img.convert("L").point(lambda x: 255 if x < 128 else 0)
+        strategies.append(("inverted", inv))
+        strategies.append(("3x_inverted", inv.resize((w * 3, h * 3), Image.NEAREST)))
+    except Exception:
+        pass
+
+    # ── Try each with pyzbar ──
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
 
-        decoded_objects = pyzbar_decode(Image.open(image_path))
-        if decoded_objects:
-            return decoded_objects[0].data.decode("utf-8")
+        for name, pil_img in strategies:
+            try:
+                decoded_objects = pyzbar_decode(pil_img)
+                if decoded_objects:
+                    text = decoded_objects[0].data.decode("utf-8")
+                    if text:
+                        return text
+            except Exception:
+                continue
     except Exception:
         pass
+
+    # ── Fallback: OpenCV ──
     try:
         import cv2
 
-        img = cv2.imread(image_path)
-        if img is not None:
-            detector = cv2.QRCodeDetector()
-            decoded, _, _ = detector.detectAndDecode(img)
-            if decoded:
-                return decoded
+        for name, pil_img in strategies[:4]:
+            try:
+                arr = np.array(pil_img.convert("RGB"))
+                img_bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)
+                decoded, _, _ = cv2.QRCodeDetector().detectAndDecode(img_bgr)
+                if decoded:
+                    return decoded
+            except Exception:
+                continue
     except Exception:
         pass
+
     return None
 
 

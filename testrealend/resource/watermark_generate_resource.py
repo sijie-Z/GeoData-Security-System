@@ -13,16 +13,21 @@ from model.Application import Application
 from resource.watermark_utils import build_qr_text, get_qr_version
 from utils.log_helper import log_action
 from utils.metrics import record_watermark
+from utils.required import admin_role_required
 
 
 class Adm1GetGenerateWatermarkApplications(Resource):
-    @jwt_required()
+    @admin_role_required("admin1")
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
 
-        # Only get applications where adm1 has approved
-        query = Application.query.filter(Application.adm1_statu == True)
+        # Only get applications where both adm1 and adm2 have approved
+        query = Application.query.filter(
+            Application.adm1_statu == True,
+            Application.adm2_statu == True,
+            Application.watermark_generated == False,
+        )
         pagination = query.paginate(page=page, per_page=page_size, error_out=False)
 
         items = [item.to_dict() for item in pagination.items]
@@ -54,7 +59,7 @@ class GenerateWatermarkResource(Resource):
       404: {description: 申请不存在}
     """
 
-    @jwt_required()
+    @admin_role_required("admin1")
     def post(self):
         data = request.get_json() or {}
         app_id = data.get("application_id")

@@ -61,6 +61,8 @@ def admin_role_required(*required_roles):
     Usage:
         @admin_role_required('admin1')           # must be admin1
         @admin_role_required('admin1', 'admin2')  # must be admin1 or admin2
+
+    Super-admin ('admin' or 'ADM*') always passes.
     """
 
     def decorator(func):
@@ -69,6 +71,10 @@ def admin_role_required(*required_roles):
         def wrapper(*args, **kwargs):
             identity = get_jwt_identity()
             sub_role = _get_admin_role(identity)
+
+            # Super-admin bypass (role='admin' or sub_role starts with 'ADM')
+            if sub_role == 'admin' or (sub_role and sub_role.startswith('ADM')):
+                return func(*args, **kwargs)
 
             if sub_role not in required_roles:
                 allowed = ", ".join(required_roles)

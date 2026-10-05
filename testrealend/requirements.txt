@@ -29,6 +29,8 @@ geoalchemy2
 pyzbar
 PyWavelets
 qrcode
+httpx
+openai
 pytest
 pytest-cov
 backports.zoneinfo; python_version < '3.9'

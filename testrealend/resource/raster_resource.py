@@ -22,16 +22,19 @@ from extension.extension import db
 from model.Application import Application
 from model.Raster_Data import RasterData
 from resource.watermark_utils import build_qr_text, get_qr_version
-from utils.required import admin_required
+from utils.required import admin_required, admin_role_required
 
 
 class Adm1GetRasterApplicationsGenerateWatermark(Resource):
-    @jwt_required()
+    @admin_role_required("admin1")
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
         query = Application.query.filter(
-            Application.adm1_statu == True, (Application.data_type == "raster") | (Application.data_type == None)
+            Application.adm1_statu == True,
+            Application.adm2_statu == True,
+            Application.watermark_generated == False,
+            (Application.data_type == "raster") | (Application.data_type == None),
         )
         pagination = query.paginate(page=page, per_page=page_size, error_out=False)
         items = [item.to_dict() for item in pagination.items]
@@ -39,7 +42,7 @@ class Adm1GetRasterApplicationsGenerateWatermark(Resource):
 
 
 class GenerateRasterWatermarkResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin1")
     def post(self):
         data = request.get_json() or {}
         app_id = data.get("application_id")
@@ -291,7 +294,7 @@ class RasterTilesResource(Resource):
 
 
 class RasterEmbedDispatchResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         app_id = data.get("application_id")

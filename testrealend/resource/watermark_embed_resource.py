@@ -3,6 +3,8 @@ import io
 import json
 import logging
 import os
+import re
+from datetime import date
 
 from flask import current_app, request, send_file
 from flask_jwt_extended import jwt_required
@@ -19,10 +21,11 @@ from model.Application import Application
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
+from utils.required import admin_role_required
 
 
 class Adm2GetEmbeddingWatermarkApplications(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
@@ -63,7 +66,7 @@ class EmbeddingWatermarkResource(Resource):
       404: {description: 申请或数据文件不存在}
     """
 
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json()
         app_id = data.get("application_id")
@@ -131,7 +134,12 @@ class EmbeddingWatermarkResource(Resource):
             f"app_id={item.id} data_id={item.data_id} vertices={cap.get('total_vertices', 'N/A')} utilization={cap.get('utilization_percent', 'N/A')}%",
         )
 
-        return send_file(zip_path, as_attachment=True, download_name=os.path.basename(zip_path))
+        # 文件名: {数据名称}_申请_{申请ID}_{日期}_水印已嵌入.zip
+        data_alias_safe = re.sub(r'[^\w\-一-鿿]', '_', item.data_alias or item.data_name or 'data')
+        today_str = date.today().isoformat()
+        download_name = f"{data_alias_safe}_申请_{item.id}_{today_str}_水印已嵌入.zip"
+
+        return send_file(zip_path, as_attachment=True, download_name=download_name)
 
     def _embed_raster(self, item, algorithm="lsb"):
         raster_record = db.session.get(RasterData, item.data_id)
@@ -185,4 +193,7 @@ class EmbeddingWatermarkResource(Resource):
             f"app_id={item.id} data_id={item.data_id} bit_count={result.get('bit_count', 'N/A')} changed={result.get('changed_count', 'N/A')}{psnr_str}",
         )
 
-        return send_file(result["stego_path"], as_attachment=True, download_name=os.path.basename(result["stego_path"]))
+        data_alias_safe = re.sub(r'[^\w\-一-鿿]', '_', item.data_alias or item.data_name or 'data')
+        today_str = date.today().isoformat()
+        download_name = f"{data_alias_safe}_申请_{item.id}_{today_str}_水印已嵌入.{os.path.basename(result['stego_path']).split('.')[-1]}"
+        return send_file(result["stego_path"], as_attachment=True, download_name=download_name)
