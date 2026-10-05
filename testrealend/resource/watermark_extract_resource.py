@@ -63,12 +63,18 @@ class VectorExtractResource(Resource):
 
         if not item:
             return {"status": False, "msg": "未找到对应的申请记录"}, 404
-        if not item.vr_data:
+
+        data_type = (item.data_type or "vector").lower()
+        if data_type == "raster":
+            # Raster embedding records the stego file (watermark_path) and its
+            # wm_meta/wm_map sidecars instead of vr_data.
+            if not item.watermark_embedded or not item.watermark_path:
+                return {"status": False, "msg": "该申请尚未完成水印嵌入，无法提取"}, 404
+        elif not item.vr_data:
             return {"status": False, "msg": "该申请尚未完成水印嵌入，无法提取"}, 404
 
         temp_dir = None
         try:
-            data_type = (item.data_type or "vector").lower()
             filename = secure_filename(file.filename)
             temp_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "temp", f"extract_{app_id}")
             os.makedirs(temp_dir, exist_ok=True)
