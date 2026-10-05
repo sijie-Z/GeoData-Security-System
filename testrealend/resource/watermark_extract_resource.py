@@ -315,15 +315,18 @@ class QRCodeDecodeResource(Resource):
         parsed = parse_qr_text(qr_text)
         signature = parsed.pop("Signature", "")
 
+        # Sign over everything preceding the "Signature:" line. The generator
+        # (build_qr_text) signs all header/body lines — including the
+        # "=== SPATIAL DATA TRACKING SYSTEM ===" banner — so filtering the
+        # marker lines out (as this endpoint used to) can never match.
+        # Same convention as _build_response above.
         content_lines = qr_text.split("\n")
-        content_to_verify = "\n".join(
-            line for line in content_lines if not line.startswith("Signature:") and not line.startswith("===")
-        ).strip()
-
+        sig_idx = next((i for i, line in enumerate(content_lines) if line.startswith("Signature:")), None)
+        content_to_verify = "\n".join(content_lines[:sig_idx]) if sig_idx is not None else ""
         expected_signature = hmac.new(QR_SECRET_KEY.encode(), content_to_verify.encode(), hashlib.sha256).hexdigest()[
             :16
         ]
-        signature_ok = hmac.compare_digest(signature, expected_signature)
+        signature_ok = sig_idx is not None and hmac.compare_digest(signature, expected_signature)
 
         return {
             "status": True,
