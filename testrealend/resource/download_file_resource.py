@@ -250,7 +250,13 @@ class TokenDownloadResource(Resource):
             return {"status": False, "msg": "下载链接无效"}, 404
         if token_record.is_used:
             return {"status": False, "msg": "下载链接已使用"}, 403
-        if token_record.expires_at and token_record.expires_at < datetime.now(UTC):
+        expires_at = token_record.expires_at
+        if expires_at is not None and expires_at.tzinfo is None:
+            # DB DATETIME columns hold naive values that were written in UTC
+            # (datetime.now(UTC)); attach UTC before comparing so aware/naive
+            # never mix (same convention as admin_application_resource.py).
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if expires_at and expires_at < datetime.now(UTC):
             return {"status": False, "msg": "下载链接已过期"}, 403
 
         app = db.session.get(Application, token_record.application_id)
