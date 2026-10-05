@@ -11,7 +11,8 @@ tile loads cannot carry headers).
 Note on fixtures: ``test/test_raster/test_raster.tif`` (the repo's raster
 fixture) is *not* georeferenced (no CRS, identity transform), so a real,
 georeferenced GeoTIFF is generated with rasterio for the tile-rendering cases;
-the repo fixture is used to assert the no-CRS source yields a clean 4xx.
+a CRS-less source (the repo fixture when present, otherwise an equivalent
+generated TIFF) is used to assert a clean 4xx.
 """
 
 import io
@@ -82,6 +83,25 @@ REPO_RASTER_FIXTURE = os.path.abspath(
 )
 
 
+@pytest.fixture(scope="module")
+def no_crs_tif(tmp_path_factory):
+    """A plain, non-georeferenced TIFF — the repo fixture, or an equivalent one.
+
+    Reduced CI mounts may contain only ``testrealend/`` (the repo-root ``test/``
+    folder then does not exist at its expected location), so generate an
+    equivalent identity-transform, CRS-less TIFF when the repo file is absent
+    instead of losing the no-CRS assertion.
+    """
+    if os.path.exists(REPO_RASTER_FIXTURE):
+        return REPO_RASTER_FIXTURE
+    path = tmp_path_factory.mktemp("no_crs") / "no_crs.tif"
+    rng = np.random.default_rng(7)
+    data = (rng.random((64, 64)) * 255).astype("uint8")
+    with rasterio.open(path, "w", driver="GTiff", width=64, height=64, count=1, dtype="uint8") as dst:
+        dst.write(data, 1)
+    return path
+
+
 class TestTileRendering:
     def test_header_auth_returns_rendered_png(self, client, db, auth_headers, geotiff, valid_tile):
         record = _make_raster(db, geotiff)
@@ -121,12 +141,12 @@ class TestTileRendering:
         resp = client.get(_tile_url(record.id, deep), headers=auth_headers)
         assert resp.status_code == 400
 
-    def test_source_without_crs_returns_4xx_not_500(self, client, db, auth_headers, valid_tile):
-        # The repo fixture is a plain (non-georeferenced) TIFF — prove it really
+    def test_source_without_crs_returns_4xx_not_500(self, client, db, auth_headers, valid_tile, no_crs_tif):
+        # The fixture is a plain (non-georeferenced) TIFF — prove it really
         # has no CRS, then assert the endpoint fails cleanly instead of 500.
-        with rasterio.open(REPO_RASTER_FIXTURE) as src:
+        with rasterio.open(no_crs_tif) as src:
             assert src.crs is None
-        record = _make_raster(db, REPO_RASTER_FIXTURE, name="no-crs")
+        record = _make_raster(db, no_crs_tif, name="no-crs")
         resp = client.get(_tile_url(record.id, valid_tile), headers=auth_headers)
         assert resp.status_code in (400, 422)
 
