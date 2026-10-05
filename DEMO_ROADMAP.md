@@ -33,11 +33,12 @@
 | MySQL | 3306 | OK — 13 users, 53 applications, 8 datasets |
 | PostgreSQL | 5432 | OK — spatial data (shp_data, raster_data) |
 
-**Verified accounts:**
-- adm1: 22200214135 / liyi (初审权限)
-- adm2: 32200214135 / lier (复审权限)
-- adm3: 42200214135 / lisan (附加审核权限)
+**Verified accounts（2026-10-05 全链路 E2E 实测修正，旧文档中的 liyi/lier/lisan 已失效）:**
+- adm1: 22200214135 / admin123 (初审权限)
+- adm2: 32200214135 / admin123 (复审权限)
+- adm3: 42200214135 / admin123 (附加审核权限)
 - employee: TEST001 / test123456
+- admin: admin / admin123
 
 ---
 
