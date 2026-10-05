@@ -1,0 +1,60 @@
+name: Bootstrap issues and PRs (one-shot)
+
+on:
+  push:
+    branches: ['bot/**']
+
+permissions:
+  issues: write
+  pull-requests: write
+  contents: read
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const { owner, repo } = context.repo;
+            const read = (p) => fs.readFileSync(p, 'utf8');
+
+            async function ensureIssue(title, body) {
+              const res = await github.rest.issues.listForRepo({ owner, repo, state: 'all', per_page: 100 });
+              const found = res.data.find((i) => i.title === title && !i.pull_request);
+              if (found) { core.info(`issue already exists: #${found.number} ${title}`); return found.number; }
+              const created = await github.rest.issues.create({ owner, repo, title, body });
+              core.info(`created issue #${created.data.number}: ${title}`);
+              return created.data.number;
+            }
+
+            async function ensurePR(head, title, body) {
+              const res = await github.rest.pulls.list({ owner, repo, state: 'open', head: `${owner}:${head}` });
+              if (res.data.length) { core.info(`PR already exists for ${head}: #${res.data[0].number}`); return res.data[0].number; }
+              const created = await github.rest.pulls.create({ owner, repo, base: 'main', head, title, body });
+              core.info(`created PR #${created.data.number} for ${head}`);
+              return created.data.number;
+            }
+
+            const issue1 = await ensureIssue(
+              '栅格瓦片接口取不到任何瓦片：生成与读取路径不一致',
+              read('_bootstrap/issue01.md')
+            );
+            const issue2 = await ensureIssue(
+              '栅格瓦片端点的浏览器端鉴权缺口：JWT 校验与前端瓦片请求方式不匹配',
+              read('_bootstrap/issue02.md')
+            );
+            await ensurePR(
+              'fix/raster-tile-path',
+              'fix: raster tile endpoint could never find generated tiles (path layout mismatch)',
+              read('_bootstrap/pr-raster.md')
+                .replace('{{CLOSES}}', `Closes #${issue1}`)
+                .replace('{{ISSUE2}}', `#${issue2}`)
+            );
+            await ensurePR(
+              'chore/github-infra',
+              'chore: add GitHub issue/PR templates and CodeRabbit config',
+              read('_bootstrap/pr-infra.md')
+            );
