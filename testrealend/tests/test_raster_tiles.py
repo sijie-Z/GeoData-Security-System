@@ -14,6 +14,7 @@ georeferenced GeoTIFF is generated with rasterio for the tile-rendering cases;
 the repo fixture is used to assert the no-CRS source yields a clean 4xx.
 """
 
+import io
 import os
 import sqlite3
 
@@ -21,6 +22,7 @@ import morecantile
 import numpy as np
 import pytest
 import rasterio
+from PIL import Image
 from rasterio.transform import from_bounds
 
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
@@ -249,3 +251,37 @@ class TestGenerateTilesCompatEndpoint:
     def test_generate_tiles_requires_auth(self, client):
         resp = client.post("/api/raster/generate_tiles", json={"data_id": 1})
         assert resp.status_code in (401, 422)
+
+
+class TestFloatTileRendering:
+    """O2 regression: float rasters used to render as opaque black tiles —
+    rio-tiler's PNG fallback rescales against the float64 dtype range, whose
+    span overflows to +inf and maps every pixel to 0."""
+
+    @pytest.fixture(scope="class")
+    def float_geotiff(self, tmp_path_factory):
+        path = tmp_path_factory.mktemp("tiles_float") / "geo_float.tif"
+        rng = np.random.default_rng(7)
+        data = (rng.random((3, 256, 256)) * 3000).astype("float64")
+        data[:, :20, :20] = np.nan  # no-data corner
+        with rasterio.open(
+            path,
+            "w",
+            driver="GTiff",
+            width=256,
+            height=256,
+            count=3,
+            dtype="float64",
+            crs="EPSG:4326",
+            transform=from_bounds(*FIXTURE_BOUNDS, 256, 256),
+        ) as dst:
+            dst.write(data)
+        return path
+
+    def test_float_tile_is_rendered_not_black(self, client, db, auth_headers, float_geotiff, valid_tile):
+        record = _make_raster(db, float_geotiff, name="float-src")
+        resp = client.get(_tile_url(record.id, valid_tile), headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.data.startswith(PNG_SIGNATURE)
+        arr = np.array(Image.open(io.BytesIO(resp.data)))
+        assert arr[:, :, :3].max() > 0, "float tile rendered all-black despite valid data"
