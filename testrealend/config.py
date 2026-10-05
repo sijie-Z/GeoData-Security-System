@@ -44,6 +44,12 @@ class Config:
     JWT_ACCESS_TOKEN_EXPIRES = 7200  # 2 hours in seconds
     JWT_REFRESH_TOKEN_EXPIRES = 604800  # 7 days in seconds
     JWT_BLOCKLIST_ENABLED = True
+    # Identity is a dict throughout this codebase (get_jwt_identity() returns a dict).
+    # Flask-JWT-Extended >= 4.7 defaults JWT_VERIFY_SUB to True; combined with PyJWT
+    # >= 2.10 that rejects dict identities ("Subject must be a string"), so every
+    # authenticated request 401s on a fresh install. Disable the check to keep the
+    # existing dict contract (stringifying identity would be an auth-wide rewrite).
+    JWT_VERIFY_SUB = False
 
     # Rate limiter — uses Redis for multi-worker consistency (falls back to memory)
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", os.environ.get("REDIS_URL", "memory://"))
