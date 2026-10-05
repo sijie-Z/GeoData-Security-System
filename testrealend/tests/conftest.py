@@ -1,11 +1,41 @@
 import os
 
 import pytest
+from sqlalchemy.engine import make_url
 
 # Set test environment before importing app
 os.environ["FLASK_ENV"] = "testing"
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["JWT_SECRET_KEY"] = "test-jwt-secret-key"
+
+from config import BASE_DIR, TestingConfig
+
+
+def _delete_stale_sqlite_test_databases():
+    """Delete file-backed SQLite test databases so every run starts clean.
+
+    Must run BEFORE `app` is imported: importing app.py builds an app instance
+    at module level, whose engines open pooled connections to instance/test.db
+    and on Windows keep the file locked, so it could never be removed later.
+    Stale rows from a previous run otherwise break the next one (UNIQUE
+    constraint violations, dashboard date aggregation crashes).
+    """
+    instance_path = os.path.join(BASE_DIR, "instance")
+    os.makedirs(instance_path, exist_ok=True)
+    for uri in TestingConfig.SQLALCHEMY_BINDS.values():
+        url = make_url(str(uri))
+        if not url.drivername.startswith("sqlite") or not url.database or url.database == ":memory:":
+            continue
+        path = url.database
+        if not os.path.isabs(path):
+            path = os.path.join(instance_path, path)
+        path = os.path.normpath(path)
+        for candidate in (path, f"{path}-journal", f"{path}-wal", f"{path}-shm"):
+            if os.path.exists(candidate):
+                os.remove(candidate)
+
+
+_delete_stale_sqlite_test_databases()
 
 from app import create_app
 from extension.extension import db as _db
