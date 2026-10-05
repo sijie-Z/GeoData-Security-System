@@ -59,7 +59,9 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
          <router-view v-slot="{ Component }">
            <transition name="page-fade" mode="out-in">
              <keep-alive :include="['EmployeeDashboard', 'EmployeeDataViewing', 'EmployeeNotifications']">
-               <component :is="Component" />
+               <div :key="$route.path" style="height: 100%;">
+                 <component :is="Component" />
+               </div>
              </keep-alive>
            </transition>
          </router-view>

@@ -109,13 +109,16 @@
   </template>
 
 <script setup>
-import { ref, reactive, nextTick } from 'vue';
+import { ref, reactive, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { Upload, UploadFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { uploadShpData } from '@/api/upload';
 
 const { t } = useI18n()
+
+let resetTimeout = null
+onBeforeUnmount(() => { if (resetTimeout) clearTimeout(resetTimeout) })
 
 const uploadFormRef = ref(null);
 const uploadRef = ref(null);
@@ -201,7 +204,7 @@ const submitUpload = async () => {
 
       uploadPercentage.value = 100;
       ElMessage.success(t('adminDataUpload.uploadSuccess'));
-      setTimeout(resetForm, 1000);
+      resetTimeout = setTimeout(resetForm, 1000);
     } catch (error) {
       const msg = error.response?.data?.msg || t('adminDataUpload.uploadFailed');
       ElMessage.error(msg);

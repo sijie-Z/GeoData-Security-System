@@ -103,12 +103,19 @@
 
 <script setup>
 defineOptions({ name: 'EmployeeDashboard' });
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onActivated, onDeactivated, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import { getDashboard } from '@/api/employee';
 import { getAnnouncements } from '@/api/admin';
+
+// ── 性能优化：echarts 模块级缓存 ──
+let echartsMod = null;
+async function getEcharts() {
+  if (!echartsMod) echartsMod = await import('echarts');
+  return echartsMod;
+}
 
 const { t } = useI18n();
 const router = useRouter();
@@ -121,6 +128,7 @@ const dataTypeChartRef = ref(null);
 let trendIns = null;
 let statusIns = null;
 let dataTypeIns = null;
+let resizeTimer = null;
 
 const announcements = ref([]);
 const todayVisits = ref(0);
@@ -159,18 +167,23 @@ const fetchDashboard = async () => {
     lastLoginTime.value = data.last_login_time || '—';
     announcements.value = ann.data?.data?.list || [];
 
+    loading.value = false;
+    // 等待 DOM 渲染完成（keep-alive 恢复时容器需要额外一帧才能拿到尺寸）
     await nextTick();
-    renderCharts();
-  } finally {
+    await new Promise(r => setTimeout(r, 50));
+    await renderCharts();
+  } catch (err) {
+    console.error('获取仪表盘数据失败:', err);
     loading.value = false;
   }
 };
 
+// ── 性能优化：复用已有图表实例 ──
 const renderCharts = async () => {
-  const echarts = await import('echarts');
+  const echarts = await getEcharts();
+
   if (trendChartRef.value) {
-    trendIns?.dispose();
-    trendIns = echarts.init(trendChartRef.value);
+    if (!trendIns) trendIns = echarts.init(trendChartRef.value);
     trendIns.setOption({
       tooltip: { trigger: 'axis' },
       legend: { data: [t('empDashboard.applicationCount'), t('empDashboard.downloadCount')] },
@@ -180,12 +193,11 @@ const renderCharts = async () => {
         { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
         { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
       ]
-    });
+    }, true);
   }
 
   if (statusChartRef.value) {
-    statusIns?.dispose();
-    statusIns = echarts.init(statusChartRef.value);
+    if (!statusIns) statusIns = echarts.init(statusChartRef.value);
     statusIns.setOption({
       tooltip: { trigger: 'item' },
       series: [{
@@ -197,12 +209,11 @@ const renderCharts = async () => {
           { value: applicationStatusDist.value.rejected || 0, name: t('empDashboard.rejected') }
         ]
       }]
-    });
+    }, true);
   }
 
   if (dataTypeChartRef.value) {
-    dataTypeIns?.dispose();
-    dataTypeIns = echarts.init(dataTypeChartRef.value);
+    if (!dataTypeIns) dataTypeIns = echarts.init(dataTypeChartRef.value);
     dataTypeIns.setOption({
       tooltip: { trigger: 'item' },
       series: [{
@@ -213,29 +224,38 @@ const renderCharts = async () => {
           { value: dataTypePreference.value.raster || 0, name: t('empDashboard.raster') }
         ]
       }]
-    });
+    }, true);
   }
 };
 
 const goTo = (path) => router.push(path);
 const refreshNow = () => fetchDashboard();
 
+// ── 性能优化：防抖 resize ──
 const onResize = () => {
-  trendIns?.resize();
-  statusIns?.resize();
-  dataTypeIns?.resize();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    trendIns?.resize();
+    statusIns?.resize();
+    dataTypeIns?.resize();
+  }, 150);
 };
 
+// ── 性能优化：keep-alive 兼容 ──
 onMounted(async () => {
+  // Vue 3.4 keep-alive 下 onActivated 有时不触发，用 onMounted 兜底
+  await fetchDashboard();
+  window.addEventListener('resize', onResize);
+});
+onActivated(async () => {
   await fetchDashboard();
   window.addEventListener('resize', onResize);
 });
 
-onBeforeUnmount(() => {
+onDeactivated(() => {
   window.removeEventListener('resize', onResize);
-  trendIns?.dispose();
-  statusIns?.dispose();
-  dataTypeIns?.dispose();
+  if (resizeTimer) { clearTimeout(resizeTimer); resizeTimer = null; }
+  // 保留图表实例供 keep-alive 恢复
 });
 </script>
 

@@ -48,8 +48,8 @@ axiosInstance.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // Attempt token refresh on 401 (once)
-    if (error.response?.status === 401 && !originalRequest._retry
+    // Attempt token refresh on 401 or 422 (Flask-JWT-Extended can return 422)
+    if ((error.response?.status === 401 || error.response?.status === 422) && !originalRequest._retry
         && !originalRequest.url.includes('/api/refresh-token')
         && !originalRequest.url.includes('/api/login')) {
 
@@ -72,11 +72,8 @@ axiosInstance.interceptors.response.use(
           refresh_token: userStore.refreshToken,
         })
 
-        userStore.setUserInfo({
-          ...userStore.currentUser,
-          token: data.access_token,
-          refreshToken: data.refresh_token,
-        })
+        // Only update tokens, don't overwrite the entire currentUser
+        userStore.updateTokens(data.access_token, data.refresh_token)
 
         originalRequest.headers.Authorization = `Bearer ${data.access_token}`
         processQueue(null, data.access_token)

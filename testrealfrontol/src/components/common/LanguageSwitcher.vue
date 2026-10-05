@@ -20,6 +20,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { Switch } from '@element-plus/icons-vue'
 import { setLocale } from '@/locales/index.js'
 
 const { locale } = useI18n()

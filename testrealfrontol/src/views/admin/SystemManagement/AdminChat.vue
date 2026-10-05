@@ -66,11 +66,6 @@
               </div>
             </div>
 
-            <!-- Typing indicator -->
-            <div v-if="peerTyping" class="typing-indicator">
-              {{ activePeer.peer_name || activePeer.peer_number }} {{ $t('adminChat.typing') || 'is typing...' }}
-            </div>
-
             <!-- 输入区域 -->
             <div class="input-area">
               <el-input
@@ -123,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -136,19 +131,6 @@ import {
 } from '@/api/chat'
 import { getAdminUsers, getEmployeeList } from '@/api/admin'
 import { useUserStore } from '@/stores/userStore'
-import {
-  connectSocket,
-  disconnectSocket,
-  isSocketConnected,
-  joinChat,
-  sendMessage as socketSendMessage,
-  onNewMessage,
-  onTyping,
-  onMessagesRead,
-  markAsRead,
-  emitTyping,
-  offAllChatEvents,
-} from '@/utils/socket'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -169,9 +151,6 @@ const employees = ref([])
 const admins = ref([])
 const messageBoxRef = ref(null)
 
-// Typing indicator state
-const peerTyping = ref(false)
-let typingTimeout = null
 let pollInterval = null
 
 const filteredEmployees = computed(() => {
@@ -200,7 +179,7 @@ const scrollToBottom = async () => {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Polling fallback                                                   */
+/*  HTTP polling                                                       */
 /* ------------------------------------------------------------------ */
 
 const startPolling = () => {
@@ -208,7 +187,7 @@ const startPolling = () => {
   pollInterval = setInterval(async () => {
     await loadConversations()
     if (activePeer.value) await loadMessages()
-  }, 30000)
+  }, 5000)
 }
 
 const stopPolling = () => {
@@ -272,10 +251,6 @@ const selectConversation = async (item) => {
     peer_name: item.peer_name
   }
   await loadMessages()
-  // Notify the server via socket that we've read this conversation
-  if (isSocketConnected()) {
-    markAsRead({ peerNumber: item.peer_number, peerRole: item.peer_role })
-  }
 }
 
 const sendMessage = async () => {
@@ -290,35 +265,17 @@ const sendMessage = async () => {
   }
   sending.value = true
   try {
-    if (isSocketConnected()) {
-      await socketSendMessage({
-        toUserNumber: activePeer.value.peer_number,
-        toUserRole: activePeer.value.peer_role,
-        content,
-      })
+    const { data } = await httpSendMessage({
+      receiver_number: activePeer.value.peer_number,
+      receiver_role: activePeer.value.peer_role,
+      content
+    })
+    if (data?.status) {
       messageText.value = ''
-      // Optimistically append our own message
-      messages.value.push({
-        id: Date.now(),
-        content,
-        created_at: new Date().toLocaleString(),
-        is_me: true,
-      })
-      await scrollToBottom()
+      await loadMessages()
       await loadConversations()
     } else {
-      // Fallback to HTTP
-      const { data } = await httpSendMessage({
-        receiver_number: activePeer.value.peer_number,
-        receiver_role: activePeer.value.peer_role,
-        content
-      })
-      if (data?.status) {
-        messageText.value = ''
-        await loadMessages()
-      } else {
-        ElMessage.error(data?.msg || t('adminChat.sendFailed'))
-      }
+      ElMessage.error(data?.msg || t('adminChat.sendFailed'))
     }
   } catch (e) {
     ElMessage.error(t('adminChat.sendFailed'))
@@ -365,91 +322,12 @@ const startChat = (row, role) => {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Typing indicator                                                   */
+/*  Init — pure HTTP polling                                           */
 /* ------------------------------------------------------------------ */
-
-const onInputTyping = () => {
-  if (!activePeer.value || !isSocketConnected()) return
-  emitTyping({ toUserNumber: activePeer.value.peer_number })
-}
-
-// Watch messageText for typing events (debounced)
-let draftTypingTimer = null
-watch(messageText, () => {
-  if (draftTypingTimer) clearTimeout(draftTypingTimer)
-  draftTypingTimer = setTimeout(onInputTyping, 500)
-})
-
-/* ------------------------------------------------------------------ */
-/*  Socket setup                                                       */
-/* ------------------------------------------------------------------ */
-
-const setupSocketListeners = () => {
-  offAllChatEvents()
-
-  onNewMessage((msg) => {
-    if (activePeer.value) {
-      const isFromActivePeer =
-        msg.sender_number === activePeer.value.peer_number &&
-        msg.sender_role === activePeer.value.peer_role
-      const isToMe = msg.receiver_number === userStore.user_number
-
-      if (isFromActivePeer && isToMe) {
-        messages.value.push({
-          id: msg.id,
-          content: msg.content,
-          created_at: msg.created_at,
-          is_me: false,
-        })
-        scrollToBottom()
-        markAsRead({
-          peerNumber: activePeer.value.peer_number,
-          peerRole: activePeer.value.peer_role,
-        })
-      }
-    }
-    loadConversations()
-  })
-
-  onTyping((data) => {
-    if (!activePeer.value) return
-    if (data.from_user_number === activePeer.value.peer_number) {
-      peerTyping.value = true
-      if (typingTimeout) clearTimeout(typingTimeout)
-      typingTimeout = setTimeout(() => {
-        peerTyping.value = false
-      }, 3000)
-    }
-  })
-
-  onMessagesRead(() => {
-    loadConversations()
-  })
-}
 
 const initChat = async () => {
   await Promise.all([loadConversations(), loadAllUsers()])
-
-  const token = userStore.token
-  if (!token) return
-
-  connectSocket(token, {
-    onAuthenticated (data) {
-      if (data.user_number) {
-        joinChat(data.user_number)
-      }
-      stopPolling()
-      setupSocketListeners()
-    },
-  })
-
-  // If socket doesn't connect within 5 seconds, start polling fallback
-  setTimeout(() => {
-    if (!isSocketConnected()) {
-      ElMessage.warning(t('adminChat.socketFallback') || 'Real-time connection unavailable, using polling')
-      startPolling()
-    }
-  }, 5000)
+  startPolling()
 }
 
 /* ------------------------------------------------------------------ */
@@ -478,11 +356,7 @@ onMounted(async () => {
 })
 
 onBeforeUnmount(() => {
-  offAllChatEvents()
   stopPolling()
-  if (typingTimeout) clearTimeout(typingTimeout)
-  if (draftTypingTimer) clearTimeout(draftTypingTimer)
-  disconnectSocket()
 })
 </script>
 
@@ -584,7 +458,6 @@ onBeforeUnmount(() => {
 .msg-item .time { font-size: 11px; color: #909399; margin-top: 4px; }
 .no-msg { text-align: center; color: #909399; padding: 40px; }
 
-.typing-indicator { padding: 4px 16px 6px; font-size: 12px; color: #909399; font-style: italic; background: #f9f9f9; }
 .input-area {
   border-top: 1px solid #e4e7ed;
   padding: 12px 16px;

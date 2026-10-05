@@ -1,8 +1,12 @@
 <template>
   <div class="watermark-extraction-container" v-loading="loading">
     <div class="input-section">
-      <el-input v-model="GetIdInput" style="width: 250px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
+      <span class="input-label">{{ $t('wmExtract.applicationIdLabel') }}</span>
+      <el-input v-model="GetIdInput" style="width: 200px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
       <el-button size="default" type="primary" @click="click_extract">{{ $t('wmExtract.selectAndExtract') }}</el-button>
+      <el-tooltip :content="$t('wmExtract.idHint')" placement="top">
+        <el-icon style="color: #909399; cursor: help; font-size: 16px;"><QuestionFilled /></el-icon>
+      </el-tooltip>
     </div>
 
     <el-card class="watermark-card" shadow="hover">
@@ -85,6 +89,7 @@
           class="send_file_uploader"
           drag
           :action="uploadUrl"
+          :headers="uploadHeaders"
           :data="uploadData"
           :limit="1"
           accept=".zip"
@@ -109,12 +114,14 @@
 </template>
 
 <script setup>
-import { UploadFilled } from "@element-plus/icons-vue";
-import { ref, watch } from "vue";
+import { UploadFilled, QuestionFilled } from "@element-plus/icons-vue";
+import { ref, computed } from "vue";
 import { useI18n } from 'vue-i18n';
+import { useUserStore } from '@/stores/userStore';
 import { ElMessage, ElMessageBox } from "element-plus";
 
 const { t } = useI18n();
+const userStore = useUserStore();
 
 // State and refs
 const loading = ref(false);
@@ -127,17 +134,15 @@ const decodedInfo = ref(null);
 // API URL from environment variables
 const uploadUrl = `/api/vector/extract`;
 
-// Data for file upload
-const uploadData = ref({
-  application_id: GetIdInput.value
-});
+// Inject JWT token into upload headers
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}));
 
-// Watch for changes in the input field to update the upload data
-watch(GetIdInput, (newValue) => {
-  uploadData.value = {
-    application_id: newValue
-  };
-});
+// 上传时携带申请编号 (用 computed 确保 el-upload 始终拿到最新值)
+const uploadData = computed(() => ({
+  application_id: GetIdInput.value
+}));
 
 // Handlers
 const click_extract = () => {
@@ -230,6 +235,13 @@ const resetForm = () => {
   align-items: center;
   gap: 15px;
   margin-bottom: 25px;
+}
+
+.input-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #303133;
+  white-space: nowrap;
 }
 
 /* Card for the watermark display */

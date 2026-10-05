@@ -150,7 +150,7 @@
   </template>
 
   <script setup>
-  import { reactive, ref, onMounted, watch, nextTick } from 'vue';
+  import { reactive, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, ElMessageBox } from 'element-plus';
   import {
@@ -251,46 +251,39 @@
   const rasterMapVisible = ref(false);
   const rasterMapContainer = ref(null);
   let rasterMapInstance = null;
+  let rasterMapSeq = 0;
 
-  const openRasterMapDialog = () => {
+  const openRasterMapDialog = async () => {
     if (!selectedData.data_id) {
       ElMessage.warning(t('rasterWmEmbed.cannotGetRasterId'));
       return;
     }
+    destroyRasterMapView();
     rasterMapVisible.value = true;
-    nextTick(() => {
-      import('ol/Map').then(({ default: Map }) => {
-      import('ol/View').then(({ default: OlView }) => {
-        import('ol/layer/Tile').then(({ default: TileLayer }) => {
-          import('ol/source').then(({ XYZ }) => {
-            import('ol/proj').then(({ fromLonLat }) => {
-              if (!rasterMapContainer.value) return;
-              const tileUrl = `/api/raster_tiles/${selectedData.data_id}/{z}/{x}/{y}.png`;
-              rasterMapInstance = new Map({
-                target: rasterMapContainer.value,
-                layers: [
-                  new TileLayer({
-                    source: new XYZ({
-                      url: tileUrl,
-                      maxZoom: 18
-                    })
-                  })
-                ],
-                view: new OlView({
-                  projection: 'EPSG:3857',
-                  center: fromLonLat([104.0, 35.0]),
-                  zoom: 4
-                })
-              });
-            });
-          });
-        });
+    const seq = ++rasterMapSeq;
+    try {
+      await nextTick();
+      if (rasterMapSeq !== seq || !rasterMapContainer.value) return;
+      const [{ default: Map }, { default: OlView }, { default: TileLayer }, { XYZ }, { fromLonLat }] =
+        await Promise.all([
+          import('ol/Map').then(m => m),
+          import('ol/View').then(m => m),
+          import('ol/layer/Tile').then(m => m),
+          import('ol/source').then(m => m),
+          import('ol/proj').then(m => m),
+        ]);
+      if (rasterMapSeq !== seq || !rasterMapContainer.value) return;
+      const tileUrl = `/api/raster_tiles/${selectedData.data_id}/{z}/{x}/{y}.png`;
+      rasterMapInstance = new Map({
+        target: rasterMapContainer.value,
+        layers: [new TileLayer({ source: new XYZ({ url: tileUrl, maxZoom: 18 }) })],
+        view: new OlView({ projection: 'EPSG:3857', center: fromLonLat([104.0, 35.0]), zoom: 4 })
       });
-    }).catch(e => {
+    } catch (e) {
+      if (rasterMapSeq !== seq) return;
       console.error('地图加载失败', e);
       ElMessage.error(t('rasterWmEmbed.mapLoadFailed'));
-    });
-    });
+    }
   };
 
   const generatingTiles = ref(false);
@@ -314,11 +307,17 @@
   };
 
   const destroyRasterMapView = () => {
+    rasterMapSeq++;
     if (rasterMapInstance) {
-      rasterMapInstance.setTarget(null);
+      try { rasterMapInstance.setTarget(null) } catch (_) {}
+      try { rasterMapInstance.dispose() } catch (_) {}
       rasterMapInstance = null;
     }
   };
+
+  onBeforeUnmount(() => {
+    destroyRasterMapView();
+  });
 
   const handleClose = (done) => {
     ElMessageBox.confirm(t('rasterWmEmbed.confirmClose')).then(() => {

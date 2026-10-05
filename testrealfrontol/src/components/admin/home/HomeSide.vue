@@ -23,6 +23,7 @@
         <el-menu-item index="/admin/admin-application">{{ $t('sidebar.admin.adminAppApproval') }}</el-menu-item>
       </el-sub-menu>
 
+      <!-- 水印菜单（后端 API 已有角色限制，前端全部显示） -->
       <el-sub-menu index="watermark">
         <template #title>
           <el-icon><Picture /></el-icon>
@@ -58,6 +59,8 @@
           <span>{{ $t('sidebar.admin.dataMgmt') }}</span>
         </template>
         <el-menu-item index="/admin/data/upload">{{ $t('sidebar.admin.dataUpload') }}</el-menu-item>
+        <el-menu-item index="/admin/data/raster-upload">{{ $t('sidebar.admin.rasterUpload') }}</el-menu-item>
+        <el-menu-item index="/admin/data/manage">{{ $t('adminDataManage.title') || '数据管理' }}</el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu index="employee">

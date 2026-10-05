@@ -135,6 +135,35 @@
       </el-card>
     </section>
 
+    <!-- 图表区域 2：活跃度 + 数据类型分布 -->
+    <section class="charts-grid">
+      <el-card shadow="hover">
+        <template #header><span>{{ $t('adminDashboard.hourlyActivity') }}</span></template>
+        <div v-if="hourlyActivity.length > 0" ref="hourlyChartRef" class="chart-container"></div>
+        <div v-else class="chart-empty">
+          <el-empty :description="$t('adminDashboard.noActivityData')" :image-size="80" />
+        </div>
+      </el-card>
+      <el-card shadow="hover">
+        <template #header><span>{{ $t('adminDashboard.dataTypeDist') }}</span></template>
+        <div v-if="dataTypeStats.vector || dataTypeStats.raster" ref="dataTypeChartRef" class="chart-container"></div>
+        <div v-else class="chart-empty">
+          <el-empty :description="$t('adminDashboard.noData')" :image-size="80" />
+        </div>
+      </el-card>
+    </section>
+
+    <!-- 管理员审批效率 -->
+    <section class="full-chart-section">
+      <el-card shadow="hover">
+        <template #header><span>{{ $t('adminDashboard.adminEfficiency') }}</span></template>
+        <div v-if="adminEfficiency.length > 0" ref="efficiencyChartRef" class="chart-container-wide"></div>
+        <div v-else class="chart-empty">
+          <el-empty :description="$t('adminDashboard.noReviewData')" :image-size="80" />
+        </div>
+      </el-card>
+    </section>
+
     <!-- 底部统计 -->
     <section class="bottom-grid">
       <el-card shadow="hover">
@@ -162,11 +191,11 @@
         <div class="hot-list">
           <div v-for="(item, idx) in hotData.slice(0, 5)" :key="idx" class="hot-item">
             <span class="rank" :class="{ top: idx < 3 }">{{ idx + 1 }}</span>
-            <span class="name">{{ item.name }}</span>
+            <span class="name">{{ item.name || $t('adminDashboard.untitled') }}</span>
             <el-tag size="small" :type="item.type === 'vector' ? 'primary' : 'success'">
               {{ item.type === 'vector' ? $t('adminDashboard.vector') : $t('adminDashboard.raster') }}
             </el-tag>
-            <span class="count">{{ item.downloads }} {{ $t('adminDashboard.timesUnit') }}</span>
+            <span class="count">{{ item.downloads ?? 0 }} {{ $t('adminDashboard.timesUnit') }}</span>
           </div>
           <div v-if="hotData.length === 0" class="empty-tip">{{ $t('adminDashboard.noDownloadData') }}</div>
         </div>
@@ -195,7 +224,7 @@
 
 <script setup>
 defineOptions({ name: 'AdminDashboard' });
-import { ref, computed, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
@@ -205,6 +234,13 @@ import {
   Document, UserFilled, List, ChatDotRound, Upload
 } from '@element-plus/icons-vue';
 
+// ── 性能优化：echarts 模块级缓存，只 import 一次 ──
+let echartsMod = null;
+async function getEcharts() {
+  if (!echartsMod) echartsMod = await import('echarts');
+  return echartsMod;
+}
+
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
@@ -213,8 +249,13 @@ const lastUpdate = ref('-');
 
 const trendChartRef = ref(null);
 const statusChartRef = ref(null);
-let trendIns = null, statusIns = null;
+const hourlyChartRef = ref(null);
+const dataTypeChartRef = ref(null);
+const efficiencyChartRef = ref(null);
+let trendIns = null, statusIns = null, hourlyIns = null, dataTypeIns = null, efficiencyIns = null;
 let autoRefreshTimer = null;
+let resizeTimer = null;
+let chartsReady = false;
 
 const metrics = ref({ totalUsers: 0, totalAdmins: 0, pendingApprovals: 0, totalApplications: 0, totalDownloads: 0 });
 const todayStats = ref({ activeUsers: 0, logins: 0, applications: 0, downloads: 0 });
@@ -226,6 +267,8 @@ const statusDistribution = ref({ pending: 0, approved: 0, rejected: 0 });
 const dataTypeStats = ref({ vector: 0, raster: 0 });
 const recentLogs = ref([]);
 const hotData = ref([]);
+const hourlyActivity = ref([]);
+const adminEfficiency = ref([]);
 const alerts = ref([]);
 
 const greeting = computed(() => {
@@ -263,13 +306,22 @@ const fetchDashboard = async () => {
     };
 
     todayStats.value = data.today || { activeUsers: 0, logins: 0, applications: 0, downloads: 0 };
-    weeklyComparison.value = data.weekly_comparison || {};
+    weeklyComparison.value = {
+      thisWeekApplications: data.weekly_comparison?.this_week_applications ?? 0,
+      lastWeekApplications: data.weekly_comparison?.last_week_applications ?? 0,
+      applicationGrowth: data.weekly_comparison?.application_growth ?? 0,
+      thisWeekDownloads: data.weekly_comparison?.this_week_downloads ?? 0,
+      lastWeekDownloads: data.weekly_comparison?.last_week_downloads ?? 0,
+      downloadGrowth: data.weekly_comparison?.download_growth ?? 0
+    };
     recallStats.value = data.recall_stats || {};
     adminAppStats.value = data.admin_application_stats || {};
     chartData.value = Array.isArray(data.daily_trend) ? data.daily_trend : [];
     statusDistribution.value = data.status_distribution || { pending: 0, approved: 0, rejected: 0 };
     dataTypeStats.value = data.data_type_stats || { vector: 0, raster: 0 };
     hotData.value = data.hot_data || [];
+    hourlyActivity.value = Array.isArray(data.hourly_activity) ? data.hourly_activity : [];
+    adminEfficiency.value = Array.isArray(data.admin_efficiency) ? data.admin_efficiency : [];
     alerts.value = data.alerts || [];
 
     recentLogs.value = (data.recent_logs || []).map(i => ({
@@ -280,49 +332,418 @@ const fetchDashboard = async () => {
 
     lastUpdate.value = new Date().toLocaleTimeString('zh-CN');
 
+    loading.value = false;
     await nextTick();
-    renderCharts();
-  } finally {
+    await new Promise(r => setTimeout(r, 50));
+    await renderCharts();
+  } catch (err) {
+    console.error('获取仪表盘数据失败:', err);
     loading.value = false;
   }
 };
 
+// ── 颜色常量 ──
+const C = {
+  blue: ['#2196F3', '#1565C0'],
+  purple: ['#AB47BC', '#6A1B9A'],
+  green: ['#66BB6A', '#2E7D32'],
+  orange: ['#FFA726', '#E65100'],
+  red: ['#EF5350', '#C62828'],
+  teal: ['#26A69A', '#00695C'],
+  pink: ['#EC407A', '#AD1457'],
+  indigo: ['#5C6BC0', '#283593'],
+};
+
+// ── 质感升级版图表渲染 ──
 const renderCharts = async () => {
-  const echarts = await import('echarts');
-  // 趋势图
+  const echarts = await getEcharts();
+
+  // ========== 1. 趋势图：面积渐变 + 数据缩放 + 峰值标记 ==========
   if (trendChartRef.value) {
-    trendIns?.dispose();
-    trendIns = echarts.init(trendChartRef.value);
+    if (!trendIns) {
+      trendIns = echarts.init(trendChartRef.value);
+    }
+    const dates = chartData.value.map(i => i.date);
+    const appData = chartData.value.map(i => i.applications || 0);
+    const loginData = chartData.value.map(i => i.logins || 0);
+    const dlData = chartData.value.map(i => i.downloads || 0);
+
     trendIns.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { bottom: 0 },
-      grid: { top: 20, bottom: 50, left: 50, right: 20 },
-      xAxis: { type: 'category', data: chartData.value.map(i => i.date), axisLine: { lineStyle: { color: '#e0e0e0' } } },
-      yAxis: { type: 'value', splitLine: { lineStyle: { color: '#f0f0f0' } } },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        textStyle: { color: '#1a1a2e', fontSize: 13 },
+        formatter: params => {
+          let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px">${params[0].axisValue}</div>`;
+          params.forEach(p => {
+            const dot = p.seriesName === t('adminDashboard.chartApplications') ? '#2196F3'
+                     : p.seriesName === t('adminDashboard.chartLogins') ? '#AB47BC' : '#66BB6A';
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot}"></span>
+              <span style="flex:1">${p.seriesName}</span>
+              <span style="font-weight:600">${p.value}</span>
+            </div>`;
+          });
+          return html;
+        }
+      },
+      legend: {
+        bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 4,
+        textStyle: { color: '#666', fontSize: 12 }
+      },
+      grid: { top: 24, bottom: 52, left: 48, right: 24 },
+      xAxis: {
+        type: 'category', data: dates,
+        axisLine: { lineStyle: { color: '#e8e8e8' } },
+        axisLabel: { color: '#999', fontSize: 11 },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value', splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
+        axisLabel: { color: '#999', fontSize: 11 }
+      },
+      dataZoom: [{
+        type: 'inside', start: 0, end: 100, height: 8,
+      }],
       series: [
-        { name: t('adminDashboard.chartApplications'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0), itemStyle: { color: '#409EFF' }, areaStyle: { opacity: 0.1 } },
-        { name: t('adminDashboard.chartDownloads'), type: 'bar', barMaxWidth: 20, data: chartData.value.map(i => i.downloads || 0), itemStyle: { color: '#67C23A' } }
+        {
+          name: t('adminDashboard.chartApplications'), type: 'line', smooth: true,
+          data: appData, symbol: 'circle', symbolSize: 6,
+          lineStyle: { width: 2.5, color: C.blue[0] },
+          itemStyle: { color: C.blue[0] },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(33,150,243,0.35)' },
+              { offset: 1, color: 'rgba(33,150,243,0.02)' }
+            ])
+          },
+          markPoint: {
+            data: appData.map((v, i) => v === Math.max(...appData) ? { coord: [dates[i], v], symbol: 'pin', symbolSize: 40, label: { formatter: v, fontSize: 10 } } : null).filter(Boolean).slice(0, 1),
+            symbol: 'pin', symbolSize: 40,
+            itemStyle: { color: C.blue[0] },
+            label: { color: '#fff', fontSize: 10 }
+          }
+        },
+        {
+          name: t('adminDashboard.chartLogins'), type: 'line', smooth: true,
+          data: loginData, symbol: 'diamond', symbolSize: 6,
+          lineStyle: { width: 2, color: C.purple[0], type: 'dotted' },
+          itemStyle: { color: C.purple[0] },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(171,71,188,0.2)' },
+              { offset: 1, color: 'rgba(171,71,188,0.01)' }
+            ])
+          }
+        },
+        {
+          name: t('adminDashboard.chartDownloads'), type: 'bar', barMaxWidth: 14,
+          data: dlData,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: 'rgba(102,187,106,0.9)' },
+              { offset: 1, color: 'rgba(102,187,106,0.3)' }
+            ]),
+            borderRadius: [3, 3, 0, 0]
+          }
+        }
       ]
-    });
+    }, true);
   }
 
-  // 状态分布饼图
+  // ========== 2. 状态分布：渐变环形 + 中心总计 + 流光动画 ==========
   if (statusChartRef.value) {
-    statusIns?.dispose();
-    statusIns = echarts.init(statusChartRef.value);
+    if (!statusIns) {
+      statusIns = echarts.init(statusChartRef.value);
+    }
+    const total = statusDistribution.value.pending + statusDistribution.value.approved + statusDistribution.value.rejected;
     statusIns.setOption({
-      tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-      legend: { bottom: 0 },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        formatter: params => `
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px">${params.name}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${params.color}"></span>
+            <span>${params.value} 条 (${params.percent}%)</span>
+          </div>
+        `
+      },
+      graphic: total > 0 ? [{
+        type: 'text', left: 'center', top: '42%',
+        style: {
+          text: `${total}`, fill: '#1a1a2e',
+          font: 'bold 32px Inter, -apple-system, sans-serif',
+          textAlign: 'center'
+        },
+        z: 100
+      }, {
+        type: 'text', left: 'center', top: '56%',
+        style: {
+          text: '总计', fill: '#999',
+          font: '13px Inter, -apple-system, sans-serif',
+          textAlign: 'center'
+        },
+        z: 100
+      }] : [],
       series: [{
-        type: 'pie', radius: ['40%', '65%'], center: ['50%', '45%'],
+        type: 'pie', radius: ['42%', '68%'], center: ['50%', '48%'],
+        avoidLabelOverlap: true,
+        label: {
+          show: true, formatter: '{b}\n{d}%',
+          color: '#666', fontSize: 12, lineHeight: 18
+        },
+        labelLine: { length: 12, length2: 8, smooth: true },
+        emphasis: {
+          label: { fontSize: 14, fontWeight: 'bold' },
+          itemStyle: { shadowBlur: 20, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' }
+        },
+        animationType: 'scale',
+        animationEasing: 'elasticOut',
+        animationDelay: idx => idx * 200,
         data: [
-          { value: statusDistribution.value.pending, name: t('adminDashboard.pendingApproval'), itemStyle: { color: '#E6A23C' } },
-          { value: statusDistribution.value.approved, name: t('adminDashboard.approved'), itemStyle: { color: '#67C23A' } },
-          { value: statusDistribution.value.rejected, name: t('adminDashboard.rejected'), itemStyle: { color: '#F56C6C' } }
+          {
+            value: statusDistribution.value.pending, name: t('adminDashboard.pendingApproval'),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#FFD54F' }, { offset: 1, color: '#FF8F00' }
+              ])
+            }
+          },
+          {
+            value: statusDistribution.value.approved, name: t('adminDashboard.approved'),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#81C784' }, { offset: 1, color: '#2E7D32' }
+              ])
+            }
+          },
+          {
+            value: statusDistribution.value.rejected, name: t('adminDashboard.rejected'),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#EF9A9A' }, { offset: 1, color: '#C62828' }
+              ])
+            }
+          }
         ]
       }]
-    });
+    }, true);
   }
+
+  // ========== 3. 用户活跃时段：渐变柱 + 峰值高亮 + 波峰标记 ==========
+  if (hourlyChartRef.value) {
+    if (!hourlyIns) hourlyIns = echarts.init(hourlyChartRef.value);
+    const maxVal = Math.max(...hourlyActivity.value.map(i => i.count), 1);
+    const peakIdx = hourlyActivity.value.findIndex(i => i.count === maxVal);
+
+    hourlyIns.setOption({
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        formatter: params => {
+          const p = params[0];
+          const isPeak = p.dataIndex === peakIdx;
+          return `
+            <div style="font-weight:600;font-size:14px;margin-bottom:4px">${p.name}</div>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+              <span>${t('adminDashboard.activityCount')}: <b>${p.value}</b></span>
+              ${isPeak ? '<span style="background:#FF6F00;color:#fff;font-size:11px;padding:0 6px;border-radius:4px">峰值</span>' : ''}
+            </div>
+          `;
+        }
+      },
+      grid: { top: 20, bottom: 28, left: 44, right: 20 },
+      xAxis: {
+        type: 'category', data: hourlyActivity.value.map(i => i.hour),
+        axisLine: { lineStyle: { color: '#e8e8e8' } },
+        axisLabel: { color: '#999', fontSize: 11, interval: 2 },
+        axisTick: { show: false }
+      },
+      yAxis: {
+        type: 'value', max: maxVal * 1.25,
+        splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
+        axisLabel: { color: '#999', fontSize: 11 }
+      },
+      series: [{
+        type: 'bar', barMaxWidth: 20,
+        data: hourlyActivity.value.map((i, idx) => ({
+          value: i.count,
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: idx === peakIdx ? '#FF6F00' : '#42A5F5' },
+              { offset: 1, color: idx === peakIdx ? '#FFB74D' : '#90CAF9' }
+            ]),
+            borderRadius: [4, 4, 0, 0]
+          }
+        })),
+        markLine: {
+          silent: true,
+          symbol: 'none',
+          lineStyle: { color: '#FF6F00', type: 'dashed', width: 1.5 },
+          label: { formatter: `峰值 ${maxVal}`, color: '#FF6F00', fontSize: 11 },
+          data: [{ yAxis: maxVal }]
+        },
+        animationDelay: idx => idx * 60
+      }],
+      animationEasing: 'bounceOut'
+    }, true);
+  }
+
+  // ========== 4. 数据类型分布：中心总数环形 ==========
+  if (dataTypeChartRef.value) {
+    if (!dataTypeIns) dataTypeIns = echarts.init(dataTypeChartRef.value);
+    const dtTotal = (dataTypeStats.value.vector || 0) + (dataTypeStats.value.raster || 0);
+    dataTypeIns.setOption({
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        formatter: params => `
+          <div style="font-weight:600;font-size:15px;margin-bottom:4px">${params.name}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:${params.color}"></span>
+            <span>${params.value} 个 (${params.percent}%)</span>
+          </div>
+        `
+      },
+      graphic: dtTotal > 0 ? [{
+        type: 'text', left: 'center', top: '40%',
+        style: {
+          text: `${dtTotal}`, fill: '#1a1a2e',
+          font: 'bold 30px Inter, -apple-system, sans-serif',
+          textAlign: 'center'
+        },
+        z: 100
+      }, {
+        type: 'text', left: 'center', top: '54%',
+        style: {
+          text: '数据总量', fill: '#999',
+          font: '13px Inter, -apple-system, sans-serif',
+          textAlign: 'center'
+        },
+        z: 100
+      }] : [],
+      series: [{
+        type: 'pie', radius: ['44%', '70%'], center: ['50%', '48%'],
+        label: {
+          show: true, formatter: '{b}\n{d}%',
+          color: '#666', fontSize: 12, lineHeight: 18
+        },
+        labelLine: { length: 12, length2: 8, smooth: true },
+        emphasis: {
+          itemStyle: { shadowBlur: 20, shadowOffsetX: 0, shadowColor: 'rgba(0,0,0,0.2)' }
+        },
+        animationType: 'scale',
+        animationEasing: 'elasticOut',
+        data: [
+          {
+            value: dataTypeStats.value.vector || 0, name: t('adminDashboard.vector'),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#42A5F5' }, { offset: 1, color: '#1565C0' }
+              ])
+            }
+          },
+          {
+            value: dataTypeStats.value.raster || 0, name: t('adminDashboard.raster'),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 1, [
+                { offset: 0, color: '#66BB6A' }, { offset: 1, color: '#2E7D32' }
+              ])
+            }
+          }
+        ]
+      }]
+    }, true);
+  }
+
+  // ========== 5. 管理员审批效率：堆叠柱 + 数值标签 + 渐变 ==========
+  if (efficiencyChartRef.value) {
+    if (!efficiencyIns) efficiencyIns = echarts.init(efficiencyChartRef.value);
+    const names = adminEfficiency.value.map(i => i.name || '-');
+    const approvedData = adminEfficiency.value.map(i => i.approved || 0);
+    const rejectedData = adminEfficiency.value.map(i => i.rejected || 0);
+
+    efficiencyIns.setOption({
+      tooltip: {
+        trigger: 'axis', axisPointer: { type: 'shadow' },
+        backgroundColor: 'rgba(255,255,255,0.95)',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        formatter: params => {
+          const name = params[0].name;
+          const total = params.reduce((s, p) => s + p.value, 0);
+          let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px">${name}</div>`;
+          params.forEach(p => {
+            html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0">
+              <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
+              <span style="flex:1">${p.seriesName}</span>
+              <span style="font-weight:600">${p.value}</span>
+            </div>`;
+          });
+          html += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-weight:600">合计: ${total}</div>`;
+          return html;
+        }
+      },
+      legend: {
+        bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 4,
+        textStyle: { color: '#666', fontSize: 12 }
+      },
+      grid: { top: 16, bottom: 40, left: 80, right: 60 },
+      xAxis: {
+        type: 'value',
+        splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
+        axisLabel: { color: '#999', fontSize: 11 }
+      },
+      yAxis: {
+        type: 'category', data: names, axisLine: { show: false },
+        axisTick: { show: false },
+        axisLabel: { color: '#444', fontSize: 12, fontWeight: 500 }
+      },
+      series: [
+        {
+          name: t('adminDashboard.approved'), type: 'bar', stack: 'total',
+          barMaxWidth: 24, data: approvedData,
+          label: {
+            show: true, position: 'right',
+            formatter: params => params.value || '',
+            color: '#2E7D32', fontSize: 12, fontWeight: 600
+          },
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#81C784' }, { offset: 1, color: '#388E3C' }
+            ]),
+            borderRadius: [0, 4, 4, 0]
+          }
+        },
+        {
+          name: t('adminDashboard.rejected'), type: 'bar', stack: 'total',
+          barMaxWidth: 24, data: rejectedData,
+          label: {
+            show: true, position: 'right',
+            formatter: params => params.value || '',
+            color: '#C62828', fontSize: 12, fontWeight: 600
+          },
+          itemStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#EF9A9A' }, { offset: 1, color: '#E53935' }
+            ]),
+            borderRadius: [0, 4, 4, 0]
+          }
+        }
+      ]
+    }, true);
+  }
+  chartsReady = true;
 };
 
 const goTo = (path) => router.push(path);
@@ -346,24 +767,49 @@ const exportSnapshot = () => {
   URL.revokeObjectURL(url);
 };
 
+// ── 性能优化：防抖 resize ──
 const onResize = () => {
-  trendIns?.resize();
-  statusIns?.resize();
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    trendIns?.resize();
+    statusIns?.resize();
+    hourlyIns?.resize();
+    dataTypeIns?.resize();
+    efficiencyIns?.resize();
+  }, 150);
 };
 
+// ── 性能优化：keep-alive 兼容，用 onActivated/onDeactivated ──
 onMounted(async () => {
+  // Vue 3.4 keep-alive 下 onActivated 有时不触发，用 onMounted 兜底
   await fetchDashboard();
   window.addEventListener('resize', onResize);
-  autoRefreshTimer = setInterval(() => {
-    fetchDashboard();
-  }, 60000);
+  autoRefreshTimer = setInterval(fetchDashboard, 60000);
+});
+onActivated(async () => {
+  await fetchDashboard();
+  window.addEventListener('resize', onResize);
+  autoRefreshTimer = setInterval(fetchDashboard, 60000);
 });
 
+onDeactivated(() => {
+  window.removeEventListener('resize', onResize);
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  if (resizeTimer) { clearTimeout(resizeTimer); resizeTimer = null; }
+  // 保留图表实例供 keep-alive 恢复，不 dispose
+});
+
+// Permanent unmount — dispose everything
 onBeforeUnmount(() => {
   window.removeEventListener('resize', onResize);
-  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  trendIns?.dispose();
-  statusIns?.dispose();
+  if (autoRefreshTimer) { clearInterval(autoRefreshTimer); autoRefreshTimer = null; }
+  if (resizeTimer) { clearTimeout(resizeTimer); resizeTimer = null; }
+  try { trendIns?.dispose() } catch (_) {}
+  try { statusIns?.dispose() } catch (_) {}
+  try { hourlyIns?.dispose() } catch (_) {}
+  try { dataTypeIns?.dispose() } catch (_) {}
+  try { efficiencyIns?.dispose() } catch (_) {}
+  trendIns = statusIns = hourlyIns = dataTypeIns = efficiencyIns = null;
 });
 </script>
 
@@ -415,8 +861,10 @@ onBeforeUnmount(() => {
 
 /* 图表 */
 .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
-.chart-container { height: 280px; }
-.chart-empty { height: 280px; display: flex; align-items: center; justify-content: center; }
+.chart-container { height: 320px; }
+.chart-container-wide { height: 360px; }
+.chart-empty { height: 320px; display: flex; align-items: center; justify-content: center; }
+.full-chart-section { margin-bottom: 20px; }
 
 /* 底部统计 */
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }

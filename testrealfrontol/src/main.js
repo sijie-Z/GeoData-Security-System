@@ -14,12 +14,23 @@ import i18n, { getLocale } from '@/locales/index.js'
 
 const app = createApp(App)
 
-// Global error handler
+// Global error handler — log + notify user, prevent silent white screen
 app.config.errorHandler = (err, instance, info) => {
   console.error('Global error:', err)
   console.error('Component:', instance?.$options?.name || 'unknown')
   console.error('Info:', info)
+  // Show user-facing notification (if ElMessage is available)
+  try {
+    const { ElMessage } = require('element-plus')
+    ElMessage.error('页面渲染出错，请刷新重试')
+  } catch (_) { /* ignore if not available */ }
 }
+
+// Catch unhandled promise rejections (e.g. async onMounted failures)
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled promise rejection:', event.reason)
+  event.preventDefault() // prevent silent crash
+})
 
 // Pinia state management
 const pinia = createPinia()
@@ -29,6 +40,27 @@ app.use(pinia)
 // Initialize auth state from sessionStorage
 const userStore = useUserStore()
 userStore.initializeStore()
+
+// Proactive token refresh on startup — if the stored token is already expired,
+// refresh it immediately so the first API call doesn't fail with 401/422.
+if (userStore.token && userStore.refreshToken) {
+  const apiBase = import.meta.env.VITE_API_URL || ''
+  fetch(`${apiBase}/api/refresh-token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refresh_token: userStore.refreshToken }),
+  })
+    .then(r => r.json())
+    .then(data => {
+      if (data?.access_token) {
+        userStore.updateTokens(data.access_token, data.refresh_token)
+      }
+    })
+    .catch(() => {
+      // Refresh failed — stored token may be too old; user will land on login page.
+      // Don't clear here — let the first actual API call handle it.
+    })
+}
 
 // i18n
 app.use(i18n)

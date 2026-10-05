@@ -3,19 +3,23 @@
     <!-- 页面头部 - 地理空间数据云风格 -->
     <div class="page-hero">
       <div class="hero-content">
-        <h1 class="hero-title">{{ $t('empDataViewNew.heroTitle') }}</h1>
-        <p class="hero-subtitle">{{ $t('empDataViewNew.heroSubtitle') }}</p>
+        <h1 class="hero-title">
+          {{ $t('empDataViewNew.heroTitle') }}
+        </h1>
+        <p class="hero-subtitle">
+          {{ $t('empDataViewNew.heroSubtitle') }}
+        </p>
         <div class="hero-stats">
           <div class="stat-item">
             <span class="stat-number">{{ totalVector }}</span>
             <span class="stat-label">{{ $t('empDataViewNew.vectorDatasets') }}</span>
           </div>
-          <div class="stat-divider"></div>
+          <div class="stat-divider" />
           <div class="stat-item">
             <span class="stat-number">{{ totalRaster }}</span>
             <span class="stat-label">{{ $t('empDataViewNew.rasterDatasets') }}</span>
           </div>
-          <div class="stat-divider"></div>
+          <div class="stat-divider" />
           <div class="stat-item">
             <span class="stat-number">{{ total }}</span>
             <span class="stat-label">{{ $t('empDataViewNew.totalData') }}</span>
@@ -24,16 +28,70 @@
       </div>
       <div class="hero-visual">
         <div class="globe-container">
-          <svg class="globe-icon" viewBox="0 0 100 100">
-            <circle cx="50" cy="50" r="45" fill="#4A90E2" opacity="0.1"/>
-            <circle cx="50" cy="50" r="40" fill="none" stroke="#4A90E2" stroke-width="2"/>
-            <path d="M 10 50 Q 50 30 90 50" stroke="#4A90E2" stroke-width="1" fill="none"/>
-            <path d="M 10 50 Q 50 70 90 50" stroke="#4A90E2" stroke-width="1" fill="none"/>
-            <path d="M 50 10 Q 30 50 50 90" stroke="#4A90E2" stroke-width="1" fill="none"/>
-            <path d="M 50 10 Q 70 50 50 90" stroke="#4A90E2" stroke-width="1" fill="none"/>
-            <circle cx="30" cy="35" r="8" fill="#4A90E2" opacity="0.6"/>
-            <circle cx="65" cy="45" r="6" fill="#4A90E2" opacity="0.6"/>
-            <circle cx="25" cy="65" r="5" fill="#4A90E2" opacity="0.6"/>
+          <svg
+            class="globe-icon"
+            viewBox="0 0 100 100"
+          >
+            <circle
+              cx="50"
+              cy="50"
+              r="45"
+              fill="#4A90E2"
+              opacity="0.1"
+            />
+            <circle
+              cx="50"
+              cy="50"
+              r="40"
+              fill="none"
+              stroke="#4A90E2"
+              stroke-width="2"
+            />
+            <path
+              d="M 10 50 Q 50 30 90 50"
+              stroke="#4A90E2"
+              stroke-width="1"
+              fill="none"
+            />
+            <path
+              d="M 10 50 Q 50 70 90 50"
+              stroke="#4A90E2"
+              stroke-width="1"
+              fill="none"
+            />
+            <path
+              d="M 50 10 Q 30 50 50 90"
+              stroke="#4A90E2"
+              stroke-width="1"
+              fill="none"
+            />
+            <path
+              d="M 50 10 Q 70 50 50 90"
+              stroke="#4A90E2"
+              stroke-width="1"
+              fill="none"
+            />
+            <circle
+              cx="30"
+              cy="35"
+              r="8"
+              fill="#4A90E2"
+              opacity="0.6"
+            />
+            <circle
+              cx="65"
+              cy="45"
+              r="6"
+              fill="#4A90E2"
+              opacity="0.6"
+            />
+            <circle
+              cx="25"
+              cy="65"
+              r="5"
+              fill="#4A90E2"
+              opacity="0.6"
+            />
           </svg>
         </div>
       </div>
@@ -51,11 +109,16 @@
             :placeholder="$t('empDataViewNew.searchPlaceholder')"
             size="large"
             clearable
+            class="search-input"
             @keydown.enter="handleSearch"
             @clear="handleSearch"
-            class="search-input"
           />
-          <el-button type="primary" size="large" @click="handleSearch" class="search-btn">
+          <el-button
+            type="primary"
+            size="large"
+            class="search-btn"
+            @click="handleSearch"
+          >
             <el-icon><Search /></el-icon>
             {{ $t('empDataViewNew.searchData') }}
           </el-button>
@@ -64,7 +127,11 @@
         <div class="search-filters">
           <div class="filter-group">
             <label class="filter-label">{{ $t('empDataViewNew.dataType') }}</label>
-            <el-radio-group v-model="activeDataType" size="large" class="data-type-radio">
+            <el-radio-group
+              v-model="activeDataType"
+              size="large"
+              class="data-type-radio"
+            >
               <el-radio-button value="vector">
                 <el-icon><Location /></el-icon>
                 {{ $t('empDataViewNew.vectorData') }}
@@ -82,21 +149,57 @@
 
           <div class="filter-group">
             <label class="filter-label">{{ $t('empDataViewNew.dataSource') }}</label>
-            <el-select v-model="dataSourceFilter" :placeholder="$t('empDataViewNew.selectDataSource')" clearable size="large" class="filter-select">
-              <el-option :label="$t('empDataViewNew.sourceMinistry')" value="自然资源部" />
-              <el-option :label="$t('empDataViewNew.sourceCas')" value="中科院" />
-              <el-option :label="$t('empDataViewNew.sourceMapping')" value="测绘局" />
-              <el-option :label="$t('empDataViewNew.sourceCommercial')" value="商业" />
+            <el-select
+              v-model="dataSourceFilter"
+              :placeholder="$t('empDataViewNew.selectDataSource')"
+              clearable
+              size="large"
+              class="filter-select"
+            >
+              <el-option
+                :label="$t('empDataViewNew.sourceMinistry')"
+                value="自然资源部"
+              />
+              <el-option
+                :label="$t('empDataViewNew.sourceCas')"
+                value="中科院"
+              />
+              <el-option
+                :label="$t('empDataViewNew.sourceMapping')"
+                value="测绘局"
+              />
+              <el-option
+                :label="$t('empDataViewNew.sourceCommercial')"
+                value="商业"
+              />
             </el-select>
           </div>
 
           <div class="filter-group">
             <label class="filter-label">{{ $t('empDataViewNew.timeRange') }}</label>
-            <el-select v-model="timeFilter" :placeholder="$t('empDataViewNew.selectTimeRange')" clearable size="large" class="filter-select">
-              <el-option :label="$t('empDataViewNew.recentWeek')" value="week" />
-              <el-option :label="$t('empDataViewNew.recentMonth')" value="month" />
-              <el-option :label="$t('empDataViewNew.recentYear')" value="year" />
-              <el-option :label="$t('empDataViewNew.allTime')" value="" />
+            <el-select
+              v-model="timeFilter"
+              :placeholder="$t('empDataViewNew.selectTimeRange')"
+              clearable
+              size="large"
+              class="filter-select"
+            >
+              <el-option
+                :label="$t('empDataViewNew.recentWeek')"
+                value="week"
+              />
+              <el-option
+                :label="$t('empDataViewNew.recentMonth')"
+                value="month"
+              />
+              <el-option
+                :label="$t('empDataViewNew.recentYear')"
+                value="year"
+              />
+              <el-option
+                :label="$t('empDataViewNew.allTime')"
+                value=""
+              />
             </el-select>
           </div>
         </div>
@@ -111,25 +214,57 @@
           {{ getDataTypeTitle }}
         </h2>
         <div class="section-actions">
-          <el-button :icon="Refresh" @click="fetchData" circle size="default" />
-          <el-button :icon="Download" @click="exportData" circle size="default" />
+          <el-button
+            :icon="Refresh"
+            circle
+            size="default"
+            @click="fetchData"
+          />
+          <el-button
+            :icon="Download"
+            circle
+            size="default"
+            @click="exportData"
+          />
         </div>
       </div>
 
       <!-- 数据卡片网格 -->
-      <div class="data-grid" v-loading="loading && !data.list.length">
+      <div
+        v-loading="loading && !data.list.length"
+        class="data-grid"
+      >
         <!-- 骨架屏 -->
         <template v-if="loading && !data.list.length">
-          <div v-for="n in pageSize" :key="'skel-' + n" class="skeleton-card">
+          <div
+            v-for="n in pageSize"
+            :key="'skel-' + n"
+            class="skeleton-card"
+          >
             <div style="display:flex;justify-content:space-between;margin-bottom:16px;">
-              <div class="skeleton-line badge"></div>
-              <div class="skeleton-line short" style="width:30px;"></div>
+              <div class="skeleton-line badge" />
+              <div
+                class="skeleton-line short"
+                style="width:30px;"
+              />
             </div>
-            <div class="skeleton-line title"></div>
-            <div class="skeleton-line long" style="margin-bottom:8px;"></div>
-            <div class="skeleton-line medium" style="margin-bottom:20px;"></div>
-            <div class="skeleton-line short" style="margin-bottom:8px;"></div>
-            <div class="skeleton-line short" style="margin-bottom:8px;"></div>
+            <div class="skeleton-line title" />
+            <div
+              class="skeleton-line long"
+              style="margin-bottom:8px;"
+            />
+            <div
+              class="skeleton-line medium"
+              style="margin-bottom:20px;"
+            />
+            <div
+              class="skeleton-line short"
+              style="margin-bottom:8px;"
+            />
+            <div
+              class="skeleton-line short"
+              style="margin-bottom:8px;"
+            />
           </div>
         </template>
         <div
@@ -139,33 +274,61 @@
           @click="openMapDialog(item)"
         >
           <div class="card-header">
-            <div class="data-type-badge" :class="getDataTypeClass(item)">
-              <el-icon><Location v-if="item.data_type === 'vector'" /><Picture v-else /></el-icon>
-              <span>{{ item.data_type === 'vector' ? $t('empDataViewNew.vectorShort') : $t('empDataViewNew.rasterShort') }}</span>
+            <div
+              class="data-type-badge"
+              :class="getDataTypeClass(item)"
+            >
+              <el-icon>
+                <Location v-if="item.data_type === 'vector'" />
+                <Picture v-else />
+              </el-icon>
+              <span>
+                {{ item.data_type === 'vector' ? $t('empDataViewNew.vectorShort') : $t('empDataViewNew.rasterShort') }}
+              </span>
             </div>
-            <div class="data-id">#{{ item.data_id }}</div>
+            <div class="data-id">
+              #{{ item.data_id }}
+            </div>
           </div>
 
           <div class="card-body">
-            <h3 class="data-title">{{ item.data_alias }}</h3>
-            <p class="data-description">{{ item.data_introduction || $t('empDataViewNew.noDescription') }}</p>
+            <h3 class="data-title">
+              {{ item.data_alias }}
+            </h3>
+            <p class="data-description">
+              {{ item.data_introduction || $t('empDataViewNew.noDescription') }}
+            </p>
 
             <div class="data-meta">
               <div class="meta-item">
                 <el-icon><Collection /></el-icon>
-                <span>{{ item.data_source || $t('empDataViewNew.unknownSource') }}</span>
+                <span>
+                  {{ item.data_source || $t('empDataViewNew.unknownSource') }}
+                </span>
               </div>
-              <div class="meta-item" v-if="item.data_type === 'vector'">
+              <div
+                v-if="item.data_type === 'vector'"
+                class="meta-item"
+              >
                 <el-icon><Compass /></el-icon>
-                <span>{{ item.geomtype || $t('empDataViewNew.unknownType') }}</span>
+                <span>
+                  {{ item.geomtype || $t('empDataViewNew.unknownType') }}
+                </span>
               </div>
-              <div class="meta-item" v-if="item.data_type === 'raster'">
+              <div
+                v-if="item.data_type === 'raster'"
+                class="meta-item"
+              >
                 <el-icon><Picture /></el-icon>
-                <span>{{ item.band_count }}{{ $t('empDataViewNew.bands') }}</span>
+                <span>
+                  {{ item.band_count }}{{ $t('empDataViewNew.bands') }}
+                </span>
               </div>
               <div class="meta-item">
                 <el-icon><Coordinate /></el-icon>
-                <span>{{ item.coordinate_system || $t('empDataViewNew.unknownCrs') }}</span>
+                <span>
+                  {{ item.coordinate_system || $t('empDataViewNew.unknownCrs') }}
+                </span>
               </div>
             </div>
           </div>
@@ -173,10 +336,17 @@
           <div class="card-footer">
             <div class="data-uuid">
               <span class="uuid-label">UUID:</span>
-              <span class="uuid-value">{{ item.uuid }}</span>
+              <span class="uuid-value">
+                {{ item.uuid }}
+              </span>
             </div>
             <div class="card-actions">
-              <el-button type="primary" size="small" @click.stop="openRequestDialog(item)">
+              <el-button
+                type="primary"
+                size="small"
+                class="card-apply-btn"
+                @click.stop="openRequestDialog(item)"
+              >
                 <el-icon><Download /></el-icon>
                 {{ $t('empDataViewNew.applyData') }}
               </el-button>
@@ -186,7 +356,10 @@
       </div>
 
       <!-- 空状态 -->
-      <div v-if="!loading && data.list.length === 0" class="empty-state">
+      <div
+        v-if="!loading && data.list.length === 0"
+        class="empty-state"
+      >
         <el-empty :description="$t('empDataViewNew.noData')">
           <template #image>
             <div class="empty-icon">
@@ -195,14 +368,19 @@
           </template>
           <template #description>
             <p>{{ $t('empDataViewNew.noMatchingData') }}</p>
-            <p class="empty-tips">{{ $t('empDataViewNew.adjustFilters') }}</p>
+            <p class="empty-tips">
+              {{ $t('empDataViewNew.adjustFilters') }}
+            </p>
           </template>
         </el-empty>
       </div>
     </div>
 
     <!-- 分页 -->
-    <div class="pagination-section" v-if="total > 0">
+    <div
+      v-if="total > 0"
+      class="pagination-section"
+    >
       <el-pagination
         background
         layout="total, sizes, prev, pager, next, jumper"
@@ -215,200 +393,248 @@
       />
     </div>
 
-  <!-- 数据详情对话框 -->
-  <el-dialog
-    v-model="viewDataVisible"
-    width="75%"
-    custom-class="data-detail-dialog rounded-dialog"
-    :show-close="false"
-    top="8vh"
-    draggable
-    @closed="destroyMapView"
-  >
-    <template #header="{ close }">
-      <div class="dialog-header-custom">
-        <div class="dialog-title-info">
-          <h3 class="dialog-main-title">{{ selectedData.data_alias }}</h3>
-          <span class="dialog-subtitle">{{ selectedData.data_type === 'vector' ? $t('empDataViewNew.vectorData') : $t('empDataViewNew.rasterData') }}</span>
+    <!-- 数据详情对话框 -->
+    <el-dialog
+      v-model="viewDataVisible"
+      width="75%"
+      custom-class="data-detail-dialog rounded-dialog"
+      :show-close="false"
+      top="8vh"
+      draggable
+      @closed="destroyMapView"
+    >
+      <template #header="{ close }">
+        <div class="dialog-header-custom">
+          <div class="dialog-title-info">
+            <h3 class="dialog-main-title">
+              {{ selectedData.data_alias }}
+            </h3>
+            <span class="dialog-subtitle">
+              {{ selectedData.data_type === 'vector' ? $t('empDataViewNew.vectorData') : $t('empDataViewNew.rasterData') }}
+            </span>
+          </div>
+          <el-button
+            text
+            circle
+            :icon="Close"
+            class="header-close-btn"
+            :title="$t('empDataViewNew.close')"
+            @click="close"
+          />
         </div>
-        <el-button text circle :icon="Close" @click="close" class="header-close-btn" :title="$t('empDataViewNew.close')"></el-button>
-      </div>
-    </template>
+      </template>
 
-    <div class="data-detail-layout">
-      <div class="map-preview-section">
-        <div class="map-container" ref="mapContainer">
-          <transition name="fade">
-            <div class="map-loading-overlay" v-if="mapLoading">
-              <div class="map-spinner"></div>
-              <span>{{ $t('empDataViewNew.loadingMap') || '加载地图中...' }}</span>
-            </div>
-          </transition>
-          <div class="map-controls">
-            <el-button
-              circle
-              :icon="ArrowLeftBold"
-              @click="viewDataVisible = false"
-              class="map-back-btn"
-              :title="$t('empDataViewNew.backToList')"
-            />
-            <div class="map-search-controls" v-if="isVectorData">
-              <el-input
-                v-model="mapSearchKeyword"
-                :placeholder="$t('empDataViewNew.mapSearchPlaceholder')"
-                :prefix-icon="Search"
-                clearable
-                @keydown.enter="handleMapSearch"
-                class="map-search-input"
-              />
+      <div class="data-detail-layout">
+        <div class="map-preview-section">
+          <div
+            ref="mapContainer"
+            class="map-container"
+          >
+            <transition name="fade">
+              <div
+                v-if="mapLoading"
+                class="map-loading-overlay"
+              >
+                <div class="map-spinner" />
+                <span>{{ $t('empDataViewNew.loadingMap') || '加载地图中...' }}</span>
+              </div>
+            </transition>
+            <div class="map-controls">
               <el-button
-                :icon="Search"
-                @click="handleMapSearch"
-                class="map-search-btn"
                 circle
+                :icon="ArrowLeftBold"
+                class="map-back-btn"
+                :title="$t('empDataViewNew.backToList')"
+                @click="viewDataVisible = false"
               />
+              <div class="map-search-controls">
+                <el-input
+                  v-model="mapSearchKeyword"
+                  :placeholder="$t('empDataViewNew.mapSearchPlaceholder')"
+                  :prefix-icon="Search"
+                  clearable
+                  class="map-search-input"
+                  @keydown.enter="handleMapSearch"
+                />
+                <el-button
+                  :icon="Search"
+                  circle
+                  class="map-search-btn"
+                  @click="handleMapSearch"
+                />
+              </div>
+            </div>
+          <!-- 栅格数据也有地图预览，通过 GeoServer WMS 加载 -->
+          </div>
+        </div>
+
+        <div class="data-info-section">
+          <div class="info-header">
+            <h4 class="info-section-title">
+              {{ $t('empDataViewNew.dataDetails') }}
+            </h4>
+          </div>
+
+          <div class="info-content">
+            <div class="info-description">
+              <h5>{{ $t('empDataViewNew.dataDescription') }}</h5>
+              <p>{{ selectedData.data_introduction || $t('empDataViewNew.noDescription') }}</p>
+            </div>
+
+            <el-divider />
+
+            <div class="info-metadata">
+              <h5>{{ $t('empDataViewNew.technicalParams') }}</h5>
+              <div class="metadata-grid">
+                <div class="metadata-item">
+                  <span class="metadata-label">{{ $t('empDataViewNew.dataIdentifier') }}</span>
+                  <span class="metadata-value">{{ selectedData.uuid }}</span>
+                </div>
+                <div class="metadata-item">
+                  <span class="metadata-label">{{ $t('empDataViewNew.dataSourceLabel') }}</span>
+                  <span class="metadata-value">{{ selectedData.data_source || $t('empDataViewNew.unknown') }}</span>
+                </div>
+                <div
+                  v-if="selectedData.data_type === 'vector'"
+                  class="metadata-item"
+                >
+                  <span class="metadata-label">{{ $t('empDataViewNew.geometryType') }}</span>
+                  <span class="metadata-value">{{ selectedData.geomtype || $t('empDataViewNew.unknown') }}</span>
+                </div>
+                <div
+                  v-if="selectedData.data_type === 'raster'"
+                  class="metadata-item"
+                >
+                  <span class="metadata-label">{{ $t('empDataViewNew.bandCount') }}</span>
+                  <span class="metadata-value">{{ selectedData.band_count }}{{ $t('empDataViewNew.bands') }}</span>
+                </div>
+                <div
+                  v-if="selectedData.data_type === 'raster'"
+                  class="metadata-item"
+                >
+                  <span class="metadata-label">{{ $t('empDataViewNew.pixelType') }}</span>
+                  <span class="metadata-value">{{ selectedData.pixel_type || $t('empDataViewNew.unknown') }}</span>
+                </div>
+                <div class="metadata-item">
+                  <span class="metadata-label">{{ $t('empDataViewNew.coordinateSystem') }}</span>
+                  <span class="metadata-value">{{ selectedData.coordinate_system || $t('empDataViewNew.unknown') }}</span>
+                </div>
+              </div>
             </div>
           </div>
-          <div class="raster-placeholder" v-if="!isVectorData">
-            <div class="placeholder-content">
-              <el-icon><Picture /></el-icon>
-              <h4>{{ $t('empDataViewNew.rasterPreview') }}</h4>
-              <p>{{ $t('empDataViewNew.rasterPreviewDesc') }}</p>
-            </div>
+
+          <div class="info-actions">
+            <el-button
+              type="primary"
+              size="large"
+              class="apply-data-btn"
+              @click="openRequestDialog(selectedData)"
+            >
+              <el-icon><Download /></el-icon>
+              {{ $t('empDataViewNew.applyThisData') }}
+            </el-button>
           </div>
         </div>
       </div>
+    </el-dialog>
 
-      <div class="data-info-section">
-        <div class="info-header">
-          <h4 class="info-section-title">{{ $t('empDataViewNew.dataDetails') }}</h4>
-        </div>
-
-        <div class="info-content">
-          <div class="info-description">
-            <h5>{{ $t('empDataViewNew.dataDescription') }}</h5>
-            <p>{{ selectedData.data_introduction || $t('empDataViewNew.noDescription') }}</p>
+    <!-- 申请数据对话框 -->
+    <el-dialog
+      v-model="requestDataVisible"
+      :title="$t('empDataViewNew.dataApplication')"
+      width="600px"
+      custom-class="request-dialog rounded-dialog"
+      :before-close="handleClose"
+      draggable
+    >
+      <el-form
+        ref="requestFormRef"
+        :model="requestInformation"
+        :rules="rules"
+        label-width="120px"
+        class="request-form"
+      >
+        <el-form-item :label="$t('empDataViewNew.applyDataLabel')">
+          <div class="data-info-display">
+            <el-icon>
+              <Location v-if="requestInformation.data_type === 'vector'" />
+              <Picture v-else />
+            </el-icon>
+            <span>{{ requestInformation.data_alias }}</span>
+            <el-tag size="small">
+              {{ requestInformation.data_type === 'vector' ? $t('empDataViewNew.vectorShort') : $t('empDataViewNew.rasterShort') }}
+            </el-tag>
           </div>
+        </el-form-item>
 
-          <el-divider />
+        <el-form-item
+          label-width="auto"
+          required
+          :label="$t('empDataViewNew.dataIdLabel')"
+        >
+          <el-input
+            v-model="requestInformation.uuid"
+            disabled
+          />
+        </el-form-item>
 
-          <div class="info-metadata">
-            <h5>{{ $t('empDataViewNew.technicalParams') }}</h5>
-            <div class="metadata-grid">
-              <div class="metadata-item">
-                <span class="metadata-label">{{ $t('empDataViewNew.dataIdentifier') }}</span>
-                <span class="metadata-value">{{ selectedData.uuid }}</span>
-              </div>
-              <div class="metadata-item">
-                <span class="metadata-label">{{ $t('empDataViewNew.dataSourceLabel') }}</span>
-                <span class="metadata-value">{{ selectedData.data_source || $t('empDataViewNew.unknown') }}</span>
-              </div>
-              <div class="metadata-item" v-if="selectedData.data_type === 'vector'">
-                <span class="metadata-label">{{ $t('empDataViewNew.geometryType') }}</span>
-                <span class="metadata-value">{{ selectedData.geomtype || $t('empDataViewNew.unknown') }}</span>
-              </div>
-              <div class="metadata-item" v-if="selectedData.data_type === 'raster'">
-                <span class="metadata-label">{{ $t('empDataViewNew.bandCount') }}</span>
-                <span class="metadata-value">{{ selectedData.band_count }}{{ $t('empDataViewNew.bands') }}</span>
-              </div>
-              <div class="metadata-item" v-if="selectedData.data_type === 'raster'">
-                <span class="metadata-label">{{ $t('empDataViewNew.pixelType') }}</span>
-                <span class="metadata-value">{{ selectedData.pixel_type || $t('empDataViewNew.unknown') }}</span>
-              </div>
-              <div class="metadata-item">
-                <span class="metadata-label">{{ $t('empDataViewNew.coordinateSystem') }}</span>
-                <span class="metadata-value">{{ selectedData.coordinate_system || $t('empDataViewNew.unknown') }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        <el-form-item
+          prop="applicant"
+          :label="$t('empDataViewNew.applicantName')"
+        >
+          <el-input
+            v-model="requestInformation.applicant"
+            :placeholder="$t('empDataViewNew.applicantNamePlaceholder')"
+            size="large"
+          />
+        </el-form-item>
 
-        <div class="info-actions">
+        <el-form-item
+          prop="user_number"
+          :label="$t('empDataViewNew.employeeNumber')"
+        >
+          <el-input
+            v-model="requestInformation.user_number"
+            :placeholder="$t('empDataViewNew.employeeNumberPlaceholder')"
+            size="large"
+          />
+        </el-form-item>
+
+        <el-form-item
+          prop="reason"
+          :label="$t('empDataViewNew.applyReason')"
+        >
+          <el-input
+            v-model="requestInformation.reason"
+            type="textarea"
+            :rows="4"
+            :placeholder="$t('empDataViewNew.applyReasonPlaceholder')"
+            size="large"
+          />
+        </el-form-item>
+      </el-form>
+
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button
+            size="large"
+            @click="requestDataVisible = false"
+          >
+            {{ $t('empDataViewNew.cancel') }}
+          </el-button>
           <el-button
             type="primary"
             size="large"
-            class="apply-data-btn"
-            @click="openRequestDialog(selectedData)"
+            @click="submitForm"
           >
-            <el-icon><Download /></el-icon>
-            {{ $t('empDataViewNew.applyThisData') }}
+            <el-icon><Check /></el-icon>
+            {{ $t('empDataViewNew.submitApplication') }}
           </el-button>
         </div>
-      </div>
-    </div>
-  </el-dialog>
-
-  <!-- 申请数据对话框 -->
-  <el-dialog
-    v-model="requestDataVisible"
-    :title="$t('empDataViewNew.dataApplication')"
-    width="600px"
-    custom-class="request-dialog rounded-dialog"
-    :before-close="handleClose"
-    draggable
-  >
-    <el-form
-      ref="requestFormRef"
-      :model="requestInformation"
-      :rules="rules"
-      label-width="120px"
-      class="request-form"
-    >
-      <el-form-item :label="$t('empDataViewNew.applyDataLabel')">
-        <div class="data-info-display">
-          <el-icon><Location v-if="requestInformation.data_type === 'vector'" /><Picture v-else /></el-icon>
-          <span>{{ requestInformation.data_alias }}</span>
-          <el-tag size="small">{{ requestInformation.data_type === 'vector' ? $t('empDataViewNew.vectorShort') : $t('empDataViewNew.rasterShort') }}</el-tag>
-        </div>
-      </el-form-item>
-
-      <el-form-item :label="$t('empDataViewNew.dataIdLabel')" required>
-        <el-input v-model="requestInformation.uuid" disabled />
-      </el-form-item>
-
-      <el-form-item :label="$t('empDataViewNew.applicantName')" prop="applicant">
-        <el-input
-          v-model="requestInformation.applicant"
-          :placeholder="$t('empDataViewNew.applicantNamePlaceholder')"
-          size="large"
-        />
-      </el-form-item>
-
-      <el-form-item :label="$t('empDataViewNew.employeeNumber')" prop="user_number">
-        <el-input
-          v-model="requestInformation.user_number"
-          :placeholder="$t('empDataViewNew.employeeNumberPlaceholder')"
-          size="large"
-        />
-      </el-form-item>
-
-      <el-form-item :label="$t('empDataViewNew.applyReason')" prop="reason">
-        <el-input
-          v-model="requestInformation.reason"
-          type="textarea"
-          :rows="4"
-          :placeholder="$t('empDataViewNew.applyReasonPlaceholder')"
-          size="large"
-        />
-      </el-form-item>
-    </el-form>
-
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="requestDataVisible = false" size="large">{{ $t('empDataViewNew.cancel') }}</el-button>
-        <el-button type="primary" @click="submitForm" size="large">
-          <el-icon><Check /></el-icon>
-          {{ $t('empDataViewNew.submitApplication') }}
-        </el-button>
-      </div>
-    </template>
-  </el-dialog>
+      </template>
+    </el-dialog>
   </div>
 </template>
-
-
-
-
 
 <script setup>
 defineOptions({ name: 'EmployeeDataViewing' });
@@ -498,7 +724,6 @@ const rules = {
 };
 
 // 计算属性
-const isVectorData = computed(() => selectedData.data_type === 'vector');
 const getDataTypeTitle = computed(() => {
   switch (activeDataType.value) {
     case 'vector': return t('empDataViewNew.vectorData');
@@ -562,7 +787,7 @@ const fetchData = async () => {
     }
 
   } catch (error) {
-    console.error('获取数据失败:', error);
+    console.warn('获取数据失败:', error); // eslint-disable-line no-console
     ElMessage.error(t('empDataViewNew.errorFetchData'));
     data.list = [];
     total.value = 0;
@@ -574,29 +799,55 @@ const fetchData = async () => {
 const handleSearch = () => {
   page.value = 1;
   fetchData();
-  // Geocode via TianDiTu (browser key) so map opens at searched location
+  // Geocode via TianDiTu, fallback to Nominatim (OSM)
   const kw = keyword.value.trim();
-  if (kw) {
-    const params = new URLSearchParams({
-      postStr: JSON.stringify({ keyword: kw }),
-      type: 'query',
-      tk: tiandituKey,
-    });
-    fetch(`https://api.tianditu.gov.cn/v2/search?${params}`)
-      .then(resp => resp.json())
-      .then(data => {
-        const pois = data.pois || [];
-        if (pois.length > 0 && pois[0].lonlat) {
-          const [lon, lat] = String(pois[0].lonlat).split(',').map(Number);
-          if (!Number.isNaN(lon) && !Number.isNaN(lat)) {
-            geocodedCenter.value = { center: [lon, lat], zoom: 13 };
-          }
-        }
-      })
-      .catch(() => { geocodedCenter.value = null; });
-  } else {
+  if (!kw) {
     geocodedCenter.value = null;
+    return;
   }
+
+  const setCenter = (lon, lat) => {
+    if (!Number.isNaN(lon) && !Number.isNaN(lat)
+        && lon >= -180 && lon <= 180 && lat >= -90 && lat <= 90) {
+      geocodedCenter.value = { center: [lon, lat], zoom: 13 };
+    }
+  };
+
+  // Try TianDiTu
+  const params = new URLSearchParams({
+    postStr: JSON.stringify({ keyword: kw }),
+    type: 'query',
+    tk: tiandituKey,
+  });
+  fetch(`https://api.tianditu.gov.cn/v2/search?${params}`)
+    .then(resp => {
+      if (!resp.ok) throw new Error('TianDiTu failed');
+      return resp.json();
+    })
+    .then(data => {
+      const pois = data.pois || [];
+      if (pois.length > 0 && pois[0].lonlat) {
+        const [lon, lat] = String(pois[0].lonlat).split(',').map(Number);
+        setCenter(lon, lat);
+      } else {
+        throw new Error('No TianDiTu results');
+      }
+    })
+    .catch(() => {
+      // Fallback: Nominatim
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(kw)}&limit=1`, {
+        headers: { 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.5' }
+      })
+        .then(r => r.json())
+        .then(nomData => {
+          if (nomData.length > 0) {
+            setCenter(parseFloat(nomData[0].lon), parseFloat(nomData[0].lat));
+          } else {
+            geocodedCenter.value = null;
+          }
+        })
+        .catch(() => { geocodedCenter.value = null; });
+    });
 };
 
 const pageChanged = (newPage) => {
@@ -618,8 +869,12 @@ const openMapDialog = (row) => {
   mapSearchKeyword.value = '';
   viewDataVisible.value = true;
   nextTick(() => {
-    if (isVectorData.value) {
+    // 矢量和栅格都通过 GeoServer WMS 加载地图
+    if (row.data_url && row.layer) {
       initializeMapView(row.data_url, row.layer);
+    } else {
+      // 没有 GeoServer URL 的数据（尚未发布），不加载地图
+      mapLoading.value = false;
     }
   });
 };
@@ -724,6 +979,8 @@ const handleMapSearch = async () => {
   }
 
   const kw = mapSearchKeyword.value.trim();
+  let lon = null, lat = null;
+
   try {
     // Geocode via TianDiTu (browser key)
     const params = new URLSearchParams({
@@ -732,22 +989,49 @@ const handleMapSearch = async () => {
       tk: tiandituKey,
     });
     const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
-    const geoData = await geoResp.json();
-    const pois = geoData.pois || [];
-
-    if (pois.length > 0 && pois[0].lonlat) {
-      const [lon, lat] = String(pois[0].lonlat).split(',').map(Number);
-      mapView.value.getView().animate({
-        center: [lon, lat],
-        zoom: 14,
-        duration: 1000
-      });
-    } else {
-      ElMessage.warning(t('empDataViewNew.mapSearchNotFound', { keyword: kw }));
+    if (geoResp.ok) {
+      const geoData = await geoResp.json();
+      const pois = geoData.pois || [];
+      if (pois.length > 0 && pois[0].lonlat) {
+        const coords = String(pois[0].lonlat).split(',').map(Number);
+        if (!Number.isNaN(coords[0]) && !Number.isNaN(coords[1])
+            && coords[0] >= -180 && coords[0] <= 180
+            && coords[1] >= -90 && coords[1] <= 90) {
+          [lon, lat] = coords;
+        }
+      }
     }
-  } catch (error) {
-    console.error('地图搜索失败:', error);
-    ElMessage.error(t('empDataViewNew.errorMapSearch'));
+  } catch {
+    // TianDiTu failed — try fallback
+  }
+
+  // Fallback: Nominatim (OpenStreetMap)
+  if (lon === null) {
+    try {
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(kw)}&limit=1`;
+      const nomResp = await fetch(nomUrl, {
+        headers: { 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.5' }
+      });
+      if (nomResp.ok) {
+        const nomData = await nomResp.json();
+        if (nomData.length > 0) {
+          lon = parseFloat(nomData[0].lon);
+          lat = parseFloat(nomData[0].lat);
+        }
+      }
+    } catch {
+      // Both failed
+    }
+  }
+
+  if (lon !== null && lat !== null) {
+    mapView.value.getView().animate({
+      center: [lon, lat],
+      zoom: 14,
+      duration: 1000
+    });
+  } else {
+    ElMessage.warning(t('empDataViewNew.mapSearchNotFound', { keyword: kw }));
   }
 };
 
@@ -855,7 +1139,7 @@ const initializeMapView = async (url, fullLayerName) => {
       mapLoading.value = false;
     }
   } catch (error) {
-    console.error('地图加载失败:', error);
+    console.warn('地图加载失败:', error); // eslint-disable-line no-console
     mapLoading.value = false;
     ElMessage.error(t('empDataViewNew.errorMapLoad'));
   }

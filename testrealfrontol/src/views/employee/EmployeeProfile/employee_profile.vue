@@ -85,8 +85,8 @@
               <el-icon size="24" color="#409eff"><Calendar /></el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ profileData.hireDate ? calculateDaysSinceHire() : '0' }}</div>
-              <div class="stat-label">{{ $t('empProfile.daysSinceHire') }}</div>
+              <div class="stat-value">{{ profileData.hireDate ? calculateDaysSinceHire() : '—' }}</div>
+              <div class="stat-label">{{ profileData.hireDate ? $t('empProfile.daysSinceHire') : $t('empProfile.noHireDate') || '入职日期未设置' }}</div>
             </div>
           </div>
           <div class="stat-item">
@@ -305,10 +305,8 @@ const fetchUserAvatar = async (employeeNumber) => {
     // 将Blob对象转换为URL
     profileData.value.avatarUrl = URL.createObjectURL(response.data);
   } catch (error) {
-    console.error(`获取员工 ${employeeNumber} 头像失败:`, error);
-    // 如果获取失败，不设置avatarUrl，让它显示默认图标
+    // 头像加载失败属于正常情况，静默显示默认图标
     profileData.value.avatarUrl = null;
-    ElMessage.warning(t('empProfile.avatarLoadFail'));
   }
 };
 
@@ -488,7 +486,7 @@ const handlePasswordClose = (done) => {
 
 /* 顶部装饰区域 */
 .profile-header-bg {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
   padding: 60px 24px 40px;
   text-align: center;
   position: relative;

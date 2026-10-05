@@ -159,7 +159,7 @@ const login = async () => {
         admin_sub_role: responseData.admin_sub_role || null
       });
       ElMessage.success(t('login.loginSuccess'));
-      if (responseData.role === 'admin') await router.push('/admin');
+      if (responseData.role && responseData.role.startsWith('admin')) await router.push('/admin');
       else await router.push('/employee');
     } else {
       ElMessage.error(responseData.message || t('login.loginFailed'));

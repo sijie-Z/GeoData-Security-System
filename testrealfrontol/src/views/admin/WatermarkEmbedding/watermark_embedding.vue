@@ -63,8 +63,8 @@
       <el-table-column :label="$t('wmEmbed.colAction')" width="380">
         <template v-slot="scope">
           <el-button size="small" type="primary" @click="openMapDialog(scope.row)">{{ $t('wmEmbed.viewOriginalData') }}</el-button>
-          <el-button size="small" type="info" @click="previewWatermark(scope.row)" :loading="previewing">{{ $t('wmEmbed.preview') || 'Preview' }}</el-button>
-          <el-button size="small" type="primary" @click="embedding_watermark(scope.row)" :loading="embedding">{{ $t('wmEmbed.embedWatermark') }}</el-button>
+          <el-button size="small" type="info" @click="previewWatermark(scope.row)" :loading="previewingId === scope.row.id">{{ $t('wmEmbed.preview') || 'Preview' }}</el-button>
+          <el-button size="small" type="primary" @click="embedding_watermark(scope.row)" :loading="embeddingId === scope.row.id">{{ $t('wmEmbed.embedWatermark') }}</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -156,7 +156,7 @@
 
 <script setup>
 import {useUserStore} from "@/stores/userStore.js";
-import {reactive, ref, onMounted, watch, nextTick, computed} from 'vue';
+import {reactive, ref, onMounted, onBeforeUnmount, watch, nextTick, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { QuestionFilled } from '@element-plus/icons-vue';
@@ -166,17 +166,21 @@ import {
   embedDispatch,
   previewWatermark as previewWatermarkApi
 } from '@/api/watermark';
-import '@arcgis/core/assets/esri/themes/light/main.css';
-import MapView from '@arcgis/core/views/MapView';
-import Map from '@arcgis/core/Map';
-import MapImageLayer from '@arcgis/core/layers/MapImageLayer';
-import FeatureLayer from '@arcgis/core/layers/FeatureLayer';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// 修正 Leaflet 默认图标路径（webpack/vite 下 marker 图标会丢失）
+import iconUrl from 'leaflet/dist/images/marker-icon.png';
+import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
+import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({ iconUrl, iconRetinaUrl, shadowUrl });
 
 const { t } = useI18n();
 
 const loading = ref(false);
-const embedding = ref(false);
-const previewing = ref(false);
+const embeddingId = ref(null);
+const previewingId = ref(null);
 const selectedAlgorithm = ref('lsb');
 const hasRasterData = computed(() => data.list.some(r => (r.data_type || '').toLowerCase() === 'raster'));
 const previewVisible = ref(false);
@@ -199,7 +203,6 @@ const dataTypeTab = ref('');
 const requestFormRef = ref(null);
 const viewDataVisible = ref(false);
 const mapContainer = ref(null);
-let mapView = null;
 
 
 
@@ -286,7 +289,7 @@ const embedding_watermark = async (row) => {
   const applicant_user_number = row.applicant_user_number;
   const isRaster = (row.data_type || '').toLowerCase() === 'raster';
 
-  embedding.value = true;
+  embeddingId.value = ApplicationId;
   ElMessage.info(t('wmEmbed.embeddingInProgress'));
 
   try {
@@ -315,9 +318,15 @@ const embedding_watermark = async (row) => {
     link.href = url;
     let fileName = 'default.zip';
     if (disposition) {
-      const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
-      if (matches && matches[1]) {
-        fileName = matches[1].replace(/['"]/g, '');
+      // 优先取 filename*=UTF-8''...（支持中文），再取 filename=...（仅 ASCII）
+      const matchesRFC = /filename\*=UTF-8''([^;\n]*)/.exec(disposition);
+      if (matchesRFC && matchesRFC[1]) {
+        fileName = decodeURIComponent(matchesRFC[1]);
+      } else {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        if (matches && matches[1]) {
+          fileName = matches[1].replace(/['"]/g, '');
+        }
       }
     }
     link.setAttribute('download', fileName);
@@ -325,17 +334,26 @@ const embedding_watermark = async (row) => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    ElMessage.success(t('wmEmbed.embedSuccess'));
+
+    // 显示下载成功提示，包含文件名和对应申请信息
+    ElMessage.success(
+      t('wmEmbed.embedSuccess') + ` (${t('wmEmbed.colApplicationId')}: ${ApplicationId}, ${t('wmEmbed.colDataName')}: ${row.data_alias})`,
+      { duration: 6000 }
+    );
+    ElMessage.info(t('wmEmbed.downloadFileHint') + `: ${fileName}`);
+    get_applications();
   } catch (error) {
     ElMessage.error(t('wmEmbed.embedFailed'));
+    // 如果是矢量嵌入失败，尝试重新获取列表
+    if (!isRaster) get_applications();
   } finally {
-    embedding.value = false;
+    embeddingId.value = null;
   }
 };
 
 
 const previewWatermark = async (row) => {
-  previewing.value = true;
+  previewingId.value = row.id;
   try {
     const resp = await previewWatermarkApi({ application_id: row.id });
     if (resp.data.status) {
@@ -357,7 +375,7 @@ const previewWatermark = async (row) => {
   } catch (e) {
     ElMessage.error('Preview failed');
   } finally {
-    previewing.value = false;
+    previewingId.value = null;
   }
 };
 
@@ -369,58 +387,80 @@ const selectedData = reactive({
   applicant_user_number: ''
 });
 
-const openMapDialog = (row) => {
+const openMapDialog = async (row) => {
+  destroyMapView();
   selectedData.data_alias = row.data_alias ?? '';
   selectedData.data_id = row.data_id ?? '';
   selectedData.data_url = row.data_url ?? '';
   selectedData.applicant_name = row.applicant_name ?? '';
   selectedData.applicant_user_number = row.applicant_user_number ?? '';
   viewDataVisible.value = true;
-  nextTick(() => {
-    if (selectedData.data_url) {
-      initializeMapView(selectedData.data_url);
-    }
-  });
-};
-
-
-const initializeMapView = (data_url) => {
-  // Create layers with the correct URL
-  const mapImageLayer = new MapImageLayer({ url: data_url });
-  const featureLayer = new FeatureLayer({ url: data_url });
-
-  // Create a Map instance with the layers
-  const map = new Map({
-    basemap: 'topo-vector',
-    layers: [mapImageLayer, featureLayer],
-  });
-
-  // Create and configure the MapView
-  mapView = new MapView({
-    container: mapContainer.value,
-    map,
-  });
-
-  // When the map view is ready
-  mapView.when(() => {
-    // Wait for the feature layer to be ready
-    featureLayer.when(() => {
-      featureLayer.queryExtent().then((response) => {
-        mapView.goTo(response.extent);
-      }).catch((error) => console.error('Error navigating to extent:', error));
-    }).catch((error) => console.error('Error loading feature layer:', error));
-
-    mapView.ui.remove('attribution');
-  }).catch((error) => console.error('Error loading map view:', error));
-};
-
-
-const destroyMapView = () => {
-  if (mapView) {
-    mapView.destroy();
-    mapView = null;
+  await nextTick();
+  if (selectedData.data_url && viewDataVisible.value) {
+    initializeMapView(selectedData.data_url);
   }
 };
+
+let mapInstance = null;
+const initializeMapView = (data_url) => {
+  destroyMapView();
+  if (!mapContainer.value) return;
+
+  // 创建 OSM 底图
+  mapInstance = L.map(mapContainer.value, {
+    center: [0, 0],
+    zoom: 2,
+    zoomControl: true,
+    attributionControl: true,
+  });
+
+  // OpenStreetMap 高清瓦片
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  }).addTo(mapInstance);
+
+  // 尝试加载 ArcGIS 服务上的要素图层
+  if (data_url) {
+    // 用 fetch 获取 ArcGIS 服务的 GeoJSON（支持 ArcGIS Server / MapServer / FeatureServer）
+    const queryUrl = data_url.replace(/\/MapServer\/\d+$/, '/MapServer')
+      + '/query?where=1%3D1&outFields=*&returnGeometry=true&f=geojson';
+
+    fetch(queryUrl)
+      .then(res => {
+        if (!res.ok) throw new Error('Service unavailable');
+        return res.json();
+      })
+      .then(geojson => {
+        if (!geojson.features || geojson.features.length === 0) {
+          ElMessage.warning(t('wmEmbed.noFeaturesFound') || 'No features found on map service');
+          return;
+        }
+        const geoLayer = L.geoJSON(geojson, {
+          style: { color: '#FF6F00', weight: 2, opacity: 0.8, fillColor: '#FFB74D', fillOpacity: 0.2 },
+          pointToLayer: (feature, latlng) => L.marker(latlng),
+        }).addTo(mapInstance);
+        mapInstance.fitBounds(geoLayer.getBounds().pad(0.1));
+      })
+      .catch(() => {
+        // 如果 ArcGIS 服务不可用，至少展示 OSM 底图 + 服务地址标记
+        ElMessage.info(t('wmEmbed.mapServiceHint') || 'Map service layer unavailable, showing base map only');
+        mapInstance.setView([35, 105], 4); // 中国区域
+      });
+  }
+};
+
+const destroyMapView = () => {
+  if (mapInstance) {
+    try { mapInstance.remove() } catch (_) {}
+    mapInstance = null;
+  }
+};
+
+// Clean up ArcGIS resources when leaving the page
+onBeforeUnmount(() => {
+  destroyMapView();
+});
 
 const handleClose = (dialogType, done) => {
   ElMessageBox.confirm(t('wmEmbed.confirmClose')).then(() => {
@@ -478,15 +518,17 @@ const handleClose = (dialogType, done) => {
   flex: 3;
   min-width: 0;
   position: relative;
-  height: 480px;
+  height: 520px;
   border-radius: 12px;
   overflow: hidden;
-  background: #f1f5f9;
+  background: #e8ecf1;
+  border: 1px solid #d0d5dd;
 }
 
 .vector-preview-layout .map-container {
   width: 100%;
   height: 100%;
+  z-index: 1;
 }
 
 .map-placeholder {

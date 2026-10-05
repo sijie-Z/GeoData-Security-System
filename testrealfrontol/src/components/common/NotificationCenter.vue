@@ -57,7 +57,7 @@
               :key="item.id"
               class="notification-item system-item"
               :class="{ unread: !item.read }"
-              @click="handleSystemNotification(item)"
+              @click="handleSystemNotification(item); markAsRead(item)"
             >
               <div class="icon-wrapper" :class="item.type || 'info'">
                 <el-icon v-if="item.type === 'approval'"><DocumentChecked /></el-icon>
@@ -143,8 +143,25 @@ const loadSystemNotifications = async () => {
   }
 }
 
-const markAllAsRead = () => {
-  systemNotifications.value.forEach(n => n.read = true)
+const markAsRead = async (item) => {
+  if (item.read) return
+  try {
+    await Axios.post(`/api/employee/notifications/${item.id}/read`)
+    item.read = true
+  } catch (e) {
+    console.error('Failed to mark as read:', e)
+  }
+}
+
+const markAllAsRead = async () => {
+  const unreadItems = systemNotifications.value.filter(n => !n.read)
+  if (!unreadItems.length) return
+  try {
+    await Promise.all(unreadItems.map(n => Axios.post(`/api/employee/notifications/${n.id}/read`)))
+    unreadItems.forEach(n => { n.read = true })
+  } catch (e) {
+    console.error('Failed to mark all as read:', e)
+  }
 }
 
 const goToChat = () => {

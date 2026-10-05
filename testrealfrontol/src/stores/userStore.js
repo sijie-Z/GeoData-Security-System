@@ -28,6 +28,23 @@ export const useUserStore = defineStore('user', {
       sessionStorage.setItem('refreshToken', userData.refreshToken);
     },
 
+    // Update only tokens without overwriting the rest of currentUser
+    updateTokens(token, refreshToken) {
+      this.token = token;
+      this.refreshToken = refreshToken;
+      const stored = sessionStorage.getItem('currentUser');
+      if (stored) {
+        try {
+          const userData = JSON.parse(stored);
+          userData.token = token;
+          userData.refreshToken = refreshToken;
+          sessionStorage.setItem('currentUser', JSON.stringify(userData));
+          sessionStorage.setItem('token', token);
+          sessionStorage.setItem('refreshToken', refreshToken);
+        } catch (_) { /* ignore parse errors */ }
+      }
+    },
+
     clearUserInfo() {
       this.currentUser = null;
       this.token = null;

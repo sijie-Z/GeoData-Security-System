@@ -40,14 +40,18 @@ const fetchUserInfo = async () => {
   try {
     const response = await axiosInstance.get('/api/protected');
     const respData = response.data?.data || response.data || {};
-    userStore.setUserInfo({
-      ...userStore.currentUser,
-      user_number: respData.user_number,
-      role: respData.role,
-      user_name: respData.user_name || t('header.admin')
-    });
+    // Guard: only update if API returned valid data
+    if (respData.user_number && respData.role) {
+      userStore.setUserInfo({
+        ...userStore.currentUser,
+        user_number: respData.user_number,
+        role: respData.role,
+        user_name: respData.user_name || t('header.admin')
+      });
+    }
   } catch (err) {
     console.error('获取管理员信息失败', err);
+    // Don't overwrite store on failure — existing data is still valid
   }
 };
 

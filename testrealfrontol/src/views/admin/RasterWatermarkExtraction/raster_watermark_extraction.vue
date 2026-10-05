@@ -65,6 +65,7 @@
           class="upload-area"
           drag
           :action="uploadUrl"
+          :headers="uploadHeaders"
           :multiple="false"
           accept=".zip,.tif,.tiff"
           :on-success="handleUploadSuccess"
@@ -229,6 +230,7 @@
 <script setup>
 import { reactive, ref, watch, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useUserStore } from '@/stores/userStore';
 import { ElMessage } from 'element-plus';
 import {
   Document,
@@ -243,6 +245,10 @@ import {
 } from '@element-plus/icons-vue';
 
 const { t } = useI18n();
+const userStore = useUserStore();
+const uploadHeaders = computed(() => ({
+  Authorization: `Bearer ${userStore.token}`
+}));
 
 // 数据状态
 const dataIdInput = ref('');

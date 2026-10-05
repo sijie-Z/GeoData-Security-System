@@ -11,7 +11,6 @@
     "lint:fix": "eslint src --ext .js,.vue --fix"
   },
   "dependencies": {
-    "@arcgis/core": "^4.30.8",
     "@element-plus/icons-vue": "^2.3.1",
     "@tweenjs/tween.js": "^25.0.0",
     "@vueuse/core": "^10.10.1",
@@ -20,6 +19,7 @@
     "element-plus": "^2.7.4",
     "jsonp": "^0.2.1",
     "jwt-decode": "^4.0.0",
+    "leaflet": "^1.9.4",
     "ol": "^10.1.0",
     "pinia": "^2.1.7",
     "pinia-plugin-persistedstate": "^3.2.1",

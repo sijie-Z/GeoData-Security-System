@@ -1,15 +1,39 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onErrorCaptured, watch } from 'vue';
 import HomeHeader from "@/components/admin/home/HomeHeader.vue";
 import HomeSide from "@/components/admin/home/HomeSide.vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
-const isSideCollapse = ref(false); // 用于控制侧边栏折叠状态
+const route = useRoute();
+const isSideCollapse = ref(false);
+const hasError = ref(false);
 
-// 切换侧边栏折叠状态的函数
 const toggleSideCollapse = () => {
   isSideCollapse.value = !isSideCollapse.value;
+};
+
+// Error boundary — catch child component errors, show fallback instead of white screen
+onErrorCaptured((err, instance, info) => {
+  console.error('[ErrorBoundary]', err, info);
+  hasError.value = true;
+  ElMessage.error('页面加载异常，请刷新重试');
+  return false; // prevent error from propagating further
+});
+
+// Reset error state when route changes (user clicked a different menu item)
+watch(() => route.path, () => {
+  if (hasError.value) {
+    hasError.value = false;
+  }
+});
+
+const reloadPage = () => {
+  hasError.value = false;
+  router.replace('/admin').then(() => {
+    window.location.reload();
+  });
 };
 </script>
 
@@ -21,10 +45,17 @@ const toggleSideCollapse = () => {
       <HomeSide :is-collapse="isSideCollapse" />
 
       <div :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]">
-        <router-view v-slot="{ Component }">
+        <div v-if="hasError" class="error-fallback">
+          <h2>⚠️ 页面加载异常</h2>
+          <p>子组件渲染出错，请刷新页面或返回首页。</p>
+          <el-button type="primary" @click="reloadPage">返回首页</el-button>
+        </div>
+        <router-view v-else v-slot="{ Component }">
           <transition name="page-fade" mode="out-in">
             <keep-alive :include="['AdminDashboard']">
-              <component :is="Component" />
+              <div :key="$route.path" style="height: 100%;">
+                <component :is="Component" />
+              </div>
             </keep-alive>
           </transition>
         </router-view>
@@ -76,5 +107,23 @@ const toggleSideCollapse = () => {
 .page-fade-leave-to {
   opacity: 0;
   transform: translateY(-4px);
+}
+
+.error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: #606266;
+}
+.error-fallback h2 {
+  font-size: 20px;
+  color: #e6a23c;
+  margin-bottom: 12px;
+}
+.error-fallback p {
+  margin-bottom: 20px;
 }
 </style>

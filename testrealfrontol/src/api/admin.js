@@ -212,7 +212,7 @@ export const deleteAnnouncement = (id) => axios.delete('/api/admin/announcements
  * @param {Object} data
  * @returns {Promise<AxiosResponse>}
  */
-export const sendNotification = (data) => axios.post('/api/admin/send-notification', data)
+export const sendNotification = (data) => axios.post('/api/admin/notifications/send', data)
 
 // ──────────────────────────────────────
 //  Application Fetching (by channel)

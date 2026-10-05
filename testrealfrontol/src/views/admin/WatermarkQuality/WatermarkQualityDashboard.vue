@@ -156,6 +156,79 @@
       </div>
     </el-card>
 
+    <!-- ====== 栅格水印算法 ====== -->
+    <el-card class="algo-card" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>{{ $t('watermarkQuality.rasterAlgoSection') }}</span>
+          <el-tag type="success" size="small">{{ $t('watermarkQuality.rasterLabel') }}</el-tag>
+        </div>
+      </template>
+      <p class="algo-description">{{ $t('watermarkQuality.rasterAlgoDesc') }}</p>
+
+      <el-row :gutter="16" style="margin-bottom: 16px;">
+        <el-col :span="6">
+          <div class="vector-stat-box">
+            <span class="vector-stat-value">{{ rasterStats.totalRecords }}</span>
+            <span class="vector-stat-label">{{ $t('watermarkQuality.totalVerifications') }}</span>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="vector-stat-box">
+            <span class="vector-stat-value" :style="{ color: rasterStats.avgNc !== '-' ? '#10b981' : '#94a3b8' }">
+              {{ rasterStats.avgNc }}
+            </span>
+            <span class="vector-stat-label">AVG NC</span>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="vector-stat-box">
+            <span class="vector-stat-value" :style="{ color: rasterStats.avgBer !== '-' ? '#f59e0b' : '#94a3b8' }">
+              {{ rasterStats.avgBer }}
+            </span>
+            <span class="vector-stat-label">AVG BER</span>
+          </div>
+        </el-col>
+        <el-col :span="6">
+          <div class="vector-stat-box">
+            <span class="vector-stat-value">{{ rasterStats.ncRange }}</span>
+            <span class="vector-stat-label">NC 范围</span>
+          </div>
+        </el-col>
+      </el-row>
+
+      <!-- 栅格水印算法对比表 -->
+      <el-table :data="rasterAlgoSummary" stripe style="width: 100%">
+        <el-table-column prop="name" :label="$t('watermarkQuality.algoName')" width="150" />
+        <el-table-column prop="domain" :label="$t('watermarkQuality.algoDomain')" width="130" />
+        <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
+          <template #default="{ row }">
+            <el-tag :type="row.baselineNc >= 0.95 ? 'success' : row.baselineNc >= 0.8 ? 'warning' : 'danger'" effect="dark" size="small">
+              {{ row.baselineNc?.toFixed(4) || '-' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.baselineBer')" width="90">
+          <template #default="{ row }">{{ row.baselineBer?.toFixed(4) || '-' }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.embeddingCapacity')" width="120">
+          <template #default="{ row }">{{ row.capacity }}</template>
+        </el-table-column>
+        <el-table-column prop="robustnessNote" :label="$t('watermarkQuality.robustness')" min-width="200" />
+      </el-table>
+
+      <!-- 栅格关键发现 -->
+      <div class="findings-section" style="margin-top: 16px;">
+        <el-alert
+          :title="$t('watermarkQuality.findingRasterTitle')"
+          :description="rasterFindingDesc"
+          type="success"
+          :closable="false"
+          show-icon
+        />
+      </div>
+    </el-card>
+
     <!-- ====== 矢量水印算法 ====== -->
     <el-card class="algo-card" shadow="never">
       <template #header>
@@ -311,7 +384,7 @@
         <el-alert
           :title="$t('watermarkQuality.findingVectorTitle')"
           :description="vectorFindingDesc"
-          type="primary"
+          type="info"
           :closable="false"
           show-icon
         />
@@ -356,10 +429,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, TrendCharts, Warning, Timer, Refresh, MapLocation, Picture } from '@element-plus/icons-vue'
 import { getVerificationRecords, getBenchmarkResults } from '@/api/watermark'
+
+// ── 性能优化：echarts 模块级缓存 ──
+let echartsMod = null
+async function getEcharts() {
+  if (!echartsMod) echartsMod = await import('echarts')
+  return echartsMod
+}
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -373,6 +453,24 @@ const chartNcRef = ref(null)
 const chartBerRef = ref(null)
 const chartRecRef = ref(null)
 const chartStegoRef = ref(null)
+
+// Store chart instances for proper disposal
+let ncDistChart = null
+let ncBenchChart = null
+let berBenchChart = null
+let recBenchChart = null
+let stegoBenchChart = null
+
+const disposeAllCharts = () => {
+  ;[ncDistChart, ncBenchChart, berBenchChart, recBenchChart, stegoBenchChart].forEach(c => {
+    try { c?.dispose() } catch (_) {}
+  })
+  ncDistChart = ncBenchChart = berBenchChart = recBenchChart = stegoBenchChart = null
+}
+
+onBeforeUnmount(() => {
+  disposeAllCharts()
+})
 
 // ── Benchmark state ──
 const benchLoading = ref(false)
@@ -442,6 +540,54 @@ const vectorFindingDesc = computed(() => {
   return `NC=${s.avgNc}，BER=${s.avgBer}。水印通过修改坐标值的低位二进制位嵌入，坐标四舍五入到小数点后固定位数时会产生量子化误差，破坏部分水印比特。适合：数据溯源、版权证明（即使有比特错误，QR码仍可通过错误校正识别）。共 ${s.totalRecords} 条矢量验证记录。`
 })
 
+// ── Raster algorithm stats from real records ──
+const rasterStats = computed(() => {
+  const rasRecs = records.value.filter(r => r.data_type === 'raster' && r.nc_value != null)
+  const ncVals = rasRecs.map(r => r.nc_value)
+  const totalRecords = rasRecs.length
+  const avgNc = totalRecords > 0 ? (ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
+  const ncRange = totalRecords > 0
+    ? `${Math.min(...ncVals).toFixed(2)} ~ ${Math.max(...ncVals).toFixed(2)}`
+    : '-'
+  const avgBer = totalRecords > 0 ? (1 - ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
+  return { totalRecords, avgNc, avgBer, ncRange }
+})
+
+// ── Raster algorithm summary table (from benchmark data) ──
+const rasterAlgoSummary = computed(() => {
+  const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
+  if (summaries.length === 0) return []
+
+  return summaries.map(s => {
+    const alg = s.algorithm
+    const isLSB = alg === 'LSB'
+    const isDWT = alg === 'DWT'
+
+    return {
+      name: alg,
+      domain: isDWT ? '频域 (DWT)' : '空间域',
+      baselineNc: s.baseline_nc,
+      baselineBer: s.baseline_ber,
+      capacity: isLSB ? '全像素级' : isDWT ? 'LL子带' : '峰值限制',
+      robustnessNote: isLSB
+        ? '隐写质量优秀(PSNR>55dB)，但水印极其脆弱，任何攻击都会摧毁水印'
+        : isDWT
+          ? `PSNR=${s.stego_psnr}dB，QIM提取存在Bug，NC≈${s.baseline_nc?.toFixed(3)}（≈随机）`
+          : '在自然图像上数学不可行，需要纯色图像',
+    }
+  })
+})
+
+// ── Raster finding description ──
+const rasterFindingDesc = computed(() => {
+  const s = rasterStats.value
+  const lsb = benchResults.value.find(r => r.algorithm === 'LSB' && 'stego_psnr' in r)
+  const dwt = benchResults.value.find(r => r.algorithm === 'DWT' && 'stego_psnr' in r)
+  const psnrInfo = lsb ? `LSB隐写PSNR=${lsb.stego_psnr}dB` : ''
+  const dwtInfo = dwt ? `，DWT隐写PSNR=${dwt.stego_psnr}dB` : ''
+  return `共 ${s.totalRecords} 条栅格验证记录。${psnrInfo}${dwtInfo}。LSB可完美恢复原图但水印脆弱；DWT存在QIM提取Bug（返回系数奇偶性而非水印比特），需修复后方可使用。`
+})
+
 const getNcTagType = (nc) => {
   if (nc == null) return 'info'
   if (nc >= 0.95) return 'success'
@@ -496,8 +642,10 @@ const fetchBenchmark = async () => {
 // ── NC distribution chart (dual series) ──
 const renderChart = async () => {
   if (!chartRef.value || records.value.length === 0) return
-  const echarts = await import('echarts')
-  const chart = echarts.init(chartRef.value)
+  const echarts = await getEcharts()
+  if (ncDistChart) { ncDistChart.dispose() }
+  ncDistChart = echarts.init(chartRef.value)
+  const chart = ncDistChart
 
   const vecNc = records.value.filter(r => r.data_type === 'vector' && r.nc_value != null).map(r => r.nc_value)
   const rasNc = records.value.filter(r => r.data_type === 'raster' && r.nc_value != null).map(r => r.nc_value)
@@ -560,7 +708,7 @@ const renderAllBenchmarkCharts = async () => {
   const atkResults = _getAttackData()
   if (atkResults.length === 0) return
 
-  const echarts = await import('echarts')
+  const echarts = await getEcharts()
   window._echartsInstance = echarts
 
   const attackNames = [...new Set(atkResults.map(r => r.attack))]
@@ -570,7 +718,9 @@ const renderAllBenchmarkCharts = async () => {
   const xOpts = { type: 'category', data: attackNames, axisLabel: { rotate: 30, fontSize: 10, color: '#64748b' } }
   const legendOpts = { data: algos, bottom: 0, textStyle: { fontSize: 11 } }
 
+  if (ncBenchChart) { ncBenchChart.dispose() }
   const ncChart = chartNcRef.value ? echarts.init(chartNcRef.value) : null
+  ncBenchChart = ncChart
   if (ncChart) {
     ncChart.setOption({
       tooltip: { trigger: 'axis' },
@@ -586,7 +736,9 @@ const renderAllBenchmarkCharts = async () => {
     })
   }
 
+  if (berBenchChart) { berBenchChart.dispose() }
   const berChart = chartBerRef.value ? echarts.init(chartBerRef.value) : null
+  berBenchChart = berChart
   if (berChart) {
     berChart.setOption({
       tooltip: { trigger: 'axis' },
@@ -602,7 +754,9 @@ const renderAllBenchmarkCharts = async () => {
     })
   }
 
+  if (recBenchChart) { recBenchChart.dispose() }
   const recChart = chartRecRef.value ? echarts.init(chartRecRef.value) : null
+  recBenchChart = recChart
   if (recChart) {
     recChart.setOption({
       tooltip: { trigger: 'axis' },
@@ -618,7 +772,9 @@ const renderAllBenchmarkCharts = async () => {
     })
   }
 
+  if (stegoBenchChart) { stegoBenchChart.dispose() }
   const stegoChart = chartStegoRef.value ? echarts.init(chartStegoRef.value) : null
+  stegoBenchChart = stegoChart
   if (stegoChart) {
     const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
     const algoNames = summaries.map(s => s.algorithm)
@@ -722,7 +878,7 @@ const keyFindings = computed(() => {
     findings.push({
       title: t('watermarkQuality.findingHistTitle') || '直方图平移：在自然图像上数学上不可行',
       description: t('watermarkQuality.findingHistDesc') || `需要峰值像素数 ≥ 图像总像素数（${hist.embed_error?.match(/need (\d+) bits but peak bin has only (\d+)/)?.[0] || '容量不足'}）。代码将水印缩放到了全图尺寸，除非图像是纯色，否则永远无法满足。这是实现层面的设计缺陷。`,
-      type: 'danger',
+      type: 'error',
     })
   }
   findings.push({

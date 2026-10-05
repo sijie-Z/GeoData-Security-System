@@ -15,6 +15,7 @@ import { ElMessage } from 'element-plus'
 let socket = null
 let _authenticated = false
 let _joinedRooms = new Set()
+let _connectionFailed = false
 
 /* ------------------------------------------------------------------ */
 /*  Connection management                                              */
@@ -28,21 +29,23 @@ let _joinedRooms = new Set()
  * @param {object} [opts] - extra options
  * @param {Function} [opts.onAuthenticated] - callback after successful auth
  */
-export function connectSocket (token, opts = {}) {
-  if (!token) return null
+export function connectSocket (_token, _opts = {}) {
+  // Socket.IO disabled — backend does not run Socket.IO on Windows
+  // Chat falls back to HTTP polling automatically
+  return null
 
-  // Re-use existing connected socket
+  /* eslint-disable no-unreachable */
+  if (!_token) return null
   if (socket && socket.connected) return socket
+  if (_connectionFailed) return null
 
   if (!socket) {
     const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5003'
     socket = io(apiUrl, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
-      reconnection: true,
-      reconnectionAttempts: 10,
-      reconnectionDelay: 2000,
-      reconnectionDelayMax: 10000,
+      reconnection: false,
+      timeout: 5000,
     })
 
     socket.on('connect', () => {
@@ -68,7 +71,12 @@ export function connectSocket (token, opts = {}) {
     })
 
     socket.on('connect_error', () => {
-      // Silently retry -- the user will see a fallback to polling
+      // Mark as failed to prevent further retry attempts
+      _connectionFailed = true
+      if (socket) {
+        socket.disconnect()
+        socket = null
+      }
     })
   } else {
     // Socket exists but was disconnected -- update token and reconnect

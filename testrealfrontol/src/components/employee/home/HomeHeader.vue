@@ -125,15 +125,11 @@ const { t } = useI18n();
          }
          avatarUrl.value = URL.createObjectURL(response.data);
        } else {
+         // 无头像数据，静默使用默认头像
          avatarUrl.value = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg';
-         ElMessage.warning(t('header.avatarLoadFailed'));
        }
      } catch (error) {
-       console.error("获取用户头像失败:", error);
-       // 404错误是正常情况，不显示错误消息
-       if (error.response?.status !== 404) {
-         ElMessage.warning(t('header.avatarError'));
-       }
+       // 头像加载失败属于正常情况（用户可能未上传头像），静默使用默认头像
        avatarUrl.value = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg';
      }
    } else {
