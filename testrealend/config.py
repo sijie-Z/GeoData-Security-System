@@ -100,6 +100,14 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
+    # Tests must stay hermetic: point the default engine at SQLite too, so a
+    # query whose bind cannot be resolved (e.g. aggregate Selects without a
+    # mapped entity) lands on the same test DB instead of the default MySQL
+    # URI, which fails wherever no MySQL is running (CI containers).
+    SQLALCHEMY_DATABASE_URI = "sqlite:///test.db"
+    # The base engine options carry MySQL-only connect_args, which sqlite3.connect()
+    # rejects; keep the pooling settings and drop the connect_args for SQLite.
+    SQLALCHEMY_ENGINE_OPTIONS = {**Config.SQLALCHEMY_ENGINE_OPTIONS, "connect_args": {}}
     SQLALCHEMY_BINDS = {
         "mysql_db": "sqlite:///test.db",
         "postgres_db": "sqlite:///test.db",
