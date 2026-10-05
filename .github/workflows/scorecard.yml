@@ -1,0 +1,41 @@
+# OSSF Scorecard —— 供应链安全评分（周度 + 触及 .github 的 PR），结果发布到 Security 面板。
+name: Scorecard supply-chain security
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 4 * * 1" # 每周一 ~12:23（北京时间）
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    paths:
+      - ".github/**"
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write # upload SARIF
+      id-token: write # needed for publish-results
+      contents: read
+      actions: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+
+      - name: Run analysis
+        uses: ossf/scorecard-action@62b2cac7ed8198b15735ed49ab1e5cf35480ba46 # v2.4.0
+        with:
+          results_file: results.sarif
+          results_format: sarif
+          publish_results: true
+
+      - name: Upload SARIF to code scanning
+        uses: github/codeql-action/upload-sarif@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v4.38.1
+        with:
+          sarif_file: results.sarif

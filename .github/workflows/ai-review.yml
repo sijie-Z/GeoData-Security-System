@@ -1,0 +1,66 @@
+# PR 自动 AI 审查（claude-code-action）。
+#
+# 默认惰性：仓库未配置 ANTHROPIC_API_KEY（Settings → Secrets and variables →
+# Actions → New repository secret）时，全部步骤跳过，不影响任何 PR。
+# 配置后：每个非草稿 PR（opened / synchronize / ready_for_review / reopened）
+# 自动获得一次中文审查——仓库红线核对 + 缺陷/安全/边界视角 + 行内批注；
+# 同一 PR 并发去重，20 分钟超时上限。
+# 停用：删除 secret（立即回到惰性）或在 Actions 页禁用本 workflow。
+name: AI review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Checkout
+        if: env.ANTHROPIC_API_KEY != ''
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          fetch-depth: 1
+      - name: Claude review
+        if: env.ANTHROPIC_API_KEY != ''
+        uses: anthropics/claude-code-action@56cf60fde42f7b19c3abfd5c9c48b69a1288461f # v1.0.222
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            请对本 PR 做一次**中文**代码审查。本仓库是地理空间数据安全分发与溯源系统
+            （Flask + Vue 3；MySQL/PostGIS；SHP/GeoTIFF 水印 + 多级审批 + GeoServer）。
+            按以下重点审查，发现的问题按严重度排序；**没有问题就明确写 LGTM**，不要为凑数制造意见：
+
+            1. 红线核对（违反必须指出）：
+               - 不得提交真实密钥或凭据（DEEPSEEK_API_KEY / GEOSERVER_PASSWORD / QR_SECRET_KEY
+                 等一律走环境变量）；
+               - 不得放宽鉴权：JWT 装饰器 / admin_role_required / 审批状态校验的语义变化必须显式说明；
+               - 水印算法行为变化必须附带回归测试与质量指标证据（PSNR/NC/BER 或等价断言）；
+               - 数据库 schema 变化必须兼容既有数据（建表走 create_all，注意迁移空缺）。
+            2. 缺陷视角：并发与幂等（审批状态机、下载令牌、瓦片生成后台线程）、边界（空文件 /
+               越界坐标 / 缺失字段）、资源泄漏（GDAL 数据集、流式响应、Socket 句柄）、
+               注入面（文件路径拼接、SQL）、前端异步过期响应守卫。
+            3. 测试与流程：新行为是否有测试（偏好“先复现失败、修复后转绿”）；验证命令与结果是否
+               附在 PR 中；是否夹带了无关文件改动。
+
+            用 `gh pr comment` 发顶层总结；用 mcp__github_inline_comment__create_inline_comment
+            （confirmed: true）给具体代码行内批注。只通过 GitHub 评论输出。
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*)"

@@ -1,0 +1,41 @@
+# Dependabot 版本更新 —— 自动为 npm / pip / GitHub Actions 依赖开 PR。
+# 注意：Dependabot *告警*（含安全更新）是仓库设置里的独立开关（Settings → Security），
+# 与版本更新互不影响。
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /testrealfrontol
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build(frontend)"
+    labels:
+      - dependencies
+
+  - package-ecosystem: pip
+    directory: /testrealend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "build(backend)"
+    labels:
+      - dependencies
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "ci"
