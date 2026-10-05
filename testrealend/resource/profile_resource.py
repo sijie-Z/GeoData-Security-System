@@ -27,7 +27,9 @@ class EmployeeProfileResource(Resource):
                     "department": user.department or "",
                     "email": user.email or "",
                     "phoneNumber": user.phone_number,
-                    "hireDate": (user.hire_date or user.create_time).strftime("%Y-%m-%d") if (user.hire_date or user.create_time) else "",
+                    "hireDate": (user.hire_date or user.create_time).strftime("%Y-%m-%d")
+                    if (user.hire_date or user.create_time)
+                    else "",
                     "address": user.address or "",
                     "lastLoginTime": user.last_login_time.strftime("%Y-%m-%d %H:%M:%S") if user.last_login_time else "",
                 },

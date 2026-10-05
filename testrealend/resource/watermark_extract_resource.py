@@ -49,11 +49,15 @@ class VectorExtractResource(Resource):
         # 优先按申请编号查找，若找不到或无 vr_data，则按数据编号查找
         item = db.session.get(Application, app_id)
         if not item or not item.vr_data:
-            alt = Application.query.filter(
-                Application.data_id == app_id,
-                Application.watermark_embedded == True,
-                Application.vr_data.isnot(None),
-            ).order_by(Application.id.desc()).first()
+            alt = (
+                Application.query.filter(
+                    Application.data_id == app_id,
+                    Application.watermark_embedded == True,
+                    Application.vr_data.isnot(None),
+                )
+                .order_by(Application.id.desc())
+                .first()
+            )
             if alt:
                 item = alt
 

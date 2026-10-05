@@ -65,7 +65,7 @@ def decode_qr_from_image(image_path):
     try:
         from pyzbar.pyzbar import decode as pyzbar_decode
 
-        for name, pil_img in strategies:
+        for _name, pil_img in strategies:
             try:
                 decoded_objects = pyzbar_decode(pil_img)
                 if decoded_objects:
@@ -81,7 +81,7 @@ def decode_qr_from_image(image_path):
     try:
         import cv2
 
-        for name, pil_img in strategies[:4]:
+        for _name, pil_img in strategies[:4]:
             try:
                 arr = np.array(pil_img.convert("RGB"))
                 img_bgr = cv2.cvtColor(arr, cv2.COLOR_RGB2BGR)

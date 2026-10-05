@@ -4,9 +4,9 @@
 import os
 
 from flask import Flask
+from server.common_server import CommonServer
 
 from extension.extension import db
-from server.common_server import CommonServer
 
 # 创建一个 Flask 应用实例
 # 这个脚本需要一个应用上下文来与数据库交互，

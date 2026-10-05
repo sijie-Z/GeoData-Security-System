@@ -33,6 +33,7 @@ def _workspace():
 
 # ── Workspace ──────────────────────────────────────────────
 
+
 def ensure_workspace(workspace: str | None = None) -> bool:
     """Create workspace if it doesn't exist. Returns True on success."""
     ws = workspace or _workspace()
@@ -61,6 +62,7 @@ def ensure_workspace(workspace: str | None = None) -> bool:
 
 
 # ── Publish Shapefile ──────────────────────────────────────
+
 
 def publish_shapefile(shp_zip_path: str, layer_name: str, workspace: str | None = None) -> dict:
     """
@@ -135,6 +137,7 @@ def publish_shapefile(shp_zip_path: str, layer_name: str, workspace: str | None 
 
 # ── Publish GeoTIFF ────────────────────────────────────────
 
+
 def publish_geotiff(tiff_path: str, layer_name: str, workspace: str | None = None) -> dict:
     """
     Upload a GeoTIFF to GeoServer and publish it as a coverage layer.
@@ -204,6 +207,7 @@ def publish_geotiff(tiff_path: str, layer_name: str, workspace: str | None = Non
 
 
 # ── Delete Layer ───────────────────────────────────────────
+
 
 def delete_layer(layer_name: str, workspace: str | None = None, recurse: bool = True) -> bool:
     """Delete a layer and its associated store from GeoServer."""

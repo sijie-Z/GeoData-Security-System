@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from flask import request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
-from sqlalchemy import and_, func, or_, case, cast, Date
+from sqlalchemy import Date, and_, case, cast, func, or_
 
 from extension.extension import db
 from model.Adm_Account import AdmAccount
@@ -87,9 +87,7 @@ class AdminDashboardResource(Resource):
 
         # ========== 今日统计（1 条聚合查询替代 4 条） ==========
         today_counts = dict(
-            db.session.query(
-                LogInfo.action, func.count(func.distinct(LogInfo.user_number))
-            )
+            db.session.query(LogInfo.action, func.count(func.distinct(LogInfo.user_number)))
             .filter(LogInfo.timestamp >= today_start, LogInfo.action.in_(["login", "download", "apply", "view"]))
             .group_by(LogInfo.action)
             .all()
@@ -107,19 +105,13 @@ class AdminDashboardResource(Resource):
         )
         applications_today = today_apps_downloads.get("apps", 0)
 
-        today_dl = (
-            db.session.query(func.count())
-            .filter(DownloadRecord.timestamp >= today_start)
-            .scalar()
-        )
+        today_dl = db.session.query(func.count()).filter(DownloadRecord.timestamp >= today_start).scalar()
         downloads_today = today_dl or 0
 
         # ========== 14天趋势（3 条批量 GROUP BY 替代 42 条） ==========
         app_trend = _batch_day_counts(Application, Application.application_submission_time, 14)
         dl_trend = _batch_day_counts(DownloadRecord, DownloadRecord.timestamp, 14)
-        login_trend = _batch_day_counts(
-            LogInfo, LogInfo.timestamp, 14, [LogInfo.action == "login"]
-        )
+        login_trend = _batch_day_counts(LogInfo, LogInfo.timestamp, 14, [LogInfo.action == "login"])
         daily_trend = [
             {"date": d, "applications": a, "downloads": dl, "logins": lg}
             for (d, a), (_, dl), (_, lg) in zip(app_trend, dl_trend, login_trend)
@@ -182,7 +174,8 @@ class AdminDashboardResource(Resource):
             .all()
         )
         hot_data_list = [
-            {"name": row[0] or "未知数据", "type": (row[1] or "unknown").lower(), "downloads": row[2]} for row in hot_data
+            {"name": row[0] or "未知数据", "type": (row[1] or "unknown").lower(), "downloads": row[2]}
+            for row in hot_data
         ]
         # 不足 5 条时，用最近审批通过的数据补齐
         if len(hot_data_list) < 5:
@@ -196,11 +189,13 @@ class AdminDashboardResource(Resource):
                 .all()
             )
             for row in extra:
-                hot_data_list.append({
-                    "name": row.data_name or "未知数据",
-                    "type": (row.data_type or "unknown").lower(),
-                    "downloads": 0,
-                })
+                hot_data_list.append(
+                    {
+                        "name": row.data_name or "未知数据",
+                        "type": (row.data_type or "unknown").lower(),
+                        "downloads": 0,
+                    }
+                )
 
         # ========== 管理员效率（批量查询替代 N×3 循环） ==========
         admin_stats = []
@@ -213,9 +208,7 @@ class AdminDashboardResource(Resource):
             admin_numbers = [a.adm_number for a, _ in admins_with_info]
             # 一次查出所有审批统计
             approved_counts = dict(
-                db.session.query(
-                    Application.adm1_user_number, func.count()
-                )
+                db.session.query(Application.adm1_user_number, func.count())
                 .filter(
                     Application.adm1_user_number.in_(admin_numbers),
                     Application.adm1_statu == True,
@@ -225,9 +218,7 @@ class AdminDashboardResource(Resource):
                 .all()
             )
             approved_counts2 = dict(
-                db.session.query(
-                    Application.adm2_user_number, func.count()
-                )
+                db.session.query(Application.adm2_user_number, func.count())
                 .filter(
                     Application.adm2_user_number.in_(admin_numbers),
                     Application.adm1_statu == True,
@@ -237,9 +228,7 @@ class AdminDashboardResource(Resource):
                 .all()
             )
             rejected_counts = dict(
-                db.session.query(
-                    Application.adm1_user_number, func.count()
-                )
+                db.session.query(Application.adm1_user_number, func.count())
                 .filter(
                     Application.adm1_user_number.in_(admin_numbers),
                     Application.adm1_statu == False,
@@ -248,9 +237,7 @@ class AdminDashboardResource(Resource):
                 .all()
             )
             rejected_counts2 = dict(
-                db.session.query(
-                    Application.adm2_user_number, func.count()
-                )
+                db.session.query(Application.adm2_user_number, func.count())
                 .filter(
                     Application.adm2_user_number.in_(admin_numbers),
                     Application.adm2_statu == False,
@@ -262,19 +249,19 @@ class AdminDashboardResource(Resource):
                 num = admin.adm_number
                 ap = approved_counts.get(num, 0) + approved_counts2.get(num, 0)
                 rj = rejected_counts.get(num, 0) + rejected_counts2.get(num, 0)
-                admin_stats.append({
-                    "name": name or admin.adm_user_name,
-                    "number": num,
-                    "approved": ap,
-                    "rejected": rj,
-                    "total": ap + rj,
-                })
+                admin_stats.append(
+                    {
+                        "name": name or admin.adm_user_name,
+                        "number": num,
+                        "approved": ap,
+                        "rejected": rj,
+                        "total": ap + rj,
+                    }
+                )
 
         # ========== 每小时活跃度（1 条 GROUP BY 替代 24 条） ==========
         hourly_rows = dict(
-            db.session.query(
-                func.extract("hour", LogInfo.timestamp), func.count()
-            )
+            db.session.query(func.extract("hour", LogInfo.timestamp), func.count())
             .filter(
                 LogInfo.timestamp >= today_start,
                 LogInfo.action.in_(["login", "download", "apply"]),
@@ -282,16 +269,10 @@ class AdminDashboardResource(Resource):
             .group_by(func.extract("hour", LogInfo.timestamp))
             .all()
         )
-        hourly_activity = [
-            {"hour": f"{h:02d}:00", "count": hourly_rows.get(h, 0)} for h in range(24)
-        ]
+        hourly_activity = [{"hour": f"{h:02d}:00", "count": hourly_rows.get(h, 0)} for h in range(24)]
 
         # ========== 回收审议 + 管理员申请（各自 1 条聚合） ==========
-        recall_rows = dict(
-            db.session.query(RecallProposal.status, func.count())
-            .group_by(RecallProposal.status)
-            .all()
-        )
+        recall_rows = dict(db.session.query(RecallProposal.status, func.count()).group_by(RecallProposal.status).all())
         recall_stats = {
             "voting": recall_rows.get("voting", 0),
             "approved": recall_rows.get("approved", 0),
@@ -300,9 +281,7 @@ class AdminDashboardResource(Resource):
         }
 
         admin_app_rows = dict(
-            db.session.query(AdminApplication.status, func.count())
-            .group_by(AdminApplication.status)
-            .all()
+            db.session.query(AdminApplication.status, func.count()).group_by(AdminApplication.status).all()
         )
         admin_app_stats = {
             "pending": admin_app_rows.get("pending", 0),
@@ -314,24 +293,33 @@ class AdminDashboardResource(Resource):
         # ========== 告警 ==========
         alerts = []
         if pending_applications > 20:
-            alerts.append({
-                "level": "warning", "type": "pending_overflow",
-                "message": f"待审批申请积压达 {pending_applications} 条，请及时处理",
-                "count": pending_applications,
-            })
+            alerts.append(
+                {
+                    "level": "warning",
+                    "type": "pending_overflow",
+                    "message": f"待审批申请积压达 {pending_applications} 条，请及时处理",
+                    "count": pending_applications,
+                }
+            )
         if active_users_today == 0:
             alerts.append({"level": "info", "type": "no_activity", "message": "今日尚无用户活动记录"})
         if recall_stats["voting"] > 0:
-            alerts.append({
-                "level": "warning", "type": "recall_pending",
-                "message": f"有 {recall_stats['voting']} 条数据回收提议待投票",
-                "count": recall_stats["voting"],
-            })
+            alerts.append(
+                {
+                    "level": "warning",
+                    "type": "recall_pending",
+                    "message": f"有 {recall_stats['voting']} 条数据回收提议待投票",
+                    "count": recall_stats["voting"],
+                }
+            )
         if admin_app_stats["pending"] > 0 or admin_app_stats["voting"] > 0:
-            alerts.append({
-                "level": "info", "type": "admin_app_pending",
-                "message": f"有 {admin_app_stats['pending'] + admin_app_stats['voting']} 条管理员申请待处理",
-            })
+            alerts.append(
+                {
+                    "level": "info",
+                    "type": "admin_app_pending",
+                    "message": f"有 {admin_app_stats['pending'] + admin_app_stats['voting']} 条管理员申请待处理",
+                }
+            )
 
         # ========== 最近日志（1 条查询） ==========
         recent_logs = [
@@ -405,9 +393,7 @@ class EmployeeDashboardResource(Resource):
 
         # 数据偏好（1 条聚合替代 2 条）
         pref_rows = dict(
-            db.session.query(
-                func.lower(Application.data_type), func.count()
-            )
+            db.session.query(func.lower(Application.data_type), func.count())
             .filter(Application.applicant_user_number == user_number)
             .group_by(func.lower(Application.data_type))
             .all()
@@ -439,17 +425,18 @@ class EmployeeDashboardResource(Resource):
 
         # ========== 14天趋势（2 条批量 GROUP BY 替代 28 条） ==========
         app_trend = _batch_day_counts(
-            Application, Application.application_submission_time, 14,
+            Application,
+            Application.application_submission_time,
+            14,
             [Application.applicant_user_number == user_number],
         )
         dl_trend = _batch_day_counts(
-            DownloadRecord, DownloadRecord.timestamp, 14,
+            DownloadRecord,
+            DownloadRecord.timestamp,
+            14,
             [DownloadRecord.applicant_user_number == user_number],
         )
-        daily_trend = [
-            {"date": d, "applications": a, "downloads": dl}
-            for (d, a), (_, dl) in zip(app_trend, dl_trend)
-        ]
+        daily_trend = [{"date": d, "applications": a, "downloads": dl} for (d, a), (_, dl) in zip(app_trend, dl_trend)]
 
         # 状态分布（1 条聚合替代 3 条）
         status_rows = dict(

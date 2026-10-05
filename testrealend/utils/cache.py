@@ -75,9 +75,7 @@ def cached(timeout=300, key_prefix="cache"):
             except Exception:
                 user_id = "anon"
 
-            ckey = hashlib.md5(
-                f"{key_prefix}:{f.__name__}:{user_id}:{request.full_path}".encode()
-            ).hexdigest()
+            ckey = hashlib.md5(f"{key_prefix}:{f.__name__}:{user_id}:{request.full_path}".encode()).hexdigest()
 
             cached_val = _get(ckey)
             if cached_val is not None:

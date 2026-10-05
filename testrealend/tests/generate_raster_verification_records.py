@@ -41,13 +41,13 @@ def create_test_raster(size=256):
     x = np.linspace(0, 4 * np.pi, size)
     y = np.linspace(0, 4 * np.pi, size)
     Xm, Ym = np.meshgrid(x, y)
-    waves = (np.sin(Xm) * np.cos(Ym) * 30 +
-             np.sin(Xm * 2.5) * np.cos(Ym * 1.8) * 20 +
-             np.sin(Xm * 0.7 + Ym * 1.3) * 25)
+    waves = np.sin(Xm) * np.cos(Ym) * 30 + np.sin(Xm * 2.5) * np.cos(Ym * 1.8) * 20 + np.sin(Xm * 0.7 + Ym * 1.3) * 25
 
-    spots = (np.exp(-((X - size * 0.3) ** 2 + (Y - size * 0.4) ** 2) / 2000) * 80 +
-             np.exp(-((X - size * 0.7) ** 2 + (Y - size * 0.6) ** 2) / 3000) * 60 +
-             np.exp(-((X - size * 0.5) ** 2 + (Y - size * 0.25) ** 2) / 1500) * 90)
+    spots = (
+        np.exp(-((X - size * 0.3) ** 2 + (Y - size * 0.4) ** 2) / 2000) * 80
+        + np.exp(-((X - size * 0.7) ** 2 + (Y - size * 0.6) ** 2) / 3000) * 60
+        + np.exp(-((X - size * 0.5) ** 2 + (Y - size * 0.25) ** 2) / 1500) * 90
+    )
 
     r = np.clip(base + waves + spots, 0, 255).astype(np.uint8)
     g = np.clip(base + waves * 0.9 + spots * 1.1 + 5, 0, 255).astype(np.uint8)
@@ -60,14 +60,14 @@ def create_watermark(size=64):
     wm = np.zeros((size, size), dtype=np.uint8)
     # Finder patterns (3 corners)
     for ox, oy in [(0, 0), (0, size - 8), (size - 8, 0)]:
-        wm[ox:ox + 8, oy:oy + 8] = 255
-        wm[ox + 1:ox + 7, oy + 1:oy + 7] = 0
-        wm[ox + 2:ox + 6, oy + 2:oy + 6] = 255
+        wm[ox : ox + 8, oy : oy + 8] = 255
+        wm[ox + 1 : ox + 7, oy + 1 : oy + 7] = 0
+        wm[ox + 2 : ox + 6, oy + 2 : oy + 6] = 255
     # Data modules
     for i in range(8, size, 3):
         for j in range(8, size, 3):
             if (i + j) % 5 == 0:
-                wm[i:min(i + 2, size), j:min(j + 2, size)] = 255
+                wm[i : min(i + 2, size), j : min(j + 2, size)] = 255
     # Timing patterns
     for j in range(8, size, 2):
         wm[6, j] = 255
@@ -192,9 +192,12 @@ def main():
             print("\n✗ No records created.")
 
         # Show summary
-        records = WatermarkVerification.query.filter_by(
-            data_type="raster"
-        ).order_by(WatermarkVerification.verified_at.desc()).limit(10).all()
+        records = (
+            WatermarkVerification.query.filter_by(data_type="raster")
+            .order_by(WatermarkVerification.verified_at.desc())
+            .limit(10)
+            .all()
+        )
 
         print(f"\n=== Raster Verification Records ({len(records)}) ===")
         for r in records:

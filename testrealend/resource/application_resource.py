@@ -143,6 +143,7 @@ class SubmitApplicationResource(Resource):
         if not jwt_name or jwt_name == jwt_number or jwt_name.isdigit():
             try:
                 from model.Employee_Info import EmployeeInfo
+
                 emp = EmployeeInfo.query.filter_by(employee_number=jwt_number).first()
                 if emp and emp.name:
                     jwt_name = emp.name

@@ -49,7 +49,9 @@ def _bg_publish_geoserver(file_path, layer_name, data_type, record_id, model_cla
                     db.session.commit()
                     logging.info(
                         "GeoServer published: id=%s layer=%s wms=%s",
-                        record_id, result["layer"], result["wms_url"],
+                        record_id,
+                        result["layer"],
+                        result["wms_url"],
                     )
         else:
             logging.warning("GeoServer publish failed for %s: %s", layer_name, result.get("error"))
@@ -131,26 +133,31 @@ def _bg_generate_description(meta, layer_name, data_type, record_id, model_class
             prompt = f"""你是一个地理空间数据专家。请根据以下元数据，用中文写一段简洁的数据简介（100-200字），说明数据内容、覆盖范围、分辨率、波段信息等。
 
 文件名：{layer_name}
-波段数：{meta.get('bands', '未知')}
-像素类型：{meta.get('pixel_type', '未知')}
-分辨率：{meta.get('resolution', '未知')}
-坐标系：{meta.get('coordinate_system', '未知')}
-文件大小：{meta.get('file_size', 0) / 1024 / 1024:.1f} MB
+波段数：{meta.get("bands", "未知")}
+像素类型：{meta.get("pixel_type", "未知")}
+分辨率：{meta.get("resolution", "未知")}
+坐标系：{meta.get("coordinate_system", "未知")}
+文件大小：{meta.get("file_size", 0) / 1024 / 1024:.1f} MB
 
 请直接输出简介文本，不要加标题或前缀。"""
         else:
             prompt = f"""你是一个地理空间数据专家。请根据以下元数据，用中文写一段简洁的数据简介（100-200字），说明数据内容、几何类型、坐标系等。
 
 文件名：{layer_name}
-几何类型：{meta.get('geomtype', '未知')}
-坐标系：{meta.get('coordinate_system', '未知')}
+几何类型：{meta.get("geomtype", "未知")}
+坐标系：{meta.get("coordinate_system", "未知")}
 
 请直接输出简介文本，不要加标题或前缀。"""
 
         resp = httpx.post(
             "https://api.deepseek.com/chat/completions",
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
-            json={"model": "deepseek-chat", "messages": [{"role": "user", "content": prompt}], "max_tokens": 300, "temperature": 0.7},
+            json={
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 300,
+                "temperature": 0.7,
+            },
             timeout=30,
         )
         if resp.status_code == 200:
@@ -552,9 +559,12 @@ class DataListResource(Resource):
                 )
 
             total = query.count()
-            records = query.order_by(Shp.id.desc() if data_type == "vector" else RasterData.id.desc()).offset(
-                (page - 1) * page_size
-            ).limit(page_size).all()
+            records = (
+                query.order_by(Shp.id.desc() if data_type == "vector" else RasterData.id.desc())
+                .offset((page - 1) * page_size)
+                .limit(page_size)
+                .all()
+            )
 
             return {
                 "status": True,

@@ -191,8 +191,9 @@ class AIChatStreamResource(Resource):
             try:
                 import httpx
 
-                with httpx.Client(timeout=60.0) as client:
-                    with client.stream(
+                with (
+                    httpx.Client(timeout=60.0) as client,
+                    client.stream(
                         "POST",
                         "https://api.deepseek.com/chat/completions",
                         headers={
@@ -206,22 +207,23 @@ class AIChatStreamResource(Resource):
                             "temperature": 0.7,
                             "stream": True,
                         },
-                    ) as resp:
-                        resp.raise_for_status()
-                        for line in resp.iter_lines():
-                            if not line or not line.startswith("data: "):
-                                continue
-                            payload = line[6:]
-                            if payload.strip() == "[DONE]":
-                                break
-                            try:
-                                chunk = json.loads(payload)
-                                delta = chunk["choices"][0].get("delta", {})
-                                token = delta.get("content", "")
-                                if token:
-                                    yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
-                            except (json.JSONDecodeError, KeyError, IndexError):
-                                continue
+                    ) as resp,
+                ):
+                    resp.raise_for_status()
+                    for line in resp.iter_lines():
+                        if not line or not line.startswith("data: "):
+                            continue
+                        payload = line[6:]
+                        if payload.strip() == "[DONE]":
+                            break
+                        try:
+                            chunk = json.loads(payload)
+                            delta = chunk["choices"][0].get("delta", {})
+                            token = delta.get("content", "")
+                            if token:
+                                yield f"data: {json.dumps({'token': token}, ensure_ascii=False)}\n\n"
+                        except (json.JSONDecodeError, KeyError, IndexError):
+                            continue
                 yield f"data: {json.dumps({'done': True})}\n\n"
             except ImportError:
                 yield f"data: {json.dumps({'error': '服务端缺少 httpx 库'})}\n\n"

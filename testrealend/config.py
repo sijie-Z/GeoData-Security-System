@@ -46,9 +46,7 @@ class Config:
     JWT_BLOCKLIST_ENABLED = True
 
     # Rate limiter — uses Redis for multi-worker consistency (falls back to memory)
-    RATELIMIT_STORAGE_URI = os.environ.get(
-        "RATELIMIT_STORAGE_URI", os.environ.get("REDIS_URL", "memory://")
-    )
+    RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", os.environ.get("REDIS_URL", "memory://"))
     RATELIMIT_STRATEGY = "fixed-window"
 
     # CORS — broader origins for development, configurable for production

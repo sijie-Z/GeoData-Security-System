@@ -86,10 +86,20 @@ class LoginResource(Resource):
                     display_name = adm_info.name if adm_info and adm_info.name else username
 
                     access_token = create_access_token(
-                        identity={"username": username, "name": display_name, "role": user.role, "number": user.adm_number}
+                        identity={
+                            "username": username,
+                            "name": display_name,
+                            "role": user.role,
+                            "number": user.adm_number,
+                        }
                     )
                     refresh_token = create_refresh_token(
-                        identity={"username": username, "name": display_name, "role": user.role, "number": user.adm_number}
+                        identity={
+                            "username": username,
+                            "name": display_name,
+                            "role": user.role,
+                            "number": user.adm_number,
+                        }
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)
@@ -132,10 +142,20 @@ class LoginResource(Resource):
                         pass
                     display_name = emp_info_name or username
                     access_token = create_access_token(
-                        identity={"username": username, "name": display_name, "role": "employee", "number": user.employee_number}
+                        identity={
+                            "username": username,
+                            "name": display_name,
+                            "role": "employee",
+                            "number": user.employee_number,
+                        }
                     )
                     refresh_token = create_refresh_token(
-                        identity={"username": username, "name": display_name, "role": "employee", "number": user.employee_number}
+                        identity={
+                            "username": username,
+                            "name": display_name,
+                            "role": "employee",
+                            "number": user.employee_number,
+                        }
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)

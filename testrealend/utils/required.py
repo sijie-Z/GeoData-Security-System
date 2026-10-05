@@ -73,7 +73,7 @@ def admin_role_required(*required_roles):
             sub_role = _get_admin_role(identity)
 
             # Super-admin bypass (role='admin' or sub_role starts with 'ADM')
-            if sub_role == 'admin' or (sub_role and sub_role.startswith('ADM')):
+            if sub_role == "admin" or (sub_role and sub_role.startswith("ADM")):
                 return func(*args, **kwargs)
 
             if sub_role not in required_roles:

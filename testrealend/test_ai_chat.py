@@ -8,6 +8,7 @@ A detailed UTF-8 report is written to test_ai_chat_report.txt.
 
 import os
 import sys
+
 import httpx
 
 BASE = "http://127.0.0.1:5003"
@@ -36,7 +37,7 @@ def record(name: str, expected: int, actual: int, body: dict, detail_lines: list
     }
     results.append(entry)
     tag = "PASS" if ok else "FAIL"
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"[{tag}] {name}")
     print(f"  Expected status: {expected}  |  Actual: {actual}")
     for key in ("status", "msg", "data"):
@@ -49,7 +50,7 @@ def record(name: str, expected: int, actual: int, body: dict, detail_lines: list
             else:
                 entry["detail"].append(f"{key}: {str(val)[:200]}")
                 print(f"  {key}: {safe(str(val))}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
 
 def main():
@@ -59,11 +60,14 @@ def main():
     # 1. Login to get JWT token
     # ────────────────────────────────────────────────
     print("\n>>> Scenario 1: Login (admin / admin123)")
-    resp = client.post("/api/login", json={
-        "username": "admin",
-        "password": "admin123",
-        "role": "admin",
-    })
+    resp = client.post(
+        "/api/login",
+        json={
+            "username": "admin",
+            "password": "admin123",
+            "role": "admin",
+        },
+    )
     body = resp.json()
     record("Login", 200, resp.status_code, body)
 
@@ -81,9 +85,13 @@ def main():
     # 2. Normal Chinese message
     # ────────────────────────────────────────────────
     print("\n>>> Scenario 2: Normal Chinese message")
-    resp = client.post("/api/ai/chat", json={
-        "message": "你好，请介绍一下数字水印技术。",
-    }, headers=headers)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "你好，请介绍一下数字水印技术。",
+        },
+        headers=headers,
+    )
     body = resp.json()
     record("Normal Chinese Message", 200, resp.status_code, body)
 
@@ -93,14 +101,21 @@ def main():
     print("\n>>> Scenario 3: Multi-turn conversation with history")
     history = [
         {"role": "user", "content": "什么是矢量数据？"},
-        {"role": "assistant", "content": "矢量数据是用点、线、面来表示地理要素的数据格式，常见格式有 Shapefile、GeoJSON 等。"},
+        {
+            "role": "assistant",
+            "content": "矢量数据是用点、线、面来表示地理要素的数据格式，常见格式有 Shapefile、GeoJSON 等。",
+        },
         {"role": "user", "content": "矢量数据水印是怎么嵌入的？"},
         {"role": "assistant", "content": "通过修改坐标值的低位二进制位来嵌入水印信息。"},
     ]
-    resp = client.post("/api/ai/chat", json={
-        "message": "那提取水印时会有什么问题？",
-        "history": history,
-    }, headers=headers)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "那提取水印时会有什么问题？",
+            "history": history,
+        },
+        headers=headers,
+    )
     body = resp.json()
     record("Multi-turn with History", 200, resp.status_code, body)
 
@@ -108,17 +123,25 @@ def main():
     # 4. Empty message (should return 400)
     # ────────────────────────────────────────────────
     print("\n>>> Scenario 4: Empty message (expect 400)")
-    resp = client.post("/api/ai/chat", json={
-        "message": "",
-    }, headers=headers)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "",
+        },
+        headers=headers,
+    )
     body = resp.json()
     record("Empty Message", 400, resp.status_code, body)
 
     # Also test whitespace-only
     print("\n>>> Scenario 4b: Whitespace-only message (expect 400)")
-    resp = client.post("/api/ai/chat", json={
-        "message": "   ",
-    }, headers=headers)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "   ",
+        },
+        headers=headers,
+    )
     body = resp.json()
     record("Whitespace-Only Message", 400, resp.status_code, body)
 
@@ -126,9 +149,12 @@ def main():
     # 5. No token (should return 401)
     # ────────────────────────────────────────────────
     print("\n>>> Scenario 5: No token (expect 401)")
-    resp = client.post("/api/ai/chat", json={
-        "message": "Hello without token",
-    })
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": "Hello without token",
+        },
+    )
     body = resp.json()
     record("No Token", 401, resp.status_code, body)
 
@@ -138,9 +164,13 @@ def main():
     print("\n>>> Scenario 6: Long message (~2000 chars)")
     long_msg = "请详细介绍系统的全部功能模块，" * 100  # ~1900 chars
     print(f"  Message length: {len(long_msg)} chars")
-    resp = client.post("/api/ai/chat", json={
-        "message": long_msg,
-    }, headers=headers)
+    resp = client.post(
+        "/api/ai/chat",
+        json={
+            "message": long_msg,
+        },
+        headers=headers,
+    )
     body = resp.json()
     record("Long Message (~2000 chars)", 200, resp.status_code, body)
 
@@ -169,7 +199,9 @@ def main():
         f.write("=" * 60 + "\n\n")
         for i, entry in enumerate(results, 1):
             f.write(f"[{i}] {entry['name']}\n")
-            f.write(f"    Status: {entry['actual']} (expected {entry['expected']}) -> {'PASS' if entry['ok'] else 'FAIL'}\n")
+            f.write(
+                f"    Status: {entry['actual']} (expected {entry['expected']}) -> {'PASS' if entry['ok'] else 'FAIL'}\n"
+            )
             for line in entry["detail"]:
                 f.write(f"    {line}\n")
             f.write("\n")
