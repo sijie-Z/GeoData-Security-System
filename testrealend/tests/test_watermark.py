@@ -90,7 +90,7 @@ class TestQRCodeDecode:
         assert verify["signature_ok"] is False
 
 
-def _build_roundtrip_shp(tmp_path, n_lines=15, n_pts=200):
+def _build_roundtrip_shp(tmp_path, n_lines=15, n_pts=200, x0=21600.0, y0=23300.0):
     """Small vector dataset: polylines + a polygon with a hole (nested geometry)."""
     import geopandas as gpd
     from shapely.geometry import LineString, Polygon
@@ -98,12 +98,13 @@ def _build_roundtrip_shp(tmp_path, n_lines=15, n_pts=200):
     rng = np.random.default_rng(3)
     geoms = []
     for li in range(n_lines):
-        xs = (21600.0 + li * 5.0 + np.cumsum(rng.normal(0, 1.0, n_pts))).round(3)
-        ys = (23300.0 + np.cumsum(rng.normal(0, 1.0, n_pts))).round(3)
+        xs = (x0 + li * 5.0 + np.cumsum(rng.normal(0, 1.0, n_pts))).round(3)
+        ys = (y0 + np.cumsum(rng.normal(0, 1.0, n_pts))).round(3)
         geoms.append(LineString(zip(xs, ys)))
     ang = np.linspace(0, 2 * np.pi, 140)
-    ext = np.column_stack([21700 + 4 * np.cos(ang), 23300 + 4 * np.sin(ang)]).round(3)
-    hole = np.column_stack([21700 + 1.5 * np.cos(ang), 23300 + 1.5 * np.sin(ang)]).round(3)
+    cx, cy = x0 + 100.0, y0
+    ext = np.column_stack([cx + 4 * np.cos(ang), cy + 4 * np.sin(ang)]).round(3)
+    hole = np.column_stack([cx + 1.5 * np.cos(ang), cy + 1.5 * np.sin(ang)]).round(3)
     geoms.append(Polygon(ext, [hole]))
     gdf = gpd.GeoDataFrame({"fid": range(len(geoms))}, geometry=geoms, crs="EPSG:2334")
     shp_path = tmp_path / "roundtrip.shp"
@@ -234,16 +235,20 @@ class TestVectorWatermarkRoundtrip:
         assert verify["signature_ok"] is True, verify
         assert verify["message"] == "二维码校验成功"
 
-    def test_algorithm_roundtrip_pixels_and_nested(self, tmp_path):
+    @pytest.mark.parametrize("x0,y0", [(21600.0, 23300.0), (-21700.0, -23350.0)], ids=["positive", "negative"])
+    def test_algorithm_roundtrip_pixels_and_nested(self, tmp_path, x0, y0):
         """Algorithm-level: recovered watermark must be near pixel-identical to
-        the original QR, including votes from nested (polygon-with-hole) parts."""
+        the original QR, including votes from nested (polygon-with-hole) parts.
+        Negative coordinates must work too: the R-grid anchor uses a true
+        mathematical floor (Decimal // alone truncates toward zero)."""
         from PIL import Image
 
         from algorithm.embed import embed as vector_embed
         from algorithm.extract import extract as vector_extract
         from resource.watermark_utils import decode_qr_from_image
 
-        shp_path = _build_roundtrip_shp(tmp_path)
+        # enough vertices that nearly every embedding chunk receives votes
+        shp_path = _build_roundtrip_shp(tmp_path, n_pts=500, x0=x0, y0=y0)
         qr_text = "ROUNDTRIP-REGRESSION-PAYLOAD"
         qr_b64, expected_side = _build_qr_png_b64(qr_text)
         qr_path = tmp_path / "qr.png"

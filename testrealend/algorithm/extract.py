@@ -9,7 +9,7 @@ import numpy as np
 from flask import current_app
 from PIL import Image
 
-from algorithm.embed import _compute_seed
+from algorithm.embed import _compute_seed, _floor_to_grid
 from algorithm.get_coor import get_coor_array, get_coor_nested
 from algorithm.to_geodataframe import to_geodataframe
 
@@ -41,7 +41,7 @@ def coor_process(coor, W, seed, argument):
 
     index = random.randint(0, len(W) - 1)
     coor = np.array([Decimal(str(x)) for x in coor])
-    coor_l = coor // R * R
+    coor_l = _floor_to_grid(coor, R)
     original_coor, w = watermark_extract(coor, coor_l, R, n)
     W[index].append(w)
     return original_coor, W

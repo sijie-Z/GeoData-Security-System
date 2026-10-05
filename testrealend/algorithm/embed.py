@@ -3,7 +3,7 @@ import logging
 import os
 import random
 import zipfile
-from decimal import Decimal
+from decimal import ROUND_FLOOR, Decimal
 
 import numpy as np
 from PIL import Image
@@ -17,26 +17,41 @@ class CapacityError(ValueError):
     """The vector data cannot carry the requested watermark (too few vertices)."""
 
 
-def _grid_anchor(x, R):
-    """Return floor(x / R) * R as an exact Decimal.
+def _floor_to_grid(value, R):
+    """Return floor(value / R) * R with exact Decimal arithmetic.
 
-    Embedding moves x inside its R-grid cell (floor(x / R) * R <= x' < cell + R),
-    so this anchor is identical before and after embedding — it can be recomputed
-    from the watermarked coordinates during extraction.
+    True mathematical floor (also for negative values — Decimal ``//`` only
+    truncates toward zero). For a scalar Decimal a Decimal is returned; for an
+    object ndarray of Decimals an object ndarray is returned.
     """
-    return Decimal(str(float(x))) // R * R
+    if isinstance(value, np.ndarray):
+        return np.array([(x / R).to_integral_value(rounding=ROUND_FLOOR) * R for x in value])
+    return (value / R).to_integral_value(rounding=ROUND_FLOOR) * R
+
+
+def _grid_anchor(x, R):
+    """Return the R-grid cell of x as an exact Decimal.
+
+    Embedding moves x inside its R-grid cell (cell <= x' < cell + R), so this
+    anchor is identical before and after embedding — it can be recomputed from
+    the watermarked coordinates during extraction.
+    """
+    return _floor_to_grid(Decimal(str(float(x))), R)
 
 
 def _compute_seed(c1, c2, R=Decimal("1e-7")):
     """Compute a deterministic seed from two coordinate pairs.
 
     Only embedding-invariant values may enter the hash: the R-grid anchor of x
-    (x itself is rewritten inside that cell) plus y (left untouched). Hashing the
-    raw x values — as this used to — makes extraction, which can only observe the
-    watermarked coordinates, derive a different W index per vertex and recover a
+    (x itself is rewritten inside that cell) plus y (left untouched). The anchor
+    is canonicalized to plain fixed-point notation because the same value can
+    otherwise carry different Decimal string forms depending on the input
+    (e.g. '21631.135' vs '21631.1350000'). Hashing the raw x values — as this
+    used to — makes extraction, which can only observe the watermarked
+    coordinates, derive a different W index per vertex and recover a
     statistically independent watermark.
     """
-    raw = f"{_grid_anchor(c1[0], R)},{float(c1[1]):.15f},{_grid_anchor(c2[0], R)},{float(c2[1]):.15f}"
+    raw = ",".join(f"{format(_grid_anchor(c[0], R).normalize(), 'f')},{float(c[1]):.15f}" for c in (c1, c2))
     return int(hashlib.md5(raw.encode()).hexdigest()[:8], 16)
 
 
@@ -74,7 +89,7 @@ def coor_process(coor, argument, seed):
     # nditer over object-dtype arrays (equal-length features broadcast to 3-D
     # object arrays in get_coor_nested) requires the refs_ok flag
     coor = np.array([Decimal(str(x)) for x in np.nditer(coor, flags=["refs_ok"])])
-    coor_l = coor // R * R
+    coor_l = _floor_to_grid(coor, R)
     embed_coor = watermark_embed(coor, coor_l, w, n, R)
     return embed_coor
 
