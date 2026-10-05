@@ -69,23 +69,26 @@ def test_raster_extract(token):
         print(f"Embed failed: {resp.text[:200]}")
         return False
 
-    # Download the stego file
-    stego_content = resp.content
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as f:
-        f.write(stego_content)
-        stego_path = f.name
-    print(f"Downloaded stego file: {len(stego_content)} bytes")
+    # embed_dispatch returns JSON (no longer raw image bytes); the stego file
+    # itself has been written to data["stego_path"] on the server
+    embed_result = resp.json().get("data") or {}
+    stego_path = embed_result.get("stego_path")
+    if not stego_path or not os.path.exists(stego_path):
+        print(f"Stego file not found: {stego_path}")
+        return False
+    print(f"Stego file: {stego_path} ({os.path.getsize(stego_path)} bytes)")
 
     # Now test extraction
     print("\nTesting extraction...")
+    suffix = os.path.splitext(stego_path)[1].lower()
+    content_type = "image/tiff" if suffix in (".tif", ".tiff") else "image/png"
     with open(stego_path, "rb") as f:
-        files = {"file": ("stego.png", f, "image/png")}
+        files = {"file": (os.path.basename(stego_path), f, content_type)}
         data = {"application_id": str(app_id)}
         resp = requests.post(
             f"{BASE_URL}/api/vector/extract", files=files, data=data, headers={"Authorization": f"Bearer {token}"}
         )
 
-    os.unlink(stego_path)
     result = resp.json()
     print(f"Extract status: {result.get('status')}")
 
