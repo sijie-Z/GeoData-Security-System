@@ -50,17 +50,29 @@
             <el-tag type="info" effect="light">{{ $t('empDashboard.dbAggregation') }}</el-tag>
           </div>
         </template>
-        <div ref="trendChartRef" class="chart"></div>
+        <v-chart
+          class="chart"
+          :option="trendOption"
+          autoresize
+        />
       </el-card>
 
       <el-card class="glass" shadow="never">
         <template #header><div class="panel-header"><h3>{{ $t('empDashboard.statusDistribution') }}</h3></div></template>
-        <div ref="statusChartRef" class="chart small"></div>
+        <v-chart
+          class="chart small"
+          :option="statusOption"
+          autoresize
+        />
       </el-card>
 
       <el-card class="glass" shadow="never">
         <template #header><div class="panel-header"><h3>{{ $t('empDashboard.dataTypePreference') }}</h3></div></template>
-        <div ref="dataTypeChartRef" class="chart small"></div>
+        <v-chart
+          class="chart small"
+          :option="dataTypeOption"
+          autoresize
+        />
       </el-card>
     </section>
 
@@ -103,32 +115,25 @@
 
 <script setup>
 defineOptions({ name: 'EmployeeDashboard' });
-import { ref, computed, onMounted, onActivated, onDeactivated, nextTick } from 'vue';
+import { ref, computed, onMounted, onActivated } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
 import { getDashboard } from '@/api/employee';
 import { getAnnouncements } from '@/api/admin';
+import { use } from 'echarts/core';
+import { CanvasRenderer } from 'echarts/renderers';
+import { LineChart, BarChart, PieChart } from 'echarts/charts';
+import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components';
+import VChart from 'vue-echarts';
 
-// ── 性能优化：echarts 模块级缓存 ──
-let echartsMod = null;
-async function getEcharts() {
-  if (!echartsMod) echartsMod = await import('echarts');
-  return echartsMod;
-}
+// ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
+use([CanvasRenderer, LineChart, BarChart, PieChart, TooltipComponent, LegendComponent, GridComponent]);
 
 const { t } = useI18n();
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(true);
-
-const trendChartRef = ref(null);
-const statusChartRef = ref(null);
-const dataTypeChartRef = ref(null);
-let trendIns = null;
-let statusIns = null;
-let dataTypeIns = null;
-let resizeTimer = null;
 
 const announcements = ref([]);
 const todayVisits = ref(0);
@@ -168,94 +173,59 @@ const fetchDashboard = async () => {
     announcements.value = ann.data?.data?.list || [];
 
     loading.value = false;
-    // 等待 DOM 渲染完成（keep-alive 恢复时容器需要额外一帧才能拿到尺寸）
-    await nextTick();
-    await new Promise(r => setTimeout(r, 50));
-    await renderCharts();
   } catch (err) {
     console.error('获取仪表盘数据失败:', err);
     loading.value = false;
   }
 };
 
-// ── 性能优化：复用已有图表实例 ──
-const renderCharts = async () => {
-  const echarts = await getEcharts();
+// ── 图表 option（vue-echarts 响应式渲染，替代手写实例生命周期管理） ──
+const trendOption = computed(() => ({
+  tooltip: { trigger: 'axis' },
+  legend: { data: [t('empDashboard.applicationCount'), t('empDashboard.downloadCount')] },
+  xAxis: { type: 'category', data: chartData.value.map(i => i.date) },
+  yAxis: { type: 'value' },
+  series: [
+    { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
+    { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
+  ]
+}));
 
-  if (trendChartRef.value) {
-    if (!trendIns) trendIns = echarts.init(trendChartRef.value);
-    trendIns.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: [t('empDashboard.applicationCount'), t('empDashboard.downloadCount')] },
-      xAxis: { type: 'category', data: chartData.value.map(i => i.date) },
-      yAxis: { type: 'value' },
-      series: [
-        { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
-        { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
-      ]
-    }, true);
-  }
+const statusOption = computed(() => ({
+  tooltip: { trigger: 'item' },
+  series: [{
+    type: 'pie',
+    radius: ['40%', '70%'],
+    data: [
+      { value: applicationStatusDist.value.pending || 0, name: t('empDashboard.pending') },
+      { value: applicationStatusDist.value.approved || 0, name: t('empDashboard.approved') },
+      { value: applicationStatusDist.value.rejected || 0, name: t('empDashboard.rejected') }
+    ]
+  }]
+}));
 
-  if (statusChartRef.value) {
-    if (!statusIns) statusIns = echarts.init(statusChartRef.value);
-    statusIns.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        data: [
-          { value: applicationStatusDist.value.pending || 0, name: t('empDashboard.pending') },
-          { value: applicationStatusDist.value.approved || 0, name: t('empDashboard.approved') },
-          { value: applicationStatusDist.value.rejected || 0, name: t('empDashboard.rejected') }
-        ]
-      }]
-    }, true);
-  }
-
-  if (dataTypeChartRef.value) {
-    if (!dataTypeIns) dataTypeIns = echarts.init(dataTypeChartRef.value);
-    dataTypeIns.setOption({
-      tooltip: { trigger: 'item' },
-      series: [{
-        type: 'pie',
-        radius: ['40%', '70%'],
-        data: [
-          { value: dataTypePreference.value.vector || 0, name: t('empDashboard.vector') },
-          { value: dataTypePreference.value.raster || 0, name: t('empDashboard.raster') }
-        ]
-      }]
-    }, true);
-  }
-};
+const dataTypeOption = computed(() => ({
+  tooltip: { trigger: 'item' },
+  series: [{
+    type: 'pie',
+    radius: ['40%', '70%'],
+    data: [
+      { value: dataTypePreference.value.vector || 0, name: t('empDashboard.vector') },
+      { value: dataTypePreference.value.raster || 0, name: t('empDashboard.raster') }
+    ]
+  }]
+}));
 
 const goTo = (path) => router.push(path);
 const refreshNow = () => fetchDashboard();
 
-// ── 性能优化：防抖 resize ──
-const onResize = () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    trendIns?.resize();
-    statusIns?.resize();
-    dataTypeIns?.resize();
-  }, 150);
-};
-
-// ── 性能优化：keep-alive 兼容 ──
+// ── keep-alive 兼容：图表由 v-chart 组件托管（deactivate 保持挂载，unmount 自动销毁，autoresize 处理尺寸） ──
 onMounted(async () => {
   // Vue 3.4 keep-alive 下 onActivated 有时不触发，用 onMounted 兜底
   await fetchDashboard();
-  window.addEventListener('resize', onResize);
 });
 onActivated(async () => {
   await fetchDashboard();
-  window.addEventListener('resize', onResize);
-});
-
-onDeactivated(() => {
-  window.removeEventListener('resize', onResize);
-  if (resizeTimer) { clearTimeout(resizeTimer); resizeTimer = null; }
-  // 保留图表实例供 keep-alive 恢复
 });
 </script>
 

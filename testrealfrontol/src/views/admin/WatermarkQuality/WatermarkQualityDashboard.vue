@@ -150,7 +150,13 @@
           <el-tag size="small" type="info">矢量 vs 栅格</el-tag>
         </div>
       </template>
-      <div ref="chartRef" class="chart-container"></div>
+      <div class="chart-container">
+        <v-chart
+          v-if="records.length > 0"
+          :option="ncDistOption"
+          autoresize
+        />
+      </div>
       <div v-if="records.length === 0 && !loading" class="empty-hint">
         暂无验证记录。执行水印提取/验证操作后，数据将实时更新。
       </div>
@@ -351,19 +357,43 @@
       <div class="charts-grid">
         <div class="chart-box">
           <h5 class="chart-title">NC 对比（越高越好，> 0.95 为优秀）</h5>
-          <div ref="chartNcRef" class="chart-inner"></div>
+          <div class="chart-inner">
+            <v-chart
+              v-if="hasBenchmarkCharts"
+              :option="ncBenchOption"
+              autoresize
+            />
+          </div>
         </div>
         <div class="chart-box">
           <h5 class="chart-title">BER 对比（越低越好，&lt; 0.01 为优秀）</h5>
-          <div ref="chartBerRef" class="chart-inner"></div>
+          <div class="chart-inner">
+            <v-chart
+              v-if="hasBenchmarkCharts"
+              :option="berBenchOption"
+              autoresize
+            />
+          </div>
         </div>
         <div class="chart-box">
           <h5 class="chart-title">恢复 PSNR 对比（攻击后能否还原原图）</h5>
-          <div ref="chartRecRef" class="chart-inner"></div>
+          <div class="chart-inner">
+            <v-chart
+              v-if="hasBenchmarkCharts"
+              :option="recBenchOption"
+              autoresize
+            />
+          </div>
         </div>
         <div class="chart-box">
           <h5 class="chart-title">隐写质量对比（PSNR / SSIM）</h5>
-          <div ref="chartStegoRef" class="chart-inner"></div>
+          <div class="chart-inner">
+            <v-chart
+              v-if="hasBenchmarkCharts"
+              :option="stegoBenchOption"
+              autoresize
+            />
+          </div>
         </div>
       </div>
 
@@ -429,17 +459,18 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, nextTick, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Check, TrendCharts, Warning, Timer, Refresh, MapLocation, Picture } from '@element-plus/icons-vue'
 import { getVerificationRecords, getBenchmarkResults } from '@/api/watermark'
+import { use, graphic } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { BarChart } from 'echarts/charts'
+import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
 
-// ── 性能优化：echarts 模块级缓存 ──
-let echartsMod = null
-async function getEcharts() {
-  if (!echartsMod) echartsMod = await import('echarts')
-  return echartsMod
-}
+// ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
+use([CanvasRenderer, BarChart, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
 const loading = ref(false)
@@ -448,29 +479,6 @@ const currentPage = ref(1)
 const pageSize = 20
 const total = ref(0)
 const dataTypeFilter = ref('')  // ''=all, 'vector', 'raster'
-const chartRef = ref(null)
-const chartNcRef = ref(null)
-const chartBerRef = ref(null)
-const chartRecRef = ref(null)
-const chartStegoRef = ref(null)
-
-// Store chart instances for proper disposal
-let ncDistChart = null
-let ncBenchChart = null
-let berBenchChart = null
-let recBenchChart = null
-let stegoBenchChart = null
-
-const disposeAllCharts = () => {
-  [ncDistChart, ncBenchChart, berBenchChart, recBenchChart, stegoBenchChart].forEach(c => {
-    try { c?.dispose() } catch (_) {}
-  })
-  ncDistChart = ncBenchChart = berBenchChart = recBenchChart = stegoBenchChart = null
-}
-
-onBeforeUnmount(() => {
-  disposeAllCharts()
-})
 
 // ── Benchmark state ──
 const benchLoading = ref(false)
@@ -618,7 +626,6 @@ const fetchRecords = async () => {
     console.error('Failed to fetch verification records:', e)
   } finally {
     loading.value = false
-    nextTick(renderChart)
   }
 }
 
@@ -635,18 +642,11 @@ const fetchBenchmark = async () => {
     console.error('Failed to fetch benchmark results:', e)
   } finally {
     benchLoading.value = false
-    nextTick(renderAllBenchmarkCharts)
   }
 }
 
-// ── NC distribution chart (dual series) ──
-const renderChart = async () => {
-  if (!chartRef.value || records.value.length === 0) return
-  const echarts = await getEcharts()
-  if (ncDistChart) { ncDistChart.dispose() }
-  ncDistChart = echarts.init(chartRef.value)
-  const chart = ncDistChart
-
+// ── NC distribution chart option (dual series) ──
+const ncDistOption = computed(() => {
   const vecNc = records.value.filter(r => r.data_type === 'vector' && r.nc_value != null).map(r => r.nc_value)
   const rasNc = records.value.filter(r => r.data_type === 'raster' && r.nc_value != null).map(r => r.nc_value)
 
@@ -665,7 +665,7 @@ const renderChart = async () => {
     return cnt
   }
 
-  chart.setOption({
+  return {
     tooltip: { trigger: 'axis' },
     legend: {
       data: [t('watermarkQuality.vectorLabel') || 'Vector', t('watermarkQuality.rasterLabel') || 'Raster'],
@@ -679,7 +679,7 @@ const renderChart = async () => {
         data: bucketCounts(vecNc), type: 'bar',
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1d4ed8' }
           ])
         }
@@ -689,119 +689,99 @@ const renderChart = async () => {
         data: bucketCounts(rasNc), type: 'bar',
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: '#10b981' }, { offset: 1, color: '#059669' }
           ])
         }
       }
     ],
     grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true }
-  })
-}
-
-// ── All benchmark charts ──
-function _getAttackData() {
-  return benchResults.value.filter(r => r.attack && !r.attack?.includes('[conc]'))
-}
-
-const renderAllBenchmarkCharts = async () => {
-  const atkResults = _getAttackData()
-  if (atkResults.length === 0) return
-
-  const echarts = await getEcharts()
-  window._echartsInstance = echarts
-
-  const attackNames = [...new Set(atkResults.map(r => r.attack))]
-  const algos = ['LSB', 'DWT']
-  const colors = ['#667eea', '#f59e0b']
-
-  const xOpts = { type: 'category', data: attackNames, axisLabel: { rotate: 30, fontSize: 10, color: '#64748b' } }
-  const legendOpts = { data: algos, bottom: 0, textStyle: { fontSize: 11 } }
-
-  if (ncBenchChart) { ncBenchChart.dispose() }
-  const ncChart = chartNcRef.value ? echarts.init(chartNcRef.value) : null
-  ncBenchChart = ncChart
-  if (ncChart) {
-    ncChart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: legendOpts,
-      xAxis: xOpts,
-      yAxis: { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#64748b' } },
-      series: algos.map((alg, i) => ({
-        name: alg, type: 'bar',
-        data: attackNames.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.nc ?? null),
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: colors[i] },
-      })),
-      grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-    })
   }
+})
 
-  if (berBenchChart) { berBenchChart.dispose() }
-  const berChart = chartBerRef.value ? echarts.init(chartBerRef.value) : null
-  berBenchChart = berChart
-  if (berChart) {
-    berChart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: legendOpts,
-      xAxis: xOpts,
-      yAxis: { type: 'value', name: 'BER', min: 0, max: 1, axisLabel: { color: '#64748b' } },
-      series: algos.map((alg, i) => ({
-        name: alg, type: 'bar',
-        data: attackNames.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.ber ?? null),
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: colors[i] },
-      })),
-      grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-    })
-  }
+// ── All benchmark charts（option 内容与原实现一致，仅改由 vue-echarts 渲染） ──
+const benchmarkAttackData = computed(() => benchResults.value.filter(r => r.attack && !r.attack?.includes('[conc]')))
+const hasBenchmarkCharts = computed(() => benchmarkAttackData.value.length > 0)
+const benchmarkAttackNames = computed(() => [...new Set(benchmarkAttackData.value.map(r => r.attack))])
+const BENCH_ALGOS = ['LSB', 'DWT']
+const BENCH_COLORS = ['#667eea', '#f59e0b']
+const benchmarkXAxis = computed(() => ({ type: 'category', data: benchmarkAttackNames.value, axisLabel: { rotate: 30, fontSize: 10, color: '#64748b' } }))
+const benchmarkLegend = computed(() => ({ data: BENCH_ALGOS, bottom: 0, textStyle: { fontSize: 11 } }))
 
-  if (recBenchChart) { recBenchChart.dispose() }
-  const recChart = chartRecRef.value ? echarts.init(chartRecRef.value) : null
-  recBenchChart = recChart
-  if (recChart) {
-    recChart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: legendOpts,
-      xAxis: xOpts,
-      yAxis: { type: 'value', name: 'dB', axisLabel: { color: '#64748b' } },
-      series: algos.map((alg, i) => ({
-        name: alg, type: 'bar',
-        data: attackNames.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.recovery_psnr ?? null),
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: colors[i] },
-      })),
-      grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-    })
+const ncBenchOption = computed(() => {
+  const atkResults = benchmarkAttackData.value
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: benchmarkLegend.value,
+    xAxis: benchmarkXAxis.value,
+    yAxis: { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#64748b' } },
+    series: BENCH_ALGOS.map((alg, i) => ({
+      name: alg, type: 'bar',
+      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.nc ?? null),
+      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
+    })),
+    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
   }
+})
 
-  if (stegoBenchChart) { stegoBenchChart.dispose() }
-  const stegoChart = chartStegoRef.value ? echarts.init(chartStegoRef.value) : null
-  stegoBenchChart = stegoChart
-  if (stegoChart) {
-    const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
-    const algoNames = summaries.map(s => s.algorithm)
-    stegoChart.setOption({
-      tooltip: { trigger: 'axis' },
-      legend: { data: ['PSNR (dB)', 'SSIM×100'], bottom: 0, textStyle: { fontSize: 10 } },
-      xAxis: { type: 'category', data: algoNames, axisLabel: { color: '#64748b', fontSize: 12 } },
-      yAxis: [
-        { type: 'value', name: 'PSNR (dB)', axisLabel: { color: '#64748b' } },
-        { type: 'value', name: 'SSIM×100', axisLabel: { color: '#64748b' } },
-      ],
-      series: [
-        {
-          name: 'PSNR (dB)', type: 'bar',
-          data: summaries.map(s => s.stego_psnr),
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
-        },
-        {
-          name: 'SSIM×100', type: 'bar', yAxisIndex: 1,
-          data: summaries.map(s => Math.round((s.stego_ssim || 0) * 10000) / 100),
-          itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
-        },
-      ],
-      grid: { left: '8%', right: '8%', bottom: '15%', top: '8%', containLabel: true },
-    })
+const berBenchOption = computed(() => {
+  const atkResults = benchmarkAttackData.value
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: benchmarkLegend.value,
+    xAxis: benchmarkXAxis.value,
+    yAxis: { type: 'value', name: 'BER', min: 0, max: 1, axisLabel: { color: '#64748b' } },
+    series: BENCH_ALGOS.map((alg, i) => ({
+      name: alg, type: 'bar',
+      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.ber ?? null),
+      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
+    })),
+    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
   }
-}
+})
+
+const recBenchOption = computed(() => {
+  const atkResults = benchmarkAttackData.value
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: benchmarkLegend.value,
+    xAxis: benchmarkXAxis.value,
+    yAxis: { type: 'value', name: 'dB', axisLabel: { color: '#64748b' } },
+    series: BENCH_ALGOS.map((alg, i) => ({
+      name: alg, type: 'bar',
+      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.recovery_psnr ?? null),
+      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
+    })),
+    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
+  }
+})
+
+const stegoBenchOption = computed(() => {
+  const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
+  const algoNames = summaries.map(s => s.algorithm)
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: ['PSNR (dB)', 'SSIM×100'], bottom: 0, textStyle: { fontSize: 10 } },
+    xAxis: { type: 'category', data: algoNames, axisLabel: { color: '#64748b', fontSize: 12 } },
+    yAxis: [
+      { type: 'value', name: 'PSNR (dB)', axisLabel: { color: '#64748b' } },
+      { type: 'value', name: 'SSIM×100', axisLabel: { color: '#64748b' } },
+    ],
+    series: [
+      {
+        name: 'PSNR (dB)', type: 'bar',
+        data: summaries.map(s => s.stego_psnr),
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
+      },
+      {
+        name: 'SSIM×100', type: 'bar', yAxisIndex: 1,
+        data: summaries.map(s => Math.round((s.stego_ssim || 0) * 10000) / 100),
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
+      },
+    ],
+    grid: { left: '8%', right: '8%', bottom: '15%', top: '8%', containLabel: true },
+  }
+})
 
 // ── Watch filter change to re-fetch ──
 watch(dataTypeFilter, () => {
