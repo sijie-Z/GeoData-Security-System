@@ -87,12 +87,19 @@ jobs:
                 .replace('{{CI}}', ciIssue ? `#${ciIssue}` : '')
                 .replace('{{PYTEST}}', pyIssue ? `#${pyIssue}` : '')
             );
+            await tryPR(
+              'fix/pytest-failures',
+              'test: repair watermark fixtures, make runs idempotent, enforce pytest gate',
+              read('_bootstrap/pr-pytest.md')
+            );
 
             if (issueFailures.length || prFailures.length) {
               const summary = `Bootstrap run 失败摘要：\n- issue 失败：${issueFailures.join(' | ') || '无'}\n- PR 失败：${prFailures.join(' | ') || '无'}`;
               if (issue1) {
                 try {
-                  await github.rest.issues.createComment({ owner, repo, issue_number: issue1, body: summary });
+                  const cs = await github.rest.issues.listComments({ owner, repo, issue_number: issue1, per_page: 100 });
+                  const dup = cs.data.some((c) => (c.body || '').includes(prFailures[0] || issueFailures[0] || ''));
+                  if (!dup) await github.rest.issues.createComment({ owner, repo, issue_number: issue1, body: summary });
                 } catch (e) { /* comment is best-effort */ }
               }
               throw new Error(summary);
