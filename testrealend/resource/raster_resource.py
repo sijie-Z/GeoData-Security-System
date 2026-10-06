@@ -15,6 +15,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from PIL import Image, UnidentifiedImageError
 
+from algorithm.raster_blind_watermark import embed_blind, extract_blind
 from algorithm.raster_dwt_watermark import embed_dwt, extract_dwt, recover_dwt
 from algorithm.raster_histogram_watermark import embed_histogram, extract_histogram, recover_histogram
 from algorithm.raster_reversible_watermark import (
@@ -380,7 +381,7 @@ class CRMarkEmbedResource(Resource):
 
         Args:
             item: Application model instance.
-            algorithm: 'lsb' (default) or 'dwt'.
+            algorithm: 'lsb' (default), 'dwt', 'histogram' or 'blind'.
         """
         source_path = _resolve_raster_source_path(item)
         if not source_path:
@@ -398,6 +399,10 @@ class CRMarkEmbedResource(Resource):
                 )
             elif algorithm == "histogram":
                 result = embed_histogram(
+                    host_path=source_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}"
+                )
+            elif algorithm in ("blind", "blind_watermark"):
+                result = embed_blind(
                     host_path=source_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}"
                 )
             else:
@@ -518,6 +523,8 @@ class CRMarkDecodeResource(Resource):
                 extract_dwt(stego_path, wm_meta_path, output_path)
             elif algo == "histogram_shifting":
                 extract_histogram(stego_path, wm_meta_path, output_path)
+            elif algo == "blind_watermark":
+                extract_blind(stego_path, wm_meta_path, output_path)
             else:
                 decode_reversible(stego_path, wm_meta_path, output_path)
             return send_file(output_path, as_attachment=True, download_name="decoded_watermark.png")

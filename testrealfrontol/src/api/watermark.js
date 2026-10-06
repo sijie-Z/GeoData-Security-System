@@ -73,7 +73,7 @@ export const embedWatermark = (data) => axios.post('/api/embedding_watermark', d
  * Dispatch raster watermark embedding.
  * @param {Object} data
  * @param {number} data.application_id
- * @param {string} data.algorithm - 'lsb' | 'dwt' | 'histogram'
+ * @param {string} data.algorithm - 'lsb' | 'dwt' | 'histogram' | 'blind'
  * @returns {Promise<AxiosResponse>}
  */
 export const embedDispatch = (data) => axios.post('/api/admin/embed_dispatch', data)

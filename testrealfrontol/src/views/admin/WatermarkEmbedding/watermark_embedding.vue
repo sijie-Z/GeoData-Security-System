@@ -8,6 +8,7 @@
           <el-option label="LSB (Reversible)" value="lsb" />
           <el-option label="DWT (Frequency)" value="dwt" />
           <el-option label="Histogram Shift" value="histogram" />
+          <el-option :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant)'" value="blind" />
         </el-select>
         <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
           <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
