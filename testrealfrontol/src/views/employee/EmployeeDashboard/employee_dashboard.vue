@@ -261,7 +261,7 @@ onActivated(async () => {
 }
 .kpi { padding: 14px; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
 .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
-.kpi:first-child { border-left: 4px solid var(--accent-purple, #8b5cf6); }
+.kpi:first-child { border-left: 4px solid var(--accent-cyan, #0ea5e9); }
 .kpi span { color: #64748b; font-size: 13px; }
 .kpi h2 { margin: 6px 0; font-size: 28px; }
 .warn { border-left: 4px solid #f59e0b; }

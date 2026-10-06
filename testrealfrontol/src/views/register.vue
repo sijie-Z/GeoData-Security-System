@@ -257,7 +257,7 @@ const login = () => { router.push('/login'); };
   display: flex;
   padding: 56px 32px;
   background:
-    radial-gradient(60% 50% at 85% 12%, rgba(99, 102, 241, 0.07), transparent 70%),
+    radial-gradient(60% 50% at 85% 12%, rgba(59, 130, 246, 0.07), transparent 70%),
     radial-gradient(50% 45% at 12% 88%, rgba(37, 99, 235, 0.06), transparent 70%),
     linear-gradient(180deg, #f8fafc 0%, #eef2f9 100%);
 }
@@ -361,7 +361,7 @@ const login = () => { router.push('/login'); };
   font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.08em;
-  color: #4f46e5;
+  color: #1d4ed8;
 }
 
 .form-group-title .el-icon {
@@ -372,7 +372,7 @@ const login = () => { router.push('/login'); };
   content: '';
   flex: 1;
   height: 1px;
-  background: linear-gradient(90deg, rgba(99, 102, 241, 0.35), transparent);
+  background: linear-gradient(90deg, rgba(59, 130, 246, 0.35), transparent);
 }
 
 /* ---------- 头像上传 ---------- */
@@ -404,8 +404,8 @@ const login = () => { router.push('/login'); };
 }
 
 .avatar-preview:hover {
-  border-color: #6366f1;
-  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.12);
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 5px rgba(59, 130, 246, 0.12);
   transform: translateY(-1px);
 }
 
@@ -473,7 +473,7 @@ const login = () => { router.push('/login'); };
   font-weight: 600;
   letter-spacing: 0.5px;
   color: #ffffff;
-  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
   box-shadow: 0 14px 28px -12px rgba(37, 99, 235, 0.6);
   transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
 }

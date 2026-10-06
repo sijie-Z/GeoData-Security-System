@@ -537,7 +537,7 @@ const kpiCards = computed(() => {
   const snap = benchData.value?.latest_run?.created_at
   return [
     {
-      key: 'verify', icon: DataLine, gradient: 'linear-gradient(135deg, #667eea, #764ba2)',
+      key: 'verify', icon: DataLine, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
       label: t('watermarkQuality.totalVerifications'), value: numOrNull(v.total), fmt: 'int',
       meta: verificationWindow(v) || (v.min_nc != null && v.max_nc != null
         ? t('watermarkQuality.kpiNcMinMax', { min: v.min_nc.toFixed(3), max: v.max_nc.toFixed(3) })
@@ -566,14 +566,14 @@ const kpiCards = computed(() => {
       meta: d.total ? `${((d.downloaded_count / d.total) * 100).toFixed(0)}%` : '',
     },
     {
-      key: 'chain', icon: Link, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+      key: 'chain', icon: Link, gradient: 'linear-gradient(135deg, #14b8a6, #0f766e)',
       label: t('watermarkQuality.kpiChainIntegrity'), value: chainRate, fmt: 'pct1',
       meta: d.chain_checked != null
         ? t('watermarkQuality.kpiChainDetail', { valid: d.chain_valid_count ?? 0, checked: d.chain_checked })
         : '',
     },
     {
-      key: 'anchor', icon: Aim, gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+      key: 'anchor', icon: Aim, gradient: 'linear-gradient(135deg, #0ea5e9, #0e7490)',
       label: t('watermarkQuality.kpiAnchoredBatches'),
       value: anchor.submitted != null && anchor.pending != null ? anchor.submitted + anchor.pending : null,
       fmt: 'int',
@@ -661,14 +661,14 @@ const ncTrendOption = computed(() => {
       {
         name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%',
         data: daily.map((d) => d.count),
-        itemStyle: { color: 'rgba(99, 102, 241, 0.16)', borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: 'rgba(59, 130, 246, 0.16)', borderRadius: [3, 3, 0, 0] },
       },
       {
         name: ncLabel, type: 'line', yAxisIndex: 0, smooth: true, connectNulls: false,
         data: daily.map((d) => d.avg_nc),
         symbolSize: 6,
-        lineStyle: { width: 2.5, color: '#6366f1' },
-        itemStyle: { color: '#6366f1' },
+        lineStyle: { width: 2.5, color: '#3b82f6' },
+        itemStyle: { color: '#3b82f6' },
       },
     ],
   }
@@ -712,7 +712,7 @@ const algoBreakdownOption = computed(() => {
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#818cf8' }, { offset: 1, color: '#4f46e5' },
+            { offset: 0, color: '#60a5fa' }, { offset: 1, color: '#2563eb' },
           ]),
         },
       },
@@ -747,7 +747,7 @@ const verificationShareOption = computed(() => ({
       name: dataTypeLabel(d.data_type),
       value: d.count,
       itemStyle: {
-        color: d.data_type === 'vector' ? '#6366f1' : d.data_type === 'raster' ? '#10b981' : '#94a3b8',
+        color: d.data_type === 'vector' ? '#3b82f6' : d.data_type === 'raster' ? '#10b981' : '#94a3b8',
       },
     })),
   }],
@@ -779,7 +779,7 @@ const deliveryHealthOption = computed(() => {
         itemStyle: { borderColor: '#fff', borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: [
-          { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: '#6366f1' } },
+          { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: '#0ea5e9' } },
           { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: '#f59e0b' } },
           { name: t('watermarkQuality.anchorNone'), value: anchor.none || 0, itemStyle: { color: '#cbd5e1' } },
         ].filter((x) => x.value > 0),
@@ -1348,8 +1348,8 @@ onMounted(() => {
   margin-top: 20px;
   padding: 18px;
   border-radius: var(--radius-md, 10px);
-  border: 1px solid rgba(99, 102, 241, 0.25);
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.08));
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(14, 165, 233, 0.08));
 }
 
 .dqim-head {
@@ -1391,7 +1391,7 @@ onMounted(() => {
 .dqim-stat-value {
   font-size: 16px;
   font-weight: 700;
-  color: #4f46e5;
+  color: #1d4ed8;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1472,7 +1472,7 @@ onMounted(() => {
 
 .anchor-chip-label { font-size: 12px; color: var(--text-secondary, #64748b); }
 
-.chip-submitted .anchor-chip-value { color: #6366f1; }
+.chip-submitted .anchor-chip-value { color: #0ea5e9; }
 .chip-pending .anchor-chip-value { color: #f59e0b; }
 .chip-none .anchor-chip-value { color: #94a3b8; }
 
