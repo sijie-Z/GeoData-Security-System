@@ -53,9 +53,37 @@ export const getDeliveryDetail = (uuid) => axios.get(`/api/forensics/deliveries/
 
 /**
  * Build an anchor batch over pending delivery chain roots (admin).
+ * @param {Object} [body]
+ * @param {'ots'|'evm'} [body.provider] - anchor backend, default 'ots' (OpenTimestamps);
+ *   'evm' anchors to the Sepolia AnchorRegistry (PENDING + error when not configured)
  * @returns {Promise<AxiosResponse>}
  */
-export const buildAnchorBatch = () => axios.post('/api/forensics/anchor/build')
+export const buildAnchorBatch = (body = {}) => axios.post('/api/forensics/anchor/build', body)
+
+/**
+ * List anchor batches (存证中心 ledger), newest first.
+ * @param {Object} [params]
+ * @param {number} [params.page] - 1-based, default 1
+ * @param {number} [params.page_size] - default 20, clamped to <=100
+ * @returns {Promise<AxiosResponse>} {status, anchors:[…], summary:{total,
+ *   by_provider, by_status}, pages:{total, page, page_size}}
+ */
+export const getAnchors = (params) => axios.get('/api/forensics/anchors', { params })
+
+/**
+ * Get one anchor batch: full record + events_digest (snapshot coverage).
+ * @param {string} batchId
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getAnchorDetail = (batchId) => axios.get(`/api/forensics/anchors/${batchId}`)
+
+/**
+ * Download the stored evidence pack for a batch (.ots / .proof.json).
+ * @param {string} batchId
+ * @returns {Promise<AxiosResponse>} blob response
+ */
+export const downloadAnchorProof = (batchId) =>
+  axios.get(`/api/forensics/anchors/${batchId}/proof`, { responseType: 'blob' })
 
 // ──────────────────────────────────────
 //  Signing Key

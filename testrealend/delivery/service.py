@@ -27,7 +27,7 @@ from algorithm.raster_reversible_watermark import embed_reversible
 from algorithm.vector_dqim import embed_dqim as vector_embed
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
-from delivery.artifact import file_root, shp_component_root
+from delivery.artifact import cidv1_raw, file_root, shp_component_root
 from delivery.qr2 import render_v2_qr_png
 from evidence.chain import append_event
 from extension.extension import db
@@ -223,6 +223,21 @@ def _personalize_raster(delivery_row, host_path, product_dir):
     delivery_row.artifact_root = file_root(result["stego_path"])
 
 
+def _artifact_cid(artifact_root):
+    """CIDv1 over the artifact root bytes (``cidv1_raw(bytes.fromhex(root))``).
+
+    The CID is a content-addressing *integrity commitment* — a stable identifier
+    anyone can recompute and check against the root — NOT a retrievability
+    claim: nothing is published to IPFS or any other network. Returns None when
+    the root is missing or not valid hex (stay defensive; the event must never
+    block business flow).
+    """
+    try:
+        return cidv1_raw(bytes.fromhex(str(artifact_root or "")))
+    except (TypeError, ValueError):
+        return None
+
+
 def personalize_delivery(delivery_row, application_row):
     """PENDING -> PROCESSING -> READY (or FAILED + raise on honest failure)."""
     product_dir = None
@@ -268,7 +283,13 @@ def personalize_delivery(delivery_row, application_row):
     _log_event(
         delivery_row.uuid,
         "PersonalizationCompleted",
-        {"algorithm": delivery_row.algorithm or "unknown", "artifact_root": delivery_row.artifact_root or ""},
+        {
+            "algorithm": delivery_row.algorithm or "unknown",
+            "artifact_root": delivery_row.artifact_root or "",
+            # CIDv1 内容寻址标识（integrity commitment, not retrievability — 仅本地计算,
+            # 未上任何 IPFS/网络；旧事件不回填）
+            "artifact_cid": _artifact_cid(delivery_row.artifact_root),
+        },
     )
 
 
