@@ -274,6 +274,9 @@ export const batchReviewFailedExport = (data) => axios.post('/api/admin/batch_re
 
 /**
  * Get employee info for admin notification targeting.
+ * @param {Object} [params] - Optional pagination query
+ * @param {number} [params.page]
+ * @param {number} [params.pageSize]
  * @returns {Promise<AxiosResponse>}
  */
-export const getEmployeeInfo = () => axios.get('/api/admin/get_employee_info')
+export const getEmployeeInfo = (params) => axios.get('/api/admin/get_employee_info', { params })

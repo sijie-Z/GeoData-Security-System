@@ -22,6 +22,9 @@
       </div>
     </section>
 
+    <!-- 数据分发流向 3D 地球 -->
+    <DataFlowGlobe />
+
     <!-- 告警提示 -->
     <section class="alert-section" v-if="alerts.length > 0">
       <el-alert
@@ -266,6 +269,7 @@ import {
   MarkPointComponent, MarkLineComponent, GraphicComponent
 } from 'echarts/components';
 import VChart from 'vue-echarts';
+import DataFlowGlobe from '@/components/admin/home/DataFlowGlobe.vue';
 
 // ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
 use([
