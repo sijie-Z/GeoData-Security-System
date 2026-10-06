@@ -448,8 +448,7 @@ class WatermarkVerificationStatsResource(Resource):
         )
         hist_rows = dict(base.with_entities(bucket, func.count()).group_by(bucket).all())
         nc_histogram = [
-            {"bucket": f"{i / 10:.1f}-{(i + 1) / 10:.1f}", "count": int(hist_rows.get(i, 0))}
-            for i in range(10)
+            {"bucket": f"{i / 10:.1f}-{(i + 1) / 10:.1f}", "count": int(hist_rows.get(i, 0))} for i in range(10)
         ]
 
         # --- daily series over the last N days (func.date works on MySQL+SQLite) ---
@@ -471,9 +470,7 @@ class WatermarkVerificationStatsResource(Resource):
         for i in range(days - 1, -1, -1):
             day = (now - timedelta(days=i)).strftime("%Y-%m-%d")
             count, avg = daily_rows.get(day, (0, None))
-            daily.append(
-                {"date": day, "count": count, "avg_nc": round(float(avg), 6) if avg is not None else None}
-            )
+            daily.append({"date": day, "count": count, "avg_nc": round(float(avg), 6) if avg is not None else None})
 
         low_nc_count = base.filter(WatermarkVerification.nc_value < 0.8).count()
 

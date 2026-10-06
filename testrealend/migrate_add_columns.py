@@ -36,8 +36,9 @@ MYSQL_ALTERS = [
     "ALTER TABLE application ADD COLUMN adm2_comment TEXT NULL",
     # v3 delivery core: link existing download records/tokens to the new
     # download_delivery table. The new tables themselves (download_delivery /
-    # key_registry / evidence_event / anchor_record) are created automatically
-    # by _bootstrap_runtime_schema()'s registered create_all — no ALTER needed.
+    # key_registry / evidence_event / anchor_record / benchmark_result) are
+    # created automatically by _bootstrap_runtime_schema()'s registered
+    # create_all — no ALTER needed.
     "ALTER TABLE download_token ADD COLUMN delivery_id BIGINT NULL",
     "ALTER TABLE download_record ADD COLUMN delivery_id BIGINT NULL",
     # B-6: existing environments that already created download_delivery before
