@@ -72,9 +72,9 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   overflow: hidden;
   color: #eef2ff;
   background:
-    radial-gradient(90% 70% at 88% 8%, rgba(99, 102, 241, 0.38) 0%, transparent 55%),
-    radial-gradient(80% 65% at 6% 94%, rgba(37, 99, 235, 0.30) 0%, transparent 60%),
-    linear-gradient(158deg, #16204a 0%, #1d1a4d 42%, #070b18 100%);
+    radial-gradient(90% 70% at 88% 8%, rgba(59, 130, 246, 0.35) 0%, transparent 55%),
+    radial-gradient(80% 65% at 6% 94%, rgba(14, 165, 233, 0.26) 0%, transparent 60%),
+    linear-gradient(158deg, #0b1e3f 0%, #10306b 45%, #050d1f 100%);
 }
 
 /* ---------- 装饰层 ---------- */
@@ -107,7 +107,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   height: 420px;
   top: -130px;
   right: -130px;
-  background: rgba(79, 70, 229, 0.55);
+  background: rgba(59, 130, 246, 0.5);
 }
 
 .orb-b {
@@ -115,7 +115,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   height: 360px;
   bottom: -110px;
   left: -110px;
-  background: rgba(37, 99, 235, 0.42);
+  background: rgba(14, 165, 233, 0.34);
 }
 
 .decor-orbit {
@@ -131,7 +131,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 1px dashed rgba(129, 140, 248, 0.28);
+  border: 1px dashed rgba(96, 165, 250, 0.28);
 }
 
 .orbit-ring::before {
@@ -139,7 +139,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   position: absolute;
   inset: 62px;
   border-radius: 50%;
-  border: 1px solid rgba(129, 140, 248, 0.14);
+  border: 1px solid rgba(96, 165, 250, 0.14);
 }
 
 .orbit-dot {
@@ -150,8 +150,8 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   height: 8px;
   margin-left: -4px;
   border-radius: 50%;
-  background: #a5b4fc;
-  box-shadow: 0 0 12px 3px rgba(129, 140, 248, 0.65);
+  background: #7dd3fc;
+  box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.65);
 }
 
 @keyframes orbit-spin {
@@ -163,8 +163,8 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: rgba(165, 180, 252, 0.9);
-  box-shadow: 0 0 10px 2px rgba(129, 140, 248, 0.5);
+  background: rgba(125, 211, 252, 0.9);
+  box-shadow: 0 0 10px 2px rgba(56, 189, 248, 0.5);
   opacity: 0;
   animation: float-up 12s ease-in-out infinite;
 }
@@ -198,8 +198,8 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   align-items: center;
   justify-content: center;
   color: #fff;
-  background: linear-gradient(135deg, #6366f1 0%, #2563eb 100%);
-  box-shadow: 0 12px 28px -8px rgba(79, 70, 229, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+  box-shadow: 0 12px 28px -8px rgba(29, 78, 216, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
   margin-bottom: 28px;
 }
 
@@ -216,7 +216,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   margin: 0 0 44px;
   font-size: 15.5px;
   line-height: 1.7;
-  color: rgba(199, 210, 254, 0.92);
+  color: rgba(186, 230, 253, 0.92);
 }
 
 .brand-features {
@@ -243,7 +243,7 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
 
 .brand-feature:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(129, 140, 248, 0.35);
+  border-color: rgba(56, 189, 248, 0.35);
   transform: translateX(6px);
 }
 
@@ -255,9 +255,9 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #c7d2fe;
-  background: rgba(99, 102, 241, 0.18);
-  border: 1px solid rgba(129, 140, 248, 0.28);
+  color: #bae6fd;
+  background: rgba(56, 189, 248, 0.14);
+  border: 1px solid rgba(56, 189, 248, 0.28);
 }
 
 .feature-text {
