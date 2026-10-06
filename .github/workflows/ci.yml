@@ -42,9 +42,36 @@ jobs:
         run: ruff format --check .
 
       - name: Run tests
-        run: pytest --tb=short -q
+        run: |
+          set -o pipefail
+          pytest --tb=short -q 2>&1 | tee /tmp/pytest_ci.log
         env:
           FLASK_ENV: testing
+
+      # 失败时把 pytest 摘要自动评论到 issue，便于远程/匿名诊断 CI 红因
+      - name: Report test failures
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          try:
+              tail = open('/tmp/pytest_ci.log', encoding='utf-8', errors='replace').read()[-2800:]
+          except OSError:
+              tail = '(no pytest log captured)'
+          body = "CI backend pytest failure summary (auto):\n```\n" + tail + "\n```"
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/1/comments",
+              data=json.dumps({'body': body}).encode(),
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST')
+          try:
+              urllib.request.urlopen(req, timeout=20)
+              print('failure summary posted')
+          except Exception as e:
+              print('comment failed:', e)
+          PY
 
   # ─── Frontend Lint & Build ────────────────────────────────
   frontend:
