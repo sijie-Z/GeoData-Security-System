@@ -43,6 +43,14 @@
             <span class="feature-text">{{ $t('login.brandFeatureBlockchain') }}</span>
           </li>
         </ul>
+
+        <!-- 装饰性 QR：指向当前 origin（沿用旧登录页写法），白色模块 + 玻璃卡 -->
+        <div class="brand-qr">
+          <div class="qr-frame">
+            <canvas ref="qrCanvasRef" class="qr-canvas"></canvas>
+          </div>
+          <span class="qr-caption">{{ $t('login.brandQrCaption') }}</span>
+        </div>
       </div>
 
       <p class="brand-footer">{{ $t('login.brandFooter') }}</p>
@@ -51,7 +59,28 @@
 </template>
 
 <script setup>
+import { onMounted, ref } from 'vue';
+import QRCode from 'qrcode';
 import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue';
+
+const qrCanvasRef = ref(null);
+
+onMounted(() => {
+  // 装饰性 QR 码：编码当前 origin（与旧登录页生成写法一致，白色模块透明底）
+  if (qrCanvasRef.value) {
+    const canvasEl = qrCanvasRef.value;
+    QRCode.toCanvas(canvasEl, window.location.origin || 'http://localhost:5173', {
+      width: 240, margin: 1,
+      color: { dark: '#FFFFFF', light: '#00000000' }
+    }, (error) => {
+      if (error) console.error(error);
+      // qrcode 库会把 240px 写进内联 style，清掉以便 CSS 控制显示尺寸（含矮视口压缩档）；
+      // 渲染缓冲保持 240px，缩放显示相当于 2x 超采样，更清晰。
+      canvasEl.style.width = '';
+      canvasEl.style.height = '';
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -280,6 +309,52 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
   color: rgba(148, 163, 184, 0.55);
 }
 
+/* ---------- 装饰性 QR 展示 ---------- */
+.brand-qr {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.qr-frame {
+  padding: 8px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 10px 30px -12px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: qr-float 7s ease-in-out infinite;
+}
+
+.qr-canvas {
+  display: block;
+  width: 122px;
+  height: 122px;
+  border-radius: 10px;
+}
+
+.qr-caption {
+  font-size: 12.5px;
+  letter-spacing: 0.4px;
+  color: rgba(203, 213, 225, 0.78);
+}
+
+@keyframes qr-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-frame {
+    animation: none;
+  }
+}
+
 /* ---------- 响应式：窄屏转为顶部横幅 ---------- */
 @media (max-width: 1024px) {
   .auth-aside {
@@ -338,8 +413,47 @@ import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue'
     text-align: left;
   }
 
+  /* 窄屏单栏横幅：隐藏 QR，避免挤破布局 */
+  .brand-qr {
+    display: none;
+  }
+
   .decor-orbit {
     display: none;
+  }
+}
+
+/* 矮视口（桌面双栏）压缩纵向节奏，保证 QR 与页脚不被裁切 */
+@media (max-height: 820px) and (min-width: 1025px) {
+  .brand-panel {
+    padding-top: 40px;
+    padding-bottom: 48px;
+  }
+
+  .brand-mark {
+    margin-bottom: 18px;
+  }
+
+  .brand-tagline {
+    margin-bottom: 18px;
+  }
+
+  .brand-features {
+    gap: 8px;
+  }
+
+  .brand-feature {
+    padding: 8px 14px;
+  }
+
+  .brand-qr {
+    margin-top: 18px;
+    gap: 8px;
+  }
+
+  .qr-canvas {
+    width: 104px;
+    height: 104px;
   }
 }
 
