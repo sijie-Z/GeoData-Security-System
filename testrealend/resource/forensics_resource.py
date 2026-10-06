@@ -4,7 +4,7 @@
   POST /api/forensics/trace               same inputs (+ optional application_id) + provenance
   GET  /api/forensics/deliveries          ?application_id=  (admin or owner)
   GET  /api/forensics/deliveries/<uuid>   (admin or owner)
-  POST /api/forensics/anchor/build        (admin)
+  POST /api/forensics/anchor/build        (admin; optional body {"provider": "ots"|"evm"})
   GET  /api/forensics/keyinfo             (admin)
 
 Verify/trace detect fingerprints either from raw QR text or from an uploaded
@@ -39,7 +39,7 @@ from crypto.keys import ensure_active_key
 from crypto.keys import keyinfo as crypto_keyinfo
 from crypto.payload import is_v2_text, parse_qr_text
 from delivery.artifact import file_root, shp_component_root
-from evidence.anchor import build_batch
+from evidence.anchor import EVMAnchorProvider, build_batch
 from evidence.chain import get_events, verify_events, verify_stream
 from extension.extension import db, limiter
 from model.anchor_record import AnchorRecord
@@ -860,18 +860,30 @@ class ForensicsDeliveryDetailResource(Resource):
 
 
 class ForensicsAnchorBuildResource(Resource):
-    """POST /api/forensics/anchor/build — admin. Zero events maps to 400, never 500."""
+    """POST /api/forensics/anchor/build — admin. Zero events maps to 400, never 500.
+
+    Optional JSON body ``{"provider": "ots" | "evm"}`` picks the anchor backend
+    (default "ots", backward compatible). The batch gains ``explorer_url`` once
+    an EVM tx hash + contract address are known (Sepolia Etherscan), else null.
+    """
 
     @admin_required
     @limiter.limit("10 per minute")
     def post(self):
+        body = request.get_json(silent=True) or {}
+        provider_name = str(body.get("provider") or "ots").strip().lower()
+        provider = EVMAnchorProvider() if provider_name == "evm" else None
         try:
-            record = build_batch()
+            record = build_batch(provider=provider)
         except ValueError:
             return {"status": False, "msg": "暂无可锚定的证据事件"}, 400
         except Exception as e:
             logging.error("anchor build failed: %s", e, exc_info=True)
             return {"status": False, "msg": f"锚定失败: {e}"}, 500
+        proof_meta = getattr(record, "proof_meta", None) or {}
+        explorer_url = None
+        if record.provider == "evm-sepolia" and proof_meta.get("tx_hash") and proof_meta.get("contract"):
+            explorer_url = f"https://sepolia.etherscan.io/tx/{proof_meta['tx_hash']}"
         return {
             "status": True,
             "batch": {
@@ -880,6 +892,7 @@ class ForensicsAnchorBuildResource(Resource):
                 "status": record.status,
                 "provider": record.provider,
                 "error": record.error,
+                "explorer_url": explorer_url,
             },
         }, 200
 
