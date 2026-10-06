@@ -371,7 +371,7 @@ const fetchDashboard = async () => {
 // ── 颜色常量 ──
 const C = {
   blue: ['#2196F3', '#1565C0'],
-  purple: ['#AB47BC', '#6A1B9A'],
+  cyan: ['#0EA5E9', '#0369A1'],
   green: ['#66BB6A', '#2E7D32'],
   orange: ['#FFA726', '#E65100'],
   red: ['#EF5350', '#C62828'],
@@ -400,7 +400,7 @@ const trendOption = computed(() => {
         let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px">${params[0].axisValue}</div>`;
         params.forEach(p => {
           const dot = p.seriesName === t('adminDashboard.chartApplications') ? '#2196F3'
-                   : p.seriesName === t('adminDashboard.chartLogins') ? '#AB47BC' : '#66BB6A';
+                   : p.seriesName === t('adminDashboard.chartLogins') ? '#0EA5E9' : '#66BB6A';
           html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0">
             <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot}"></span>
             <span style="flex:1">${p.seriesName}</span>
@@ -450,12 +450,12 @@ const trendOption = computed(() => {
       {
         name: t('adminDashboard.chartLogins'), type: 'line', smooth: true,
         data: loginData, symbol: 'diamond', symbolSize: 6,
-        lineStyle: { width: 2, color: C.purple[0], type: 'dotted' },
-        itemStyle: { color: C.purple[0] },
+        lineStyle: { width: 2, color: C.cyan[0], type: 'dotted' },
+        itemStyle: { color: C.cyan[0] },
         areaStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(171,71,188,0.2)' },
-            { offset: 1, color: 'rgba(171,71,188,0.01)' }
+            { offset: 0, color: 'rgba(14,165,233,0.2)' },
+            { offset: 1, color: 'rgba(14,165,233,0.01)' }
           ])
         }
       },
