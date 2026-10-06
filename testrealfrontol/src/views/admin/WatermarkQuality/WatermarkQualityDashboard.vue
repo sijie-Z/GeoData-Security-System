@@ -242,6 +242,82 @@
       </div>
     </el-card>
 
+    <!-- ═══════════ 区四 · 证据链健康度 ═══════════ -->
+    <el-card class="section-card" shadow="never" v-loading="dLoading">
+      <template #header>
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="section-title">{{ $t('watermarkQuality.chainHealth') }}</span>
+            <el-tag type="info" size="small" effect="plain">{{ $t('watermarkQuality.chainClickHint') }}</el-tag>
+          </div>
+        </div>
+      </template>
+
+      <el-row :gutter="16" class="chain-top">
+        <el-col :xs="24" :sm="8" :md="7">
+          <div class="chain-ring-box">
+            <div class="chain-ring" :style="chainRingStyle">
+              <div class="chain-ring-inner">
+                <span class="chain-ring-value">{{ chainPct }}%</span>
+                <span class="chain-ring-label">{{ $t('watermarkQuality.chainValid') }}</span>
+              </div>
+            </div>
+            <div class="chain-ring-meta">
+              {{ $t('watermarkQuality.kpiChainDetail', { valid: dStats?.chain_valid_count ?? 0, checked: dStats?.chain_checked ?? 0 }) }}
+            </div>
+          </div>
+        </el-col>
+        <el-col :xs="24" :sm="16" :md="17">
+          <div class="chain-anchor-box">
+            <span class="chain-anchor-title">{{ $t('watermarkQuality.chainAnchorState') }}</span>
+            <div class="anchor-chips">
+              <div class="anchor-chip chip-submitted">
+                <span class="anchor-chip-value">{{ dStats?.anchor?.submitted ?? '—' }}</span>
+                <span class="anchor-chip-label">{{ $t('watermarkQuality.anchorSubmitted') }}</span>
+              </div>
+              <div class="anchor-chip chip-pending">
+                <span class="anchor-chip-value">{{ dStats?.anchor?.pending ?? '—' }}</span>
+                <span class="anchor-chip-label">{{ $t('watermarkQuality.anchorPending') }}</span>
+              </div>
+              <div class="anchor-chip chip-none">
+                <span class="anchor-chip-value">{{ dStats?.anchor?.none ?? '—' }}</span>
+                <span class="anchor-chip-label">{{ $t('watermarkQuality.anchorNone') }}</span>
+              </div>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+
+      <h4 class="sub-title">{{ $t('watermarkQuality.chainRecentTitle') }}</h4>
+      <el-table
+        :data="recentDeliveries"
+        stripe
+        size="small"
+        style="width: 100%"
+        class="clickable-table"
+        :empty-text="$t('common.noData')"
+        @row-click="goForensics"
+      >
+        <el-table-column :label="$t('watermarkQuality.colDeliveryUuid')" min-width="140">
+          <template #default="{ row }"><span class="mono">{{ shortUuid(row.uuid) }}</span></template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.colFid')" min-width="150">
+          <template #default="{ row }"><span class="mono">{{ row.fid_short || '—' }}</span></template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.colUser')" width="120">
+          <template #default="{ row }">{{ row.user_number || '—' }}</template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.colStatus')" width="110">
+          <template #default="{ row }">
+            <el-tag :type="statusTagType(row.status)" size="small" effect="dark">{{ row.status }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('watermarkQuality.colTime')" width="180">
+          <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
     <el-card class="records-card" shadow="never">
       <template #header>
@@ -356,6 +432,7 @@
 <script setup>
 import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import {
   Refresh, MapLocation, Picture,
   DataLine, TrendCharts, Warning, Box, Download, Link, Aim, Odometer, InfoFilled
@@ -372,6 +449,7 @@ import VChart from 'vue-echarts'
 use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
+const router = useRouter()
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
 const vLoading = ref(false)
@@ -729,6 +807,20 @@ const ncCellClass = (nc) => {
 const benchSummaries = computed(() =>
   benchResults.value.filter((r) => 'stego_psnr' in r || r.embed_error))
 const psnrColor = (v) => (v == null ? '#64748b' : v >= 50 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444')
+
+// ══════════════════ 区四 · 证据链健康度 ══════════════════
+const chainPct = computed(() => {
+  const d = dStats.value
+  if (!d?.chain_checked) return 0
+  return Math.round((d.chain_valid_count / d.chain_checked) * 100)
+})
+const chainRingStyle = computed(() => ({
+  background: `conic-gradient(${chainPct.value >= 100 ? '#10b981' : '#f59e0b'} ${chainPct.value}%, #e2e8f0 0)`,
+}))
+const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
+const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
+const recentDeliveries = computed(() => dStats.value?.recent || [])
+const goForensics = () => router.push('/admin/forensics')
 
 // ══════════════════ 验证记录表（保留 · 新增时间范围筛选） ══════════════════
 const loading = ref(false)
@@ -1220,4 +1312,90 @@ onMounted(() => {
 }
 
 .dqim-stat-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+/* ── 区四 · 证据链健康度 ── */
+.chain-top { margin-bottom: 16px; }
+
+.chain-ring-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0;
+}
+
+.chain-ring {
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chain-ring-inner {
+  width: 104px;
+  height: 104px;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: inset 0 0 0 1px var(--border-color-light, #f1f5f9);
+}
+
+.chain-ring-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  font-variant-numeric: tabular-nums;
+}
+
+.chain-ring-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+.chain-ring-meta { font-size: 12px; color: var(--text-tertiary, #94a3b8); }
+
+.chain-anchor-box {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 4px;
+}
+
+.chain-anchor-title { font-size: 13px; font-weight: 600; color: var(--text-secondary, #64748b); }
+
+.anchor-chips { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.anchor-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 110px;
+  padding: 12px 20px;
+  background: #fff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+}
+
+.anchor-chip-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.anchor-chip-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+.chip-submitted .anchor-chip-value { color: #6366f1; }
+.chip-pending .anchor-chip-value { color: #f59e0b; }
+.chip-none .anchor-chip-value { color: #94a3b8; }
+
+.clickable-table :deep(.el-table__row) { cursor: pointer; }
+
+.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+}
 </style>
