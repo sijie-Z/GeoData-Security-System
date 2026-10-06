@@ -1172,6 +1172,11 @@ export default {
     fetchFailed: '获取失败',
     fetchRecordsFailed: '获取记录失败',
     downloadFailed: '下载失败，请稍后重试',
+    preparingDelivery: '正在生成本次个性化交付副本…',
+    downloadSuccess: '下载完成，交付号 {uuid}',
+    unauthorizedOrRevoked: '未获授权或已回收',
+    deliveryGenerateFailed: '个性化交付生成失败',
+    timeoutRetry: '网络超时，请稍后重试',
   },
   adminChat: {
     title: '在线沟通中心',

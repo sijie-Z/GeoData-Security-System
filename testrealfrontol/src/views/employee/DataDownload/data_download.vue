@@ -30,7 +30,7 @@
               @click="download(item)"
               :loading="downloadingStatus[item.application_id]"
             >
-              {{ $t('empDataDownload.downloadData') }}
+              {{ downloadingStatus[item.application_id] ? $t('empDataDownload.preparingDelivery') : $t('empDataDownload.downloadData') }}
             </el-button>
           </div>
         </div>
@@ -63,7 +63,8 @@ import { Refresh, Download } from "@element-plus/icons-vue";
 import { reactive, onMounted, ref, watch, computed } from "vue";
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from "element-plus";
-import { getApprovedApplications, downloadFile, recordDownloadFile } from '@/api/employee';
+import { getApprovedApplications, requestDownloadToken } from '@/api/employee';
+import axios from '@/utils/Axios';
 import { useUserStore } from "@/stores/userStore.js";
 
 const { t } = useI18n();
@@ -122,44 +123,46 @@ onMounted(() => {
   get_applications();
 });
 
-// 下载逻辑保持不变，但增加了按钮加载状态的控制
+// 个性化交付下载：申请下载 token → 拉取个性化副本 → 服务端自动落下载记录
 const download = async (row) => {
   downloadingStatus[row.application_id] = true; // 开始下载，设置对应按钮为加载状态
   try {
-    const response = await downloadFile({
-      application_id: row.application_id,
-      data_id: row.data_id,
-      applicant_user_number: row.applicant_user_number,
-      applicant: row.applicant_name,
-      send_file_person_user_number: row.send_file_person_user_number
-    }, {
-      responseType: 'blob'
+    // 1. 申请本次个性化交付副本的下载 token（服务端现场生成，耗时长，单独放宽超时）
+    const tokenResponse = await requestDownloadToken(
+      { application_id: row.application_id },
+      { timeout: 180000 }
+    );
+    const tokenBody = tokenResponse?.data;
+    if (!tokenBody?.status || !tokenBody?.token) {
+      ElMessage.error(tokenBody?.msg || t('empDataDownload.deliveryGenerateFailed'));
+      return;
+    }
+    const delivery = tokenBody.delivery || {};
+    const deliveryUuid = delivery.uuid || '';
+
+    // 2. 凭 token 下载个性化副本（token 即凭证）
+    const fileResponse = await axios.get('/api/download/' + tokenBody.token, {
+      responseType: 'blob',
+      timeout: 120000
     });
 
-    const contentDisposition = response.headers['content-disposition'];
-    let fileName = 'downloaded_file.zip';
-
-    if (contentDisposition) {
-      const fileNameMatch = contentDisposition.match(/filename="([^"]*)"/);
-      if (fileNameMatch && fileNameMatch[1]) {
-        fileName = decodeURIComponent(fileNameMatch[1]); // [优化] 解码文件名以支持中文
-        const lastUnderscoreIndex = fileName.lastIndexOf('__');
-        if (lastUnderscoreIndex !== -1) {
-          fileName = fileName.substring(lastUnderscoreIndex + 2);
+    // 3. 解析文件名：优先 RFC5987 filename*=UTF-8''，回退 filename=
+    const disposition = fileResponse.headers['content-disposition'];
+    let fileName = 'delivery.zip';
+    if (disposition) {
+      const matchesRFC = /filename\*=UTF-8''([^;\n]*)/.exec(disposition);
+      if (matchesRFC && matchesRFC[1]) {
+        fileName = decodeURIComponent(matchesRFC[1]);
+      } else {
+        const matches = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+        if (matches && matches[1]) {
+          fileName = matches[1].replace(/['"]/g, '');
         }
       }
     }
 
-    await recordDownloadFile({
-      application_id: row.application_id,
-      data_id: row.data_id,
-      applicant_user_number: row.applicant_user_number,
-      applicant: row.applicant_name,
-      send_file_person_user_number: row.send_file_person_user_number,
-      fileName: fileName
-    });
-
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    // 4. 存盘（服务端已自动记账，前端不再调用 recordDownloadFile）
+    const url = window.URL.createObjectURL(new Blob([fileResponse.data]));
     const link = document.createElement('a');
     link.href = url;
     link.setAttribute('download', fileName);
@@ -167,9 +170,37 @@ const download = async (row) => {
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url); // [优化] 释放内存
+
+    ElMessage.success(t('empDataDownload.downloadSuccess', {
+      uuid: deliveryUuid ? deliveryUuid.slice(0, 8) : '—'
+    }));
   } catch (error) {
     console.error('Download error:', error);
-    ElMessage.error(t('empDataDownload.downloadFailed'));
+    const status = error?.response?.status;
+    let msg = error?.response?.data?.msg;
+    // blob 响应下错误体是 Blob，尝试读出其中的 msg
+    if (!msg && error?.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        try {
+          msg = JSON.parse(text)?.msg;
+        } catch (parseErr) {
+          console.error('Parse error body failed:', parseErr);
+          msg = text ? text.slice(0, 200) : undefined;
+        }
+      } catch (readErr) {
+        console.error('Read error body failed:', readErr);
+      }
+    }
+    if (status === 403) {
+      ElMessage.error(msg || t('empDataDownload.unauthorizedOrRevoked'));
+    } else if (status === 500) {
+      ElMessage.error(msg || t('empDataDownload.deliveryGenerateFailed'));
+    } else if (error?.code === 'ECONNABORTED' || error?.message?.includes('timeout')) {
+      ElMessage.error(t('empDataDownload.timeoutRetry'));
+    } else {
+      ElMessage.error(t('empDataDownload.downloadFailed'));
+    }
   } finally {
     downloadingStatus[row.application_id] = false; // 结束下载，恢复按钮状态
   }

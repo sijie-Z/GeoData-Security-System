@@ -1172,6 +1172,11 @@ export default {
     fetchFailed: 'Fetch failed',
     fetchRecordsFailed: 'Failed to fetch records',
     downloadFailed: 'Download failed, please try again',
+    preparingDelivery: 'Generating personalized delivery copy…',
+    downloadSuccess: 'Download completed, delivery {uuid}',
+    unauthorizedOrRevoked: 'Not authorized or revoked',
+    deliveryGenerateFailed: 'Personalized delivery generation failed',
+    timeoutRetry: 'Network timed out, please try again later',
   },
   adminChat: {
     title: 'Online Chat Center',
