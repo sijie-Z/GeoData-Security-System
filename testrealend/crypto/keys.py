@@ -83,7 +83,12 @@ def ensure_active_key():
 
 
 def get_public_key_by_kid(kid: int) -> ed25519.Ed25519PublicKey:
-    """Look up an Ed25519 public key by kid. Raises KeyError when unknown."""
+    """Look up an Ed25519 public key by kid. Raises KeyError when unknown.
+
+    The registry ``status`` column is deliberately NOT checked: historical
+    signatures must remain verifiable forever, so retired or revoked keys stay
+    resolvable for verification (status gates signing, not verification).
+    """
     row = KeyRegistry.query.filter_by(kid=kid).first()
     if row is None:
         raise KeyError(f"unknown kid: {kid}")

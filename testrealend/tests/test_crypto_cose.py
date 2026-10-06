@@ -168,6 +168,10 @@ class TestCoseSign1:
 
 
 class TestQrV2Payload:
+    @staticmethod
+    def _to_text(cose_bytes: bytes) -> str:
+        return "GDS2:" + base64.urlsafe_b64encode(cose_bytes).rstrip(b"=").decode()
+
     def test_build_then_parse_roundtrip(self, db):
         kid, _private_key = ensure_active_key()
         fid_hex = "0123456789abcdef" * 2
@@ -191,3 +195,47 @@ class TestQrV2Payload:
         forged_body = base64.urlsafe_b64encode(cbor2.dumps(obj, canonical=True)).rstrip(b"=").decode()
         with pytest.raises(CoseVerifyError):
             parse_qr_text("GDS2:" + forged_body)
+
+    def test_malformed_base64url_framing_rejected(self):
+        """B-2: length ≡ 1 mod 4 and out-of-alphabet chars both raise QrPayloadError."""
+        for text in ("GDS2:AAAAA", "GDS2:AAEC!!"):
+            with pytest.raises(QrPayloadError):
+                parse_qr_text(text)
+
+    def test_non_cbor_body_rejected(self):
+        """B-2: "____" decodes to b"\\xff\\xff\\xff" — a break marker outside any CBOR item."""
+        with pytest.raises(QrPayloadError):
+            parse_qr_text("GDS2:____")
+
+    def test_unknown_kid_rejected(self, db):
+        """B-2: a validly signed payload whose header kid is not registered."""
+        rogue = ed25519.Ed25519PrivateKey.generate()
+        payload_cbor = canonical.dumps({"v": 2, "kid": 999999, "fid": b"\x01" * 16, "delivery": 1, "issued_at": 1})
+        text = self._to_text(sign1_sign(payload_cbor, 999999, rogue))
+        with pytest.raises(QrPayloadError):
+            parse_qr_text(text)
+
+    def test_payload_protected_kid_mismatch_rejected(self, db):
+        """B-3: payload kid must equal the protected header kid."""
+        kid, private_key = ensure_active_key()
+        payload_cbor = canonical.dumps({"v": 2, "kid": kid + 777, "fid": b"\x02" * 16, "delivery": 5, "issued_at": 1})
+        text = self._to_text(sign1_sign(payload_cbor, kid, private_key))
+        with pytest.raises(QrPayloadError):
+            parse_qr_text(text)
+
+    def test_trailing_bytes_after_valid_message_rejected(self, db):
+        """A-1 through the QR pipeline: garbage appended to a genuine message."""
+        kid, _private_key = ensure_active_key()
+        text = build_qr_v2_text("ab" * 16, 1, kid, 1730000000)
+        body = text[len("GDS2:") :]
+        cose = base64.urlsafe_b64decode(body + "=" * (-len(body) % 4))
+        with pytest.raises(QrPayloadError):
+            parse_qr_text(self._to_text(cose + b"\xff"))
+
+    def test_missing_payload_field_rejected(self, db):
+        """B-2: a signed payload missing a required field is a QrPayloadError."""
+        kid, private_key = ensure_active_key()
+        payload_cbor = canonical.dumps({"v": 2, "kid": kid, "fid": b"\x03" * 16, "issued_at": 1})  # no delivery
+        text = self._to_text(sign1_sign(payload_cbor, kid, private_key))
+        with pytest.raises(QrPayloadError):
+            parse_qr_text(text)

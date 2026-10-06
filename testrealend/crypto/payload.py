@@ -7,7 +7,7 @@ the legacy handling path can decide what to do with them.
 import base64
 
 from crypto import canonical
-from crypto.cose import decode_sign1_protected, sign1_sign, sign1_verify
+from crypto.cose import QrPayloadError, decode_sign1_protected, sign1_sign, sign1_verify
 from crypto.keys import ensure_active_key, get_public_key_by_kid
 
 V2_PREFIX = "GDS2:"
@@ -47,23 +47,52 @@ def parse_qr_text(text: str) -> dict:
     ``{"version": 2, "kid", "fid_hex", "delivery", "issued_at"}``.
 
     Anything else is v1 legacy text: ``{"version": 1, "raw": text}``.
+
+    Failure contract (B-2): every malformed or untrusted v2 input raises
+    ``QrPayloadError`` — invalid base64url framing (strict decode, trailing
+    bytes rejected), non-CBOR bytes, COSE structural/signature failures
+    (``CoseVerifyError``, a ``QrPayloadError`` subclass), unknown kid, missing
+    or mistyped fields, payload/protected kid mismatch (B-3), and unsupported
+    payload versions. No other exception type escapes.
     """
     if not is_v2_text(text):
         return {"version": 1, "raw": text}
 
     body = text[len(V2_PREFIX) :]
-    padded = body + "=" * (-len(body) % 4)
-    cose = base64.urlsafe_b64decode(padded)
+    try:
+        padded = body + "=" * (-len(body) % 4)
+        cose = base64.b64decode(padded, altchars=b"-_", validate=True)
+    except ValueError as e:  # binascii.Error is a ValueError subclass
+        raise QrPayloadError(f"invalid base64url body: {e}") from e
+
     protected = decode_sign1_protected(cose)
-    public_key = get_public_key_by_kid(protected.get("kid"))
+    header_kid = protected.get("kid")
+    try:
+        public_key = get_public_key_by_kid(header_kid)
+    except KeyError as e:
+        raise QrPayloadError(f"unknown kid: {header_kid!r}") from e
     payload_cbor = sign1_verify(cose, public_key)
-    payload = canonical.loads(payload_cbor)
+    try:
+        payload = canonical.loads(payload_cbor)
+    except Exception as e:
+        raise QrPayloadError(f"payload is not canonical CBOR: {e}") from e
+    if not isinstance(payload, dict):
+        raise QrPayloadError("payload must decode to a map")
     if payload.get("v") != 2:
-        raise ValueError(f"unsupported GDS2 payload version: {payload.get('v')!r}")
-    return {
-        "version": 2,
-        "kid": payload["kid"],
-        "fid_hex": bytes(payload["fid"]).hex(),
-        "delivery": payload["delivery"],
-        "issued_at": payload["issued_at"],
-    }
+        raise QrPayloadError(f"unsupported GDS2 payload version: {payload.get('v')!r}")
+    # B-3: the signed payload's kid must agree with the signature header kid.
+    if payload.get("kid") != header_kid:
+        raise QrPayloadError(f"payload kid {payload.get('kid')!r} does not match protected header kid {header_kid!r}")
+    fid = payload.get("fid")
+    if not isinstance(fid, bytes):
+        raise QrPayloadError("payload fid field must be bytes")
+    try:
+        return {
+            "version": 2,
+            "kid": payload["kid"],
+            "fid_hex": fid.hex(),
+            "delivery": payload["delivery"],
+            "issued_at": payload["issued_at"],
+        }
+    except KeyError as e:
+        raise QrPayloadError(f"missing payload field: {e}") from e
