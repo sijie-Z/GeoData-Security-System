@@ -29,7 +29,16 @@ from datetime import UTC, datetime
 from flask import current_app, request
 from flask_restful import Resource
 
-from algorithm.robustness import ATTACK_DEFAULTS, run_matrix
+from algorithm.robustness import (
+    ATTACK_DEFAULTS,
+    RASTER_ATTACK_DEFAULTS,
+    RASTER_ATTACKS,
+    RASTER_SCHEMES,
+    make_host_tif,
+    render_raster_payload_qr,
+    run_matrix,
+    run_raster_matrix,
+)
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
 from delivery.service import _classify_base, _resolve_existing_path
@@ -44,6 +53,13 @@ ALLOWED_ATTACKS = ("none", "translate", "scale", "vertex_drop", "noise", "simpli
 DEFAULT_SCHEMES = list(ALLOWED_SCHEMES)
 DEFAULT_ATTACKS = list(ALLOWED_ATTACKS)
 RUNS_PER_PAGE_DEFAULT = 10
+
+# Raster matrix (kind="raster"): a programmatically generated 512x512 GeoTIFF
+# host, data_id ignored, same row schema. The reference raster matrix is
+# 4 schemes x 6 attacks; "blur" is engine-supported and whitelisted but
+# opt-in, so default runs mirror the taskbook matrix exactly.
+RASTER_DATA_REF = "synthetic_512x512"
+RASTER_DEFAULT_ATTACKS = ("none", "jpeg", "resize", "crop", "rotate", "noise")
 
 # One matrix run at a time; held from worker spawn to completion.
 _RUN_LOCK = threading.Lock()
@@ -141,27 +157,74 @@ def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, payload_text, wo
         _RUN_LOCK.release()
 
 
+def _run_raster_matrix_worker(app, run_id, host_tif, schemes, attacks, payload_qr_png, work_dir):
+    """Background worker for kind="raster": run the raster engine, persist rows."""
+    try:
+        rows = run_raster_matrix(host_tif, schemes, attacks, payload_qr_png, work_dir)
+        with app.app_context():
+            _apply_rows(run_id, rows)
+    except Exception as e:
+        logging.exception("robustness raster run %s failed", run_id)
+        try:
+            with app.app_context():
+                _mark_run_error(run_id, e)
+        except Exception:
+            logging.exception("robustness raster run %s: failed to stamp error rows", run_id)
+    finally:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        _ACTIVE_RUNS.pop(run_id, None)
+        _RUN_LOCK.release()
+
+
+def _kind_from_data_ref(data_ref):
+    """Run kind for list responses, inferred without a schema change.
+
+    Raster runs record ``RASTER_DATA_REF`` ("synthetic..."), vector runs record
+    ``data_id=<id>`` — the prefix is the discriminator.
+    """
+    return "raster" if str(data_ref or "").startswith("synthetic") else "vector"
+
+
 class RobustnessRunResource(Resource):
     """POST /api/robustness/run — queue one (scheme x attack) matrix run.
 
-    body: ``{"data_id": int, "schemes": [...], "attacks": [...]}`` — schemes and
-    attacks default to the full whitelists. Returns 202 + run_id immediately;
-    the matrix itself runs on a background thread. 409 when a run is already
-    in flight, 400 when the dataset has no resolvable vector source.
+    body: ``{"kind": "vector"|"raster", "data_id": int, "schemes": [...],
+    "attacks": [...]}``. ``kind`` defaults to "vector" (backwards compatible):
+    vector runs resolve the dataset's source shapefile; raster runs ignore
+    ``data_id`` and embed into a programmatically generated 512x512 GeoTIFF
+    host (``data_ref="synthetic_512x512"``). Schemes and attacks default to
+    the kind's whitelist. Returns 202 + run_id immediately; the matrix itself
+    runs on a background thread. 409 when a run is already in flight (vector
+    and raster share one lock), 400 when the dataset has no resolvable vector
+    source or kind/schemes/attacks are invalid.
     """
 
     @admin_required
     def post(self):
         body = request.get_json(silent=True) or {}
-        data_id = body.get("data_id")
-        if not isinstance(data_id, int) or isinstance(data_id, bool):
-            return {"status": False, "msg": "data_id 必须是整数"}, 400
-        schemes = body.get("schemes") or DEFAULT_SCHEMES
-        attacks = body.get("attacks") or DEFAULT_ATTACKS
-        if not isinstance(schemes, list) or not schemes or not set(schemes) <= set(ALLOWED_SCHEMES):
-            return {"status": False, "msg": f"schemes 仅支持 {list(ALLOWED_SCHEMES)}"}, 400
-        if not isinstance(attacks, list) or not attacks or not set(attacks) <= set(ALLOWED_ATTACKS):
-            return {"status": False, "msg": f"attacks 仅支持 {list(ALLOWED_ATTACKS)}"}, 400
+        kind = body.get("kind", "vector")
+        if kind not in ("vector", "raster"):
+            return {"status": False, "msg": "kind 仅支持 vector / raster"}, 400
+
+        if kind == "vector":
+            data_id = body.get("data_id")
+            if not isinstance(data_id, int) or isinstance(data_id, bool):
+                return {"status": False, "msg": "data_id 必须是整数"}, 400
+            allowed_schemes, allowed_attacks = ALLOWED_SCHEMES, ALLOWED_ATTACKS
+            default_attacks = DEFAULT_ATTACKS
+            attack_defaults = ATTACK_DEFAULTS
+        else:
+            data_id = None
+            allowed_schemes, allowed_attacks = RASTER_SCHEMES, RASTER_ATTACKS
+            default_attacks = RASTER_DEFAULT_ATTACKS
+            attack_defaults = RASTER_ATTACK_DEFAULTS
+
+        schemes = body.get("schemes") or list(allowed_schemes)
+        attacks = body.get("attacks") or list(default_attacks)
+        if not isinstance(schemes, list) or not schemes or not set(schemes) <= set(allowed_schemes):
+            return {"status": False, "msg": f"schemes 仅支持 {list(allowed_schemes)}"}, 400
+        if not isinstance(attacks, list) or not attacks or not set(attacks) <= set(allowed_attacks):
+            return {"status": False, "msg": f"attacks 仅支持 {list(allowed_attacks)}"}, 400
         schemes = list(dict.fromkeys(schemes))
         attacks = list(dict.fromkeys(attacks))
 
@@ -173,12 +236,20 @@ class RobustnessRunResource(Resource):
         work_dir = None
         try:
             app = current_app._get_current_object()
-            work_dir = tempfile.mkdtemp(prefix="robustness_run_")
-            source_shp = _resolve_vector_source(data_id, os.path.join(work_dir, "resolve"))
-            if not source_shp:
-                return {"status": False, "msg": f"未找到 data_id={data_id} 对应的矢量源文件"}, 400
-            staged_shp = _stage_vector_source(source_shp, work_dir)
-            payload_text = _build_payload_text(data_id)
+            work_dir = tempfile.mkdtemp(prefix=f"robustness_{kind}_run_")
+            if kind == "vector":
+                source_shp = _resolve_vector_source(data_id, os.path.join(work_dir, "resolve"))
+                if not source_shp:
+                    return {"status": False, "msg": f"未找到 data_id={data_id} 对应的矢量源文件"}, 400
+                staged_shp = _stage_vector_source(source_shp, work_dir)
+                payload_text = _build_payload_text(data_id)
+                data_ref = f"data_id={data_id}"
+            else:
+                host_tif = make_host_tif(os.path.join(work_dir, "host_512x512.tif"))
+                payload_text = _build_payload_text(0)
+                payload_qr = os.path.join(work_dir, "payload_qr.png")
+                render_raster_payload_qr(payload_text, payload_qr)
+                data_ref = RASTER_DATA_REF
 
             run_id = str(uuid.uuid4())
             created = datetime.now(UTC)
@@ -189,24 +260,26 @@ class RobustnessRunResource(Resource):
                             run_id=run_id,
                             scheme=scheme,
                             attack=attack,
-                            attack_params=dict(ATTACK_DEFAULTS[attack]),
-                            data_ref=f"data_id={data_id}",
+                            attack_params=dict(attack_defaults[attack]),
+                            data_ref=data_ref,
                             created_at=created,
                         )
                     )
             db.session.commit()
 
-            worker = threading.Thread(
-                target=_run_matrix_worker,
-                args=(app, run_id, staged_shp, schemes, attacks, payload_text, work_dir),
-                daemon=True,
-            )
+            if kind == "vector":
+                worker_target = _run_matrix_worker
+                worker_args = (app, run_id, staged_shp, schemes, attacks, payload_text, work_dir)
+            else:
+                worker_target = _run_raster_matrix_worker
+                worker_args = (app, run_id, host_tif, schemes, attacks, payload_qr, work_dir)
+            worker = threading.Thread(target=worker_target, args=worker_args, daemon=True)
             _ACTIVE_RUNS[run_id] = worker
             worker.start()
             worker_started = True
         except Exception as e:
             db.session.rollback()
-            logging.exception("failed to queue robustness run for data_id=%s", data_id)
+            logging.exception("failed to queue robustness run for kind=%s data_id=%s", kind, data_id)
             if run_id is not None:
                 try:
                     _mark_run_error(run_id, e)
@@ -225,12 +298,16 @@ class RobustnessRunResource(Resource):
         return {
             "status": True,
             "msg": "实验已开始",
-            "data": {"run_id": run_id, "total": len(schemes) * len(attacks)},
+            "data": {"run_id": run_id, "total": len(schemes) * len(attacks), "kind": kind},
         }, 202
 
 
 class RobustnessRunsResource(Resource):
-    """GET /api/robustness/runs?page= — recent runs (grouped), newest first."""
+    """GET /api/robustness/runs?page= — recent runs (grouped), newest first.
+
+    Every run entry carries ``kind`` ("vector" | "raster"), inferred from the
+    ``data_ref`` prefix (raster runs always record ``synthetic...``).
+    """
 
     @admin_required
     def get(self):
@@ -266,6 +343,7 @@ class RobustnessRunsResource(Resource):
                 "run_id": row.run_id,
                 "created_at": utc_iso_z(row.created_at),
                 "data_ref": row.data_ref,
+                "kind": _kind_from_data_ref(row.data_ref),
                 "total": int(row.total or 0),
                 "done": int(row.done or 0),
                 "error": row.last_error,
@@ -276,7 +354,11 @@ class RobustnessRunsResource(Resource):
 
 
 class RobustnessRunDetailResource(Resource):
-    """GET /api/robustness/runs/<run_id> — rows + progress for one run."""
+    """GET /api/robustness/runs/<run_id> — rows + progress for one run.
+
+    Rows keep the shared (scheme, attack) schema; the run object carries
+    ``kind`` ("vector" | "raster") derived from its schemes.
+    """
 
     @admin_required
     def get(self, run_id):
@@ -289,6 +371,7 @@ class RobustnessRunDetailResource(Resource):
             "run": {
                 "run_id": run_id,
                 "data_ref": rows[0].data_ref,
+                "kind": "raster" if rows[0].scheme in RASTER_SCHEMES else "vector",
                 "created_at": utc_iso_z(rows[0].created_at),
                 "done": done,
                 "total": len(rows),
