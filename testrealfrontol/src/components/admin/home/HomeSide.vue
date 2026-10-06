@@ -115,7 +115,7 @@ defineProps({
 <style scoped>
 .sidebar {
   width: 200px;
-  background: #304156;
+  background: var(--sidebar-solid-bg, #304156);
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
@@ -149,13 +149,13 @@ defineProps({
 :deep(.el-menu-item:hover),
 :deep(.el-sub-menu__title:hover) {
   background-color: #263445 !important;
-  color: #409EFF !important;
+  color: var(--primary-500, #409EFF) !important;
 }
 
 :deep(.el-menu-item.is-active) {
-  color: #409EFF !important;
+  color: var(--primary-500, #409EFF) !important;
   background-color: #1f2d3d !important;
-  border-left: 3px solid #409EFF;
+  border-left: 3px solid var(--primary-500, #409EFF);
 }
 
 :deep(.el-menu--inline) {

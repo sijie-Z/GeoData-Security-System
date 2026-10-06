@@ -3,13 +3,15 @@ import { computed, onMounted } from 'vue';
 import { useUserStore } from "@/stores/userStore";
 import { useRouter } from "vue-router";
 import { useI18n } from 'vue-i18n';
-import { UserFilled, SwitchButton, Expand, Fold } from "@element-plus/icons-vue";
+import { UserFilled, SwitchButton, Expand, Fold, Sunny, Moon } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import axiosInstance from "@/utils/Axios";
+import { useTheme } from "@/composables/useTheme.js";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
 
 const { t } = useI18n();
+const { isDark, toggleTheme } = useTheme();
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -95,6 +97,14 @@ const logout = async () => {
 
     <div class="header-right" v-if="userNumber">
       <LanguageSwitcher />
+      <el-button
+        class="theme-toggle-button"
+        text
+        :icon="isDark ? Sunny : Moon"
+        :title="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+        :aria-label="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+        @click="toggleTheme"
+      />
       <NotificationCenter />
       <div class="user-info-display">
         <el-icon><UserFilled /></el-icon>
@@ -108,7 +118,7 @@ const logout = async () => {
 <style scoped>
 .admin-header {
   height: 60px;
-  background-color: #2c3e50;
+  background-color: var(--admin-header-bg, #2c3e50);
   color: #ffffff;
   display: flex;
   justify-content: space-between;
@@ -117,6 +127,15 @@ const logout = async () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   flex-shrink: 0;
   font-family: 'Inter', sans-serif;
+}
+
+.theme-toggle-button {
+  font-size: 18px;
+  color: #ffffff;
+}
+
+.theme-toggle-button:hover {
+  color: #60a5fa;
 }
 
 .header-left {

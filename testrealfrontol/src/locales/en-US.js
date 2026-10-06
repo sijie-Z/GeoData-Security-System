@@ -518,6 +518,8 @@ export default {
     employee: 'Employee',
     avatarLoadFailed: 'Failed to load avatar, using default.',
     avatarError: 'Error loading avatar.',
+    switchToLight: 'Switch to light mode',
+    switchToDark: 'Switch to dark mode',
   },
   profile: {
     title: 'Profile',

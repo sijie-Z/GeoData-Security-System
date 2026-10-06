@@ -479,6 +479,8 @@ export default {
     employee: '员工',
     avatarLoadFailed: '未能加载用户头像，使用默认头像。',
     avatarError: '获取用户头像时发生错误。',
+    switchToLight: '切换到浅色模式',
+    switchToDark: '切换到深色模式',
   },
   profile: {
     title: '个人中心',

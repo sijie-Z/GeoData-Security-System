@@ -3,7 +3,11 @@ import App from './App.vue'
 import router from './router'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
+// Element Plus 官方深色变量（html.dark 约定），须在 design-system.css 之前加载，
+// 以便后者在其基础上做品牌化覆写
+import 'element-plus/theme-chalk/dark/css-vars.css'
 import './assets/styles/design-system.css'
+import { initTheme } from '@/composables/useTheme.js'
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import zhCn from 'element-plus/dist/locale/zh-cn.mjs'
 import enUs from 'element-plus/dist/locale/en.mjs'
@@ -13,6 +17,9 @@ import { useUserStore } from '@/stores/userStore.js'
 import i18n, { getLocale } from '@/locales/index.js'
 
 const app = createApp(App)
+
+// 挂载前应用持久化主题（html.dark），避免深色用户首帧闪烁
+initTheme()
 
 // Global error handler — log + notify user, prevent silent white screen
 app.config.errorHandler = (err, instance, info) => {

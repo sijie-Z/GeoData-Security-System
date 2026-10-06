@@ -225,7 +225,7 @@ onBeforeUnmount(() => {
 }
 
 .notification-bell:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--bg-tertiary, rgba(128, 148, 176, 0.15));
 }
 
 .notification-panel {
@@ -237,7 +237,7 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding-bottom: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-color, #eee);
 }
 
 .panel-title {
@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
 
 .empty-state {
   text-align: center;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
   padding: 40px 20px;
 }
 
@@ -271,18 +271,18 @@ onBeforeUnmount(() => {
 }
 
 .notification-item:hover {
-  background: #f5f7fa;
+  background: var(--bg-tertiary, #f5f7fa);
 }
 
 .notification-item.unread {
-  background: #ecf5ff;
+  background: var(--tint-info-bg, #ecf5ff);
 }
 
 .avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409eff, #67c23a);
+  background: linear-gradient(135deg, var(--primary-500, #409eff), var(--success-500, #67c23a));
   color: #fff;
   display: flex;
   align-items: center;
@@ -302,9 +302,9 @@ onBeforeUnmount(() => {
   flex-shrink: 0;
 }
 
-.icon-wrapper.info { background: #409eff; }
-.icon-wrapper.approval { background: #67c23a; }
-.icon-wrapper.recall { background: #e6a23c; }
+.icon-wrapper.info { background: var(--primary-500, #409eff); }
+.icon-wrapper.approval { background: var(--success-500, #67c23a); }
+.icon-wrapper.recall { background: var(--warning-500, #e6a23c); }
 
 .content {
   flex: 1;
@@ -320,18 +320,18 @@ onBeforeUnmount(() => {
 
 .sender {
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary, #303133);
   font-size: 14px;
 }
 
 .time {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
 }
 
 .preview {
   font-size: 13px;
-  color: #606266;
+  color: var(--text-secondary, #606266);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
