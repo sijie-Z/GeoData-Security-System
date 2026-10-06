@@ -392,39 +392,36 @@
       </div>
     </el-card>
 
-    <!-- Quality Metrics Explained -->
-    <el-card class="metrics-card" shadow="never">
+    <!-- ═══════════ 区五 · 质量指标说明（阈值可视化小卡） ═══════════ -->
+    <el-card class="section-card" shadow="never">
       <template #header><span class="section-title">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
-      <div class="metrics-grid">
-        <div class="metric-item">
-          <div class="metric-header">
-            <el-tag effect="dark" round>PSNR</el-tag>
-            <span class="metric-range">{{ $t('watermarkQuality.psnrRange') }}</span>
+      <el-row :gutter="16">
+        <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">
+          <div class="metric-item">
+            <div class="metric-header">
+              <el-tag effect="dark" :type="m.type" round>{{ m.tag }}</el-tag>
+              <span class="metric-range">{{ m.range }}</span>
+            </div>
+            <div class="metric-bar">
+              <div class="metric-bar-track" :style="{ background: m.gradient }"></div>
+              <div
+                v-for="mk in m.markers"
+                :key="mk.value"
+                class="metric-marker"
+                :style="{ left: markerPct(mk, m.scale) + '%' }"
+              >
+                <span class="metric-marker-label">{{ mk.label }}</span>
+              </div>
+            </div>
+            <div class="metric-scale">
+              <span>{{ m.scaleLabels[0] }}</span>
+              <span>{{ m.scaleLabels[1] }}</span>
+              <span>{{ m.scaleLabels[2] }}</span>
+            </div>
+            <p class="metric-desc">{{ m.desc }}</p>
           </div>
-          <p class="metric-desc">{{ $t('watermarkQuality.psnrDesc') }}</p>
-        </div>
-        <div class="metric-item">
-          <div class="metric-header">
-            <el-tag effect="dark" type="success" round>NC</el-tag>
-            <span class="metric-range">{{ $t('watermarkQuality.ncRange') }}</span>
-          </div>
-          <p class="metric-desc">{{ $t('watermarkQuality.ncDesc') }}</p>
-        </div>
-        <div class="metric-item">
-          <div class="metric-header">
-            <el-tag effect="dark" type="warning" round>SSIM</el-tag>
-            <span class="metric-range">{{ $t('watermarkQuality.ssimRange') }}</span>
-          </div>
-          <p class="metric-desc">{{ $t('watermarkQuality.ssimDesc') }}</p>
-        </div>
-        <div class="metric-item">
-          <div class="metric-header">
-            <el-tag effect="dark" type="danger" round>BER</el-tag>
-            <span class="metric-range">{{ $t('watermarkQuality.berRange') }}</span>
-          </div>
-          <p class="metric-desc">{{ $t('watermarkQuality.berDesc') }}</p>
-        </div>
-      </div>
+        </el-col>
+      </el-row>
     </el-card>
   </div>
 </template>
@@ -966,6 +963,46 @@ const refreshAll = () => {
   fetchRecords()
 }
 
+// ══════════════════ 区五 · 质量指标说明（阈值可视化） ══════════════════
+const markerPct = (mk, scale) =>
+  Math.min(100, Math.max(0, ((mk.value - scale.min) / (scale.max - scale.min)) * 100))
+
+const metricCards = computed(() => {
+  const poor = t('watermarkQuality.scalePoor')
+  const good = t('watermarkQuality.scaleGood')
+  const excellent = t('watermarkQuality.scaleExcellent')
+  return [
+    {
+      tag: 'PSNR', type: 'primary',
+      range: t('watermarkQuality.psnrRange'), desc: t('watermarkQuality.psnrDesc'),
+      scale: { min: 20, max: 60 }, markers: [{ value: 40, label: '40 dB' }],
+      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 42%, #10b981 58%, #059669 100%)',
+      scaleLabels: [poor, good, excellent],
+    },
+    {
+      tag: 'NC', type: 'success',
+      range: t('watermarkQuality.ncRange'), desc: t('watermarkQuality.ncDesc'),
+      scale: { min: 0, max: 1 }, markers: [{ value: 0.8, label: '0.8' }, { value: 0.95, label: '0.95' }],
+      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 78%, #10b981 96%)',
+      scaleLabels: [poor, good, excellent],
+    },
+    {
+      tag: 'SSIM', type: 'warning',
+      range: t('watermarkQuality.ssimRange'), desc: t('watermarkQuality.ssimDesc'),
+      scale: { min: 0, max: 1 }, markers: [{ value: 0.95, label: '0.95' }],
+      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 80%, #10b981 95%)',
+      scaleLabels: [poor, good, excellent],
+    },
+    {
+      tag: 'BER', type: 'danger',
+      range: t('watermarkQuality.berRange'), desc: t('watermarkQuality.berDesc'),
+      scale: { min: 0, max: 0.1 }, markers: [{ value: 0.01, label: '0.01' }],
+      gradient: 'linear-gradient(90deg, #10b981 0%, #f59e0b 10%, #ef4444 40%)',
+      scaleLabels: [excellent, good, poor],
+    },
+  ]
+})
+
 onMounted(() => {
   refreshAll()
 })
@@ -1178,22 +1215,58 @@ onMounted(() => {
   margin-top: 16px;
 }
 
-/* ── 指标说明 ── */
-.metrics-card {
-  border-radius: var(--radius-lg, 14px);
-}
-
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-}
-
+/* ── 区五 · 指标说明（阈值可视化） ── */
 .metric-item {
+  height: 100%;
+  margin-bottom: 16px;
   padding: 16px;
   background: #f8fafc;
   border-radius: 10px;
   border: 1px solid #e2e8f0;
+}
+
+.metric-bar {
+  position: relative;
+  height: 12px;
+  margin: 16px 0 6px;
+}
+
+.metric-bar-track {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 8px;
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.metric-marker {
+  position: absolute;
+  top: -4px;
+  width: 2px;
+  height: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35);
+  border-radius: 2px;
+}
+
+.metric-marker-label {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: var(--text-secondary, #64748b);
+  white-space: nowrap;
+}
+
+.metric-scale {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
 }
 
 .metric-header {
