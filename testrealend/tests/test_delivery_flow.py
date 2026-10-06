@@ -65,14 +65,25 @@ def _unzip_first_shp(zip_path, out_dir):
 
 def _extract_fid(artifact_zip, delivery, out_dir):
     """Run the verification extraction path with the delivery's stored vr_data."""
-    from algorithm.extract import extract
     from crypto.payload import parse_qr_text
     from resource.watermark_utils import decode_qr_from_image
 
     shp_path = _unzip_first_shp(artifact_zip, out_dir)
     vr_data = json.loads(delivery.vr_data)
-    _shp_out, wm_png = extract(
-        shp_path, vr_data["vr"], side_length=vr_data.get("side_length") or 45, output_dir=os.path.join(out_dir, "x")
+    # scheme dispatch: "dqim1" = difference-domain QIM; no scheme = legacy extract
+    if vr_data.get("scheme") == "dqim1":
+        from algorithm.vector_dqim import extract_dqim as _extract
+
+        default_side = 130
+    else:
+        from algorithm.extract import extract as _extract
+
+        default_side = 45
+    _shp_out, wm_png = _extract(
+        shp_path,
+        vr_data["vr"],
+        side_length=vr_data.get("side_length") or default_side,
+        output_dir=os.path.join(out_dir, "x"),
     )
     text = decode_qr_from_image(wm_png)
     assert text, "extracted watermark did not decode"

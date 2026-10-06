@@ -23,8 +23,8 @@ from datetime import UTC, datetime, timedelta
 from flask import current_app
 from PIL import Image
 
-from algorithm.embed import embed as vector_embed
 from algorithm.raster_reversible_watermark import embed_reversible
+from algorithm.vector_dqim import embed_dqim as vector_embed
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
 from delivery.artifact import file_root, shp_component_root
@@ -196,7 +196,12 @@ def _personalize_vector(delivery_row, shp_path, product_dir):
         )
     delivery_row.algorithm = "vector"
     delivery_row.artifact_path = result["zip_path"]
-    delivery_row.vr_data = json.dumps({"vr": result["vr"], "side_length": result["side_length"]})
+    # scheme marker drives extraction dispatch: "dqim1" = difference-domain QIM
+    # (translation-robust); legacy artifacts carry no scheme key and are read
+    # back with the absolute-coordinate extractor.
+    delivery_row.vr_data = json.dumps(
+        {"scheme": result.get("scheme") or "dqim1", "vr": result["vr"], "side_length": result["side_length"]}
+    )
     delivery_row.artifact_root = shp_component_root(result["zip_path"])
 
 

@@ -33,6 +33,8 @@ from algorithm.extract import extract as vector_extract
 from algorithm.raster_dwt_watermark import extract_dwt
 from algorithm.raster_histogram_watermark import extract_histogram
 from algorithm.raster_reversible_watermark import decode_reversible
+from algorithm.vector_dqim import SCHEME as DQIM_SCHEME
+from algorithm.vector_dqim import extract_dqim as vector_extract_dqim
 from crypto.keys import ensure_active_key
 from crypto.keys import keyinfo as crypto_keyinfo
 from crypto.payload import is_v2_text, parse_qr_text
@@ -130,6 +132,24 @@ def _parse_vr_data(raw):
     return data if isinstance(data, dict) and data.get("vr") else None
 
 
+def _vector_extractor_for(vr_data):
+    """Pick the extraction algorithm for a stored vr_data record.
+
+    ``"dqim1"`` -> the difference-domain scheme (``algorithm/vector_dqim.py``,
+    translation-robust; new v3 deliveries). Anything else — legacy records have
+    no ``scheme`` key — -> the absolute-coordinate ``algorithm.extract.extract``,
+    so older artifacts stay verifiable unchanged.
+    """
+    if vr_data.get("scheme") == DQIM_SCHEME:
+        return vector_extract_dqim
+    return vector_extract
+
+
+def _vector_side_length(vr_data, extractor):
+    """Stored side_length, with each scheme's historical default as fallback."""
+    return vr_data.get("side_length") or (130 if extractor is vector_extract_dqim else 45)
+
+
 def _as_utc(dt):
     if dt is None:
         return None
@@ -213,9 +233,10 @@ def _detect_vector_shp(shp_path, work_root):
         if vr_data is None:
             continue
         out_dir = tempfile.mkdtemp(prefix="fx_vec_", dir=work_root)
+        extractor = _vector_extractor_for(vr_data)
         try:
-            _shp_out, wm_png = vector_extract(
-                shp_path, vr_data["vr"], side_length=vr_data.get("side_length") or 45, output_dir=out_dir
+            _shp_out, wm_png = extractor(
+                shp_path, vr_data["vr"], side_length=_vector_side_length(vr_data, extractor), output_dir=out_dir
             )
         except Exception as e:
             logging.info("forensics: vector candidate %s skipped (%s)", delivery.uuid, e)
@@ -498,9 +519,10 @@ def _trace_v1_by_application(application_id, detection, work_root):
     if vr_data is None or not vector_path:
         return None
     out_dir = tempfile.mkdtemp(prefix="fx_v1_", dir=work_root)
+    extractor = _vector_extractor_for(vr_data)
     try:
-        _shp, wm_png = vector_extract(
-            vector_path, vr_data["vr"], side_length=vr_data.get("side_length") or 45, output_dir=out_dir
+        _shp, wm_png = extractor(
+            vector_path, vr_data["vr"], side_length=_vector_side_length(vr_data, extractor), output_dir=out_dir
         )
     except Exception as e:
         logging.info("forensics: v1 trace extraction failed (%s)", e)
