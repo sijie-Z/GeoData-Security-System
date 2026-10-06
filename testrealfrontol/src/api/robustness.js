@@ -24,9 +24,10 @@ export const getRobustnessRuns = (params) => axios.get('/api/robustness/runs', {
 export const getRobustnessRun = (runId) => axios.get(`/api/robustness/runs/${runId}`)
 
 /**
- * Queue one (scheme x attack) matrix run against a dataset.
- * Returns 202 with { run_id, total }; 409 when a run is already in flight.
- * @param {Object} data - { data_id: int, schemes?: string[], attacks?: string[] }
+ * Queue one (scheme x attack x trial) matrix run against a dataset.
+ * Returns 202 with { run_id, total (cells x trials), trials }; 409 when a run
+ * is already in flight; 400 when trials is outside 1-10 or cells x trials > 200.
+ * @param {Object} data - { data_id: int, schemes?: string[], attacks?: string[], trials?: int }
  * @returns {Promise<AxiosResponse>}
  */
 export const startRobustnessRun = (data) => axios.post('/api/robustness/run', data, START_CONFIG)

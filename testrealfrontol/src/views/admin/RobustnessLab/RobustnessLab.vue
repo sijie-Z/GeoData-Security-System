@@ -101,6 +101,14 @@
           </el-checkbox-group>
         </div>
 
+        <div class="form-row">
+          <label class="form-label">{{ $t('robustnessLab.trialsLabel') }}</label>
+          <el-select v-model="selectedTrials" class="trials-select">
+            <el-option v-for="n in TRIAL_OPTIONS" :key="n" :label="String(n)" :value="n" />
+          </el-select>
+        </div>
+        <p class="form-hint">{{ $t('robustnessLab.trialsHint') }}</p>
+
         <el-button
           type="primary"
           class="start-btn"
@@ -198,16 +206,30 @@
           >
             <template #default="{ row }">
               <el-tooltip
-                v-if="row.cells[idx] && row.cells[idx].decode_success !== null"
+                v-if="row.cells[idx] && cellHasResult(row.cells[idx])"
                 placement="top"
                 effect="dark"
                 :show-after="120"
               >
                 <template #content>
                   <div class="cell-tip">
-                    <div>{{ $t('robustnessLab.tipParams') }}: {{ formatParams(row.cells[idx].attack_params) }}</div>
-                    <div>BER: {{ formatBer(row.cells[idx].ber) }}</div>
-                    <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(row.cells[idx].duration_ms) }}</div>
+                    <template v-if="cellMultiTrial(row.cells[idx])">
+                      <div>{{ $t('robustnessLab.tipMeanNc') }}: {{ formatMeanNc(row.cells[idx]) }}</div>
+                      <div>{{ $t('robustnessLab.tipStdNc') }}: {{ formatStdNc(row.cells[idx]) }}</div>
+                      <div
+                        v-for="r in row.cells[idx].rows"
+                        :key="r.trial ?? 0"
+                        class="tip-trial-line"
+                      >
+                        {{ $t('robustnessLab.tipTrial', { n: r.trial ?? 1 }) }}:
+                        {{ trialResultText(r) }} · {{ formatParams(r.attack_params) }}
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div>{{ $t('robustnessLab.tipParams') }}: {{ formatParams(cellSingleRow(row.cells[idx]).attack_params) }}</div>
+                      <div>BER: {{ formatBer(cellSingleRow(row.cells[idx]).ber) }}</div>
+                      <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(cellSingleRow(row.cells[idx]).duration_ms) }}</div>
+                    </template>
                   </div>
                 </template>
                 <span class="cell-value" :class="cellClass(row.cells[idx])">{{ cellText(row.cells[idx]) }}</span>
@@ -240,6 +262,9 @@
             </span>
           </div>
         </div>
+
+        <!-- 页脚口径说明：多试验采样 + NC/SSIM 指标口径（Step 1b / Step 3 合并文案） -->
+        <p class="matrix-footnote">{{ $t('robustnessLab.matrixFootnote') }}</p>
       </template>
       <el-empty
         v-else
@@ -280,6 +305,9 @@ const { t } = useI18n()
 const SCHEMES = ['legacy', 'dqim1']
 const ATTACKS = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify']
 
+// 试验次数选项（1 = 文档化默认参数；>1 = 每格 N 次参数抖动试验，seed 固定可复现）
+const TRIAL_OPTIONS = [1, 3, 5, 10]
+
 const POLL_INTERVAL_MS = 5000
 
 // ── 运行控制状态 ──
@@ -289,6 +317,7 @@ const selectedDataId = ref(null)
 const manualDataId = ref(null)
 const selectedSchemes = ref([...SCHEMES])
 const selectedAttacks = ref([...ATTACKS])
+const selectedTrials = ref(1)
 const startLoading = ref(false)
 
 // ── 历史列表状态 ──
@@ -298,6 +327,7 @@ const runsLoading = ref(false)
 // ── 当前 run（矩阵 + 结论 + 图表）状态 ──
 const runMeta = ref(null)
 const runRows = ref([])
+const runSummary = ref([])
 const detailLoading = ref(false)
 let pollTimer = null
 
@@ -340,10 +370,12 @@ const applyRunPayload = (run) => {
     run_id: run.run_id,
     data_ref: run.data_ref,
     created_at: run.created_at,
+    trials: run.trials ?? 1,
     done: run.done,
     total: run.total,
   }
   runRows.value = Array.isArray(run.rows) ? run.rows : []
+  runSummary.value = Array.isArray(run.summary) ? run.summary : []
 }
 
 const loadRun = async (runId) => {
@@ -431,6 +463,7 @@ const startRun = async () => {
       data_id: dataId,
       schemes: [...selectedSchemes.value],
       attacks: [...selectedAttacks.value],
+      trials: selectedTrials.value,
     })
     const body = res.data
     if (body?.status && body.data?.run_id) {
@@ -489,32 +522,79 @@ const matrixAttacks = computed(() => {
   return ATTACKS.filter((a) => present.has(a))
 })
 
-const matrixRows = computed(() => {
-  const byScheme = {}
+// (scheme|attack) -> 行数组（按 trial 升序）；试验次数 > 1 时每格多行
+const rowsByCell = computed(() => {
+  const map = {}
   for (const r of runRows.value) {
-    if (!byScheme[r.scheme]) byScheme[r.scheme] = {}
-    byScheme[r.scheme][r.attack] = r
+    const key = `${r.scheme}|${r.attack}`
+    if (!map[key]) map[key] = []
+    map[key].push(r)
   }
-  const presentSchemes = SCHEMES.filter((s) => byScheme[s])
+  for (const key of Object.keys(map)) {
+    map[key].sort((a, b) => (a.trial ?? 1) - (b.trial ?? 1))
+  }
+  return map
+})
+
+// 详情端点的聚合块（服务端计算的成功率 / NC 均值 / 标准差），按格索引
+const summaryByCell = computed(() => {
+  const map = {}
+  for (const entry of runSummary.value) {
+    map[`${entry.scheme}|${entry.attack}`] = entry
+  }
+  return map
+})
+
+const matrixRows = computed(() => {
+  const presentSchemes = SCHEMES.filter((s) => runRows.value.some((r) => r.scheme === s))
   return presentSchemes.map((scheme) => ({
     scheme,
-    cells: matrixAttacks.value.map((a) => byScheme[scheme][a] || null),
+    cells: matrixAttacks.value.map((a) => {
+      const rows = rowsByCell.value[`${scheme}|${a}`]
+      if (!rows || !rows.length) return null
+      return { rows, summary: summaryByCell.value[`${scheme}|${a}`] || null }
+    }),
   }))
 })
 
-// `null` 单元格 = rows 里还没有该组合的行（理论不出现）；null 指标 = 等待中
+// 单元格显示：trials=1 维持原样（完成 → NC 四位小数；失败 ✗）；
+// trials>1 显示「成功率 · NC 均值」，色阶按成功率（100% 绿 / ≥60% 黄 / <60% 红）。
+// `null` 单元格 = 该组合没有行（理论不出现）；存在未完成行 = 等待中
+const cellMultiTrial = (cell) => !!cell && cell.rows.length > 1
+
+const isCellPending = (cell) => !cell || cell.rows.some((r) => r.decode_success === null)
+
+const cellHasResult = (cell) => !!cell && cell.rows.some((r) => r.decode_success !== null)
+
+const cellSingleRow = (cell) => cell.rows[0]
+
+const cellSuccesses = (cell) => cell.rows.filter((r) => r.decode_success === true).length
+
 const cellClass = (cell) => {
-  if (!cell || cell.decode_success === null) return 'is-pending'
-  if (!cell.decode_success) return 'is-fail'
-  if (Number(cell.nc) >= 0.95) return 'is-high'
-  if (Number(cell.nc) >= 0.75) return 'is-mid'
+  if (isCellPending(cell)) return 'is-pending'
+  if (cellMultiTrial(cell)) {
+    const rate = cellSuccesses(cell) / cell.rows.length
+    if (rate >= 1) return 'is-high'
+    if (rate >= 0.6) return 'is-mid'
+    return 'is-low'
+  }
+  const row = cellSingleRow(cell)
+  if (!row.decode_success) return 'is-fail'
+  if (Number(row.nc) >= 0.95) return 'is-high'
+  if (Number(row.nc) >= 0.75) return 'is-mid'
   return 'is-low'
 }
 
 const cellText = (cell) => {
-  if (!cell || cell.decode_success === null) return t('robustnessLab.cellPending')
-  if (!cell.decode_success) return t('robustnessLab.cellFailed')
-  return Number(cell.nc).toFixed(4)
+  if (isCellPending(cell)) return t('robustnessLab.cellPending')
+  if (cellMultiTrial(cell)) {
+    const base = `${cellSuccesses(cell)}/${cell.rows.length}`
+    const mean = cell.summary?.mean_nc
+    return mean === null || mean === undefined ? base : `${base} · ${Number(mean).toFixed(3)}`
+  }
+  const row = cellSingleRow(cell)
+  if (!row.decode_success) return t('robustnessLab.cellFailed')
+  return Number(row.nc).toFixed(4)
 }
 
 const matrixDone = computed(() => !!runMeta.value && runMeta.value.done >= runMeta.value.total)
@@ -527,20 +607,19 @@ const progressPct = computed(() => {
 // ── 对比结论（全部来自数据） ──
 
 const verdictItems = computed(() => {
-  const byScheme = {}
-  for (const r of runRows.value) {
-    if (!byScheme[r.scheme]) byScheme[r.scheme] = {}
-    byScheme[r.scheme][r.attack] = r
-  }
+  const incomplete = (rows) => !rows || !rows.length || rows.some((r) => r.decode_success === null)
   return matrixAttacks.value.map((attack) => {
-    const legacy = byScheme.legacy?.[attack]
-    const dqim = byScheme.dqim1?.[attack]
-    if (!legacy || !dqim || legacy.decode_success === null || dqim.decode_success === null) {
+    const legacyRows = rowsByCell.value[`legacy|${attack}`]
+    const dqimRows = rowsByCell.value[`dqim1|${attack}`]
+    if (incomplete(legacyRows) || incomplete(dqimRows)) {
       return { attack, kind: 'pending' }
     }
-    if (!legacy.decode_success && dqim.decode_success) return { attack, kind: 'improved' }
-    if (legacy.decode_success && !dqim.decode_success) return { attack, kind: 'regressed' }
-    if (legacy.decode_success && dqim.decode_success) return { attack, kind: 'same-pass' }
+    // 多次试验时"成功" = 该格全部试验解码成功（trials=1 时与单行判定一致）
+    const legacyOk = legacyRows.every((r) => r.decode_success === true)
+    const dqimOk = dqimRows.every((r) => r.decode_success === true)
+    if (!legacyOk && dqimOk) return { attack, kind: 'improved' }
+    if (legacyOk && !dqimOk) return { attack, kind: 'regressed' }
+    if (legacyOk && dqimOk) return { attack, kind: 'same-pass' }
     return { attack, kind: 'same-fail' }
   })
 })
@@ -572,18 +651,16 @@ const tagText = (kind) => t(`robustnessLab.tag.${kind}`)
 
 const comparisonChartOption = computed(() => {
   const attacks = matrixAttacks.value
-  const byScheme = {}
-  for (const r of runRows.value) {
-    if (!byScheme[r.scheme]) byScheme[r.scheme] = {}
-    byScheme[r.scheme][r.attack] = r
-  }
   const buildSeries = (scheme, color) => {
     const failFlags = []
     const values = attacks.map((a) => {
-      const cell = byScheme[scheme]?.[a]
-      const success = !!cell && cell.decode_success === true
-      failFlags.push(!!cell && cell.decode_success === false)
-      return success ? Number(cell.nc) : 0
+      const rows = rowsByCell.value[`${scheme}|${a}`] || []
+      const entry = summaryByCell.value[`${scheme}|${a}`]
+      const complete = rows.length > 0 && rows.every((r) => r.decode_success !== null)
+      const successes = entry ? entry.successes : rows.filter((r) => r.decode_success === true).length
+      const mean = entry ? entry.mean_nc : null
+      failFlags.push(complete && successes === 0)
+      return successes > 0 && mean !== null && mean !== undefined ? Number(mean) : 0
     })
     return {
       name: t(`robustnessLab.scheme.${scheme}`),
@@ -648,14 +725,35 @@ const formatBer = (ber) => (ber === null || ber === undefined ? '—' : Number(b
 
 const formatDuration = (ms) => (ms === null || ms === undefined ? '—' : `${(Number(ms) / 1000).toFixed(1)} s`)
 
+// 多试验单元格：均值/标准差来自详情端点的 summary 块（nc 全空 → —）
+const formatMeanNc = (cell) => {
+  const mean = cell.summary?.mean_nc
+  return mean === null || mean === undefined ? '—' : Number(mean).toFixed(4)
+}
+
+const formatStdNc = (cell) => {
+  const std = cell.summary?.std_nc
+  return std === null || std === undefined ? '—' : Number(std).toFixed(4)
+}
+
+// 第 r 次试验的结果文本：✓/✗ + 解码成功时的 NC（等待中显示 …）
+const trialResultText = (row) => {
+  if (row.decode_success === null) return '…'
+  const nc = row.nc === null || row.nc === undefined ? null : Number(row.nc)
+  if (!row.decode_success) return nc === null ? '✗' : `✗ · ${nc.toFixed(4)}`
+  return `✓ · ${nc === null ? '—' : nc.toFixed(4)}`
+}
+
 const exportJson = () => {
   if (!runMeta.value) return
   const payload = {
     run_id: runMeta.value.run_id,
     data_ref: runMeta.value.data_ref,
     created_at: runMeta.value.created_at,
+    trials: runMeta.value.trials,
     done: runMeta.value.done,
     total: runMeta.value.total,
+    summary: runSummary.value,
     rows: runRows.value,
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -817,6 +915,10 @@ onMounted(() => {
 }
 
 .data-id-input {
+  width: 140px;
+}
+
+.trials-select {
   width: 140px;
 }
 
@@ -986,6 +1088,17 @@ onMounted(() => {
 .cell-tip {
   font-size: 12px;
   line-height: 1.7;
+}
+
+.cell-tip .tip-trial-line {
+  font-variant-numeric: tabular-nums;
+}
+
+.matrix-footnote {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--text-tertiary);
 }
 
 /* ── 对比结论卡 ── */
