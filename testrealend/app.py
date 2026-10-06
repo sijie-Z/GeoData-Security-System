@@ -428,6 +428,9 @@ def create_app():
     )
     from resource.forensics_resource import (
         ForensicsAnchorBuildResource,
+        ForensicsAnchorDetailResource,
+        ForensicsAnchorProofResource,
+        ForensicsAnchorsResource,
         ForensicsDeliveriesResource,
         ForensicsDeliveryDetailResource,
         ForensicsDeliveryStatsResource,
@@ -598,6 +601,9 @@ def create_app():
     api.add_resource(ForensicsDeliveryStatsResource, "/api/forensics/deliveries/stats")
     api.add_resource(ForensicsDeliveryDetailResource, "/api/forensics/deliveries/<string:delivery_uuid>")
     api.add_resource(ForensicsAnchorBuildResource, "/api/forensics/anchor/build")
+    api.add_resource(ForensicsAnchorsResource, "/api/forensics/anchors")
+    api.add_resource(ForensicsAnchorDetailResource, "/api/forensics/anchors/<string:batch_id>")
+    api.add_resource(ForensicsAnchorProofResource, "/api/forensics/anchors/<string:batch_id>/proof")
     api.add_resource(ForensicsKeyInfoResource, "/api/forensics/keyinfo")
 
     api.add_resource(ShpDataUploadResource, "/api/upload_shp_data")

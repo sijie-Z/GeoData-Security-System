@@ -5,6 +5,9 @@
   GET  /api/forensics/deliveries          ?application_id=  (admin or owner)
   GET  /api/forensics/deliveries/<uuid>   (admin or owner)
   POST /api/forensics/anchor/build        (admin; optional body {"provider": "ots"|"evm"})
+  GET  /api/forensics/anchors             ?page=&page_size=  (admin) batch ledger + summary
+  GET  /api/forensics/anchors/<batch_id>  (admin) batch detail + coverage digest
+  GET  /api/forensics/anchors/<batch_id>/proof  (admin) evidence-pack download
   GET  /api/forensics/keyinfo             (admin)
 
 Verify/trace detect fingerprints either from raw QR text or from an uploaded
@@ -24,7 +27,7 @@ import zipfile
 from datetime import UTC, datetime
 
 from cryptography.hazmat.primitives import serialization
-from flask import request
+from flask import request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from sqlalchemy import func
@@ -39,6 +42,7 @@ from crypto.keys import ensure_active_key
 from crypto.keys import keyinfo as crypto_keyinfo
 from crypto.payload import is_v2_text, parse_qr_text
 from delivery.artifact import file_root, shp_component_root
+from evidence import anchor as anchor_mod
 from evidence.anchor import EVMAnchorProvider, build_batch
 from evidence.chain import get_events, verify_events, verify_stream
 from extension.extension import db, limiter
@@ -188,6 +192,88 @@ def _anchor_for(delivery):
         .order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc())
         .first()
     )
+
+
+# --------------------------------------------------------------------------- #
+# anchor batch ledger (存证中心)                                                #
+# --------------------------------------------------------------------------- #
+
+SEPOLIA_TX_URL_PREFIX = "https://sepolia.etherscan.io/tx/"
+
+
+def _anchors_root():
+    """Real path of the anchors dir, read live from ``evidence.anchor`` so tests
+    (which monkeypatch ``evidence.anchor.ANCHOR_DIR``) and runtime setups agree."""
+    return os.path.realpath(anchor_mod.ANCHOR_DIR)
+
+
+def _real_proof_path(record):
+    """Realpath-validated proof file path, confined to the anchors directory.
+
+    ``proof_path`` is written by ``build_batch`` under ``instance/anchors/``. A
+    tampered or foreign row must never let a download (or an explorer-url read)
+    escape that directory, so anything whose realpath falls outside the anchors
+    root — or that traverses via ``..``/symlink — is treated as absent.
+    """
+    if not record.proof_path:
+        return None
+    root = _anchors_root()
+    real = os.path.realpath(str(record.proof_path))
+    if not (real == root or real.startswith(root + os.sep)):
+        return None
+    return real
+
+
+def _proof_available(record):
+    """True when proof_path is set, stays under the anchors root and exists on disk."""
+    real = _real_proof_path(record)
+    return bool(real and os.path.isfile(real))
+
+
+def _explorer_url(record):
+    """Sepolia Etherscan URL read back from the stored EVM evidence pack.
+
+    The pack written by ``EVMAnchorProvider`` carries ``tx_hash``/``chain_id``;
+    reading it (instead of trusting ``provider == "evm-sepolia"``) means any
+    EVM-style proof with a real tx hash gets a link, and anything unreadable —
+    missing file, non-JSON, no/invalid tx_hash — degrades to None.
+    """
+    real = _real_proof_path(record)
+    if not real or not real.lower().endswith(".json") or not os.path.isfile(real):
+        return None
+    try:
+        with open(real, encoding="utf-8") as fh:
+            pack = json.load(fh)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(pack, dict):
+        return None
+    tx_hash = str(pack.get("tx_hash") or "").strip()
+    if not tx_hash.startswith("0x") or len(tx_hash) != 66:
+        return None
+    try:
+        int(tx_hash[2:], 16)
+    except ValueError:
+        return None
+    return f"{SEPOLIA_TX_URL_PREFIX}{tx_hash}"
+
+
+def _anchor_view(record):
+    """Whitelisted AnchorRecord view shared by the ledger list and the detail page."""
+    return {
+        "batch_id": record.batch_id,
+        "provider": record.provider,
+        "status": record.status,
+        "root_hex": record.root_hex,
+        "event_count": record.event_count,
+        "head_hash": record.head_hash,
+        "proof_sha256": record.proof_sha256,
+        "proof_available": _proof_available(record),
+        "error": record.error,
+        "created_at": utc_iso_z(record.created_at),
+        "updated_at": utc_iso_z(record.updated_at),
+        "explorer_url": _explorer_url(record),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -895,6 +981,99 @@ class ForensicsAnchorBuildResource(Resource):
                 "explorer_url": explorer_url,
             },
         }, 200
+
+
+class ForensicsAnchorsResource(Resource):
+    """GET /api/forensics/anchors?page=&page_size= — admin. Batch ledger.
+
+    ``summary`` covers the whole table (not just the page) so the UI hero band
+    can aggregate without a second endpoint; provider/status keys are read from
+    the data (``opentimestamps``/``evm-sepolia``/…), unknown values included.
+    """
+
+    @admin_required
+    def get(self):
+        page = request.args.get("page", default=1, type=int)
+        page_size = request.args.get("page_size", default=20, type=int)
+        if page is None or page < 1:
+            page = 1
+        if page_size is None or page_size < 1:
+            page_size = 20
+        page_size = min(page_size, 100)
+
+        query = AnchorRecord.query.order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc())
+        total = query.count()
+        records = query.offset((page - 1) * page_size).limit(page_size).all()
+
+        by_provider = {
+            (row[0] or "unknown"): int(row[1])
+            for row in db.session.query(AnchorRecord.provider, func.count()).group_by(AnchorRecord.provider).all()
+        }
+        by_status = {
+            (row[0] or "unknown"): int(row[1])
+            for row in db.session.query(AnchorRecord.status, func.count()).group_by(AnchorRecord.status).all()
+        }
+        return {
+            "status": True,
+            "anchors": [_anchor_view(record) for record in records],
+            "summary": {
+                "total": int(total),
+                "by_provider": by_provider,
+                "by_status": by_status,
+            },
+            "pages": {"total": int(total), "page": page, "page_size": page_size},
+        }, 200
+
+
+class ForensicsAnchorDetailResource(Resource):
+    """GET /api/forensics/anchors/<batch_id> — admin. Batch detail.
+
+    ``events_digest`` documents batch coverage: ``build_batch`` anchors a SNAPSHOT
+    of every evidence event as of creation (ordered by insertion id), so the
+    coverage statement is ``included_event_count`` + ``head_hash`` — there is no
+    per-batch event list to hand out.
+    """
+
+    @admin_required
+    def get(self, batch_id):
+        record = AnchorRecord.query.filter_by(batch_id=batch_id).first()
+        if record is None:
+            return {"status": False, "msg": "批次不存在"}, 404
+        return {
+            "status": True,
+            "anchor": _anchor_view(record),
+            "events_digest": {
+                "semantics": "snapshot_all_events",
+                "included_event_count": record.event_count,
+                "head_hash": record.head_hash,
+            },
+        }, 200
+
+
+class ForensicsAnchorProofResource(Resource):
+    """GET /api/forensics/anchors/<batch_id>/proof — admin. Evidence-pack download.
+
+    Path-traversal guard: the stored ``proof_path`` must realpath inside the
+    anchors directory, else 404 (as does a missing file). Download name is
+    normalized to ``<batch_id>.proof.json`` / ``<batch_id>.ots``.
+    """
+
+    @admin_required
+    def get(self, batch_id):
+        record = AnchorRecord.query.filter_by(batch_id=batch_id).first()
+        if record is None:
+            return {"status": False, "msg": "批次不存在"}, 404
+        real = _real_proof_path(record)
+        if not real or not os.path.isfile(real):
+            return {"status": False, "msg": "证据文件不存在"}, 404
+        is_json = real.lower().endswith(".json")
+        download_name = f"{batch_id}.proof.json" if is_json else f"{batch_id}.ots"
+        return send_file(
+            real,
+            as_attachment=True,
+            download_name=download_name,
+            mimetype="application/json" if is_json else "application/octet-stream",
+        )
 
 
 class ForensicsKeyInfoResource(Resource):

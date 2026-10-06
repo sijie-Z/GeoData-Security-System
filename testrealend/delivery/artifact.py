@@ -7,6 +7,7 @@ Both roots commit to file bytes via sha256 under the GDS-ARTIFACT-V1 domain tag
   file_root:          sha256(DOMAIN_ARTIFACT || sha256(file bytes))
 """
 
+import base64
 import hashlib
 import os
 import zipfile
@@ -15,6 +16,26 @@ from crypto import canonical
 from evidence.constants import DOMAIN_ARTIFACT
 
 SHP_COMPONENT_EXTS = (".shp", ".shx", ".dbf", ".prj", ".cpg")
+
+# Known-good vector from the multiformats/IPFS docs: CIDv1 raw sha2-256 of the
+# empty byte string, base32-lower multibase. Used by tests to pin the encoder.
+CIDV1_RAW_EMPTY = "bafkreihdwdcefgh4dqkjv67uzcmw7ojee6xedzdetojuzjevtenxquvyku"
+
+
+def cidv1_raw(data: bytes) -> str:
+    """CIDv1 (raw codec, sha2-256) for ``data``, as multibase base32-lower.
+
+    Layout (multiformats): multibase prefix ``b`` (base32-lower, RFC 4648, no
+    padding) + version ``0x01`` + codec ``raw 0x55`` + multihash header
+    ``0x12 0x20`` (sha2-256, 32-byte digest) + sha256(data). Pure stdlib
+    (hashlib + base64), no third-party dependency.
+
+    This is a content-addressing *integrity commitment*: recomputing the CID
+    from the bytes validates them, but the identifier itself promises nothing
+    about retrievability — nothing here is published to any IPFS network.
+    """
+    digest = hashlib.sha256(data).digest()
+    return "b" + base64.b32encode(b"\x01\x55\x12\x20" + digest).decode("ascii").lower().rstrip("=")
 
 
 def _sha256_hex(data: bytes) -> str:
