@@ -40,6 +40,15 @@ MYSQL_ALTERS = [
     # by _bootstrap_runtime_schema()'s registered create_all — no ALTER needed.
     "ALTER TABLE download_token ADD COLUMN delivery_id BIGINT NULL",
     "ALTER TABLE download_record ADD COLUMN delivery_id BIGINT NULL",
+    # B-6: existing environments that already created download_delivery before
+    # these columns were added. New databases are covered by create_all.
+    "ALTER TABLE download_delivery ADD COLUMN vr_data TEXT NULL",
+    "ALTER TABLE download_delivery ADD COLUMN artifact_meta_path VARCHAR(512) NULL",
+    # C-2/E-3: anchor completeness binding + proof digest for tables created by
+    # an earlier v3 build (idempotent, "Duplicate column" rows are skipped).
+    "ALTER TABLE anchor_record ADD COLUMN event_count INTEGER NULL",
+    "ALTER TABLE anchor_record ADD COLUMN head_hash VARCHAR(64) NULL",
+    "ALTER TABLE anchor_record ADD COLUMN proof_sha256 VARCHAR(64) NULL",
 ]
 
 

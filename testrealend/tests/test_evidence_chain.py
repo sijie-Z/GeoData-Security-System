@@ -2,6 +2,7 @@
 
 import hashlib
 import os
+import struct
 import uuid
 from datetime import UTC, datetime, timedelta, timezone
 
@@ -11,7 +12,7 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from crypto import canonical
 from crypto.keys import ensure_active_key
-from evidence.anchor import NullAnchorProvider, build_batch
+from evidence.anchor import AnchorProvider, NullAnchorProvider, build_batch
 from evidence.chain import GENESIS_HASH, append_event, get_events, verify_stream
 from evidence.constants import DOMAIN_EVENT
 from evidence.merkle import merkle_root
@@ -158,10 +159,12 @@ class TestChain:
 
 class TestMerkle:
     H1, H2, H3, H4 = "aa" * 32, "bb" * 32, "cc" * 32, "dd" * 32
+    H5, H6, H7 = "ee" * 32, "ff" * 32, "11" * 32
 
     @staticmethod
-    def _leaf(event_hash: str) -> bytes:
-        return hashlib.sha256(b"GDS-LEAF-V1" + bytes.fromhex(event_hash)).digest()
+    def _leaf(event_hash: str, total: int, index: int) -> bytes:
+        # D-1: leaf = sha256(DOMAIN_LEAF || uint32be(n) || uint32be(i) || raw hash)
+        return hashlib.sha256(b"GDS-LEAF-V1" + struct.pack(">II", total, index) + bytes.fromhex(event_hash)).digest()
 
     @staticmethod
     def _parent(left: bytes, right: bytes) -> bytes:
@@ -171,16 +174,58 @@ class TestMerkle:
         assert merkle_root([]) is None
 
     def test_single_leaf_is_leaf_hash(self):
-        assert merkle_root([self.H1]) == self._leaf(self.H1).hex()
+        assert merkle_root([self.H1]) == self._leaf(self.H1, 1, 0).hex()
 
     def test_two_three_four_leaves_match_hand_computation(self):
         leaf, parent = self._leaf, self._parent
-        expected2 = parent(leaf(self.H1), leaf(self.H2)).hex()
-        expected3 = parent(parent(leaf(self.H1), leaf(self.H2)), parent(leaf(self.H3), leaf(self.H3))).hex()
-        expected4 = parent(parent(leaf(self.H1), leaf(self.H2)), parent(leaf(self.H3), leaf(self.H4))).hex()
+        expected2 = parent(leaf(self.H1, 2, 0), leaf(self.H2, 2, 1)).hex()
+        expected3 = parent(
+            parent(leaf(self.H1, 3, 0), leaf(self.H2, 3, 1)),
+            parent(leaf(self.H3, 3, 2), leaf(self.H3, 3, 2)),
+        ).hex()
+        expected4 = parent(
+            parent(leaf(self.H1, 4, 0), leaf(self.H2, 4, 1)),
+            parent(leaf(self.H3, 4, 2), leaf(self.H4, 4, 3)),
+        ).hex()
         assert merkle_root([self.H1, self.H2]) == expected2
         assert merkle_root([self.H1, self.H2, self.H3]) == expected3
         assert merkle_root([self.H1, self.H2, self.H3, self.H4]) == expected4
+
+    def test_three_leaves_vs_duplicated_fourth_have_different_roots(self):
+        """D-1 regression: root([A,B,C]) == root([A,B,C,C]) before the leaf domain
+        bound the batch size and position; they must now differ."""
+        assert merkle_root([self.H1, self.H2, self.H3]) != merkle_root([self.H1, self.H2, self.H3, self.H3])
+
+    def test_five_six_seven_leaves_match_hand_computation(self):
+        """n>4 exercises the duplicate-last-node merge branch at multiple depths."""
+        leaf, parent = self._leaf, self._parent
+
+        n = 5
+        levels = [leaf(h, n, i) for i, h in enumerate([self.H1, self.H2, self.H3, self.H4, self.H5])]
+        level2 = [parent(levels[0], levels[1]), parent(levels[2], levels[3]), parent(levels[4], levels[4])]
+        expected5 = parent(parent(level2[0], level2[1]), parent(level2[2], level2[2])).hex()
+        assert merkle_root([self.H1, self.H2, self.H3, self.H4, self.H5]) == expected5
+
+        n = 6
+        levels = [leaf(h, n, i) for i, h in enumerate([self.H1, self.H2, self.H3, self.H4, self.H5, self.H6])]
+        level2 = [parent(levels[0], levels[1]), parent(levels[2], levels[3]), parent(levels[4], levels[5])]
+        level3 = [parent(level2[0], level2[1]), parent(level2[2], level2[2])]
+        expected6 = parent(level3[0], level3[1]).hex()
+        assert merkle_root([self.H1, self.H2, self.H3, self.H4, self.H5, self.H6]) == expected6
+
+        n = 7
+        levels = [leaf(h, n, i) for i, h in enumerate([self.H1, self.H2, self.H3, self.H4, self.H5, self.H6, self.H7])]
+        level2 = [parent(levels[0], levels[1]), parent(levels[2], levels[3]), parent(levels[4], levels[5])]
+        level2.append(parent(levels[6], levels[6]))
+        level3 = [parent(level2[0], level2[1]), parent(level2[2], level2[3])]
+        expected7 = parent(level3[0], level3[1]).hex()
+        assert merkle_root([self.H1, self.H2, self.H3, self.H4, self.H5, self.H6, self.H7]) == expected7
+
+    def test_invalid_event_hash_inputs_raise_value_error(self):
+        """E-1: None / non-hex / wrong-length input must raise a clean ValueError."""
+        for bad in (None, "zz" * 32, "abcd", b"aa" * 32, 123):
+            with pytest.raises(ValueError, match="invalid event hash"):
+                merkle_root([bad])
 
     def test_deterministic_and_sensitive_to_input(self):
         assert merkle_root([self.H1, self.H2, self.H3]) == merkle_root([self.H1, self.H2, self.H3])
@@ -189,6 +234,8 @@ class TestMerkle:
 
 class TestAnchoring:
     def test_null_provider_success_and_failure(self, db):
+        EvidenceEvent.query.delete()
+        db.session.commit()
         stream_id = _stream_id("anchor")
         append_event(stream_id, "EVT", {"ok": True})
 
@@ -198,13 +245,20 @@ class TestAnchoring:
         assert record.error is None
         assert record.root_hex and len(record.root_hex) == 64
         assert record.proof_path and os.path.exists(record.proof_path)
+        # C-2: completeness binding matches the table content at build time
+        assert record.event_count == 1
+        assert record.head_hash == EvidenceEvent.query.order_by(EvidenceEvent.id.desc()).first().event_hash
+        # E-3: the stored proof digest matches the file on disk
+        with open(record.proof_path, "rb") as fh:
+            assert record.proof_sha256 == hashlib.sha256(fh.read()).hexdigest()
 
         failed = build_batch(NullAnchorProvider(ok=False))
         assert failed.status == "PENDING"
         assert failed.error
         assert failed.proof_path is None
+        assert failed.proof_sha256 is None
 
-    def test_replay_without_new_events_yields_same_root(self, db):
+    def test_replay_without_new_events_yields_same_root_count_and_head(self, db):
         stream_id = _stream_id("anchor-replay")
         append_event(stream_id, "EVT", {"i": 1})
         append_event(stream_id, "EVT", {"i": 2})
@@ -212,11 +266,109 @@ class TestAnchoring:
         first = build_batch(NullAnchorProvider(ok=True))
         second = build_batch(NullAnchorProvider(ok=True))
         assert first.root_hex == second.root_hex
+        assert first.event_count == second.event_count
+        assert first.head_hash == second.head_hash
+
+    def test_batch_order_is_insertion_id_not_collation(self, db):
+        """D-2: the batch order is EvidenceEvent.id (insertion order), not the
+        (stream_id, seq) text order, which flips with the DB collation."""
+        EvidenceEvent.query.delete()
+        db.session.commit()
+        stream_z = _stream_id("ZZ")  # sorts after the lowercase stream under BINARY collation
+        stream_a = _stream_id("aa")
+        e_z1 = append_event(stream_z, "EVT", {"i": 1})
+        e_a1 = append_event(stream_a, "EVT", {"i": 1})
+        e_z2 = append_event(stream_z, "EVT", {"i": 2})
+
+        record = build_batch(NullAnchorProvider(ok=True))
+        assert record.root_hex == merkle_root([e_z1.event_hash, e_a1.event_hash, e_z2.event_hash])
+        # a (stream_id, seq) order groups both ZZ events together -> different root
+        assert record.root_hex != merkle_root([e_a1.event_hash, e_z1.event_hash, e_z2.event_hash])
+        assert record.head_hash == e_z2.event_hash
+
+    def test_empty_table_raises_value_error(self, db):
+        EvidenceEvent.query.delete()
+        db.session.commit()
+        with pytest.raises(ValueError, match="no evidence events to anchor"):
+            build_batch(NullAnchorProvider(ok=True))
+
+    def test_dirty_event_hash_recorded_as_pending_not_raised(self, db):
+        """E-1: an un-hexable event_hash degrades to a PENDING record with an error,
+        instead of crashing with TypeError / binascii.Error."""
+        stream_id = _stream_id("anchor-dirty")
+        event = append_event(stream_id, "EVT", {"i": 1})
+        original_hash = event.event_hash
+        event.event_hash = "zz" * 32
+        db.session.commit()
+
+        record = build_batch(NullAnchorProvider(ok=True))
+        assert record.status == "PENDING"
+        assert record.root_hex is None
+        assert record.event_count is None and record.head_hash is None
+        assert "invalid event hash" in record.error
+
+        # leave the shared table clean for later batch tests
+        event.event_hash = original_hash
+        db.session.commit()
+
+    def test_provider_exception_is_recorded(self, db):
+        stream_id = _stream_id("anchor-boom")
+        append_event(stream_id, "EVT", {"i": 1})
+
+        class BoomProvider(AnchorProvider):
+            name = "boom"
+
+            def submit(self, root_hex):
+                raise RuntimeError("boom")
+
+        record = build_batch(BoomProvider())
+        assert record.status == "PENDING"
+        assert record.proof_path is None
+        assert "boom" in record.error
+
+    def test_overlong_provider_error_truncated_to_255(self, db):
+        """E-2: providers can return arbitrarily long errors; the column is VARCHAR(255)."""
+        stream_id = _stream_id("anchor-longerr")
+        append_event(stream_id, "EVT", {"i": 1})
+
+        class LongErrorProvider(AnchorProvider):
+            name = "longerr"
+
+            def submit(self, root_hex):
+                return {"status": "PENDING", "proof_bytes": None, "error": "x" * 400}
+
+        record = build_batch(LongErrorProvider())
+        assert record.status == "PENDING"
+        assert len(record.error) == 255
+
+    def test_proof_write_failure_recorded(self, db, tmp_path, monkeypatch):
+        """E-3 failure path: an unwritable ANCHOR_DIR keeps the root but no proof."""
+        stream_id = _stream_id("anchor-nodisk")
+        append_event(stream_id, "EVT", {"i": 1})
+        blocker = tmp_path / "blocker"
+        blocker.write_text("this is a file, not a directory")
+        monkeypatch.setattr("evidence.anchor.ANCHOR_DIR", str(blocker / "anchors"))
+
+        record = build_batch(NullAnchorProvider(ok=True))
+        assert record.status == "PENDING"
+        assert record.root_hex and len(record.root_hex) == 64
+        assert "proof write failed" in record.error
+        assert record.proof_path is None
+        assert record.proof_sha256 is None
+
+    def test_proof_file_written_atomically_with_no_leftover_tmp(self, db, tmp_path, monkeypatch):
+        stream_id = _stream_id("anchor-atomic")
+        append_event(stream_id, "EVT", {"i": 1})
+        monkeypatch.setattr("evidence.anchor.ANCHOR_DIR", str(tmp_path / "anchors"))
+
+        record = build_batch(NullAnchorProvider(ok=True))
+        assert record.status == "SUBMITTED"
+        assert os.listdir(tmp_path / "anchors") == [f"{record.batch_id}.ots"]
 
     def test_root_matches_manual_merkle_over_all_events(self, db):
         stream_id = _stream_id("anchor-manual")
         append_event(stream_id, "EVT", {"x": 1})
         record = build_batch(NullAnchorProvider(ok=True))
 
-        events = EvidenceEvent.query.order_by(EvidenceEvent.stream_id.asc(), EvidenceEvent.seq.asc()).all()
+        events = EvidenceEvent.query.order_by(EvidenceEvent.id.asc()).all()
         assert record.root_hex == merkle_root([event.event_hash for event in events])

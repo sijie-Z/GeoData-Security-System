@@ -1,11 +1,15 @@
 """Batch anchoring: merkle root over all evidence events -> anchor provider.
 
 P1 batch semantics: a batch is a SNAPSHOT of every EvidenceEvent as of "now",
-sorted by (stream_id, seq) — replaying it later produces the same root as long
-as no new events have arrived. Incremental (delta) batches are deferred.
+ordered by the autoincrement ``id`` (insertion order). ``id`` ordering is
+deterministic on both MySQL and SQLite and independent of the database's text
+collation, so replaying a batch without new events produces the same root on
+every backend. Incremental (delta) batches are deferred.
 """
 
+import hashlib
 import os
+import tempfile
 import uuid
 from datetime import UTC, datetime
 
@@ -18,6 +22,11 @@ from model.anchor_record import AnchorRecord
 from model.evidence_event import EvidenceEvent
 
 ANCHOR_DIR = os.path.join(BASE_DIR, "instance", "anchors")
+
+
+def _truncate_error(text) -> str:
+    """AnchorRecord.error is VARCHAR(255); MySQL strict mode rejects longer values."""
+    return str(text)[:255]
 
 
 class AnchorProvider:
@@ -59,20 +68,46 @@ class NullAnchorProvider(AnchorProvider):
 
 
 def build_batch(provider=None) -> AnchorRecord:
-    """Anchor all evidence events as one batch. Never raises on network failure.
+    """Anchor all evidence events as one batch. Never raises on provider, merkle or I/O failure.
+
+    The batch is ordered by ``EvidenceEvent.id`` (insertion order — see module
+    docstring) and records ``event_count``/``head_hash`` alongside the root, so
+    a later verifier can check completeness, not just self-consistency.
 
     Raises ValueError when there is nothing to anchor (empty event table).
     """
     if provider is None:
         provider = OpenTimestampsProvider()
 
-    events = EvidenceEvent.query.order_by(EvidenceEvent.stream_id.asc(), EvidenceEvent.seq.asc()).all()
-    root_hex = merkle_root([event.event_hash for event in events])
-    if root_hex is None:
+    events = EvidenceEvent.query.order_by(EvidenceEvent.id.asc()).all()
+    if not events:
         raise ValueError("no evidence events to anchor")
 
     batch_id = str(uuid.uuid4())
-    record = AnchorRecord(batch_id=batch_id, root_hex=root_hex, provider=provider.name, status="PENDING")
+    try:
+        root_hex = merkle_root([event.event_hash for event in events])
+    except ValueError as e:
+        # E-1: a dirty event_hash row must degrade to a recorded error, not a 500.
+        record = AnchorRecord(
+            batch_id=batch_id,
+            root_hex=None,
+            provider=provider.name,
+            status="PENDING",
+            error=_truncate_error(f"merkle root failed: {e}"),
+            updated_at=datetime.now(UTC),
+        )
+        db.session.add(record)
+        db.session.commit()
+        return record
+
+    record = AnchorRecord(
+        batch_id=batch_id,
+        root_hex=root_hex,
+        provider=provider.name,
+        status="PENDING",
+        event_count=len(events),
+        head_hash=events[-1].event_hash,
+    )
     db.session.add(record)
     db.session.commit()
 
@@ -86,16 +121,28 @@ def build_batch(provider=None) -> AnchorRecord:
         try:
             os.makedirs(ANCHOR_DIR, exist_ok=True)
             proof_path = os.path.join(ANCHOR_DIR, f"{batch_id}.ots")
-            with open(proof_path, "wb") as fh:
-                fh.write(proof_bytes)
+            # E-3: atomic write — write to a tempfile in the same directory, then
+            # os.replace so a crashed write can never leave a partial proof file.
+            fd, tmp_path = tempfile.mkstemp(prefix=f".{batch_id}-", suffix=".tmp", dir=ANCHOR_DIR)
+            try:
+                with os.fdopen(fd, "wb") as fh:
+                    fh.write(proof_bytes)
+                os.replace(tmp_path, proof_path)
+            except OSError:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
             record.status = "SUBMITTED"
             record.proof_path = proof_path
+            record.proof_sha256 = hashlib.sha256(proof_bytes).hexdigest()
         except OSError as e:
             record.status = "PENDING"
-            record.error = f"proof write failed: {e}"
+            record.error = _truncate_error(f"proof write failed: {e}")
     else:
         record.status = "PENDING"
-        record.error = result.get("error") or "provider did not return a proof"
+        record.error = _truncate_error(result.get("error") or "provider did not return a proof")
     record.updated_at = datetime.now(UTC)
     db.session.commit()
     return record

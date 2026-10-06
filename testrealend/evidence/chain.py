@@ -131,6 +131,11 @@ def verify_stream(stream_id: str) -> dict:
     Returns ``{"valid", "length", "head_hash", "broken_at", "reason"}`` where
     ``broken_at`` is the 1-based position (== seq for healthy prefixes) of the
     first broken event, or None when the stream is valid.
+
+    ``valid`` is NOT ``complete``: it only proves the events currently in the
+    table are self-consistent. It cannot detect truncation of trailing events.
+    Completeness must be checked against an anchor record's ``event_count`` /
+    ``head_hash`` (or the stream's own head against an anchored head).
     """
     events = get_events(stream_id)
     prev_hash = GENESIS_HASH
