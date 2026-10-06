@@ -120,6 +120,47 @@ class TestChain:
         assert e1.ts == naive
         assert verify_stream(stream_id)["valid"] is True
 
+    def test_fractional_ts_is_truncated_before_hashing_and_stored_whole(self, db):
+        """MySQL regression: DATETIME(0) rounds a fractional ts on insert (>= .5
+        rounds up one second), so an event hashed at int(epoch) precision of the
+        pre-rounding value read back with a different epoch and the intact chain
+        was reported broken. The appended ts must be truncated to the whole
+        second that is actually stored."""
+        stream_id = _stream_id("chain-frac-rounds-up")
+        append_event(stream_id, "EVT", {"i": 1}, ts=datetime(2026, 1, 2, 3, 4, 5, 600000))
+
+        db.session.expire_all()  # force a database read-back, as verify_stream does
+        row = get_events(stream_id)[0]
+        # (a) stored as a whole second whose second matches the input's whole second
+        assert row.ts.microsecond == 0
+        assert row.ts == datetime(2026, 1, 2, 3, 4, 5)
+        # (b) the intact chain verifies
+        assert verify_stream(stream_id)["valid"] is True
+        # (c) re-hashing the stored row's own ts reproduces the stored event_hash:
+        # the hashed value equals the stored value (no un-truncated component).
+        epoch = int(row.ts.replace(tzinfo=UTC).timestamp())
+        body = canonical.dumps({"stream": stream_id, "seq": 1, "type": "EVT", "payload": {"i": 1}, "ts": epoch})
+        manual = hashlib.sha256(DOMAIN_EVENT + bytes.fromhex(GENESIS_HASH) + body).hexdigest()
+        assert manual == row.event_hash
+
+    def test_fractional_ts_below_half_second_also_truncated(self, db):
+        """Sibling of the .6 case: a .4 fraction (MySQL rounds down today) must
+        still be truncated, so hash and stored column never diverge whichever
+        way the database's rounding lands."""
+        stream_id = _stream_id("chain-frac-rounds-down")
+        append_event(stream_id, "EVT", {"i": 1}, ts=datetime(2026, 1, 2, 3, 4, 5, 400000))
+
+        db.session.expire_all()
+        row = get_events(stream_id)[0]
+        assert row.ts.microsecond == 0
+        assert row.ts == datetime(2026, 1, 2, 3, 4, 5)
+        assert verify_stream(stream_id)["valid"] is True
+
+        epoch = int(row.ts.replace(tzinfo=UTC).timestamp())
+        body = canonical.dumps({"stream": stream_id, "seq": 1, "type": "EVT", "payload": {"i": 1}, "ts": epoch})
+        manual = hashlib.sha256(DOMAIN_EVENT + bytes.fromhex(GENESIS_HASH) + body).hexdigest()
+        assert manual == row.event_hash
+
     @staticmethod
     def _register_other_key(db) -> int:
         other = ed25519.Ed25519PrivateKey.generate()

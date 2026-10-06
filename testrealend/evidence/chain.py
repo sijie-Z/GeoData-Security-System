@@ -90,9 +90,9 @@ def append_event(stream_id: str, event_type: str, payload: dict, kid=None, ts=No
     the signing key; anywhere else ValueError is raised before any write.
 
     ``ts`` is normalised to naive UTC (tz-aware input is converted, naive input
-    is interpreted as UTC and kept naive) so that the stored column always
-    equals the value committed to by event_hash. Only second resolution is
-    committed (see ``_epoch``).
+    is interpreted as UTC and kept naive) and truncated to whole seconds, so
+    that the stored column always equals the value committed to by event_hash
+    (see ``_epoch``; MySQL DATETIME rounds fractional values on insert).
     """
     active_kid, private_key = ensure_active_key()
     if kid is None:
@@ -103,6 +103,12 @@ def append_event(stream_id: str, event_type: str, payload: dict, kid=None, ts=No
         ts = datetime.now(UTC)
     if ts.tzinfo is not None:
         ts = ts.astimezone(UTC).replace(tzinfo=None)
+    # MySQL DATETIME(0) rounds fractional seconds to the nearest whole second on
+    # insert (>= .5 rounds up), so a hash computed from int(epoch) of the
+    # pre-rounding value read back one epoch-second later and verify_stream()
+    # reported an intact chain broken. Truncate first so the hashed epoch and
+    # the stored column always agree.
+    ts = ts.replace(microsecond=0)
 
     last = EvidenceEvent.query.filter_by(stream_id=stream_id).order_by(EvidenceEvent.seq.desc()).first()
     seq = last.seq + 1 if last is not None else 1
