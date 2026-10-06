@@ -569,6 +569,12 @@ export default {
     usernameRequired: '请输入用户名或工号',
     passwordRequired: '请输入密码',
     roleRequired: '请选择您的角色',
+    brandTagline: '地理空间数据安全分发与追踪溯源平台',
+    brandFeatureApproval: '多级审批流程',
+    brandFeatureWatermark: '水印嵌入与提取',
+    brandFeatureTracing: '指纹级交付溯源',
+    brandFeatureBlockchain: '区块链存证锚定',
+    brandFooter: '© 2026 空间数据跟踪系统 · 安全 · 可信 · 可追溯',
   },
   register: {
     title: '创建账户',

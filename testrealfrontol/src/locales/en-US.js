@@ -608,6 +608,12 @@ export default {
     usernameRequired: 'Please enter username or employee number',
     passwordRequired: 'Please enter password',
     roleRequired: 'Please select your role',
+    brandTagline: 'Secure distribution and traceability platform for geospatial data',
+    brandFeatureApproval: 'Multi-level approval workflow',
+    brandFeatureWatermark: 'Watermark embedding & extraction',
+    brandFeatureTracing: 'Fingerprint-level delivery tracing',
+    brandFeatureBlockchain: 'Blockchain-backed attestation',
+    brandFooter: '© 2026 GeoData Tracking System · Secure · Trusted · Traceable',
   },
   register: {
     title: 'Create Account',

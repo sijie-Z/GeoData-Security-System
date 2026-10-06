@@ -1,119 +1,111 @@
 <template>
-  <div class="login-container">
-    <!-- 3D背景粒子效果 -->
-    <div class="particles-background" ref="particlesContainer"></div>
-    
-    <!-- 左侧品牌区 -->
-    <div class="brand-panel">
-      <div class="brand-content">
-        <div class="qr-code-wrapper">
-          <canvas ref="qrCanvasRef"></canvas>
-        </div>
-        <h1 class="system-title" v-html="$t('login.title')"></h1>
-        <p class="system-subtitle">{{ $t('login.subtitle') }}</p>
-        
-        <!-- 系统特性展示 -->
-        <div class="system-features">
-          <div class="feature-item">
-            <el-icon><Lock /></el-icon>
-            <span>{{ $t('login.featureSecurity') }}</span>
-          </div>
-          <div class="feature-item">
-            <el-icon><Location /></el-icon>
-            <span>{{ $t('login.featureDataMgmt') }}</span>
-          </div>
-          <div class="feature-item">
-            <el-icon><TrendCharts /></el-icon>
-            <span>{{ $t('login.featureTracing') }}</span>
-          </div>
-        </div>
-      </div>
+  <div class="auth-page">
+    <!-- 顶栏小工具：语言切换（复用现有机制） -->
+    <div class="auth-lang">
+      <LanguageSwitcher />
     </div>
 
-    <!-- 右侧表单区 -->
-    <div class="form-panel-wrapper">
-      <div class="login-card">
-        <div class="card-header">
-          <h2 class="form-title">{{ $t('login.formTitle') }}</h2>
-          <p class="form-subtitle">{{ $t('login.formSubtitle') }}</p>
-        </div>
+    <div class="auth-layout">
+      <!-- 左侧品牌栏 -->
+      <AuthBrandPanel />
 
-        <el-form :model="data" :rules="rules" ref="elFormRef" class="login-form" @submit.prevent="login">
-          <el-form-item prop="username">
-            <el-input 
-              size="large" 
-              :prefix-icon="User" 
-              v-model="data.username" 
-              :placeholder="$t('login.usernamePlaceholder')"
-              class="custom-input"
-            />
-          </el-form-item>
-          
-          <el-form-item prop="password">
-            <el-input 
-              size="large" 
-              :prefix-icon="Lock" 
-              show-password 
-              v-model="data.password" 
-              type="password" 
-              :placeholder="$t('login.passwordPlaceholder')"
-              @keyup.enter="login"
-              class="custom-input"
-            />
-          </el-form-item>
-          
-          <el-form-item prop="role" class="role-selector-item">
-            <div class="role-capsule-group">
-              <div class="role-option" :class="{active: data.role === 'admin'}" @click="data.role = 'admin'">
-                <el-icon><Platform /></el-icon><span>{{ $t('auth.admin') }}</span>
-              </div>
-              <div class="role-option" :class="{active: data.role === 'employee'}" @click="data.role = 'employee'">
+      <!-- 右侧表单栏 -->
+      <main class="auth-main">
+        <section class="auth-card">
+          <header class="auth-card-header">
+            <h2 class="auth-form-title">{{ $t('login.formTitle') }}</h2>
+            <p class="auth-form-subtitle">{{ $t('login.formSubtitle') }}</p>
+          </header>
+
+          <el-form :model="data" :rules="rules" ref="elFormRef" class="auth-form" @submit.prevent="login">
+            <el-form-item prop="username">
+              <el-input
+                size="large"
+                :prefix-icon="User"
+                v-model="data.username"
+                :placeholder="$t('login.usernamePlaceholder')"
+                class="auth-input"
+              />
+            </el-form-item>
+
+            <el-form-item prop="password">
+              <el-input
+                size="large"
+                :prefix-icon="Lock"
+                show-password
+                v-model="data.password"
+                type="password"
+                :placeholder="$t('login.passwordPlaceholder')"
+                @keyup.enter="login"
+                class="auth-input"
+              />
+            </el-form-item>
+
+            <el-form-item prop="role" class="role-selector-item">
+              <div class="role-capsule-group" role="radiogroup">
+                <div
+                  class="role-option"
+                  :class="{ active: data.role === 'admin' }"
+                  role="radio"
+                  :aria-checked="data.role === 'admin'"
+                  @click="data.role = 'admin'"
+                >
+                  <el-icon><Platform /></el-icon><span>{{ $t('auth.admin') }}</span>
+                </div>
+                <div
+                  class="role-option"
+                  :class="{ active: data.role === 'employee' }"
+                  role="radio"
+                  :aria-checked="data.role === 'employee'"
+                  @click="data.role = 'employee'"
+                >
                   <el-icon><UserFilled /></el-icon><span>{{ $t('auth.employee') }}</span>
+                </div>
+                <div class="active-capsule" :style="capsuleStyle"></div>
               </div>
-              <div class="active-capsule" :style="capsuleStyle"></div>
-            </div>
-          </el-form-item>
-          
-          <el-form-item>
-            <el-button 
-              class="login-button" 
-              @click="login" 
-              :loading="loading" 
-              native-type="submit"
-            >
-              <el-icon class="login-icon"><Key /></el-icon>
-              {{ $t('login.loginButton') }}
-            </el-button>
-          </el-form-item>
-        </el-form>
-        
-        <div class="form-footer">
-          <span>{{ $t('login.noAccount') }} </span>
-          <el-link type="primary" @click="register" :underline="false" class="register-link">
-            {{ $t('login.registerNow') }}
-          </el-link>
-        </div>
-        
-        <!-- 安全提示 -->
-        <div class="security-notice">
-          <el-icon><Warning /></el-icon>
-          <span>{{ $t('login.securityNotice') }}</span>
-        </div>
-      </div>
+            </el-form-item>
+
+            <el-form-item class="submit-item">
+              <el-button
+                class="auth-submit"
+                @click="login"
+                :loading="loading"
+                native-type="submit"
+              >
+                <el-icon v-if="!loading" class="submit-icon"><Key /></el-icon>
+                {{ $t('login.loginButton') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <div class="auth-card-footer">
+            <span>{{ $t('login.noAccount') }}</span>
+            <el-link type="primary" @click="register" :underline="false" class="auth-link">
+              {{ $t('login.registerNow') }}
+            </el-link>
+          </div>
+
+          <!-- 安全提示 -->
+          <div class="security-notice">
+            <el-icon><Warning /></el-icon>
+            <span>{{ $t('login.securityNotice') }}</span>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { Lock, User, Platform, UserFilled, Key, Location, TrendCharts, Warning } from '@element-plus/icons-vue';
-import { reactive, ref, computed, onMounted, onUnmounted } from 'vue';
+import { Lock, User, Platform, UserFilled, Key, Warning } from '@element-plus/icons-vue';
+import { reactive, ref, computed } from 'vue';
 import { ElMessage } from 'element-plus';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { login as loginApi } from '@/api/auth';
-import QRCode from 'qrcode';
-import * as THREE from 'three';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
+import AuthBrandPanel from '@/components/common/AuthBrandPanel.vue';
 
 const { t } = useI18n();
 const userStore = useUserStore();
@@ -186,530 +178,264 @@ const register = () => { router.push('/register'); };
 const capsuleStyle = computed(() => ({
   transform: `translateX(${data.role === 'admin' ? '0%' : '100%'})`
 }));
-
-// QR码逻辑
-const qrCanvasRef = ref(null);
-const particlesContainer = ref(null);
-let scene, camera, renderer, particles;
-let animationId = null;
-
-// 3D粒子背景效果
-const initParticles = () => {
-  if (!particlesContainer.value) return;
-
-  // 创建场景
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x000000, 0);
-  particlesContainer.value.appendChild(renderer.domElement);
-
-  // 创建粒子几何体 - reduce particle count on mobile
-  const particlesGeometry = new THREE.BufferGeometry();
-  const isMobile = window.innerWidth <= 768;
-  const particlesCount = isMobile ? 300 : 800;
-  const posArray = new Float32Array(particlesCount * 3);
-
-  for (let i = 0; i < particlesCount * 3; i++) {
-    posArray[i] = (Math.random() - 0.5) * 100;
-  }
-
-  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-
-  // 创建粒子材质
-  const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.8,
-    color: 0x4285f4,
-    transparent: true,
-    opacity: 0.6,
-    sizeAttenuation: true
-  });
-
-  particles = new THREE.Points(particlesGeometry, particlesMaterial);
-  scene.add(particles);
-
-  camera.position.z = 30;
-
-  // 动画循环
-  const animate = () => {
-    particles.rotation.x += 0.001;
-    particles.rotation.y += 0.002;
-
-    renderer.render(scene, camera);
-    animationId = requestAnimationFrame(animate);
-  };
-
-  animate();
-};
-
-// 窗口大小调整
-const handleResize = () => {
-  if (camera && renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-};
-
-onMounted(() => {
-  // 初始化QR码
-  if (qrCanvasRef.value) {
-    QRCode.toCanvas(qrCanvasRef.value, window.location.origin || 'http://localhost:5173', {
-      width: 240, margin: 1,
-      color: { dark: '#FFFFFF', light: '#00000000' }
-    }, (error) => { if (error) console.error(error); });
-  }
-  
-  // 初始化3D粒子背景
-  initParticles();
-  window.addEventListener('resize', handleResize);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-  if (animationId) cancelAnimationFrame(animationId);
-  if (particles) {
-    particles.geometry?.dispose();
-    particles.material?.dispose();
-  }
-  if (renderer) {
-    renderer.dispose();
-    if (particlesContainer.value && renderer.domElement.parentNode === particlesContainer.value) {
-      particlesContainer.value.removeChild(renderer.domElement);
-    }
-  }
-});
 </script>
 
 <style scoped>
-.login-container {
-  display: flex; 
-  height: 100vh; 
-  width: 100vw; 
-  overflow: hidden;
+.auth-page {
   position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #f4f6fb;
 }
 
-/* 3D粒子背景 */
-.particles-background {
+/* 顶栏语言切换：悬浮胶囊，明暗底上均可见 */
+.auth-lang {
   position: absolute;
-  top: 0;
-  left: 0;
+  top: 18px;
+  right: 22px;
+  z-index: 60;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- 右侧表单栏 ---------- */
+.auth-main {
+  flex: 1 1 auto;
+  display: flex;
+  padding: 56px 32px;
+  background:
+    radial-gradient(60% 50% at 85% 12%, rgba(99, 102, 241, 0.07), transparent 70%),
+    radial-gradient(50% 45% at 12% 88%, rgba(37, 99, 235, 0.06), transparent 70%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f9 100%);
+}
+
+.auth-card {
   width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
+  max-width: 460px;
+  margin: auto;
+  padding: 44px 40px 36px;
+  background: #ffffff;
+  border: 1px solid #e9eef5;
+  border-radius: 24px;
+  box-shadow: 0 24px 56px -28px rgba(15, 23, 42, 0.25), 0 4px 16px -8px rgba(15, 23, 42, 0.08);
+  animation: card-in 0.55s cubic-bezier(0.22, 0.8, 0.36, 1) both;
 }
 
-/* 左侧品牌区 */
-.brand-panel {
-  width: 50%;
-  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #3b82f6 100%));
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  padding: 40px;
-  animation: slide-in-left 1s ease-out;
-  position: relative;
-  overflow: hidden;
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
 }
 
-/* 添加动态背景效果 */
-.brand-panel::before {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
-  animation: shimmer 3s infinite;
+.auth-card-header {
+  margin-bottom: 30px;
 }
 
-@keyframes shimmer {
-  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+.auth-form-title {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #0f172a;
 }
 
-.brand-content { 
-  text-align: center; 
-  color: #fff; 
-  z-index: 1;
-  position: relative;
-}
-
-.qr-code-wrapper {
-  padding: 16px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 20px; /* 从28px改为20px，更协调 */
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-  margin: 0 auto 24px; 
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 272px; /* 240 + 左右各16 的四边等距视觉 */
-}
-
-.qr-code-wrapper::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-  transition: left 0.5s;
-}
-
-.qr-code-wrapper:hover::before {
-  left: 100%;
-}
-
-.qr-code-wrapper:hover {
-  transform: translateY(-5px) scale(1.02);
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
-}
-
-canvas { 
-  display: block; 
-  border-radius: 12px; /* 从16px改为12px，与容器更协调 */
-}
-
-.system-title { 
-  font-size: 36px; 
-  font-weight: 700; 
-  line-height: 1.4; 
-  margin-bottom: 16px; 
-  text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-}
-
-.system-subtitle { 
-  font-size: 16px; 
-  opacity: 0.9; 
-  margin-bottom: 40px;
-}
-
-/* 系统特性展示 */
-.system-features {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  margin-top: 40px;
-}
-
-.feature-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 20px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 12px;
-  backdrop-filter: blur(5px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  transition: all 0.3s ease;
-}
-
-.feature-item:hover {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateX(5px);
-}
-
-.feature-item .el-icon {
-  font-size: 20px;
-  color: #60a5fa;
-}
-
-.feature-item span {
+.auth-form-subtitle {
+  margin: 0;
   font-size: 14px;
-  font-weight: 500;
-}
-
-/* 右侧表单区 */
-.form-panel-wrapper {
-  width: 50%; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  padding: 40px;
-  animation: fade-in-right 1s ease-out 0.2s;
-  animation-fill-mode: backwards;
-  position: relative;
-}
-
-.login-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--surface-glass, rgba(255, 255, 255, 0.85));
-  border-radius: var(--radius-xl, 24px);
-  padding: 48px;
-  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1));
-  position: relative;
-  overflow: hidden;
-  transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1));
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #10b981, #f59e0b, #ef4444);
-  animation: gradient-bar 3s ease infinite;
-}
-
-@keyframes gradient-bar {
-  0%, 100% { transform: translateX(-100%); }
-  50% { transform: translateX(100%); }
-}
-
-.login-card:hover {
-  transform: translateY(-5px);
-  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1)), var(--shadow-glow, 0 0 20px rgba(59, 130, 246, 0.3));
-  background: var(--surface-glass-hover, rgba(255, 255, 255, 0.95));
-}
-
-.card-header {
-  text-align: center;
-  margin-bottom: 32px;
-}
-
-.form-title { 
-  font-size: 28px; 
-  font-weight: 700; 
-  color: #1e293b; 
-  text-align: center; 
-  margin-bottom: 8px; 
-}
-
-.form-subtitle { 
-  font-size: 15px; 
-  color: #64748b; 
-  text-align: center; 
-  margin-bottom: 32px; 
-}
-
-/* 自定义输入框样式 */
-.custom-input {
-  --el-input-height: 56px;
-}
-
-:deep(.custom-input .el-input__wrapper) {
-  height: 56px; 
-  background: rgba(255, 255, 255, 0.8); 
-  border-radius: 16px !important;
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.3s ease;
-}
-
-:deep(.custom-input .el-input__wrapper:hover) {
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
-  transform: translateY(-1px);
-}
-
-:deep(.custom-input .el-input__wrapper.is-focus) {
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-  border-color: #3b82f6 !important;
-}
-
-.role-selector-item { 
-  margin: 28px 0 !important; 
-}
-
-.role-capsule-group {
-  width: 100%; 
-  height: 56px; 
-  background: rgba(255, 255, 255, 0.6);
-  border-radius: 16px; 
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06);
-  display: flex; 
-  position: relative; 
-  padding: 4px;
-  border: 1px solid #e2e8f0;
-}
-
-.role-option {
-  flex: 1; 
-  display: flex; 
-  align-items: center; 
-  justify-content: center; 
-  gap: 8px;
-  z-index: 2; 
-  cursor: pointer; 
-  color: #64748b; 
-  transition: all 0.4s ease;
-  font-weight: 500;
-  border-radius: 12px;
-}
-
-.role-option.active { 
-  color: #fff; 
-}
-
-.role-option .el-icon {
-  font-size: 18px;
-}
-
-.active-capsule {
-  position: absolute; 
-  top: 4px; 
-  bottom: 4px; 
-  left: 4px;
-  width: calc(50% - 4px);
-  background: linear-gradient(135deg, #3b82f6, #2563eb);
-  border-radius: 12px; 
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
-  transition: transform 0.4s cubic-bezier(0.65, 0, 0.35, 1);
-  z-index: 1;
-}
-
-.login-button {
-  width: 100%; 
-  height: 56px; 
-  border-radius: 16px; 
-  font-size: 16px; 
-  font-weight: 600;
-  color: #fff; 
-  background: linear-gradient(135deg, #3b82f6, #2563eb); 
-  border: none;
-  box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.login-button:hover { 
-  background: linear-gradient(135deg, #2563eb, #1d4ed8); 
-  transform: translateY(-2px); 
-  box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4), 0 4px 6px -2px rgba(59, 130, 246, 0.2);
-}
-
-.login-button:active {
-  transform: translateY(0);
-}
-
-.login-icon {
-  font-size: 18px;
-}
-
-.form-footer { 
-  margin-top: 24px; 
-  text-align: center; 
-  font-size: 14px; 
   color: #64748b;
 }
 
-.register-link {
+/* ---------- 输入框 ---------- */
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 22px;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper) {
+  height: 52px;
+  border-radius: 14px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+  transition: box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper:hover) {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper.is-focus) {
+  background: #ffffff;
+  box-shadow: 0 0 0 1.5px #3b82f6 inset, 0 0 0 4px rgba(59, 130, 246, 0.14);
+}
+
+.auth-form :deep(.auth-input .el-input__prefix) {
+  color: #94a3b8;
+  font-size: 17px;
+}
+
+/* ---------- 角色胶囊分段控件 ---------- */
+.role-selector-item {
+  margin: 26px 0 22px !important;
+}
+
+.role-selector-item :deep(.el-form-item__content) {
+  width: 100%;
+}
+
+.role-capsule-group {
+  position: relative;
+  display: flex;
+  width: 100%;
+  height: 52px;
+  padding: 4px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+
+.role-option {
+  flex: 1;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: 11px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 14.5px;
   font-weight: 600;
-  transition: all 0.3s ease;
+  color: #64748b;
+  transition: color 0.3s ease;
 }
 
-.register-link:hover {
-  transform: translateX(2px);
+.role-option .el-icon {
+  font-size: 17px;
 }
 
-/* 安全提示 */
+.role-option.active {
+  color: #ffffff;
+}
+
+.active-capsule {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  z-index: 1;
+  border-radius: 11px;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  box-shadow: 0 8px 18px -6px rgba(59, 130, 246, 0.55);
+  transition: transform 0.38s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* ---------- 登录按钮 ---------- */
+.submit-item {
+  margin-bottom: 6px !important;
+}
+
+.submit-item :deep(.el-form-item__content) {
+  width: 100%;
+}
+
+.auth-submit {
+  width: 100%;
+  height: 52px;
+  border: none;
+  border-radius: 14px;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  box-shadow: 0 14px 28px -12px rgba(37, 99, 235, 0.6);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+}
+
+.auth-submit:hover,
+.auth-submit:focus-visible {
+  color: #ffffff;
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 18px 32px -12px rgba(37, 99, 235, 0.7);
+}
+
+.auth-submit:active {
+  transform: translateY(0);
+}
+
+.submit-icon {
+  font-size: 17px;
+  margin-right: 2px;
+}
+
+/* ---------- 底部链接与安全提示 ---------- */
+.auth-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 22px;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.auth-link {
+  font-weight: 600;
+}
+
 .security-notice {
-  margin-top: 24px;
-  padding: 12px 16px;
-  background: rgba(245, 158, 11, 0.1);
-  border-radius: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-top: 22px;
+  padding: 11px 14px;
+  border-radius: 12px;
   font-size: 13px;
   color: #92400e;
-  border: 1px solid rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.22);
 }
 
 .security-notice .el-icon {
-  font-size: 16px;
+  flex-shrink: 0;
+  font-size: 15px;
   color: #f59e0b;
 }
 
-/* 动画 */
-@keyframes slide-in-left { 
-  from { transform: translateX(-30px); opacity: 0; } 
-  to { transform: translateX(0); opacity: 1; } 
-}
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .auth-layout {
+    flex-direction: column;
+  }
 
-@keyframes fade-in-right { 
-  from { transform: translateX(30px); opacity: 0; } 
-  to { transform: translateX(0); opacity: 1; } 
-}
-
-/* 响应式设计 */
-@media (max-width: 992px) {
-  .login-container { 
-    flex-direction: column; 
-  }
-  
-  .brand-panel, 
-  .form-panel-wrapper { 
-    width: 100%; 
-    min-height: 50vh;
-  }
-  
-  .brand-panel { 
-    padding: 30px 20px; 
-  }
-  
-  .form-panel-wrapper { 
-    padding: 30px 20px; 
-  }
-  
-  .system-title { 
-    font-size: 28px; 
-  }
-  
-  .system-features { 
-    flex-direction: row; 
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 12px; 
-  }
-  
-  .feature-item { 
-    flex: 1; 
-    min-width: 120px; 
-    padding: 10px 12px; 
-  }
-  
-  .login-card { 
-    padding: 32px 24px; 
+  .auth-main {
+    padding: 32px 20px 48px;
   }
 }
 
-@media (max-width: 480px) {
-  .login-card {
-    padding: 24px 16px;
+@media (max-width: 640px) {
+  .auth-main {
+    padding: 24px 14px 40px;
   }
-  
-  .form-title {
-    font-size: 24px;
+
+  .auth-card {
+    padding: 28px 18px 24px;
+    border-radius: 20px;
   }
-  
-  .system-title {
-    font-size: 24px;
+
+  .auth-form-title {
+    font-size: 22px;
   }
 }
 </style>
-
-
-
-
