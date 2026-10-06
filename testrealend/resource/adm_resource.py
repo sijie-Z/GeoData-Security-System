@@ -87,6 +87,12 @@ class AddEmployeeResource(Resource):
                 role="employee",
             )
             db.session.add(new_info)
+            # Flush the parent EmployeeInfo row first. With no relationship() linking the
+            # two models, the UOW orders unrelated mappers by class sort key
+            # ("model.Employee_Account" < "model.Employee_Info"), which would INSERT
+            # employee_account before its parent and violate employee_account_ibfk_1
+            # on FK-enforcing MySQL. Explicit flush pins the parent-before-child order.
+            db.session.flush()
             db.session.add(new_account)
             db.session.commit()
             return {"status": True, "msg": "员工添加成功"}, 201

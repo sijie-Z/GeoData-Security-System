@@ -19,4 +19,8 @@ class AdmAccountPermissions(db.Model):
     __tablename__ = "adm_account_permissions"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     adm_account_id = db.Column(db.Integer, db.ForeignKey("adm_account.id"), nullable=False)
-    permission_id = db.Column(db.Integer, db.ForeignKey("permissions.id"), nullable=False)
+    # Target table is declared as "Permissions" (model/Permission.py). The old lowercase
+    # "permissions.id" string failed to resolve inside the same MetaData (case-sensitive),
+    # poisoning metadata.sorted_tables; MySQL itself is case-insensitive on Windows and
+    # points both spellings at the same physical table, so no migration is needed.
+    permission_id = db.Column(db.Integer, db.ForeignKey("Permissions.id"), nullable=False)
