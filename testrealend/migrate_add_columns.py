@@ -49,6 +49,19 @@ MYSQL_ALTERS = [
     "ALTER TABLE anchor_record ADD COLUMN event_count INTEGER NULL",
     "ALTER TABLE anchor_record ADD COLUMN head_hash VARCHAR(64) NULL",
     "ALTER TABLE anchor_record ADD COLUMN proof_sha256 VARCHAR(64) NULL",
+    # Watermark quality metrics + optional v3 linkage for verification records.
+    # All nullable; legacy rows stay NULL (no source data to backfill).
+    "ALTER TABLE watermark_verification ADD COLUMN algorithm VARCHAR(32) NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN psnr FLOAT NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN ssim FLOAT NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN ber FLOAT NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN delivery_uuid VARCHAR(36) NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN fingerprint_id VARCHAR(32) NULL",
+    "ALTER TABLE watermark_verification ADD COLUMN host_type VARCHAR(16) NULL",
+    # Indexes backing the quality-page aggregation endpoints; an existing index
+    # name is skipped like a duplicate column (see run()).
+    "CREATE INDEX idx_wmv_data_type_time ON watermark_verification (data_type, verified_at)",
+    "CREATE INDEX idx_wmv_algorithm_time ON watermark_verification (algorithm, verified_at)",
 ]
 
 
@@ -70,7 +83,9 @@ def run():
                 except Exception as e:
                     conn.rollback()
                     err = str(e)
-                    if "Duplicate column" in err:
+                    # Idempotent re-run: columns ("Duplicate column") and indexes
+                    # ("Duplicate key name") that already exist are not failures.
+                    if "Duplicate column" in err or "Duplicate key name" in err:
                         skip += 1
                         print("  [SKIP] already exists")
                     else:
