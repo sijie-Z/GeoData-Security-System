@@ -3,7 +3,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
-from flask import current_app, request
+from flask import request
 from flask_jwt_extended import (
     create_access_token,
     create_refresh_token,
@@ -13,14 +13,18 @@ from flask_jwt_extended import (
     verify_jwt_in_request,
 )
 from flask_restful import Resource
+from sqlalchemy import func
 from werkzeug.security import check_password_hash, generate_password_hash
 
+from config import BASE_DIR
 from extension.extension import db, limiter
 from model.Adm_Account import AdmAccount
 from model.Adm_Info import AdmInfo
+from model.benchmark_result import BenchmarkResult
 from model.Employee_Account import EmployeeAccount
 from model.Employee_Info import EmployeeInfo
 from utils.log_helper import log_action
+from utils.required import admin_required
 
 
 def _password_matches(stored_password, input_password):
@@ -373,24 +377,59 @@ class RefreshTokenResource(Resource):
         }, 200
 
 
+BENCHMARK_JSON_PATH = os.path.join(BASE_DIR, "data", "benchmark_results", "robustness_benchmark.json")
+
+
 class BenchmarkResultsResource(Resource):
-    """Serve robustness benchmark results for the WatermarkQualityDashboard."""
+    """Serve robustness benchmark results for the WatermarkQualityDashboard.
+
+    Kept for frontend compatibility — the JSON moved out of the web-exposed
+    ``static/`` folder (it was readable without authentication) to
+    ``data/benchmark_results/``. Same response shape as before.
+    """
 
     @jwt_required()
     def get(self):
-        benchmark_path = os.path.join(
-            current_app.config.get("STATIC_FOLDER", current_app.static_folder or "static"),
-            "benchmark_results",
-            "robustness_benchmark.json",
-        )
-        if not os.path.exists(benchmark_path):
+        if not os.path.exists(BENCHMARK_JSON_PATH):
             return {
                 "status": False,
                 "msg": "Benchmark results not found. Run tests/benchmark_all_algorithms.py first.",
             }, 404
         try:
-            with open(benchmark_path, encoding="utf-8") as f:
+            with open(BENCHMARK_JSON_PATH, encoding="utf-8") as f:
                 data = json.load(f)
             return {"status": True, "data": data}, 200
         except Exception as e:
             return {"status": False, "msg": str(e)}, 500
+
+
+class BenchmarkStatsResource(Resource):
+    """GET /api/benchmark/stats — admin. DB-backed benchmark results.
+
+    Returns the latest imported run plus a run counter. Each ``results`` entry
+    is row-compatible with the old JSON structure (summary rows carry
+    ``stego_psnr``; attack rows carry attack/attack_type/nc/ber/...), so the
+    quality dashboard can switch to this endpoint without changing row parsing.
+    """
+
+    @admin_required
+    def get(self):
+        runs_count = db.session.query(func.count(func.distinct(BenchmarkResult.run_id))).scalar() or 0
+        latest = (
+            BenchmarkResult.query.order_by(BenchmarkResult.created_at.desc(), BenchmarkResult.run_id.desc())
+            .limit(1)
+            .first()
+        )
+        if latest is None:
+            return {"status": True, "latest_run": None, "runs_count": 0, "results": []}, 200
+
+        rows = BenchmarkResult.query.filter_by(run_id=latest.run_id).order_by(BenchmarkResult.id.asc()).all()
+        return {
+            "status": True,
+            "latest_run": {
+                "run_id": latest.run_id,
+                "created_at": latest.created_at.isoformat() if latest.created_at else None,
+            },
+            "runs_count": int(runs_count),
+            "results": [row.to_dict() for row in rows],
+        }, 200

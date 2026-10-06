@@ -48,6 +48,7 @@ def _bootstrap_runtime_schema(app):
     from model.anchor_record import AnchorRecord
     from model.Announcement import Announcement
     from model.Application import Application
+    from model.benchmark_result import BenchmarkResult
     from model.ChatMessage import ChatMessage
     from model.download_delivery import DownloadDelivery
     from model.Download_Record import DownloadRecord
@@ -100,6 +101,7 @@ def _bootstrap_runtime_schema(app):
         KeyRegistry,
         EvidenceEvent,
         AnchorRecord,
+        BenchmarkResult,
     ]
 
     # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
@@ -411,6 +413,7 @@ def create_app():
     )
     from resource.common_resource import (
         BenchmarkResultsResource,
+        BenchmarkStatsResource,
         LoginResource,
         LogoutResource,
         RefreshTokenResource,
@@ -427,6 +430,7 @@ def create_app():
         ForensicsAnchorBuildResource,
         ForensicsDeliveriesResource,
         ForensicsDeliveryDetailResource,
+        ForensicsDeliveryStatsResource,
         ForensicsKeyInfoResource,
         ForensicsTraceResource,
         ForensicsVerifyResource,
@@ -483,6 +487,7 @@ def create_app():
         UploadOriginalWatermarkResource,
         WatermarkPreviewResource,
         WatermarkVerificationRecordsResource,
+        WatermarkVerificationStatsResource,
     )
 
     # --- Security Headers ---
@@ -507,6 +512,7 @@ def create_app():
     api.add_resource(LogoutResource, "/api/logout")
     api.add_resource(RefreshTokenResource, "/api/refresh-token")
     api.add_resource(BenchmarkResultsResource, "/api/benchmark/results")
+    api.add_resource(BenchmarkStatsResource, "/api/benchmark/stats")
     api.add_resource(ProtectedResource, "/api/protected")
 
     # Navigation
@@ -562,6 +568,7 @@ def create_app():
     api.add_resource(UploadOriAndExtWatermarkResource, "/api/upload/ori&ext_watermark")
     api.add_resource(GetOriginalWatermarkResource, "/api/get_original_watermark")
     api.add_resource(WatermarkVerificationRecordsResource, "/api/watermark/verification_records")
+    api.add_resource(WatermarkVerificationStatsResource, "/api/watermark/verification_stats")
     api.add_resource(WatermarkPreviewResource, "/api/watermark/preview")
     api.add_resource(BatchGenerateWatermarkResource, "/api/watermark/batch_generate")
     api.add_resource(BatchEmbedWatermarkResource, "/api/watermark/batch_embed")
@@ -588,6 +595,7 @@ def create_app():
     api.add_resource(ForensicsVerifyResource, "/api/forensics/verify")
     api.add_resource(ForensicsTraceResource, "/api/forensics/trace")
     api.add_resource(ForensicsDeliveriesResource, "/api/forensics/deliveries")
+    api.add_resource(ForensicsDeliveryStatsResource, "/api/forensics/deliveries/stats")
     api.add_resource(ForensicsDeliveryDetailResource, "/api/forensics/deliveries/<string:delivery_uuid>")
     api.add_resource(ForensicsAnchorBuildResource, "/api/forensics/anchor/build")
     api.add_resource(ForensicsKeyInfoResource, "/api/forensics/keyinfo")

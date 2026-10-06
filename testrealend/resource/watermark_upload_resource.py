@@ -4,7 +4,7 @@ import io
 import json
 import logging
 import os
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import qrcode
@@ -12,10 +12,11 @@ from flask import current_app, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from PIL import Image
+from sqlalchemy import case, func
 from werkzeug.utils import secure_filename
 
 from algorithm.embed import embed as vector_embed
-from algorithm.quality_metrics import compute_nc, compute_psnr
+from algorithm.quality_metrics import compute_ber, compute_nc, compute_psnr, compute_ssim_simple
 from algorithm.raster_reversible_watermark import embed_reversible
 from extension.extension import db
 from model.Application import Application
@@ -29,6 +30,27 @@ from resource.watermark_utils import (
 from utils.log_helper import log_action
 from utils.metrics import record_watermark
 from utils.required import admin_required
+
+
+def _optional_form(name, max_len):
+    """Optional form field → trimmed value or None, clamped to the column length."""
+    value = (request.form.get(name) or "").strip()
+    return value[:max_len] if value else None
+
+
+def _parse_iso_dt(raw):
+    """ISO date/time string → naive UTC datetime, or None when unparseable.
+
+    Timezone-aware input is converted to UTC; naive input is treated as UTC
+    (the storage convention of the DATETIME columns).
+    """
+    try:
+        dt = datetime.fromisoformat(raw.strip())
+    except (AttributeError, ValueError):
+        return None
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(UTC).replace(tzinfo=None)
+    return dt
 
 
 class UploadOriginalWatermarkResource(Resource):
@@ -107,13 +129,29 @@ class UploadExtractedWatermarkResource(Resource):
                     orig_bits = (np.array(original_img) > 127).astype(int).flatten()
                     extr_bits = (np.array(extracted_img) > 127).astype(int).flatten()
                     nc_value = compute_nc(orig_bits, extr_bits)
+                    # Real quality metrics alongside NC: BER over the binarized
+                    # bit arrays, SSIM between the two watermark images.
+                    ber_value = compute_ber(orig_bits, extr_bits)
+                    ssim_value = None
+                    try:
+                        ssim_value = round(compute_ssim_simple(original_img, extracted_img), 6)
+                    except Exception as e:
+                        logging.warning("SSIM computation failed: %s", e)
 
-                    # Persist verification
+                    # Persist verification. psnr stays NULL here: this handler
+                    # only sees the two watermark images, not the host/stego
+                    # pair a PSNR would compare.
                     verification = WatermarkVerification(
                         application_id=app_id,
                         data_id=item.data_id,
                         data_type=item.data_type or "vector",
                         nc_value=round(nc_value, 6),
+                        algorithm=_optional_form("algorithm", 32),
+                        ssim=ssim_value,
+                        ber=round(ber_value, 6),
+                        delivery_uuid=_optional_form("delivery_uuid", 36),
+                        fingerprint_id=_optional_form("fingerprint_id", 32),
+                        host_type=_optional_form("host_type", 16),
                         original_hash=hashlib.sha256(item.qrcode.encode()).hexdigest(),
                         extracted_hash=hashlib.sha256(
                             base64.b64encode(open(save_path, "rb").read()).decode().encode()
@@ -191,6 +229,15 @@ class UploadOriAndExtWatermarkResource(Resource):
             ori_arr = (np.array(ori_img) > 127).astype(np.uint8)
             ext_arr = (np.array(ext_img) > 127).astype(np.uint8)
             nc_value = float((ori_arr == ext_arr).sum() / ori_arr.size)
+            # Real quality metrics alongside NC. compute_ber/SSIM work on the
+            # flat bit arrays / watermark images; psnr stays NULL (no
+            # host/stego pair available in this handler).
+            ber_value = compute_ber(ori_arr.flatten(), ext_arr.flatten())
+            ssim_value = None
+            try:
+                ssim_value = round(compute_ssim_simple(ori_img, ext_img), 6)
+            except Exception as e:
+                logging.warning("SSIM computation failed: %s", e)
 
             original_file.stream.seek(0)
             extracted_file.stream.seek(0)
@@ -204,6 +251,12 @@ class UploadOriAndExtWatermarkResource(Resource):
                 application_id=app_id,
                 data_type=data_type or "vector",
                 nc_value=round(nc_value, 6),
+                algorithm=_optional_form("algorithm", 32),
+                ssim=ssim_value,
+                ber=round(ber_value, 6),
+                delivery_uuid=_optional_form("delivery_uuid", 36),
+                fingerprint_id=_optional_form("fingerprint_id", 32),
+                host_type=_optional_form("host_type", 16),
                 original_hash=hashlib.sha256(ori_b64.encode()).hexdigest(),
                 extracted_hash=hashlib.sha256(ext_b64.encode()).hexdigest(),
                 verified_by=identity.get("number", "unknown"),
@@ -245,7 +298,8 @@ class GetOriginalWatermarkResource(Resource):
 
 class WatermarkVerificationRecordsResource(Resource):
     """List watermark verification records with pagination.
-    Supports ?data_type=vector|raster filter and ?sort=nc_value query."""
+    Supports ?data_type=vector|raster filter, ?sort=nc_value query and an
+    optional ?from / ?to ISO-date (or ISO-datetime) verified_at window."""
 
     @jwt_required()
     def get(self):
@@ -254,9 +308,25 @@ class WatermarkVerificationRecordsResource(Resource):
         data_type = request.args.get("data_type", "").strip().lower()
         sort_by = request.args.get("sort", "verified_at")
 
+        raw_from = request.args.get("from")
+        raw_to = request.args.get("to")
+        from_dt = _parse_iso_dt(raw_from) if raw_from else None
+        to_dt = _parse_iso_dt(raw_to) if raw_to else None
+        if (raw_from and from_dt is None) or (raw_to and to_dt is None):
+            return {"status": False, "msg": "时间格式错误，应为 ISO 日期（如 2026-01-01）"}, 400
+
         query = WatermarkVerification.query
         if data_type in ("vector", "raster"):
             query = query.filter(WatermarkVerification.data_type == data_type)
+        if from_dt is not None:
+            query = query.filter(WatermarkVerification.verified_at >= from_dt)
+        if to_dt is not None:
+            # A bare date ("to=2026-02-01") includes the whole day; an explicit
+            # datetime is an exact inclusive bound.
+            if ":" in raw_to:
+                query = query.filter(WatermarkVerification.verified_at <= to_dt)
+            else:
+                query = query.filter(WatermarkVerification.verified_at < to_dt + timedelta(days=1))
         if sort_by == "nc_value":
             query = query.order_by(WatermarkVerification.nc_value.desc())
         else:
@@ -272,6 +342,159 @@ class WatermarkVerificationRecordsResource(Resource):
             "status": True,
             "data": records,
             "pages": {"total": pagination.total, "page": page, "page_size": page_size},
+        }, 200
+
+
+class WatermarkVerificationStatsResource(Resource):
+    """GET /api/watermark/verification_stats — admin, server-side aggregation
+    for the watermark quality page (stats cards that must not be computed from
+    the current page of 20 records).
+
+    All aggregates run as SQL (count/avg/min/max, group_by, case); the median
+    is fetched through a two-row OFFSET window instead of pulling the column.
+
+    ``days`` (default 30, clamped to 1..365) sets the length of the ``daily``
+    series only — the other stats cover the full history, so an old deployment
+    still gets meaningful totals. Optional ``data_type=vector|raster`` filters
+    every stat.
+    """
+
+    @admin_required
+    def get(self):
+        days = request.args.get("days", 30, type=int)
+        if days is None:
+            days = 30
+        days = max(1, min(days, 365))
+        data_type = request.args.get("data_type", "").strip().lower()
+
+        base = WatermarkVerification.query
+        if data_type in ("vector", "raster"):
+            base = base.filter(WatermarkVerification.data_type == data_type)
+
+        # --- one aggregate row: count/avg/min/max + covered time range ---
+        overall = base.with_entities(
+            func.count(WatermarkVerification.id),
+            func.avg(WatermarkVerification.nc_value),
+            func.min(WatermarkVerification.nc_value),
+            func.max(WatermarkVerification.nc_value),
+            func.min(WatermarkVerification.verified_at),
+            func.max(WatermarkVerification.verified_at),
+        ).one()
+        total = int(overall[0] or 0)
+
+        # --- median via a bounded OFFSET window (no full column pull) ---
+        p50_nc = None
+        if total:
+            k = (total - 1) // 2
+            middle = (
+                base.with_entities(WatermarkVerification.nc_value)
+                .order_by(WatermarkVerification.nc_value.asc())
+                .offset(k)
+                .limit(2)
+                .all()
+            )
+            values = [float(row[0]) for row in middle]
+            if values:
+                p50_nc = values[0] if total % 2 == 1 else sum(values) / len(values)
+
+        # --- grouped breakdowns ---
+        by_data_type = [
+            {
+                "data_type": row[0] or "unknown",
+                "count": int(row[1]),
+                "avg_nc": round(float(row[2]), 6) if row[2] is not None else None,
+            }
+            for row in base.with_entities(
+                WatermarkVerification.data_type,
+                func.count(),
+                func.avg(WatermarkVerification.nc_value),
+            )
+            .group_by(WatermarkVerification.data_type)
+            .order_by(func.count().desc())
+            .all()
+        ]
+
+        algo_col = func.coalesce(WatermarkVerification.algorithm, "unknown")
+        by_algorithm = [
+            {
+                "algorithm": row[0],
+                "count": int(row[1]),
+                "avg_nc": round(float(row[2]), 6) if row[2] is not None else None,
+                "avg_ber": round(float(row[3]), 6) if row[3] is not None else None,
+            }
+            for row in base.with_entities(
+                algo_col,
+                func.count(),
+                func.avg(WatermarkVerification.nc_value),
+                func.avg(WatermarkVerification.ber),
+            )
+            .group_by(algo_col)
+            .order_by(func.count().desc(), algo_col.asc())
+            .all()
+        ]
+
+        # --- NC histogram, bucketed server-side ---
+        bucket = case(
+            (WatermarkVerification.nc_value < 0.1, 0),
+            (WatermarkVerification.nc_value < 0.2, 1),
+            (WatermarkVerification.nc_value < 0.3, 2),
+            (WatermarkVerification.nc_value < 0.4, 3),
+            (WatermarkVerification.nc_value < 0.5, 4),
+            (WatermarkVerification.nc_value < 0.6, 5),
+            (WatermarkVerification.nc_value < 0.7, 6),
+            (WatermarkVerification.nc_value < 0.8, 7),
+            (WatermarkVerification.nc_value < 0.9, 8),
+            else_=9,
+        )
+        hist_rows = dict(base.with_entities(bucket, func.count()).group_by(bucket).all())
+        nc_histogram = [
+            {"bucket": f"{i / 10:.1f}-{(i + 1) / 10:.1f}", "count": int(hist_rows.get(i, 0))} for i in range(10)
+        ]
+
+        # --- daily series over the last N days (func.date works on MySQL+SQLite) ---
+        now = datetime.now(UTC)
+        day_expr = func.date(WatermarkVerification.verified_at)
+        day_start = (now - timedelta(days=days - 1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        daily_rows = {
+            str(row[0]): (int(row[1]), row[2])
+            for row in base.with_entities(
+                day_expr,
+                func.count(),
+                func.avg(WatermarkVerification.nc_value),
+            )
+            .filter(WatermarkVerification.verified_at >= day_start)
+            .group_by(day_expr)
+            .all()
+        }
+        daily = []
+        for i in range(days - 1, -1, -1):
+            day = (now - timedelta(days=i)).strftime("%Y-%m-%d")
+            count, avg = daily_rows.get(day, (0, None))
+            daily.append({"date": day, "count": count, "avg_nc": round(float(avg), 6) if avg is not None else None})
+
+        low_nc_count = base.filter(WatermarkVerification.nc_value < 0.8).count()
+
+        def _round(value):
+            return round(float(value), 6) if value is not None else None
+
+        return {
+            "status": True,
+            "stats": {
+                "total": total,
+                "avg_nc": _round(overall[1]),
+                "min_nc": _round(overall[2]),
+                "max_nc": _round(overall[3]),
+                "p50_nc": _round(p50_nc),
+                "low_nc_count": int(low_nc_count),
+                "by_data_type": by_data_type,
+                "by_algorithm": by_algorithm,
+                "nc_histogram": nc_histogram,
+                "daily": daily,
+                "range": {
+                    "min_verified_at": overall[4].isoformat() if overall[4] is not None else None,
+                    "max_verified_at": overall[5].isoformat() if overall[5] is not None else None,
+                },
+            },
         }, 200
 
 

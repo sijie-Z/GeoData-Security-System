@@ -419,7 +419,9 @@ def main():
                 r["host_type"] = "natural"
 
     # ── Save ──
-    output_dir = os.path.join(PROJECT_ROOT, "static", "benchmark_results")
+    # data/ instead of static/ — the old path was web-exposed without auth.
+    # Import into the DB afterwards with tests/import_benchmark_results.py.
+    output_dir = os.path.join(PROJECT_ROOT, "data", "benchmark_results")
     os.makedirs(output_dir, exist_ok=True)
     output_path = os.path.join(output_dir, "robustness_benchmark.json")
 
