@@ -2199,6 +2199,8 @@ export default {
     fieldCreatedAt: 'Created At',
     fieldReadyAt: 'Ready At',
     fieldCompletedAt: 'Completed At',
+    fieldDetailsTitle: 'Field Details',
+    evidenceAnchorTitle: 'Evidence & Anchoring',
     fieldDownloaded: 'Downloaded',
     chainResultTitle: 'Chain Verification',
     chainValid: 'Chain valid',

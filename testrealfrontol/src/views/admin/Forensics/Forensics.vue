@@ -117,12 +117,17 @@
               </div>
 
               <el-descriptions :column="2" border size="small" class="result-desc">
-                <el-descriptions-item :label="$t('forensics.resultFid')">{{ result.fid || result.fid_short || '—' }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultFid')">
+                  <HashText :value="result.fid || result.fid_short" />
+                </el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultDeliveryUuid')">{{ short(result.delivery_uuid, 8) }}</el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultDataAlias')">{{ result.data_alias || '—' }}</el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultDataType')">{{ result.data_type || '—' }}</el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultIssuedAt')">{{ result.issued_at || '—' }}</el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultArtifactRootMatch')">{{ matchText(result.artifact_root_match) }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.fieldArtifactRoot')">
+                  <HashText :value="result.artifact_root" />
+                </el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.resultChainLength')">{{ (result.chain && result.chain.length !== undefined && result.chain.length !== null) ? result.chain.length : '—' }}</el-descriptions-item>
               </el-descriptions>
 
@@ -201,83 +206,120 @@
       </el-tab-pane>
     </el-tabs>
 
-    <!-- 交付详情 dialog -->
-    <el-dialog v-model="detailVisible" :title="$t('forensics.detailTitle')" width="760px">
+    <!-- 交付详情 dialog：① 摘要卡 → ② 字段明细 → ③ 事件链（时间线卡片）→ ④ 证据与锚定 -->
+    <el-dialog v-model="detailVisible" :title="$t('forensics.detailTitle')" width="780px">
       <div v-loading="detailLoading" class="detail-body">
         <template v-if="detail">
+          <!-- ① 摘要卡：交付号 / 用户 / FID / 状态大 tag / 产物根 -->
+          <section class="summary-card">
+            <div class="summary-head">
+              <div class="summary-id">
+                <span class="summary-label">{{ $t('forensics.fieldUuid') }}</span>
+                <HashText :value="detail.uuid" />
+              </div>
+              <el-tag
+                v-if="detail.status"
+                size="large"
+                effect="dark"
+                :type="statusTagType(detail.status)"
+                class="summary-status"
+              >
+                {{ detail.status }}
+              </el-tag>
+              <span v-else class="summary-status-empty">—</span>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-item">
+                <span class="summary-label">{{ $t('forensics.fieldUserNumber') }}</span>
+                <span class="summary-value">{{ detail.user_number || '—' }}</span>
+              </div>
+              <div class="summary-item">
+                <span class="summary-label">{{ $t('forensics.resultFid') }}</span>
+                <HashText :value="detail.fingerprint_id" />
+              </div>
+              <div class="summary-item summary-item--wide">
+                <span class="summary-label">{{ $t('forensics.fieldArtifactRoot') }}</span>
+                <HashText :value="detail.artifact_root" />
+              </div>
+            </div>
+          </section>
+
+          <!-- ② 字段明细 -->
+          <h4 class="detail-section-title">{{ $t('forensics.fieldDetailsTitle') }}</h4>
           <el-descriptions :column="2" border size="small">
-            <el-descriptions-item :label="$t('forensics.fieldUuid')" :span="2">
-              <span class="break-all">{{ detail.uuid || '—' }}</span>
-            </el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldApplicationId')">{{ detail.application_id != null ? detail.application_id : '—' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldDataId')">{{ detail.data_id || '—' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldDataType')">{{ detail.data_type || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldUserNumber')">{{ detail.user_number || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldFingerprint')" :span="2">
-              <span class="break-all">{{ detail.fingerprint_id || '—' }}</span>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldFidShort')">{{ detail.fid_short || '—' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldAlgorithm')">{{ detail.algorithm || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldStatus')">
-              <el-tag v-if="detail.status" size="small" :type="statusTagType(detail.status)">{{ detail.status }}</el-tag>
-              <span v-else>—</span>
-            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldFidShort')">{{ detail.fid_short || '—' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldDownloaded')">
               {{ detail.downloaded ? $t('forensics.yes') : $t('forensics.no') }}
             </el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldArtifactRoot')" :span="2">
-              <span class="break-all">{{ detail.artifact_root || '—' }}</span>
-            </el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldCreatedAt')">{{ detail.created_at || '—' }}</el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldReadyAt')">{{ detail.ready_at || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldCompletedAt')">{{ detail.completed_at || '—' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldCompletedAt')" :span="2">{{ detail.completed_at || '—' }}</el-descriptions-item>
           </el-descriptions>
 
-          <h4 class="detail-section-title">{{ $t('forensics.chainResultTitle') }}</h4>
-          <div class="chain-line">
-            <el-tag v-if="detail.chain" :type="detail.chain.valid ? 'success' : 'danger'">
-              {{ detail.chain.valid ? $t('forensics.chainValid') : $t('forensics.chainInvalid') }}
-            </el-tag>
-            <span v-else>—</span>
-            <span>{{ $t('forensics.chainLengthLabel') }}: {{ (detail.chain && detail.chain.length !== undefined && detail.chain.length !== null) ? detail.chain.length : '—' }}</span>
-            <span v-if="detail.chain && detail.chain.broken_at !== undefined && detail.chain.broken_at !== null">
-              {{ $t('forensics.chainBrokenAt') }}: {{ detail.chain.broken_at }}
-            </span>
-          </div>
-
+          <!-- ③ 事件链：DFIR 风格时间线卡片（左侧类型色标圆点 + 竖连线） -->
           <h4 class="detail-section-title">{{ $t('forensics.eventsTitle') }}</h4>
-          <el-timeline v-if="(detail.events || []).length > 0">
-            <el-timeline-item
+          <div v-if="(detail.events || []).length > 0" class="event-timeline">
+            <div
               v-for="(ev, idx) in detail.events"
               :key="ev.seq != null ? ev.seq : idx"
-              :timestamp="ev.ts || ''"
-              placement="top"
+              class="event-item"
             >
-              <div class="event-line">
-                <el-tag size="small" type="info">#{{ ev.seq != null ? ev.seq : idx }}</el-tag>
-                <strong class="event-type">{{ ev.event_type || '—' }}</strong>
-                <span class="event-hash">{{ short(ev.event_hash, 16) }}</span>
-                <span v-if="ev.kid" class="event-kid">{{ ev.kid }}</span>
+              <div class="event-rail">
+                <span class="event-dot" :class="eventTypeClass(ev.event_type)"></span>
+                <span v-if="idx < detail.events.length - 1" class="event-rail-line"></span>
               </div>
-            </el-timeline-item>
-          </el-timeline>
+              <div class="event-card">
+                <div class="event-card-head">
+                  <span class="event-type-tag" :class="eventTypeClass(ev.event_type)">{{ ev.event_type || '—' }}</span>
+                  <span class="event-seq">#{{ ev.seq != null ? ev.seq : idx }}</span>
+                  <span v-if="ev.kid" class="event-kid">kid {{ ev.kid }}</span>
+                  <span class="event-time">{{ ev.ts || '' }}</span>
+                </div>
+                <div class="event-card-body">
+                  <HashText :value="ev.event_hash" />
+                </div>
+              </div>
+            </div>
+          </div>
           <el-empty v-else :description="$t('forensics.noEvents')" :image-size="40" />
 
-          <h4 class="detail-section-title">{{ $t('forensics.anchorTitle') }}</h4>
-          <el-descriptions :column="2" border size="small">
-            <el-descriptions-item :label="$t('forensics.anchorBatchId')">{{ detail.anchor?.batch_id || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.anchorStatus')">
-              <el-tag v-if="detail.anchor?.status" size="small" :type="statusTagType(detail.anchor.status)">
-                {{ detail.anchor.status }}
+          <!-- ④ 证据与锚定：链校验 + 锚定卡（provider 徽章 + Merkle 根 + 批次） -->
+          <h4 class="detail-section-title">{{ $t('forensics.evidenceAnchorTitle') }}</h4>
+          <div class="evidence-block">
+            <div class="chain-line">
+              <el-tag v-if="detail.chain" :type="detail.chain.valid ? 'success' : 'danger'">
+                {{ detail.chain.valid ? $t('forensics.chainValid') : $t('forensics.chainInvalid') }}
               </el-tag>
               <span v-else>—</span>
-            </el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.anchorProvider')">{{ detail.anchor?.provider || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.anchorRootHex')">
-              <span class="break-all">{{ detail.anchor?.root_hex || '—' }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
-          <p v-if="detail.anchor?.error" class="anchor-error">{{ detail.anchor.error }}</p>
+              <span>{{ $t('forensics.chainLengthLabel') }}: {{ (detail.chain && detail.chain.length !== undefined && detail.chain.length !== null) ? detail.chain.length : '—' }}</span>
+              <span v-if="detail.chain && detail.chain.broken_at !== undefined && detail.chain.broken_at !== null">
+                {{ $t('forensics.chainBrokenAt') }}: {{ detail.chain.broken_at }}
+              </span>
+            </div>
+
+            <div class="anchor-card">
+              <div class="anchor-card-head">
+                <span v-if="anchorProviderLabel" class="anchor-badge" :class="anchorBadgeClass">{{ anchorProviderLabel }}</span>
+                <span v-else class="anchor-badge is-plain">{{ $t('forensics.anchorProvider') }}</span>
+                <el-tag v-if="detail.anchor?.status" size="small" :type="statusTagType(detail.anchor.status)">
+                  {{ detail.anchor.status }}
+                </el-tag>
+              </div>
+              <div class="anchor-row">
+                <span class="summary-label">{{ $t('forensics.anchorBatchId') }}</span>
+                <span class="anchor-value">{{ detail.anchor?.batch_id || '—' }}</span>
+              </div>
+              <div class="anchor-row">
+                <span class="summary-label">{{ $t('forensics.anchorRootHex') }}</span>
+                <HashText :value="detail.anchor?.root_hex" />
+              </div>
+              <p v-if="detail.anchor?.error" class="anchor-error">{{ detail.anchor.error }}</p>
+            </div>
+          </div>
 
           <div class="dialog-actions">
             <el-button type="primary" :icon="Link" :loading="buildingAnchor" @click="buildAnchor">
@@ -295,6 +337,7 @@ import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Search, UploadFilled, Aim, CircleCheck, Link } from '@element-plus/icons-vue'
+import HashText from '@/components/common/HashText.vue'
 import {
   verifyForensics,
   traceForensics,
@@ -341,6 +384,32 @@ const statusTagType = (value) => {
   if (s.includes('revoke') || s.includes('recall') || s.includes('pending') || s.includes('expire') || s.includes('build')) return 'warning'
   return 'info'
 }
+
+// 事件类型色标映射（DFIR 时间线圆点 + tag 配色；未知类型走中性色）
+const EVENT_TYPE_CLASS = {
+  DeliveryCreated: 'evt-created',
+  FingerprintIssued: 'evt-fingerprint',
+  PersonalizationCompleted: 'evt-personalization',
+  DownloadCompleted: 'evt-download',
+}
+const eventTypeClass = (type) => EVENT_TYPE_CLASS[type] || 'evt-default'
+
+// 锚定提供方徽章：evm-sepolia → EVM · Sepolia，opentimestamps → OTS（provider 为技术标识，不翻译）
+const anchorProviderLabel = computed(() => {
+  const p = String(detail.value?.anchor?.provider || '').toLowerCase()
+  if (!p) return ''
+  if (p.includes('evm')) return p.includes('sepolia') ? 'EVM · Sepolia' : 'EVM'
+  if (p === 'ots' || p.includes('opentimestamp')) return 'OTS'
+  if (p.includes('bitcoin')) return 'Bitcoin'
+  return detail.value?.anchor?.provider || ''
+})
+
+const anchorBadgeClass = computed(() => {
+  const p = String(detail.value?.anchor?.provider || '').toLowerCase()
+  if (p.includes('evm')) return 'is-evm'
+  if (p) return 'is-ots'
+  return 'is-plain'
+})
 
 const verifyPassed = computed(() => !!result.value?.signature_valid && !!result.value?.chain?.valid)
 
@@ -683,40 +752,259 @@ const buildAnchor = async () => {
 .detail-section-title {
   margin: 20px 0 10px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary);
+}
+
+/* ── ① 摘要卡 ── */
+.summary-card {
+  background: linear-gradient(135deg, var(--bg-secondary), var(--bg-tertiary));
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+
+.summary-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.summary-id {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.summary-status {
+  flex: none;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.summary-status-empty {
+  color: var(--text-tertiary);
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  margin-top: 14px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 13px;
+}
+
+.summary-item--wide {
+  grid-column: 1 / -1;
+}
+
+.summary-label {
+  flex: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+}
+
+.summary-value {
+  color: var(--text-primary);
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── ③ 事件时间线（DFIR 风格卡片：左侧色标圆点 + 竖连线） ── */
+.event-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.event-item {
+  display: flex;
+  gap: 10px;
+}
+
+.event-rail {
+  position: relative;
+  flex: none;
+  width: 12px;
+  display: flex;
+  justify-content: center;
+}
+
+.event-dot {
+  position: relative;
+  z-index: 1;
+  width: 10px;
+  height: 10px;
+  margin-top: 15px;
+  border-radius: 50%;
+  background: var(--text-tertiary);
+  box-shadow: 0 0 0 3px var(--bg-primary);
+}
+
+.event-rail-line {
+  position: absolute;
+  top: 27px;
+  bottom: -12px;
+  left: calc(50% - 1px);
+  width: 2px;
+  background: var(--border-color);
+}
+
+.event-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.event-item:last-child .event-card {
+  margin-bottom: 0;
+}
+
+.event-card:hover {
+  border-color: var(--primary-200);
+  box-shadow: var(--shadow-sm);
+}
+
+.event-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.event-type-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.event-type-tag.evt-created { background: var(--primary-50); color: var(--primary-600); }
+.event-type-tag.evt-fingerprint { background: var(--neutral-100); color: var(--neutral-700); }
+.event-type-tag.evt-personalization { background: var(--success-50); color: var(--success-600); }
+.event-type-tag.evt-download { background: var(--warning-50); color: var(--warning-600); }
+
+.event-dot.evt-created { background: var(--primary-500); }
+.event-dot.evt-fingerprint { background: var(--neutral-500); }
+.event-dot.evt-personalization { background: var(--success-500); }
+.event-dot.evt-download { background: var(--warning-500); }
+
+.event-seq {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+
+.event-kid {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+/* 事件时间等宽显示 */
+.event-time {
+  margin-left: auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.event-card-body {
+  margin-top: 8px;
+}
+
+/* ── ④ 证据与锚定 ── */
+.evidence-block {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .chain-line {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-secondary);
 }
 
-.event-line {
+.anchor-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.anchor-card-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  margin-bottom: 8px;
 }
 
-.event-type {
-  color: #303133;
-}
-
-.event-hash {
-  color: #909399;
-  font-family: monospace;
-}
-
-.event-kid {
-  color: #909399;
+.anchor-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
   font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.anchor-badge.is-evm {
+  background: var(--primary-50);
+  color: var(--primary-700);
+}
+
+.anchor-badge.is-ots {
+  background: var(--warning-50);
+  color: var(--warning-600);
+}
+
+.anchor-badge.is-plain {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+}
+
+.anchor-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.anchor-value {
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .anchor-error {
-  color: #f56c6c;
+  color: var(--danger-500);
   font-size: 13px;
   margin: 8px 0 0;
   word-break: break-all;
@@ -725,9 +1013,5 @@ const buildAnchor = async () => {
 .dialog-actions {
   margin-top: 16px;
   text-align: right;
-}
-
-.break-all {
-  word-break: break-all;
 }
 </style>

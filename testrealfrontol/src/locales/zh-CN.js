@@ -2199,6 +2199,8 @@ export default {
     fieldCreatedAt: '创建时间',
     fieldReadyAt: '就绪时间',
     fieldCompletedAt: '完成时间',
+    fieldDetailsTitle: '字段明细',
+    evidenceAnchorTitle: '证据与锚定',
     fieldDownloaded: '已下载',
     chainResultTitle: '链校验结果',
     chainValid: '链有效',
