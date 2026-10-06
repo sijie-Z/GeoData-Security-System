@@ -63,6 +63,11 @@
         <template #title>{{ $t('sidebar.admin.anchorCenter') }}</template>
       </el-menu-item>
 
+      <el-menu-item index="/admin/robustness">
+        <el-icon><Cpu /></el-icon>
+        <template #title>{{ $t('sidebar.admin.robustnessLab') }}</template>
+      </el-menu-item>
+
       <el-sub-menu index="data">
         <template #title>
           <el-icon><Folder /></el-icon>
@@ -101,7 +106,7 @@
 import { defineProps } from 'vue'
 import {
   HomeFilled, User, DocumentChecked, Setting,
-  Picture, Folder, Aim, DataAnalysis, Search, Stamp
+  Picture, Folder, Aim, DataAnalysis, Search, Stamp, Cpu
 } from '@element-plus/icons-vue'
 
 defineProps({

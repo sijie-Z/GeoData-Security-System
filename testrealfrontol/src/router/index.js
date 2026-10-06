@@ -43,6 +43,7 @@ const routes = [
       { path: 'traceability', name: 'AdminTraceabilityDemo', component: () => import('@/views/admin/TraceabilityDemo/TraceabilityDemo.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'forensics', name: 'AdminForensics', component: () => import('@/views/admin/Forensics/Forensics.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
       { path: 'anchors', name: 'AdminAnchorCenter', component: () => import('@/views/admin/AnchorCenter/AnchorCenter.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
+      { path: 'robustness', name: 'AdminRobustnessLab', component: () => import('@/views/admin/RobustnessLab/RobustnessLab.vue'), meta: { requiresAuth: true, roles: ['admin'] } },
     ]
   },
   {
