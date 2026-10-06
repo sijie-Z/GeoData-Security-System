@@ -20,6 +20,8 @@ import evidence.anchor as anchor_mod
 from delivery.artifact import CIDV1_RAW_EMPTY, cidv1_raw
 from model.anchor_record import AnchorRecord
 from model.Application import Application
+from model.download_delivery import DownloadDelivery
+from model.download_token import DownloadToken
 from model.evidence_event import EvidenceEvent
 
 ANCHOR_ITEM_FIELDS = {
@@ -60,6 +62,43 @@ def _clean_anchor_table(db):
     yield
     AnchorRecord.query.delete(synchronize_session=False)
     db.session.commit()
+
+
+# Applications seeded by this module; drained by the cleanup fixture below.
+_SEEDED_APP_IDS = []
+
+
+@pytest.fixture(autouse=True)
+def _clean_seeded_applications(db):
+    """Delete every row this module seeded for its applications.
+
+    The ``db`` fixture does not drop tables between tests, so leftovers leak
+    into later files and two failure modes are possible:
+    * a surviving Application with a recent ``application_submission_time``
+      trips the pre-existing dashboard day-count aggregate in SQLite
+      (``cast(datetime_text AS DATE)`` yields an integer there, choking the
+      Date result processor);
+    * deleting only the Application could ALIAS a later file's app: SQLite
+      reuses a freed max rowid, so a stale DownloadToken from here would make
+      test_delivery_flow's fresh token request answer ``reused=True``.
+    Hence tokens -> deliveries -> events -> applications, all keyed to the
+    ids seeded in this module.
+    """
+    yield
+    if not _SEEDED_APP_IDS:
+        return
+    stream_ids = [
+        row.uuid for row in DownloadDelivery.query.filter(DownloadDelivery.application_id.in_(_SEEDED_APP_IDS)).all()
+    ]
+    DownloadToken.query.filter(DownloadToken.application_id.in_(_SEEDED_APP_IDS)).delete(synchronize_session=False)
+    DownloadDelivery.query.filter(DownloadDelivery.application_id.in_(_SEEDED_APP_IDS)).delete(
+        synchronize_session=False
+    )
+    if stream_ids:
+        EvidenceEvent.query.filter(EvidenceEvent.stream_id.in_(stream_ids)).delete(synchronize_session=False)
+    Application.query.filter(Application.id.in_(_SEEDED_APP_IDS)).delete(synchronize_session=False)
+    db.session.commit()
+    _SEEDED_APP_IDS.clear()
 
 
 def _add_record(
@@ -112,6 +151,7 @@ def _seed_app(db, alias="ac"):
     )
     db.session.add(item)
     db.session.commit()
+    _SEEDED_APP_IDS.append(item.id)
     return item
 
 
