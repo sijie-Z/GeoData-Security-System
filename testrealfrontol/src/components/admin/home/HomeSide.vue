@@ -58,6 +58,11 @@
         <template #title>{{ $t('sidebar.admin.forensics') }}</template>
       </el-menu-item>
 
+      <el-menu-item index="/admin/anchors">
+        <el-icon><Stamp /></el-icon>
+        <template #title>{{ $t('sidebar.admin.anchorCenter') }}</template>
+      </el-menu-item>
+
       <el-sub-menu index="data">
         <template #title>
           <el-icon><Folder /></el-icon>
@@ -96,7 +101,7 @@
 import { defineProps } from 'vue'
 import {
   HomeFilled, User, DocumentChecked, Setting,
-  Picture, Folder, Aim, DataAnalysis, Search
+  Picture, Folder, Aim, DataAnalysis, Search, Stamp
 } from '@element-plus/icons-vue'
 
 defineProps({
