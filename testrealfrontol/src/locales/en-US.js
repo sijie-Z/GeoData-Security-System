@@ -301,6 +301,7 @@ export default {
     seriesAvgNc: 'Avg NC',
     seriesAvgBer: 'Avg BER',
     algoBreakdown: 'Algorithm Comparison',
+    algoBreakdownSub: 'Server-side by_algorithm aggregation · hover for avg BER',
     verificationShare: 'Verification Breakdown',
     verificationShareSub: 'By data type',
     deliveryHealth: 'Delivery Health',

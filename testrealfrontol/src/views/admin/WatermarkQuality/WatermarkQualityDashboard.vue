@@ -1,100 +1,151 @@
 <template>
   <div class="watermark-quality-dashboard">
     <div class="page-header">
-      <h2>{{ $t('watermarkQuality.title') }}</h2>
-      <p class="subtitle">{{ $t('watermarkQuality.subtitle') }}</p>
+      <div class="page-header-left">
+        <h2>{{ $t('watermarkQuality.title') }}</h2>
+        <p class="subtitle">{{ $t('watermarkQuality.subtitle') }}</p>
+      </div>
+      <el-button type="primary" plain :icon="Refresh" :loading="globalLoading" @click="refreshAll">
+        {{ $t('common.refresh') }}
+      </el-button>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="stats-row">
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #667eea, #764ba2)">
-            <el-icon size="24"><Check /></el-icon>
+    <!-- ═══════════ 区一 · Hero 统计带（8 KPI · 数字滚动） ═══════════ -->
+    <el-row :gutter="16" class="hero-band">
+      <el-col v-for="card in kpiCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="6">
+        <div class="kpi-card hover-lift">
+          <div class="kpi-icon" :style="{ background: card.gradient }">
+            <el-icon size="22"><component :is="card.icon" /></el-icon>
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.totalVerifications }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.totalVerifications') }}</span>
-          </div>
-        </div>
-      </el-card>
-
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #3b82f6, #1d4ed8)">
-            <el-icon size="24"><MapLocation /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.vectorVerifications }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.totalVectorVerifications') }}</span>
+          <div class="kpi-body">
+            <span class="kpi-value">{{ kpiText(card) }}</span>
+            <span class="kpi-label">{{ card.label }}</span>
+            <span v-if="card.meta" class="kpi-meta" :title="card.meta">{{ card.meta }}</span>
           </div>
         </div>
-      </el-card>
+      </el-col>
+    </el-row>
 
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669)">
-            <el-icon size="24"><Picture /></el-icon>
+    <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
+    <el-card class="section-card" shadow="never" v-loading="vLoading">
+      <template #header>
+        <div class="card-header">
+          <span class="section-title">{{ $t('watermarkQuality.analyticsGallery') }}</span>
+        </div>
+      </template>
+
+      <!-- Row 1 · NC 直方图 + NC 日均趋势 -->
+      <el-row :gutter="16">
+        <el-col :xs="24" :lg="12">
+          <div class="chart-box">
+            <div class="chart-head">
+              <div class="chart-head-left">
+                <span class="chart-title">{{ $t('watermarkQuality.ncHistogram') }}</span>
+                <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
+              </div>
+            </div>
+            <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" autoresize />
+            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.rasterVerifications }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.totalRasterVerifications') }}</span>
+        </el-col>
+        <el-col :xs="24" :lg="12">
+          <div class="chart-box" v-loading="trendLoading">
+            <div class="chart-head">
+              <div class="chart-head-left">
+                <span class="chart-title">{{ $t('watermarkQuality.ncTrend') }}</span>
+                <span class="chart-sub">{{ $t('watermarkQuality.ncTrendSub', { days: 30 }) }}</span>
+              </div>
+              <el-radio-group v-model="trendDataType" size="small">
+                <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
+                <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
+                <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
+              </el-radio-group>
+            </div>
+            <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" autoresize />
+            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+          </div>
+        </el-col>
+      </el-row>
+
+      <!-- Row 2 · 算法对比双轴柱线图 -->
+      <div class="chart-box">
+        <div class="chart-head">
+          <div class="chart-head-left">
+            <span class="chart-title">{{ $t('watermarkQuality.algoBreakdown') }}</span>
+            <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
           </div>
         </div>
-      </el-card>
+        <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" autoresize />
+        <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+      </div>
 
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #4f46e5)">
-            <el-icon size="24"><TrendCharts /></el-icon>
+      <!-- Row 3 · 验证数据构成 + 交付健康度 -->
+      <el-row :gutter="16">
+        <el-col :xs="24" :lg="12">
+          <div class="chart-box">
+            <div class="chart-head">
+              <div class="chart-head-left">
+                <span class="chart-title">{{ $t('watermarkQuality.verificationShare') }}</span>
+                <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
+              </div>
+            </div>
+            <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" autoresize />
+            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
           </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.avgVectorNc }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.avgVectorNc') }}</span>
+        </el-col>
+        <el-col :xs="24" :lg="12">
+          <div class="chart-box" v-loading="dLoading">
+            <div class="chart-head">
+              <div class="chart-head-left">
+                <span class="chart-title">{{ $t('watermarkQuality.deliveryHealth') }}</span>
+                <span class="chart-sub">
+                  {{ $t('watermarkQuality.ringInner') }} / {{ $t('watermarkQuality.ringOuter') }}
+                </span>
+              </div>
+            </div>
+            <div class="donut-wrap">
+              <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" autoresize />
+              <div v-if="hasDelivery" class="donut-center">
+                <span class="donut-center-value">{{ dStats?.total ?? '—' }}</span>
+                <span class="donut-center-label">{{ $t('watermarkQuality.centerDeliveries') }}</span>
+                <span class="donut-center-sub">
+                  {{ $t('watermarkQuality.centerDownloaded') }} {{ dStats?.downloaded_count ?? '—' }}
+                </span>
+              </div>
+              <el-empty v-if="!hasDelivery && !dLoading" :description="$t('common.noData')" :image-size="72" />
+            </div>
           </div>
-        </div>
-      </el-card>
+        </el-col>
+      </el-row>
+    </el-card>
 
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #22c55e, #16a34a)">
-            <el-icon size="24"><TrendCharts /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.avgRasterNc }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.avgRasterNc') }}</span>
-          </div>
-        </div>
-      </el-card>
-
-      <el-card class="stat-card hover-lift" shadow="hover">
-        <div class="stat-content">
-          <div class="stat-icon" style="background: linear-gradient(135deg, #f59e0b, #d97706)">
-            <el-icon size="24"><Warning /></el-icon>
-          </div>
-          <div class="stat-info">
-            <span class="stat-value">{{ stats.lowNcCount }}</span>
-            <span class="stat-label">{{ $t('watermarkQuality.lowNc') }}</span>
-          </div>
-        </div>
-      </el-card>
-    </div>
-
-    <!-- Data Type Filter Tabs -->
+    <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
     <el-card class="records-card" shadow="never">
       <template #header>
         <div class="card-header">
           <div class="card-header-left">
-            <span>{{ $t('watermarkQuality.records') }}</span>
-            <el-radio-group v-model="dataTypeFilter" size="small" style="margin-left: 16px;">
+            <span class="section-title">{{ $t('watermarkQuality.records') }}</span>
+            <el-radio-group v-model="dataTypeFilter" size="small">
               <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
               <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
               <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
             </el-radio-group>
           </div>
-          <el-button type="primary" :icon="Refresh" @click="fetchRecords" :loading="loading">
-            {{ $t('common.refresh') }}
-          </el-button>
+          <div class="card-header-right">
+            <el-date-picker
+              v-model="dateRange"
+              type="daterange"
+              size="small"
+              value-format="YYYY-MM-DD"
+              :start-placeholder="$t('watermarkQuality.timeRange')"
+              range-separator="~"
+              unlink-panels
+              style="width: 250px"
+            />
+            <el-button type="primary" :icon="Refresh" @click="fetchRecords" :loading="loading">
+              {{ $t('common.refresh') }}
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -142,288 +193,9 @@
       </div>
     </el-card>
 
-    <!-- NC Value Distribution Chart (by data type) -->
-    <el-card class="chart-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>{{ $t('watermarkQuality.ncDistribution') }}</span>
-          <el-tag size="small" type="info">矢量 vs 栅格</el-tag>
-        </div>
-      </template>
-      <div class="chart-container">
-        <v-chart
-          v-if="records.length > 0"
-          :option="ncDistOption"
-          autoresize
-        />
-      </div>
-      <div v-if="records.length === 0 && !loading" class="empty-hint">
-        暂无验证记录。执行水印提取/验证操作后，数据将实时更新。
-      </div>
-    </el-card>
-
-    <!-- ====== 栅格水印算法 ====== -->
-    <el-card class="algo-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>{{ $t('watermarkQuality.rasterAlgoSection') }}</span>
-          <el-tag type="success" size="small">{{ $t('watermarkQuality.rasterLabel') }}</el-tag>
-        </div>
-      </template>
-      <p class="algo-description">{{ $t('watermarkQuality.rasterAlgoDesc') }}</p>
-
-      <el-row :gutter="16" style="margin-bottom: 16px;">
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value">{{ rasterStats.totalRecords }}</span>
-            <span class="vector-stat-label">{{ $t('watermarkQuality.totalVerifications') }}</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value" :style="{ color: rasterStats.avgNc !== '-' ? '#10b981' : '#94a3b8' }">
-              {{ rasterStats.avgNc }}
-            </span>
-            <span class="vector-stat-label">AVG NC</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value" :style="{ color: rasterStats.avgBer !== '-' ? '#f59e0b' : '#94a3b8' }">
-              {{ rasterStats.avgBer }}
-            </span>
-            <span class="vector-stat-label">AVG BER</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value">{{ rasterStats.ncRange }}</span>
-            <span class="vector-stat-label">NC 范围</span>
-          </div>
-        </el-col>
-      </el-row>
-
-      <!-- 栅格水印算法对比表 -->
-      <el-table :data="rasterAlgoSummary" stripe style="width: 100%">
-        <el-table-column prop="name" :label="$t('watermarkQuality.algoName')" width="150" />
-        <el-table-column prop="domain" :label="$t('watermarkQuality.algoDomain')" width="130" />
-        <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.baselineNc >= 0.95 ? 'success' : row.baselineNc >= 0.8 ? 'warning' : 'danger'" effect="dark" size="small">
-              {{ row.baselineNc?.toFixed(4) || '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.baselineBer')" width="90">
-          <template #default="{ row }">{{ row.baselineBer?.toFixed(4) || '-' }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.embeddingCapacity')" width="120">
-          <template #default="{ row }">{{ row.capacity }}</template>
-        </el-table-column>
-        <el-table-column prop="robustnessNote" :label="$t('watermarkQuality.robustness')" min-width="200" />
-      </el-table>
-
-      <!-- 栅格关键发现 -->
-      <div class="findings-section" style="margin-top: 16px;">
-        <el-alert
-          :title="$t('watermarkQuality.findingRasterTitle')"
-          :description="rasterFindingDesc"
-          type="success"
-          :closable="false"
-          show-icon
-        />
-      </div>
-    </el-card>
-
-    <!-- ====== 矢量水印算法 ====== -->
-    <el-card class="algo-card" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>{{ $t('watermarkQuality.vectorAlgoSection') }}</span>
-          <el-tag type="primary" size="small">{{ $t('watermarkQuality.vectorLabel') }}</el-tag>
-        </div>
-      </template>
-      <p class="algo-description">{{ $t('watermarkQuality.vectorAlgoDesc') }}</p>
-
-      <el-row :gutter="16" style="margin-bottom: 16px;">
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value">{{ vectorStats.totalRecords }}</span>
-            <span class="vector-stat-label">{{ $t('watermarkQuality.totalVerifications') }}</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value" :style="{ color: vectorStats.avgNc !== '-' ? '#6366f1' : '#94a3b8' }">
-              {{ vectorStats.avgNc }}
-            </span>
-            <span class="vector-stat-label">AVG NC</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value" :style="{ color: vectorStats.avgBer !== '-' ? '#f59e0b' : '#94a3b8' }">
-              {{ vectorStats.avgBer }}
-            </span>
-            <span class="vector-stat-label">AVG BER</span>
-          </div>
-        </el-col>
-        <el-col :span="6">
-          <div class="vector-stat-box">
-            <span class="vector-stat-value">{{ vectorStats.ncRange }}</span>
-            <span class="vector-stat-label">NC 范围</span>
-          </div>
-        </el-col>
-      </el-row>
-
-      <!-- 矢量水印算法对比表 -->
-      <el-table :data="vectorAlgoSummary" stripe style="width: 100%">
-        <el-table-column prop="name" :label="$t('watermarkQuality.algoName')" width="150" />
-        <el-table-column prop="domain" :label="$t('watermarkQuality.algoDomain')" width="130" />
-        <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.baselineNc >= 0.99 ? 'success' : 'warning'" effect="dark" size="small">
-              {{ row.baselineNc?.toFixed(4) || '-' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.baselineBer')" width="90">
-          <template #default="{ row }">{{ row.baselineBer?.toFixed(4) || '-' }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.vertexCount')" width="100">
-          <template #default="{ row }">{{ row.avgVertices }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.embeddingCapacity')" width="120">
-          <template #default="{ row }">{{ row.capacity }}</template>
-        </el-table-column>
-        <el-table-column prop="robustnessNote" :label="$t('watermarkQuality.robustness')" min-width="200" />
-      </el-table>
-    </el-card>
-
-    <!-- ====== 算法鲁棒性基准测试（栅格） ====== -->
-    <el-card class="algo-card" shadow="never" v-loading="benchLoading">
-      <template #header>
-        <div class="card-header">
-          <span>{{ $t('watermarkQuality.benchmarkTitle') }}</span>
-          <el-tag type="success" size="small" style="margin-left: 8px;">{{ $t('watermarkQuality.rasterLabel') }}</el-tag>
-          <el-tag v-if="benchMeta" type="info" size="small">{{ benchMeta.timestamp?.split('T')[0] }}</el-tag>
-        </div>
-      </template>
-
-      <!-- 算法对比表 -->
-      <el-table :data="algorithmComparison" stripe style="width: 100%; margin-bottom: 24px">
-        <el-table-column prop="name" :label="$t('watermarkQuality.algoName')" width="120" />
-        <el-table-column prop="domain" :label="$t('watermarkQuality.algoDomain')" width="100" />
-        <el-table-column :label="$t('watermarkQuality.algoReversible')" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.reversible === '是' ? 'success' : 'danger'" size="small">{{ row.reversible }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120">
-          <template #default="{ row }">
-            <span :style="{ color: row.stegoPsnr >= 50 ? '#10b981' : row.stegoPsnr >= 40 ? '#f59e0b' : '#ef4444', fontWeight: 700 }">
-              {{ row.stegoPsnr }} dB
-            </span>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
-          <template #default="{ row }">
-            <el-tag :type="row.baselineNc >= 0.99 ? 'success' : 'danger'" effect="dark" size="small">
-              {{ row.baselineNc?.toFixed(4) || '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.baselineBer')" width="90">
-          <template #default="{ row }">{{ row.baselineBer?.toFixed(4) || '-' }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.recovery')" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.recoveryPerfect ? 'success' : 'danger'" size="small">
-              {{ row.recoveryPerfect ? ($t('watermarkQuality.perfect') || '完美') : ($t('watermarkQuality.broken') || '失败') }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.robustness')" min-width="200">
-          <template #default="{ row }">
-            <el-tag :type="row.robustnessLevel === ($t('watermarkQuality.robustnessFragile') || '脆弱') ? 'danger' : row.robustnessLevel === ($t('watermarkQuality.robustnessNone') || '无效') ? 'info' : 'warning'" size="small">
-              {{ row.robustnessLevel }}
-            </el-tag>
-            <span style="margin-left: 8px; font-size: 12px; color: #64748b;">{{ row.robustnessNote }}</span>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <!-- 攻击下鲁棒性对比：四合一图表 -->
-      <div class="charts-grid">
-        <div class="chart-box">
-          <h5 class="chart-title">NC 对比（越高越好，> 0.95 为优秀）</h5>
-          <div class="chart-inner">
-            <v-chart
-              v-if="hasBenchmarkCharts"
-              :option="ncBenchOption"
-              autoresize
-            />
-          </div>
-        </div>
-        <div class="chart-box">
-          <h5 class="chart-title">BER 对比（越低越好，&lt; 0.01 为优秀）</h5>
-          <div class="chart-inner">
-            <v-chart
-              v-if="hasBenchmarkCharts"
-              :option="berBenchOption"
-              autoresize
-            />
-          </div>
-        </div>
-        <div class="chart-box">
-          <h5 class="chart-title">恢复 PSNR 对比（攻击后能否还原原图）</h5>
-          <div class="chart-inner">
-            <v-chart
-              v-if="hasBenchmarkCharts"
-              :option="recBenchOption"
-              autoresize
-            />
-          </div>
-        </div>
-        <div class="chart-box">
-          <h5 class="chart-title">隐写质量对比（PSNR / SSIM）</h5>
-          <div class="chart-inner">
-            <v-chart
-              v-if="hasBenchmarkCharts"
-              :option="stegoBenchOption"
-              autoresize
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 关键发现 -->
-      <div class="findings-section">
-        <h4>{{ $t('watermarkQuality.keyFindings') }}</h4>
-        <el-alert
-          v-for="(finding, idx) in keyFindings"
-          :key="idx"
-          :title="finding.title"
-          :description="finding.description"
-          :type="finding.type"
-          :closable="false"
-          show-icon
-          style="margin-bottom: 12px"
-        />
-        <!-- Vector finding -->
-        <el-alert
-          :title="$t('watermarkQuality.findingVectorTitle')"
-          :description="vectorFindingDesc"
-          type="info"
-          :closable="false"
-          show-icon
-        />
-      </div>
-    </el-card>
-
     <!-- Quality Metrics Explained -->
     <el-card class="metrics-card" shadow="never">
-      <template #header><span>{{ $t('watermarkQuality.metricsExplained') }}</span></template>
+      <template #header><span class="section-title">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
       <div class="metrics-grid">
         <div class="metric-item">
           <div class="metric-header">
@@ -459,142 +231,362 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Check, TrendCharts, Warning, Timer, Refresh, MapLocation, Picture } from '@element-plus/icons-vue'
-import { getVerificationRecords, getBenchmarkResults } from '@/api/watermark'
+import {
+  Refresh, MapLocation, Picture,
+  DataLine, TrendCharts, Warning, Box, Download, Link, Aim, Odometer
+} from '@element-plus/icons-vue'
+import { getVerificationRecords, getBenchmarkResults, getVerificationStats, getBenchmarkStats } from '@/api/watermark'
+import { getDeliveryStats } from '@/api/forensics'
 import { use, graphic } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart } from 'echarts/charts'
+import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 
-// ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
-use([CanvasRenderer, BarChart, TooltipComponent, LegendComponent, GridComponent])
+// ── ECharts 按需注册：本页用到的渲染器 / 图表 / 组件 ──
+use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
+
+// ══════════════════ 数据源：三个统计端点并行 ══════════════════
+const vLoading = ref(false)
+const vStats = ref(null)        // /api/watermark/verification_stats → stats
+const trendLoading = ref(false)
+const trendDataType = ref('')   // '' | 'vector' | 'raster' — 仅作用于趋势图
+const trendStats = ref(null)    // 带 data_type 的趋势专查
+const dLoading = ref(false)
+const dStats = ref(null)        // /api/forensics/deliveries/stats → stats
+const benchLoading = ref(false)
+const benchData = ref(null)     // /api/benchmark/stats（或旧 JSON 回退的等价结构）
+
+const globalLoading = computed(() => vLoading.value || dLoading.value || benchLoading.value)
+
+// ── 工具 ──
+const numOrNull = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
+const fmtDateTime = (iso) => {
+  if (!iso) return '—'
+  const s = String(iso).replace('T', ' ')
+  return s.length >= 16 ? s.slice(0, 16) : s
+}
+
+// ══════════════════ 区一 · KPI（count-up rAF，200ms） ══════════════════
+const kpiDisplay = reactive({})
+const kpiRaf = {}
+
+const animateKpi = (key, target) => {
+  if (kpiRaf[key]) cancelAnimationFrame(kpiRaf[key])
+  if (target == null || !Number.isFinite(target)) {
+    kpiDisplay[key] = null
+    return
+  }
+  const from = Number.isFinite(kpiDisplay[key]) ? kpiDisplay[key] : 0
+  kpiDisplay[key] = from
+  const t0 = performance.now()
+  const DURATION = 200
+  const tick = (now) => {
+    const p = Math.min(1, (now - t0) / DURATION)
+    const eased = 1 - Math.pow(1 - p, 3)
+    kpiDisplay[key] = from + (target - from) * eased
+    if (p < 1) {
+      kpiRaf[key] = requestAnimationFrame(tick)
+    } else {
+      kpiDisplay[key] = target
+      kpiRaf[key] = null
+    }
+  }
+  kpiRaf[key] = requestAnimationFrame(tick)
+}
+
+onBeforeUnmount(() => {
+  Object.values(kpiRaf).forEach((id) => id && cancelAnimationFrame(id))
+})
+
+const fmtKpiValue = (val, fmt) => {
+  if (val == null || !Number.isFinite(val)) return '—'
+  switch (fmt) {
+    case 'int': return Math.round(val).toLocaleString()
+    case 'dec3': return val.toFixed(3)
+    case 'dec4': return val.toFixed(4)
+    case 'pct1': return `${val.toFixed(1)}%`
+    default: return String(val)
+  }
+}
+
+const kpiText = (card) => {
+  if (card.value == null) return '—'
+  const shown = kpiDisplay[card.key]
+  return fmtKpiValue(shown == null ? card.value : shown, card.fmt)
+}
+
+const kpiCards = computed(() => {
+  const v = vStats.value || {}
+  const d = dStats.value || {}
+  const anchor = d.anchor || {}
+  const chainRate = d.chain_checked ? (d.chain_valid_count / d.chain_checked) * 100 : null
+  const snap = benchData.value?.latest_run?.created_at
+  return [
+    {
+      key: 'verify', icon: DataLine, gradient: 'linear-gradient(135deg, #667eea, #764ba2)',
+      label: t('watermarkQuality.totalVerifications'), value: numOrNull(v.total), fmt: 'int',
+      meta: v.min_nc != null && v.max_nc != null
+        ? t('watermarkQuality.kpiNcMinMax', { min: v.min_nc.toFixed(3), max: v.max_nc.toFixed(3) })
+        : t('watermarkQuality.kpiTotalNote'),
+    },
+    {
+      key: 'avgNc', icon: TrendCharts, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      label: t('watermarkQuality.avgNc'), value: numOrNull(v.avg_nc), fmt: 'dec4',
+      meta: v.p50_nc != null ? t('watermarkQuality.kpiNcMedian', { p50: v.p50_nc.toFixed(4) }) : '',
+    },
+    {
+      key: 'lowNc', icon: Warning, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      label: t('watermarkQuality.lowNc'), value: numOrNull(v.low_nc_count), fmt: 'int',
+      meta: v.total ? `${((v.low_nc_count / v.total) * 100).toFixed(1)}% / ${v.total}` : '',
+    },
+    {
+      key: 'deliveries', icon: Box, gradient: 'linear-gradient(135deg, #0ea5e9, #0369a1)',
+      label: t('watermarkQuality.kpiDeliveries'), value: numOrNull(d.total), fmt: 'int',
+      meta: d.total != null
+        ? t('watermarkQuality.kpiDeliveryDetail', { downloaded: d.downloaded_count ?? 0, total: d.total })
+        : '',
+    },
+    {
+      key: 'downloaded', icon: Download, gradient: 'linear-gradient(135deg, #10b981, #059669)',
+      label: t('watermarkQuality.kpiDownloaded'), value: numOrNull(d.downloaded_count), fmt: 'int',
+      meta: d.total ? `${((d.downloaded_count / d.total) * 100).toFixed(0)}%` : '',
+    },
+    {
+      key: 'chain', icon: Link, gradient: 'linear-gradient(135deg, #6366f1, #4f46e5)',
+      label: t('watermarkQuality.kpiChainIntegrity'), value: chainRate, fmt: 'pct1',
+      meta: d.chain_checked != null
+        ? t('watermarkQuality.kpiChainDetail', { valid: d.chain_valid_count ?? 0, checked: d.chain_checked })
+        : '',
+    },
+    {
+      key: 'anchor', icon: Aim, gradient: 'linear-gradient(135deg, #a855f7, #7c3aed)',
+      label: t('watermarkQuality.kpiAnchoredBatches'),
+      value: anchor.submitted != null && anchor.pending != null ? anchor.submitted + anchor.pending : null,
+      fmt: 'int',
+      meta: anchor.submitted != null || anchor.pending != null
+        ? t('watermarkQuality.kpiAnchorDetail', { submitted: anchor.submitted ?? '—', pending: anchor.pending ?? '—' })
+        : '',
+    },
+    {
+      key: 'bench', icon: Odometer, gradient: 'linear-gradient(135deg, #f43f5e, #be123c)',
+      label: t('watermarkQuality.kpiBenchmarkRuns'), value: numOrNull(benchData.value?.runs_count), fmt: 'int',
+      meta: snap ? t('watermarkQuality.kpiSnapshot', { time: fmtDateTime(snap) }) : '',
+    },
+  ]
+})
+
+watch(kpiCards, (cards) => {
+  cards.forEach((c) => animateKpi(c.key, c.value))
+}, { immediate: true })
+
+// ══════════════════ 区二 · 图表 ══════════════════
+// ── NC 直方图（服务端 10 桶，低于 0.8 冷暖双色渐变） ──
+const hasHistogram = computed(() => (vStats.value?.total || 0) > 0)
+const ncHistogramOption = computed(() => {
+  const hist = vStats.value?.nc_histogram || []
+  return {
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    grid: { left: '4%', right: '4%', bottom: '6%', top: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: hist.map((h) => h.bucket),
+      axisLabel: { fontSize: 10, color: '#64748b' },
+    },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#64748b' } },
+    series: [{
+      name: t('watermarkQuality.seriesCount'),
+      type: 'bar',
+      barWidth: '56%',
+      data: hist.map((h) => {
+        const low = parseFloat(h.bucket) || 0
+        return {
+          value: h.count,
+          itemStyle: {
+            borderRadius: [6, 6, 0, 0],
+            color: low < 0.8
+              ? new graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#fbbf24' }, { offset: 1, color: '#ef4444' },
+              ])
+              : new graphic.LinearGradient(0, 0, 0, 1, [
+                { offset: 0, color: '#34d399' }, { offset: 1, color: '#059669' },
+              ]),
+          },
+        }
+      }),
+    }],
+  }
+})
+
+// ── NC 日均趋势（空档日 avg_nc 为 null → 断点；验证数以浅色柱呈现） ──
+const trendDaily = computed(() => {
+  const src = trendDataType.value ? trendStats.value : vStats.value
+  return src?.daily || []
+})
+const hasTrend = computed(() => trendDaily.value.some((d) => d.count > 0))
+const ncTrendOption = computed(() => {
+  const daily = trendDaily.value
+  const countLabel = t('watermarkQuality.seriesCount')
+  const ncLabel = t('watermarkQuality.seriesAvgNc')
+  return {
+    tooltip: { trigger: 'axis' },
+    legend: { data: [ncLabel, countLabel], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: '4%', right: '4%', bottom: '18%', top: '10%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: daily.map((d) => String(d.date).slice(5)),
+      axisLabel: { fontSize: 10, color: '#64748b' },
+    },
+    yAxis: [
+      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#64748b' } },
+      {
+        type: 'value', name: countLabel, minInterval: 1,
+        axisLabel: { color: '#94a3b8' }, splitLine: { show: false },
+      },
+    ],
+    series: [
+      {
+        name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%',
+        data: daily.map((d) => d.count),
+        itemStyle: { color: 'rgba(99, 102, 241, 0.16)', borderRadius: [3, 3, 0, 0] },
+      },
+      {
+        name: ncLabel, type: 'line', yAxisIndex: 0, smooth: true, connectNulls: false,
+        data: daily.map((d) => d.avg_nc),
+        symbolSize: 6,
+        lineStyle: { width: 2.5, color: '#6366f1' },
+        itemStyle: { color: '#6366f1' },
+      },
+    ],
+  }
+})
+
+// ── 算法对比（柱 = 验证数，线 = 平均 NC；tooltip 附真实 avg_ber） ──
+const hasAlgo = computed(() => (vStats.value?.by_algorithm || []).length > 0)
+const algoBreakdownOption = computed(() => {
+  const rows = vStats.value?.by_algorithm || []
+  const countLabel = t('watermarkQuality.seriesCount')
+  const ncLabel = t('watermarkQuality.seriesAvgNc')
+  return {
+    tooltip: {
+      trigger: 'axis',
+      formatter: (params) => {
+        const alg = params?.[0]?.axisValue
+        const row = rows.find((r) => r.algorithm === alg)
+        return [
+          `<b>${alg}</b>`,
+          `${countLabel}: ${row?.count ?? '—'}`,
+          `${ncLabel}: ${row?.avg_nc != null ? row.avg_nc.toFixed(4) : '—'}`,
+          `${t('watermarkQuality.seriesAvgBer')}: ${row?.avg_ber != null ? row.avg_ber.toFixed(4) : '—'}`,
+        ].join('<br/>')
+      },
+    },
+    legend: { data: [countLabel, ncLabel], bottom: 0, textStyle: { fontSize: 11 } },
+    grid: { left: '4%', right: '4%', bottom: '18%', top: '12%', containLabel: true },
+    xAxis: {
+      type: 'category',
+      data: rows.map((r) => r.algorithm),
+      axisLabel: { color: '#64748b' },
+    },
+    yAxis: [
+      { type: 'value', name: countLabel, minInterval: 1, axisLabel: { color: '#64748b' } },
+      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#94a3b8' }, splitLine: { show: false } },
+    ],
+    series: [
+      {
+        name: countLabel, type: 'bar', barWidth: '32%',
+        data: rows.map((r) => r.count),
+        itemStyle: {
+          borderRadius: [6, 6, 0, 0],
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#818cf8' }, { offset: 1, color: '#4f46e5' },
+          ]),
+        },
+      },
+      {
+        name: ncLabel, type: 'line', yAxisIndex: 1, symbolSize: 9,
+        data: rows.map((r) => r.avg_nc),
+        lineStyle: { width: 2.5, color: '#10b981' },
+        itemStyle: { color: '#10b981' },
+      },
+    ],
+  }
+})
+
+// ── 验证数据构成（矢量 / 栅格 donut） ──
+const dataTypeLabel = (dt) => {
+  if (dt === 'vector') return t('watermarkQuality.vectorLabel')
+  if (dt === 'raster') return t('watermarkQuality.rasterLabel')
+  return dt || '—'
+}
+const hasShare = computed(() =>
+  (vStats.value?.total || 0) > 0 && (vStats.value?.by_data_type || []).length > 0)
+const verificationShareOption = computed(() => ({
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+  legend: { bottom: 0, textStyle: { fontSize: 11 } },
+  series: [{
+    type: 'pie',
+    radius: ['50%', '72%'],
+    center: ['50%', '44%'],
+    itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
+    label: { formatter: '{b}\n{d}%', fontSize: 11, color: '#475569' },
+    data: (vStats.value?.by_data_type || []).map((d) => ({
+      name: dataTypeLabel(d.data_type),
+      value: d.count,
+      itemStyle: {
+        color: d.data_type === 'vector' ? '#6366f1' : d.data_type === 'raster' ? '#10b981' : '#94a3b8',
+      },
+    })),
+  }],
+}))
+
+// ── 交付健康度（内环 = 交付状态，外环 = 锚定状态，中心叠加汇总） ──
+const STATUS_COLORS = { READY: '#10b981', FAILED: '#ef4444', PENDING: '#f59e0b' }
+const hasDelivery = computed(() => (dStats.value?.total || 0) > 0)
+const deliveryHealthOption = computed(() => {
+  const d = dStats.value || {}
+  const anchor = d.anchor || {}
+  return {
+    tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)' },
+    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    series: [
+      {
+        name: t('watermarkQuality.ringInner'), type: 'pie',
+        radius: ['38%', '58%'], center: ['50%', '44%'],
+        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        label: { show: false }, labelLine: { show: false },
+        data: (d.by_status || []).map((s) => ({
+          name: s.status, value: s.count,
+          itemStyle: { color: STATUS_COLORS[s.status] || '#94a3b8' },
+        })),
+      },
+      {
+        name: t('watermarkQuality.ringOuter'), type: 'pie',
+        radius: ['64%', '84%'], center: ['50%', '44%'],
+        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        label: { show: false }, labelLine: { show: false },
+        data: [
+          { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: '#6366f1' } },
+          { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: '#f59e0b' } },
+          { name: t('watermarkQuality.anchorNone'), value: anchor.none || 0, itemStyle: { color: '#cbd5e1' } },
+        ].filter((x) => x.value > 0),
+      },
+    ],
+  }
+})
+
+// ══════════════════ 验证记录表（保留 · 新增时间范围筛选） ══════════════════
 const loading = ref(false)
 const records = ref([])
 const currentPage = ref(1)
 const pageSize = 20
 const total = ref(0)
 const dataTypeFilter = ref('')  // ''=all, 'vector', 'raster'
-
-// ── Benchmark state ──
-const benchLoading = ref(false)
-const benchMeta = ref(null)
-const benchResults = ref([])
-
-// ── Stats computed from records ──
-const stats = computed(() => {
-  const total_ = records.value.length
-  const vectorRecs = records.value.filter(r => r.data_type === 'vector')
-  const rasterRecs = records.value.filter(r => r.data_type === 'raster')
-  const ncAll = records.value.filter(r => r.nc_value != null).map(r => r.nc_value)
-  const ncVec = vectorRecs.filter(r => r.nc_value != null).map(r => r.nc_value)
-  const ncRas = rasterRecs.filter(r => r.nc_value != null).map(r => r.nc_value)
-
-  const avg = (arr) => arr.length > 0 ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(4) : '-'
-  const lowNcCount = ncAll.filter(v => v < 0.8).length
-
-  return {
-    totalVerifications: total_,
-    vectorVerifications: vectorRecs.length,
-    rasterVerifications: rasterRecs.length,
-    avgVectorNc: avg(ncVec),
-    avgRasterNc: avg(ncRas),
-    lowNcCount,
-  }
-})
-
-// ── Vector algorithm stats from real records ──
-const vectorStats = computed(() => {
-  const vecRecs = records.value.filter(r => r.data_type === 'vector' && r.nc_value != null)
-  const ncVals = vecRecs.map(r => r.nc_value)
-  const totalRecords = vecRecs.length
-  const avgNc = totalRecords > 0 ? (ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
-  const ncRange = totalRecords > 0
-    ? `${Math.min(...ncVals).toFixed(2)} ~ ${Math.max(...ncVals).toFixed(2)}`
-    : '-'
-  // BER — approximate from the relationship BER ≈ (1 - NC) / 2 for random errors
-  const avgBer = totalRecords > 0 ? (1 - ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
-  return { totalRecords, avgNc, avgBer, ncRange }
-})
-
-// ── Vector algorithm summary table ──
-const vectorAlgoSummary = computed(() => {
-  const vecRecs = records.value.filter(r => r.data_type === 'vector' && r.nc_value != null)
-  if (vecRecs.length === 0) return []
-
-  const avgNc = vecRecs.reduce((s, r) => s + r.nc_value, 0) / vecRecs.length
-  const avgBer = 1 - avgNc
-  const avgVertices = '~5000'
-  const capacity = 'n=4 / 顶点'
-
-  return [{
-    name: t('watermarkQuality.vectorAlgoName') || 'Vector Geo Embedding',
-    domain: '空间域 (坐标)',
-    baselineNc: avgNc,
-    baselineBer: avgBer,
-    avgVertices,
-    capacity,
-    robustnessNote: '十进制坐标精度损失导致BER偏高；QR纠错码可容忍此错误率',
-  }]
-})
-
-// ── Vector finding description ──
-const vectorFindingDesc = computed(() => {
-  const s = vectorStats.value
-  return `NC=${s.avgNc}，BER=${s.avgBer}。水印通过修改坐标值的低位二进制位嵌入，坐标四舍五入到小数点后固定位数时会产生量子化误差，破坏部分水印比特。适合：数据溯源、版权证明（即使有比特错误，QR码仍可通过错误校正识别）。共 ${s.totalRecords} 条矢量验证记录。`
-})
-
-// ── Raster algorithm stats from real records ──
-const rasterStats = computed(() => {
-  const rasRecs = records.value.filter(r => r.data_type === 'raster' && r.nc_value != null)
-  const ncVals = rasRecs.map(r => r.nc_value)
-  const totalRecords = rasRecs.length
-  const avgNc = totalRecords > 0 ? (ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
-  const ncRange = totalRecords > 0
-    ? `${Math.min(...ncVals).toFixed(2)} ~ ${Math.max(...ncVals).toFixed(2)}`
-    : '-'
-  const avgBer = totalRecords > 0 ? (1 - ncVals.reduce((a, b) => a + b, 0) / totalRecords).toFixed(4) : '-'
-  return { totalRecords, avgNc, avgBer, ncRange }
-})
-
-// ── Raster algorithm summary table (from benchmark data) ──
-const rasterAlgoSummary = computed(() => {
-  const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
-  if (summaries.length === 0) return []
-
-  return summaries.map(s => {
-    const alg = s.algorithm
-    const isLSB = alg === 'LSB'
-    const isDWT = alg === 'DWT'
-
-    return {
-      name: alg,
-      domain: isDWT ? '频域 (DWT)' : '空间域',
-      baselineNc: s.baseline_nc,
-      baselineBer: s.baseline_ber,
-      capacity: isLSB ? '全像素级' : isDWT ? 'LL子带' : '峰值限制',
-      robustnessNote: isLSB
-        ? '隐写质量优秀(PSNR>55dB)，但水印极其脆弱，任何攻击都会摧毁水印'
-        : isDWT
-          ? `PSNR=${s.stego_psnr}dB，QIM提取存在Bug，NC≈${s.baseline_nc?.toFixed(3)}（≈随机）`
-          : '在自然图像上数学不可行，需要纯色图像',
-    }
-  })
-})
-
-// ── Raster finding description ──
-const rasterFindingDesc = computed(() => {
-  const s = rasterStats.value
-  const lsb = benchResults.value.find(r => r.algorithm === 'LSB' && 'stego_psnr' in r)
-  const dwt = benchResults.value.find(r => r.algorithm === 'DWT' && 'stego_psnr' in r)
-  const psnrInfo = lsb ? `LSB隐写PSNR=${lsb.stego_psnr}dB` : ''
-  const dwtInfo = dwt ? `，DWT隐写PSNR=${dwt.stego_psnr}dB` : ''
-  return `共 ${s.totalRecords} 条栅格验证记录。${psnrInfo}${dwtInfo}。LSB可完美恢复原图但水印脆弱；DWT存在QIM提取Bug（返回系数奇偶性而非水印比特），需修复后方可使用。`
-})
+const dateRange = ref(null)     // [from, to] 'YYYY-MM-DD'
 
 const getNcTagType = (nc) => {
   if (nc == null) return 'info'
@@ -608,13 +600,16 @@ const formatDate = (isoStr) => {
   return new Date(isoStr).toLocaleString()
 }
 
-// ── Fetch records with data_type filter ──
 const fetchRecords = async () => {
   loading.value = true
   try {
     const params = { page: currentPage.value, pageSize }
     if (dataTypeFilter.value) {
       params.data_type = dataTypeFilter.value
+    }
+    if (Array.isArray(dateRange.value) && dateRange.value.length === 2) {
+      params.from = dateRange.value[0]
+      params.to = dateRange.value[1]
     }
     const resp = await getVerificationRecords(params)
     const body = resp?.data
@@ -629,260 +624,124 @@ const fetchRecords = async () => {
   }
 }
 
-// ── Fetch benchmark results ──
-const fetchBenchmark = async () => {
-  benchLoading.value = true
-  try {
-    const resp = await getBenchmarkResults()
-    if (resp.data.status) {
-      benchMeta.value = resp.data.data.benchmark_metadata
-      benchResults.value = resp.data.data.results || []
-    }
-  } catch (e) {
-    console.error('Failed to fetch benchmark results:', e)
-  } finally {
-    benchLoading.value = false
-  }
-}
-
-// ── NC distribution chart option (dual series) ──
-const ncDistOption = computed(() => {
-  const vecNc = records.value.filter(r => r.data_type === 'vector' && r.nc_value != null).map(r => r.nc_value)
-  const rasNc = records.value.filter(r => r.data_type === 'raster' && r.nc_value != null).map(r => r.nc_value)
-
-  const buckets = ['0.0-0.5', '0.5-0.7', '0.7-0.8', '0.8-0.9', '0.9-0.95', '0.95-1.0']
-  const toBucket = (v) => {
-    if (v < 0.5) return 0
-    if (v < 0.7) return 1
-    if (v < 0.8) return 2
-    if (v < 0.9) return 3
-    if (v < 0.95) return 4
-    return 5
-  }
-  const bucketCounts = (arr) => {
-    const cnt = [0, 0, 0, 0, 0, 0]
-    arr.forEach(v => cnt[toBucket(v)]++)
-    return cnt
-  }
-
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: {
-      data: [t('watermarkQuality.vectorLabel') || 'Vector', t('watermarkQuality.rasterLabel') || 'Raster'],
-      bottom: 0, textStyle: { fontSize: 11 },
-    },
-    xAxis: { type: 'category', data: buckets, axisLabel: { color: '#64748b' } },
-    yAxis: { type: 'value', axisLabel: { color: '#64748b' } },
-    series: [
-      {
-        name: t('watermarkQuality.vectorLabel') || 'Vector',
-        data: bucketCounts(vecNc), type: 'bar',
-        itemStyle: {
-          borderRadius: [6, 6, 0, 0],
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#3b82f6' }, { offset: 1, color: '#1d4ed8' }
-          ])
-        }
-      },
-      {
-        name: t('watermarkQuality.rasterLabel') || 'Raster',
-        data: bucketCounts(rasNc), type: 'bar',
-        itemStyle: {
-          borderRadius: [6, 6, 0, 0],
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#10b981' }, { offset: 1, color: '#059669' }
-          ])
-        }
-      }
-    ],
-    grid: { left: '3%', right: '4%', bottom: '15%', containLabel: true }
-  }
-})
-
-// ── All benchmark charts（option 内容与原实现一致，仅改由 vue-echarts 渲染） ──
-const benchmarkAttackData = computed(() => benchResults.value.filter(r => r.attack && !r.attack?.includes('[conc]')))
-const hasBenchmarkCharts = computed(() => benchmarkAttackData.value.length > 0)
-const benchmarkAttackNames = computed(() => [...new Set(benchmarkAttackData.value.map(r => r.attack))])
-const BENCH_ALGOS = ['LSB', 'DWT']
-const BENCH_COLORS = ['#667eea', '#f59e0b']
-const benchmarkXAxis = computed(() => ({ type: 'category', data: benchmarkAttackNames.value, axisLabel: { rotate: 30, fontSize: 10, color: '#64748b' } }))
-const benchmarkLegend = computed(() => ({ data: BENCH_ALGOS, bottom: 0, textStyle: { fontSize: 11 } }))
-
-const ncBenchOption = computed(() => {
-  const atkResults = benchmarkAttackData.value
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: benchmarkLegend.value,
-    xAxis: benchmarkXAxis.value,
-    yAxis: { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#64748b' } },
-    series: BENCH_ALGOS.map((alg, i) => ({
-      name: alg, type: 'bar',
-      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.nc ?? null),
-      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
-    })),
-    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-  }
-})
-
-const berBenchOption = computed(() => {
-  const atkResults = benchmarkAttackData.value
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: benchmarkLegend.value,
-    xAxis: benchmarkXAxis.value,
-    yAxis: { type: 'value', name: 'BER', min: 0, max: 1, axisLabel: { color: '#64748b' } },
-    series: BENCH_ALGOS.map((alg, i) => ({
-      name: alg, type: 'bar',
-      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.ber ?? null),
-      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
-    })),
-    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-  }
-})
-
-const recBenchOption = computed(() => {
-  const atkResults = benchmarkAttackData.value
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: benchmarkLegend.value,
-    xAxis: benchmarkXAxis.value,
-    yAxis: { type: 'value', name: 'dB', axisLabel: { color: '#64748b' } },
-    series: BENCH_ALGOS.map((alg, i) => ({
-      name: alg, type: 'bar',
-      data: benchmarkAttackNames.value.map(a => atkResults.find(r => r.attack === a && r.algorithm === alg)?.recovery_psnr ?? null),
-      itemStyle: { borderRadius: [4, 4, 0, 0], color: BENCH_COLORS[i] },
-    })),
-    grid: { left: '8%', right: '4%', bottom: '15%', top: '8%', containLabel: true },
-  }
-})
-
-const stegoBenchOption = computed(() => {
-  const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
-  const algoNames = summaries.map(s => s.algorithm)
-  return {
-    tooltip: { trigger: 'axis' },
-    legend: { data: ['PSNR (dB)', 'SSIM×100'], bottom: 0, textStyle: { fontSize: 10 } },
-    xAxis: { type: 'category', data: algoNames, axisLabel: { color: '#64748b', fontSize: 12 } },
-    yAxis: [
-      { type: 'value', name: 'PSNR (dB)', axisLabel: { color: '#64748b' } },
-      { type: 'value', name: 'SSIM×100', axisLabel: { color: '#64748b' } },
-    ],
-    series: [
-      {
-        name: 'PSNR (dB)', type: 'bar',
-        data: summaries.map(s => s.stego_psnr),
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#10b981' },
-      },
-      {
-        name: 'SSIM×100', type: 'bar', yAxisIndex: 1,
-        data: summaries.map(s => Math.round((s.stego_ssim || 0) * 10000) / 100),
-        itemStyle: { borderRadius: [4, 4, 0, 0], color: '#f59e0b' },
-      },
-    ],
-    grid: { left: '8%', right: '8%', bottom: '15%', top: '8%', containLabel: true },
-  }
-})
-
-// ── Watch filter change to re-fetch ──
 watch(dataTypeFilter, () => {
   currentPage.value = 1
   fetchRecords()
 })
 
-// ── Algorithm comparison (from real benchmark, raster only) ──
-const algorithmComparison = computed(() => {
-  const summaries = benchResults.value.filter(r => 'stego_psnr' in r && !r.embed_error)
-  return summaries.map(s => {
-    const alg = s.algorithm
-    const isDWT = alg === 'DWT'
-    const isLSB = alg === 'LSB'
-    const isHist = alg === 'Histogram'
-
-    const atkResults = benchResults.value.filter(r => r.algorithm === alg && r.attack && !r.attack?.includes('[conc]'))
-    const avgNcUnderAttack = atkResults.length > 0
-      ? atkResults.reduce((sum, r) => sum + (r.nc || 0), 0) / atkResults.length
-      : 0
-
-    let robustnessLevel, robustnessNote
-    if (isHist) {
-      robustnessLevel = t('watermarkQuality.robustnessNA') || '不适用'
-      robustnessNote = '所有非纯色图像上均嵌入失败'
-    } else if (isDWT) {
-      robustnessLevel = t('watermarkQuality.robustnessNone') || '无效'
-      robustnessNote = `提取已损坏 — NC=${s.baseline_nc?.toFixed(3) || 'N/A'}（≈随机），QIM奇偶性Bug`
-    } else {
-      robustnessLevel = t('watermarkQuality.robustnessFragile') || '脆弱'
-      robustnessNote = `受攻击后NC降至~${avgNcUnderAttack.toFixed(2)} — 仅适用于篡改检测`
-    }
-
-    return {
-      name: alg,
-      domain: isDWT ? '频域 (DWT)' : '空间域',
-      reversible: (isLSB && s.recovery_perfect) ? '是' : (isDWT ? '否（已损坏）' : '否'),
-      robustnessScore: isLSB ? 1 : isDWT ? 0 : 0,
-      capacity: isLSB ? '全像素级' : isDWT ? 'LL子带' : '峰值限制',
-      useCase: isLSB ? '篡改检测、可逆恢复' : isDWT ? '提取损坏，需修复' : '需要近均匀图像',
-      stegoPsnr: s.stego_psnr || 'N/A',
-      stegoSsim: s.stego_ssim || 'N/A',
-      baselineNc: s.baseline_nc,
-      baselineBer: s.baseline_ber,
-      recoveryPerfect: s.recovery_perfect,
-      robustnessLevel,
-      robustnessNote,
-    }
-  })
+watch(dateRange, () => {
+  currentPage.value = 1
+  fetchRecords()
 })
 
-// ── Key findings from benchmark (raster only) ──
-const keyFindings = computed(() => {
-  const findings = []
-  const lsb = benchResults.value.find(r => r.algorithm === 'LSB' && 'stego_psnr' in r)
-  const dwt = benchResults.value.find(r => r.algorithm === 'DWT' && 'stego_psnr' in r)
-  const hist = benchResults.value.find(r => r.algorithm === 'Histogram' && r.embed_error)
+// ══════════════════ 三个统计端点的取数 ══════════════════
+const fetchVerificationStats = async () => {
+  vLoading.value = true
+  try {
+    const resp = await getVerificationStats({ days: 30 })
+    if (resp?.data?.status) {
+      vStats.value = resp.data.stats
+    }
+  } catch (e) {
+    console.error('Failed to fetch verification stats:', e)
+  } finally {
+    vLoading.value = false
+  }
+}
 
-  if (lsb) {
-    findings.push({
-      title: t('watermarkQuality.findingLsbTitle') || 'LSB：隐写质量优秀，但水印极其脆弱',
-      description: t('watermarkQuality.findingLsbDesc') || `PSNR=${lsb.stego_psnr}dB（肉眼不可见），SSIM=${lsb.stego_ssim}。无攻击时可完美提取（NC=1.0，BER=0），可完美恢复原图。但任何攻击都会彻底摧毁水印——LSB位平面被破坏导致随机噪声。最适合：篡改检测、需要完全可逆恢复的场景。`,
-      type: 'success',
-    })
+const fetchTrend = async () => {
+  if (!trendDataType.value) return
+  trendLoading.value = true
+  try {
+    const resp = await getVerificationStats({ days: 30, data_type: trendDataType.value })
+    if (resp?.data?.status) {
+      trendStats.value = resp.data.stats
+    }
+  } catch (e) {
+    console.error('Failed to fetch NC trend stats:', e)
+  } finally {
+    trendLoading.value = false
   }
-  if (dwt) {
-    findings.push({
-      title: t('watermarkQuality.findingDwtTitle') || 'DWT：QIM提取存在Bug — 返回的是系数奇偶性，而非水印比特',
-      description: t('watermarkQuality.findingDwtDesc') || `PSNR=${dwt.stego_psnr}dB（肉眼可见退化）。基准NC=${dwt.baseline_nc?.toFixed(4)}（≈随机，期望值应为1.0）。提取代码 \`round(value/step) % 2\` 返回的是量化后DWT系数的奇偶性。NC在所有攻击下稳定在~0.23，是因为它始终读取的是系数奇偶性，而非水印真的"鲁棒"。`,
-      type: 'warning',
-    })
-  }
-  if (hist) {
-    findings.push({
-      title: t('watermarkQuality.findingHistTitle') || '直方图平移：在自然图像上数学上不可行',
-      description: t('watermarkQuality.findingHistDesc') || `需要峰值像素数 ≥ 图像总像素数（${hist.embed_error?.match(/need (\d+) bits but peak bin has only (\d+)/)?.[0] || '容量不足'}）。代码将水印缩放到了全图尺寸，除非图像是纯色，否则永远无法满足。这是实现层面的设计缺陷。`,
-      type: 'error',
-    })
-  }
-  findings.push({
-    title: t('watermarkQuality.findingRecommendTitle') || '建议：保留LSB，移除DWT和直方图平移',
-    description: t('watermarkQuality.findingRecommendDesc') || 'LSB是目前唯一可正确工作的可逆水印算法。DWT存在已确认的提取bug（QIM奇偶性错误）。直方图平移因容量限制对自然图像不可用。如果未来需要抗攻击的鲁棒水印，可以考虑实现修正后的DWT+QIM或扩频水印方案。',
-    type: 'info',
-  })
-  return findings
+}
+
+watch(trendDataType, (val) => {
+  trendStats.value = null
+  if (val) fetchTrend()
 })
+
+const fetchDeliveryStats = async () => {
+  dLoading.value = true
+  try {
+    const resp = await getDeliveryStats()
+    if (resp?.data?.status) {
+      dStats.value = resp.data.stats
+    }
+  } catch (e) {
+    console.error('Failed to fetch delivery stats:', e)
+  } finally {
+    dLoading.value = false
+  }
+}
+
+// 优先 /api/benchmark/stats（数据库最新 run）；404 / 空 → 回退旧 JSON 端点
+const fetchBenchmark = async () => {
+  benchLoading.value = true
+  try {
+    let body = null
+    try {
+      const resp = await getBenchmarkStats()
+      body = resp?.data
+    } catch (e) {
+      body = null
+    }
+    if (body?.status && Array.isArray(body.results) && body.results.length > 0) {
+      benchData.value = body
+      return
+    }
+    const legacy = await getBenchmarkResults()
+    const d = legacy?.data
+    const legacyResults = d?.data?.results
+    if (d?.status && Array.isArray(legacyResults) && legacyResults.length > 0) {
+      benchData.value = {
+        runs_count: null,
+        latest_run: { created_at: d.data?.benchmark_metadata?.timestamp || null },
+        results: legacyResults,
+      }
+    }
+  } catch (e) {
+    console.error('Failed to fetch benchmark stats:', e)
+  } finally {
+    benchLoading.value = false
+  }
+}
+
+const refreshAll = () => {
+  fetchVerificationStats()
+  fetchTrend()
+  fetchDeliveryStats()
+  fetchBenchmark()
+  fetchRecords()
+}
 
 onMounted(() => {
-  fetchRecords()
-  fetchBenchmark()
+  refreshAll()
 })
 </script>
 
 <style scoped>
 .watermark-quality-dashboard {
   padding: 24px;
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 
+/* ── 页头 ── */
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
   margin-bottom: 24px;
 }
 
@@ -898,60 +757,176 @@ onMounted(() => {
   font-size: 14px;
 }
 
-.stats-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
+.page-header-left { min-width: 0; }
 
-.stat-card { border-radius: 14px; }
+/* ── 区一 · Hero 统计带 ── */
+.hero-band { margin-bottom: 8px; }
 
-.stat-content {
+.hero-band .el-col { margin-bottom: 16px; }
+
+.kpi-card {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  height: 100%;
+  padding: 18px 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: var(--radius-lg, 14px);
 }
 
-.stat-icon {
-  width: 48px;
-  height: 48px;
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+}
+
+.kpi-icon {
+  width: 46px;
+  height: 46px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: #fff;
   flex-shrink: 0;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
 }
 
-.stat-info { display: flex; flex-direction: column; }
+.kpi-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
 
-.stat-value {
-  font-size: 24px;
+.kpi-value {
+  font-size: 26px;
   font-weight: 700;
+  line-height: 1.15;
   color: var(--text-primary, #1e293b);
-  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 
-.stat-label {
+.kpi-label {
   font-size: 13px;
   color: var(--text-secondary, #64748b);
+  margin-top: 2px;
 }
 
-.records-card { margin-bottom: 24px; border-radius: 14px; }
+.kpi-meta {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 区二 · 图表画廊 ── */
+.section-card {
+  border-radius: var(--radius-lg, 14px);
+  margin-bottom: 20px;
+}
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-weight: 600;
-  flex-wrap: wrap;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
-.card-header-left {
+.card-header-left,
+.card-header-right {
   display: flex;
   align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.section-title {
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.chart-box {
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border-color-light, #f1f5f9);
+  border-radius: var(--radius-md, 10px);
+  padding: 14px;
+  margin-bottom: 16px;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.chart-head-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.chart-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.chart-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.chart-holder {
+  width: 100%;
+  height: 280px;
+}
+
+.donut-wrap { position: relative; }
+
+.donut-center {
+  position: absolute;
+  top: 44%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--text-primary, #1e293b);
+  font-variant-numeric: tabular-nums;
+}
+
+.donut-center-label {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+}
+
+.donut-center-sub {
+  font-size: 11px;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+/* ── 验证记录表 ── */
+.records-card {
+  border-radius: var(--radius-lg, 14px);
+  margin-bottom: 20px;
 }
 
 .pagination-wrapper {
@@ -960,96 +935,10 @@ onMounted(() => {
   margin-top: 16px;
 }
 
-.chart-card { border-radius: 14px; margin-bottom: 24px; }
-
-.chart-container {
-  width: 100%;
-  height: 300px;
+/* ── 指标说明 ── */
+.metrics-card {
+  border-radius: var(--radius-lg, 14px);
 }
-
-.empty-hint {
-  text-align: center;
-  color: #94a3b8;
-  padding: 40px 0;
-  font-size: 14px;
-}
-
-.charts-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-.chart-box {
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  padding: 12px;
-}
-
-.chart-title {
-  margin: 0 0 8px 0;
-  font-size: 13px;
-  font-weight: 600;
-  color: #475569;
-}
-
-.chart-inner {
-  width: 100%;
-  height: 280px;
-}
-
-.algo-card { border-radius: 14px; margin-top: 24px; }
-
-.algo-description {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0 0 16px 0;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-}
-
-.vector-stat-box {
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-  padding: 16px;
-  text-align: center;
-}
-
-.vector-stat-value {
-  display: block;
-  font-size: 22px;
-  font-weight: 700;
-  color: #1e293b;
-  margin-bottom: 4px;
-}
-
-.vector-stat-label {
-  font-size: 12px;
-  color: #64748b;
-  text-transform: uppercase;
-}
-
-.findings-section {
-  margin-top: 24px;
-  padding: 20px;
-  background: #f8fafc;
-  border-radius: 10px;
-  border: 1px solid #e2e8f0;
-}
-
-.findings-section h4 {
-  margin: 0 0 16px 0;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1e293b;
-}
-
-.metrics-card { border-radius: 14px; margin-top: 24px; }
 
 .metrics-grid {
   display: grid;

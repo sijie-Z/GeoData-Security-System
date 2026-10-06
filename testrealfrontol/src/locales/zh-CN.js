@@ -301,6 +301,7 @@ export default {
     seriesAvgNc: '平均 NC',
     seriesAvgBer: '平均 BER',
     algoBreakdown: '算法表现对比',
+    algoBreakdownSub: '服务端 by_algorithm 聚合 · 悬停查看平均 BER',
     verificationShare: '验证数据构成',
     verificationShareSub: '按数据类型',
     deliveryHealth: '交付健康度',
