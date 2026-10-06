@@ -441,12 +441,14 @@ import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
+import { useTheme } from '@/composables/useTheme.js'
 
 // ── ECharts 按需注册：本页用到的渲染器 / 图表 / 组件 ──
 use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])
 
 const { t } = useI18n()
 const router = useRouter()
+const { isDark } = useTheme()
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
 // 注意：此 ref 绝不能命名为 vLoading —— <script setup> 会把模板里的
@@ -594,19 +596,41 @@ watch(kpiCards, (cards) => {
 }, { immediate: true })
 
 // ══════════════════ 区二 · 图表 ══════════════════
+// 图表深色适配色（canvas 内无法用 CSS 变量，随 isDark 切换）
+const chartInk = computed(() => (isDark.value
+  ? {
+      axisLabel: '#8fa0b8',
+      axisLabelMinor: '#94a3b8',
+      pieBorder: '#131c2e',
+      chartLabel: '#cbd5e1',
+      tooltipBg: 'rgba(22,32,58,0.96)',
+      tooltipBorder: 'rgba(120,170,255,0.25)',
+      tooltipText: '#e6eaf2',
+      chainTrack: 'rgba(255,255,255,0.12)',
+    }
+  : {
+      axisLabel: '#64748b',
+      axisLabelMinor: '#94a3b8',
+      pieBorder: '#fff',
+      chartLabel: '#475569',
+      tooltipBg: 'rgba(255,255,255,0.95)',
+      tooltipBorder: '#e0e0e0',
+      tooltipText: '#303133',
+      chainTrack: '#e2e8f0',
+    }))
 // ── NC 直方图（服务端 10 桶，低于 0.8 冷暖双色渐变） ──
 const hasHistogram = computed(() => (vStats.value?.total || 0) > 0)
 const ncHistogramOption = computed(() => {
   const hist = vStats.value?.nc_histogram || []
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
     grid: { left: '4%', right: '4%', bottom: '6%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       data: hist.map((h) => h.bucket),
-      axisLabel: { fontSize: 10, color: '#64748b' },
+      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel },
     },
-    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: '#64748b' } },
+    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: chartInk.value.axisLabel } },
     series: [{
       name: t('watermarkQuality.seriesCount'),
       type: 'bar',
@@ -642,19 +666,19 @@ const ncTrendOption = computed(() => {
   const countLabel = t('watermarkQuality.seriesCount')
   const ncLabel = t('watermarkQuality.seriesAvgNc')
   return {
-    tooltip: { trigger: 'axis' },
-    legend: { data: [ncLabel, countLabel], bottom: 0, textStyle: { fontSize: 11 } },
+    tooltip: { trigger: 'axis', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
+    legend: { data: [ncLabel, countLabel], bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
     grid: { left: '4%', right: '4%', bottom: '18%', top: '10%', containLabel: true },
     xAxis: {
       type: 'category',
       data: daily.map((d) => String(d.date).slice(5)),
-      axisLabel: { fontSize: 10, color: '#64748b' },
+      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel },
     },
     yAxis: [
-      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#64748b' } },
+      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: chartInk.value.axisLabel } },
       {
         type: 'value', name: countLabel, minInterval: 1,
-        axisLabel: { color: '#94a3b8' }, splitLine: { show: false },
+        axisLabel: { color: chartInk.value.axisLabelMinor }, splitLine: { show: false },
       },
     ],
     series: [
@@ -683,6 +707,9 @@ const algoBreakdownOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
+      backgroundColor: chartInk.value.tooltipBg,
+      borderColor: chartInk.value.tooltipBorder,
+      textStyle: { color: chartInk.value.tooltipText },
       formatter: (params) => {
         const alg = params?.[0]?.axisValue
         const row = rows.find((r) => r.algorithm === alg)
@@ -694,16 +721,16 @@ const algoBreakdownOption = computed(() => {
         ].join('<br/>')
       },
     },
-    legend: { data: [countLabel, ncLabel], bottom: 0, textStyle: { fontSize: 11 } },
+    legend: { data: [countLabel, ncLabel], bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
     grid: { left: '4%', right: '4%', bottom: '18%', top: '12%', containLabel: true },
     xAxis: {
       type: 'category',
       data: rows.map((r) => r.algorithm),
-      axisLabel: { color: '#64748b' },
+      axisLabel: { color: chartInk.value.axisLabel },
     },
     yAxis: [
-      { type: 'value', name: countLabel, minInterval: 1, axisLabel: { color: '#64748b' } },
-      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: '#94a3b8' }, splitLine: { show: false } },
+      { type: 'value', name: countLabel, minInterval: 1, axisLabel: { color: chartInk.value.axisLabel } },
+      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: chartInk.value.axisLabelMinor }, splitLine: { show: false } },
     ],
     series: [
       {
@@ -735,14 +762,14 @@ const dataTypeLabel = (dt) => {
 const hasShare = computed(() =>
   (vStats.value?.total || 0) > 0 && (vStats.value?.by_data_type || []).length > 0)
 const verificationShareOption = computed(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
-  legend: { bottom: 0, textStyle: { fontSize: 11 } },
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
+  legend: { bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
   series: [{
     type: 'pie',
     radius: ['50%', '72%'],
     center: ['50%', '44%'],
-    itemStyle: { borderRadius: 6, borderColor: '#fff', borderWidth: 2 },
-    label: { formatter: '{b}\n{d}%', fontSize: 11, color: '#475569' },
+    itemStyle: { borderRadius: 6, borderColor: chartInk.value.pieBorder, borderWidth: 2 },
+    label: { formatter: '{b}\n{d}%', fontSize: 11, color: chartInk.value.chartLabel },
     data: (vStats.value?.by_data_type || []).map((d) => ({
       name: dataTypeLabel(d.data_type),
       value: d.count,
@@ -760,13 +787,13 @@ const deliveryHealthOption = computed(() => {
   const d = dStats.value || {}
   const anchor = d.anchor || {}
   return {
-    tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)' },
-    legend: { bottom: 0, textStyle: { fontSize: 11 } },
+    tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
+    legend: { bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
     series: [
       {
         name: t('watermarkQuality.ringInner'), type: 'pie',
         radius: ['38%', '58%'], center: ['50%', '44%'],
-        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderColor: chartInk.value.pieBorder, borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: (d.by_status || []).map((s) => ({
           name: s.status, value: s.count,
@@ -776,7 +803,7 @@ const deliveryHealthOption = computed(() => {
       {
         name: t('watermarkQuality.ringOuter'), type: 'pie',
         radius: ['64%', '84%'], center: ['50%', '44%'],
-        itemStyle: { borderColor: '#fff', borderWidth: 2 },
+        itemStyle: { borderColor: chartInk.value.pieBorder, borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: [
           { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: '#0ea5e9' } },
@@ -823,7 +850,7 @@ const chainPct = computed(() => {
   return Math.round((d.chain_valid_count / d.chain_checked) * 100)
 })
 const chainRingStyle = computed(() => ({
-  background: `conic-gradient(${chainPct.value >= 100 ? '#10b981' : '#f59e0b'} ${chainPct.value}%, #e2e8f0 0)`,
+  background: `conic-gradient(${chainPct.value >= 100 ? '#10b981' : '#f59e0b'} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
 }))
 const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
 const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
@@ -1061,7 +1088,7 @@ onMounted(() => {
   gap: 14px;
   height: 100%;
   padding: 18px 16px;
-  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  background: linear-gradient(135deg, var(--bg-primary, #ffffff) 0%, var(--bg-secondary, #f8fafc) 100%);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: var(--radius-lg, 14px);
 }
@@ -1231,9 +1258,9 @@ onMounted(() => {
   height: 100%;
   margin-bottom: 16px;
   padding: 16px;
-  background: #f8fafc;
+  background: var(--bg-secondary, #f8fafc);
   border-radius: 10px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-color, #e2e8f0);
 }
 
 .metric-bar {
@@ -1287,11 +1314,11 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.metric-range { font-size: 12px; color: #64748b; }
+.metric-range { font-size: 12px; color: var(--text-secondary, #64748b); }
 
 .metric-desc {
   font-size: 13px;
-  color: #475569;
+  color: var(--text-secondary, #475569);
   margin: 0;
   line-height: 1.6;
 }
@@ -1318,9 +1345,9 @@ onMounted(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.nc-good { background: rgba(16, 185, 129, 0.12); color: #047857; }
-.nc-mid { background: rgba(245, 158, 11, 0.14); color: #b45309; }
-.nc-bad { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+.nc-good { background: var(--tint-success-bg, rgba(16, 185, 129, 0.12)); color: var(--tint-success-text, #047857); }
+.nc-mid { background: var(--tint-warning-bg, rgba(245, 158, 11, 0.14)); color: var(--tint-warning-text, #b45309); }
+.nc-bad { background: var(--tint-danger-bg, rgba(239, 68, 68, 0.12)); color: var(--tint-danger-text, #b91c1c); }
 
 .decode-ok { color: #10b981; font-weight: 700; }
 .decode-bad { color: #ef4444; font-weight: 700; }
@@ -1348,8 +1375,8 @@ onMounted(() => {
   margin-top: 20px;
   padding: 18px;
   border-radius: var(--radius-md, 10px);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.06), rgba(14, 165, 233, 0.08));
+  border: 1px solid var(--tint-info-border, rgba(59, 130, 246, 0.25));
+  background: linear-gradient(135deg, var(--tint-info-bg, rgba(59, 130, 246, 0.06)), rgba(14, 165, 233, 0.08));
 }
 
 .dqim-head {
@@ -1372,7 +1399,7 @@ onMounted(() => {
 .dqim-desc {
   font-size: 13px;
   line-height: 1.7;
-  color: #475569;
+  color: var(--text-secondary, #475569);
   margin: 10px 0 14px;
 }
 
@@ -1383,7 +1410,7 @@ onMounted(() => {
   flex-direction: column;
   min-width: 150px;
   padding: 10px 16px;
-  background: #fff;
+  background: var(--bg-primary, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
 }
@@ -1421,7 +1448,7 @@ onMounted(() => {
   width: 104px;
   height: 104px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--bg-primary, #fff);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1459,7 +1486,7 @@ onMounted(() => {
   align-items: center;
   min-width: 110px;
   padding: 12px 20px;
-  background: #fff;
+  background: var(--bg-primary, #fff);
   border: 1px solid var(--border-color, #e2e8f0);
   border-radius: 10px;
 }

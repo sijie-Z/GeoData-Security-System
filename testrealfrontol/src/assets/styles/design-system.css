@@ -57,10 +57,13 @@
   /* Semantic tints（状态浅底：成功 / 失败 / 告警 / 信息 / 中性） */
   --tint-success-bg: #f0f9eb;
   --tint-success-border: #e1f3d8;
+  --tint-success-text: #047857;
   --tint-danger-bg: #fef0f0;
   --tint-danger-border: #fde2e2;
+  --tint-danger-text: #b91c1c;
   --tint-warning-bg: #fdf6ec;
   --tint-warning-border: #faecd8;
+  --tint-warning-text: #b45309;
   --tint-info-bg: #ecf5ff;
   --tint-info-border: #d9ecff;
   --tint-neutral-bg: #f4f4f5;
@@ -169,10 +172,13 @@ html.dark {
   /* Semantic tints（深色下改为低透明度彩色底） */
   --tint-success-bg: rgba(16, 185, 129, 0.12);
   --tint-success-border: rgba(16, 185, 129, 0.32);
+  --tint-success-text: #34d399;
   --tint-danger-bg: rgba(239, 68, 68, 0.12);
   --tint-danger-border: rgba(239, 68, 68, 0.32);
+  --tint-danger-text: #f87171;
   --tint-warning-bg: rgba(245, 158, 11, 0.12);
   --tint-warning-border: rgba(245, 158, 11, 0.32);
+  --tint-warning-text: #fbbf24;
   --tint-info-bg: rgba(59, 130, 246, 0.12);
   --tint-info-border: rgba(59, 130, 246, 0.32);
   --tint-neutral-bg: rgba(255, 255, 255, 0.06);
