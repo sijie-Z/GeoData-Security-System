@@ -230,6 +230,17 @@ def create_app():
 
     _bootstrap_runtime_schema(app)
 
+    # v3 signing key bootstrap — never blocks startup (missing tables on an old
+    # database degrade to a warning; run migrate_add_columns.py to fix).
+    try:
+        from crypto.keys import ensure_active_key, keyinfo
+
+        with app.app_context():
+            ensure_active_key()
+            app.logger.info("v3 signing key ready: %s", keyinfo())
+    except Exception as e:
+        app.logger.warning("v3 signing key unavailable (%s) — 请先跑 migrate_add_columns.py", e)
+
     # Initialize Redis cache
     from utils.cache import init_cache
 
@@ -412,6 +423,14 @@ def create_app():
         RequestDownloadTokenResource,
         TokenDownloadResource,
     )
+    from resource.forensics_resource import (
+        ForensicsAnchorBuildResource,
+        ForensicsDeliveriesResource,
+        ForensicsDeliveryDetailResource,
+        ForensicsKeyInfoResource,
+        ForensicsTraceResource,
+        ForensicsVerifyResource,
+    )
     from resource.log_resource import SystemLogResource
     from resource.nav_resource import NavListResource, NavTreeResource
     from resource.profile_resource import EmployeePasswordResource, EmployeePhotoResource, EmployeeProfileResource
@@ -564,6 +583,15 @@ def create_app():
     api.add_resource(RecordDownloadResource, "/api/record_download_file")
     api.add_resource(RequestDownloadTokenResource, "/api/request_download_token")
     api.add_resource(TokenDownloadResource, "/api/download/<string:download_token>")
+
+    # Forensics（v3 交付取证）
+    api.add_resource(ForensicsVerifyResource, "/api/forensics/verify")
+    api.add_resource(ForensicsTraceResource, "/api/forensics/trace")
+    api.add_resource(ForensicsDeliveriesResource, "/api/forensics/deliveries")
+    api.add_resource(ForensicsDeliveryDetailResource, "/api/forensics/deliveries/<string:delivery_uuid>")
+    api.add_resource(ForensicsAnchorBuildResource, "/api/forensics/anchor/build")
+    api.add_resource(ForensicsKeyInfoResource, "/api/forensics/keyinfo")
+
     api.add_resource(ShpDataUploadResource, "/api/upload_shp_data")
     api.add_resource(RasterDataUploadResource, "/api/upload_raster_data")
     api.add_resource(GeoServerPublishResource, "/api/geoserver/publish")

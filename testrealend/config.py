@@ -16,6 +16,8 @@ class Config:
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.join(DATA_DIR, "upload_folder"))
     WATERMARK_FOLDER = os.environ.get("WATERMARK_FOLDER", os.path.join(DATA_DIR, "watermark_folder"))
     EXTRACTED_FOLDER = os.environ.get("EXTRACTED_FOLDER", os.path.join(DATA_DIR, "extracted_folder"))
+    # v3 personalized delivery artifacts (one <uuid>/ subfolder per delivery)
+    DELIVERY_FOLDER = os.environ.get("DELIVERY_FOLDER", os.path.join(WATERMARK_FOLDER, "deliveries"))
 
     # Database (MySQL for business data, PostgreSQL for spatial data)
     SQLALCHEMY_DATABASE_URI = os.environ.get(

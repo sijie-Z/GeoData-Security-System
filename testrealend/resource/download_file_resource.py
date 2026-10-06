@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import zipfile
@@ -7,9 +8,11 @@ from flask import current_app, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 
+from delivery.service import get_or_create_for_token, record_download_event
 from extension.extension import db, limiter
 from model.Application import Application
 from model.Download_Record import DownloadRecord
+from model.download_delivery import DownloadDelivery
 from model.download_token import DownloadToken
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
@@ -92,6 +95,24 @@ def _resolve_download_file(app):
             continue
         return resolved
     return None
+
+
+def _write_download_record(app, token_record, filename):
+    """Server-side DownloadRecord for a completed token download (v3 audit trail)."""
+    record = DownloadRecord(
+        application_id=app.id,
+        delivery_id=token_record.delivery_id,
+        data_id=app.data_id,
+        data_name=app.data_name or "",
+        download_user_number=token_record.user_number,
+        download_time=datetime.now(UTC),
+        download_ip=request.remote_addr,
+        applicant_user_number=app.applicant_user_number,
+        filename=filename,
+        timestamp=datetime.now(UTC),
+    )
+    db.session.add(record)
+    db.session.commit()
 
 
 class EmpDownloadZipResource(Resource):
@@ -183,9 +204,10 @@ class RequestDownloadTokenResource(Resource):
           properties:
             application_id: {type: integer, description: 申请编号}
     responses:
-      201: {description: 令牌创建成功}
-      403: {description: 申请未通过审批或数据已回收}
+      200: {description: 令牌创建或复用成功（含个性化交付信息）}
+      403: {description: 申请未通过审批、数据已回收或已禁用下载}
       404: {description: 申请不存在}
+      500: {description: 个性化交付生成失败}
     """
 
     @jwt_required()
@@ -206,24 +228,36 @@ class RequestDownloadTokenResource(Resource):
             return {"status": False, "msg": "该申请尚未通过审批"}, 403
         if app.is_recalled:
             return {"status": False, "msg": "该数据已被回收"}, 403
+        if not app.download_enabled:
+            return {"status": False, "msg": "该数据已被禁用下载"}, 403
 
-        existing = (
-            DownloadToken.query.filter_by(application_id=app_id, user_number=user_number, is_used=False)
-            .filter(DownloadToken.expires_at > datetime.now(UTC))
-            .first()
+        try:
+            token, delivery, reused = get_or_create_for_token(app, user_number)
+        except Exception as e:
+            logging.error("personalize delivery failed for application %s: %s", app_id, e, exc_info=True)
+            return {"status": False, "msg": f"个性化交付生成失败: {e}"}, 500
+
+        log_action(
+            user_number,
+            identity.get("username", "unknown"),
+            "下载令牌申请",
+            "成功",
+            f"app_id={app_id} delivery={delivery.uuid} reused={reused}",
         )
-        if existing:
-            return {"status": True, "token": existing.token, "expires_at": existing.expires_at.isoformat()}, 200
 
-        token = DownloadToken(
-            application_id=app_id, user_number=user_number, expires_at=datetime.now(UTC) + timedelta(hours=1)
-        )
-        db.session.add(token)
-        db.session.commit()
-
-        log_action(user_number, identity.get("username", "unknown"), "下载令牌申请", "成功", f"app_id={app_id}")
-
-        return {"status": True, "token": token.token, "expires_at": token.expires_at.isoformat()}, 201
+        return {
+            "status": True,
+            "token": token.token,
+            "expires_at": token.expires_at.isoformat(),
+            "reused": reused,
+            "delivery": {
+                "uuid": delivery.uuid,
+                "fingerprint_id": delivery.fingerprint_id,
+                "status": "READY",
+                "created_at": delivery.created_at.isoformat() if delivery.created_at else None,
+                "artifact_root": delivery.artifact_root,
+            },
+        }, 200
 
 
 class TokenDownloadResource(Resource):
@@ -239,8 +273,8 @@ class TokenDownloadResource(Resource):
         description: 下载令牌
     responses:
       200: {description: 返回数据文件}
-      403: {description: 令牌已使用或已过期}
-      404: {description: 令牌无效或文件不存在}
+      403: {description: 令牌已使用、已过期或数据已被回收}
+      404: {description: 令牌无效、交付未就绪或文件不存在}
     """
 
     @limiter.limit("30 per minute")
@@ -262,16 +296,54 @@ class TokenDownloadResource(Resource):
         app = db.session.get(Application, token_record.application_id)
         if not app:
             return {"status": False, "msg": "申请不存在"}, 404
+        if app.is_recalled:
+            return {"status": False, "msg": "数据已被回收"}, 403
 
+        if token_record.delivery_id is not None:
+            return self._deliver_personalized(token_record, app)
+        return self._deliver_legacy(token_record, app)
+
+    def _deliver_personalized(self, token_record, app):
+        """v3 branch: serve the personalized artifact and write the audit trail."""
+        delivery = db.session.get(DownloadDelivery, token_record.delivery_id)
+        if delivery is None or delivery.status != "READY":
+            return {"status": False, "msg": "交付不存在或尚未就绪"}, 404
+        file_path = _resolve_existing_path(delivery.artifact_path)
+        if not file_path or not os.path.isfile(file_path):
+            return {"status": False, "msg": "文件不存在"}, 404
+        if os.path.splitext(file_path)[1].lower() == ".shp":
+            zipped = _zip_shp_bundle(file_path)
+            if zipped:
+                file_path = zipped
+
+        download_name = os.path.basename(file_path)
+        token_record.is_used = True
+        db.session.commit()
+        _write_download_record(app, token_record, download_name)
+        # DownloadCompleted evidence — best effort, never blocks the download.
+        try:
+            record_download_event(delivery, request.remote_addr, download_name, token_record.token[:8])
+        except Exception:
+            logging.warning("download evidence event failed for delivery %s", delivery.uuid, exc_info=True)
+        log_action(
+            token_record.user_number,
+            "",
+            "令牌下载",
+            "成功",
+            f"app_id={app.id} delivery={delivery.uuid} token={token_record.token[:8]}...",
+        )
+        return send_file(file_path, as_attachment=True, download_name=download_name)
+
+    def _deliver_legacy(self, token_record, app):
+        """Legacy branch (delivery_id NULL): old resolution path + audit trail."""
         file_path = _resolve_download_file(app)
         if file_path and os.path.exists(file_path):
             token_record.is_used = True
             db.session.commit()
-
+            download_name = os.path.basename(file_path)
+            _write_download_record(app, token_record, download_name)
             log_action(
-                token_record.user_number, "", "令牌下载", "成功", f"app_id={app.id} token={download_token[:8]}..."
+                token_record.user_number, "", "令牌下载", "成功", f"app_id={app.id} token={token_record.token[:8]}..."
             )
-
-            return send_file(file_path, as_attachment=True, download_name=os.path.basename(file_path))
-
+            return send_file(file_path, as_attachment=True, download_name=download_name)
         return {"status": False, "msg": "文件不存在"}, 404

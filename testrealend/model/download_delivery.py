@@ -21,6 +21,8 @@ class DownloadDelivery(db.Model):
     algorithm = db.Column(db.String(32), nullable=True)
     artifact_path = db.Column(db.String(512), nullable=True)
     artifact_root = db.Column(db.String(64), nullable=True)
+    vr_data = db.Column(db.Text, nullable=True)
+    artifact_meta_path = db.Column(db.String(512), nullable=True)
     error = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     ready_at = db.Column(db.DateTime, nullable=True)
@@ -44,6 +46,8 @@ class DownloadDelivery(db.Model):
             "algorithm": self.algorithm,
             "artifact_path": self.artifact_path,
             "artifact_root": self.artifact_root,
+            "vr_data": self.vr_data,
+            "artifact_meta_path": self.artifact_meta_path,
             "error": self.error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "ready_at": self.ready_at.isoformat() if self.ready_at else None,
