@@ -53,6 +53,11 @@
         <template #title>{{ $t('sidebar.admin.watermarkQuality') }}</template>
       </el-menu-item>
 
+      <el-menu-item index="/admin/forensics">
+        <el-icon><Search /></el-icon>
+        <template #title>{{ $t('sidebar.admin.forensics') }}</template>
+      </el-menu-item>
+
       <el-sub-menu index="data">
         <template #title>
           <el-icon><Folder /></el-icon>
@@ -91,7 +96,7 @@
 import { defineProps } from 'vue'
 import {
   HomeFilled, User, DocumentChecked, Setting,
-  Picture, Folder, Aim, DataAnalysis
+  Picture, Folder, Aim, DataAnalysis, Search
 } from '@element-plus/icons-vue'
 
 defineProps({
