@@ -465,6 +465,7 @@ def create_app():
         RecallVoteResource,
     )
     from resource.robustness_resource import (
+        RobustnessAttacksMetaResource,
         RobustnessRunDetailResource,
         RobustnessRunResource,
         RobustnessRunsResource,
@@ -587,6 +588,8 @@ def create_app():
     api.add_resource(RobustnessRunResource, "/api/robustness/run")
     api.add_resource(RobustnessRunsResource, "/api/robustness/runs")
     api.add_resource(RobustnessRunDetailResource, "/api/robustness/runs/<string:run_id>")
+    # 攻击源码元数据（lab v2 源码抽屉：只读，只暴露攻击函数本体）
+    api.add_resource(RobustnessAttacksMetaResource, "/api/robustness/attacks/meta")
 
     # Raster
     api.add_resource(Adm1GetRasterApplicationsGenerateWatermark, "/api/adm1_get_raster_applications_generate_watermark")

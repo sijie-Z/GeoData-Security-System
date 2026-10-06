@@ -28,6 +28,7 @@ Discipline:
     instead of leaving them looking "running" forever.
 """
 
+import inspect
 import logging
 import os
 import secrets
@@ -46,11 +47,17 @@ from algorithm.robustness import (
     RASTER_ATTACK_DEFAULTS,
     RASTER_ATTACKS,
     RASTER_SCHEMES,
+    attack_noise,
+    attack_scale,
+    attack_simplify,
+    attack_translate,
+    attack_vertex_drop,
     make_host_tif,
     render_raster_payload_qr,
     run_matrix,
     run_raster_matrix,
 )
+from algorithm.robustness_raster import r_blur, r_crop, r_jpeg, r_noise, r_resize, r_rotate
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
 from delivery.service import _classify_base, _resolve_existing_path
@@ -506,3 +513,79 @@ class RobustnessRunDetailResource(Resource):
                 "rows": [row.to_dict() for row in rows],
             },
         }, 200
+
+
+# --------------------------------------------------------------------------- #
+# attack source metadata (feat_lab_v2)                                         #
+# --------------------------------------------------------------------------- #
+
+# Registries for the UI's "view attack code" drawer. Only the attack functions
+# themselves (their real source, via inspect.getsource) and their documented
+# default parameters are exposed — never embedding/extraction code or key
+# material. ``none`` maps to no function: it is the baseline branch, and its
+# entry explains that instead of pretending to be a function.
+_VECTOR_ATTACK_FUNCTIONS = {
+    "translate": attack_translate,
+    "scale": attack_scale,
+    "vertex_drop": attack_vertex_drop,
+    "noise": attack_noise,
+    "simplify": attack_simplify,
+}
+_RASTER_ATTACK_FUNCTIONS = {
+    "jpeg": r_jpeg,
+    "resize": r_resize,
+    "crop": r_crop,
+    "rotate": r_rotate,
+    "noise": r_noise,
+    "blur": r_blur,
+}
+
+# Honest placeholder for the "none" cell: there is no attack function to show,
+# so the drawer explains the actual baseline behavior instead.
+_NONE_ATTACK_CODE = (
+    "# 无攻击（基准）：“none” 不调用任何攻击函数——\n"
+    "# 嵌入后的数据原样进入提取 / 解码流程，作为整行矩阵的对照基准\n"
+    '# （见引擎中 attack == "none" 的分支）。\n'
+    "# Baseline: no attack runs; the embedded data goes to extraction as-is.\n"
+)
+
+
+def _attack_meta_entry(name, params_default, fn):
+    """One drawer entry: name + documented defaults + the real function source."""
+    if fn is None:
+        description = "Baseline: the embedded data is extracted and decoded without any attack."
+        code = _NONE_ATTACK_CODE
+    else:
+        description = (fn.__doc__ or "").strip().splitlines()[0]
+        code = inspect.getsource(fn)
+    return {
+        "name": name,
+        "params_default": dict(params_default or {}),
+        "description": description,
+        "code": code,
+    }
+
+
+class RobustnessAttacksMetaResource(Resource):
+    """GET /api/robustness/attacks/meta — attack functions' real source (admin).
+
+    Read-only feed for the lab's "view attack code" drawer: for every attack of
+    both kinds it returns the documented default parameters and the *actual*
+    source of the attack function the experiment executes (``inspect.getsource``
+    of ``algorithm/robustness.py`` / ``algorithm/robustness_raster.py``). The
+    ``none`` baseline has no function and carries an explanatory stub instead.
+    Only attack functions are exposed — embedding/extraction and key material
+    are never part of any snippet.
+    """
+
+    @admin_required
+    def get(self):
+        vector = [
+            _attack_meta_entry(name, ATTACK_DEFAULTS.get(name, {}), _VECTOR_ATTACK_FUNCTIONS.get(name))
+            for name in ALLOWED_ATTACKS
+        ]
+        raster = [
+            _attack_meta_entry(name, RASTER_ATTACK_DEFAULTS.get(name, {}), _RASTER_ATTACK_FUNCTIONS.get(name))
+            for name in RASTER_ATTACKS
+        ]
+        return {"status": True, "vector": vector, "raster": raster}, 200

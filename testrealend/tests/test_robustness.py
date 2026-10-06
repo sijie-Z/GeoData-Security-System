@@ -429,3 +429,50 @@ class TestRobustnessApi:
     def test_run_endpoint_requires_admin(self, client, db):
         resp = client.post("/api/robustness/run", json={"data_id": 1})
         assert resp.status_code in (401, 403)
+
+
+# =========================================================================== #
+# Attack source metadata (feat_lab_v2 — the "view attack code" drawer feed)    #
+# =========================================================================== #
+
+
+class TestAttacksMetaApi:
+    """GET /api/robustness/attacks/meta — read-only attack-function sources."""
+
+    def test_meta_requires_admin(self, client, db):
+        resp = client.get("/api/robustness/attacks/meta")
+        assert resp.status_code in (401, 403)
+
+    def test_meta_rejects_employee(self, client, db, employee_headers):
+        resp = client.get("/api/robustness/attacks/meta", headers=employee_headers)
+        assert resp.status_code == 403
+
+    def test_meta_returns_attack_sources(self, client, db, auth_headers):
+        resp = client.get("/api/robustness/attacks/meta", headers=auth_headers)
+        assert resp.status_code == 200
+        body = resp.get_json()
+        assert body["status"] is True
+
+        vector = {entry["name"]: entry for entry in body["vector"]}
+        raster = {entry["name"]: entry for entry in body["raster"]}
+        assert set(vector) == {"none", "translate", "scale", "vertex_drop", "noise", "simplify"}
+        assert set(raster) == {"none", "jpeg", "resize", "crop", "rotate", "noise", "blur"}
+
+        # Every attack carries a non-empty code string; real functions expose
+        # their genuine def line, the "none" baseline carries the honest stub.
+        for entry in [*body["vector"], *body["raster"]]:
+            assert isinstance(entry["code"], str) and entry["code"].strip()
+        assert "def attack_translate" in vector["translate"]["code"]
+        assert "def attack_noise" in vector["noise"]["code"]
+        assert "np.random.default_rng" in vector["noise"]["code"]
+        assert "def r_jpeg" in raster["jpeg"]["code"]
+        assert "attack_none" not in vector["none"]["code"]
+
+        # Documented default parameters ride along for the drawer title.
+        assert vector["translate"]["params_default"] == {"dx": 0.005, "dy": 0.003}
+        assert raster["jpeg"]["params_default"] == {"quality": 70}
+
+        # Secret-material guard: no embedding/key logic may leak into snippets.
+        banned = ("private_key", "SECRET_KEY", "ensure_active_key", "build_qr_v2_text", "embed_dqim")
+        for entry in [*body["vector"], *body["raster"]]:
+            assert not any(token in entry["code"] for token in banned), entry["name"]
