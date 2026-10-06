@@ -47,9 +47,7 @@ class OpenTimestampsProvider(AnchorProvider):
     def submit(self, root_hex: str) -> dict:
         try:
             # Tight connect timeout: a DNS/connect stall must not pin a worker.
-            response = httpx.post(
-                self.url, content=bytes.fromhex(root_hex), timeout=httpx.Timeout(5.0, connect=2.0)
-            )
+            response = httpx.post(self.url, content=bytes.fromhex(root_hex), timeout=httpx.Timeout(5.0, connect=2.0))
             response.raise_for_status()
             return {"status": "SUBMITTED", "proof_bytes": response.content, "error": None}
         except Exception as e:

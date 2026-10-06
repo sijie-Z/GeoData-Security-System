@@ -308,11 +308,7 @@ class TestDownloadWiringHardening:
         assert dl.status_code == 200
         assert dl.data == b"LEGACY-PAYLOAD"
 
-        record = (
-            DownloadRecord.query.filter_by(application_id=item.id)
-            .order_by(DownloadRecord.id.desc())
-            .first()
-        )
+        record = DownloadRecord.query.filter_by(application_id=item.id).order_by(DownloadRecord.id.desc()).first()
         assert record is not None, "server-side DownloadRecord missing for legacy branch"
         assert record.delivery_id is None
         assert record.filename == "legacy.bin"
@@ -420,9 +416,7 @@ class TestDownloadWiringHardening:
         assert "顶点预算不足" in (row.error or "")
         assert not (folder / row.uuid).exists(), "orphan product directory was not cleaned up"
 
-    def test_capacity_report_missing_needed_fails_closed(
-        self, db, client, employee_headers, tmp_path, monkeypatch
-    ):
+    def test_capacity_report_missing_needed_fails_closed(self, db, client, employee_headers, tmp_path, monkeypatch):
         """Item 6: a missing needed_chunks must fail the delivery, not pass silently."""
         folder = tmp_path / "deliveries"
         monkeypatch.setitem(client.application.config, "DELIVERY_FOLDER", str(folder))
