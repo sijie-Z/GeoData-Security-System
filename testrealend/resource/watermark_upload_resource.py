@@ -15,7 +15,7 @@ from PIL import Image
 from werkzeug.utils import secure_filename
 
 from algorithm.embed import embed as vector_embed
-from algorithm.quality_metrics import compute_nc, compute_psnr
+from algorithm.quality_metrics import compute_ber, compute_nc, compute_psnr, compute_ssim_simple
 from algorithm.raster_reversible_watermark import embed_reversible
 from extension.extension import db
 from model.Application import Application
@@ -29,6 +29,12 @@ from resource.watermark_utils import (
 from utils.log_helper import log_action
 from utils.metrics import record_watermark
 from utils.required import admin_required
+
+
+def _optional_form(name, max_len):
+    """Optional form field → trimmed value or None, clamped to the column length."""
+    value = (request.form.get(name) or "").strip()
+    return value[:max_len] if value else None
 
 
 class UploadOriginalWatermarkResource(Resource):
@@ -107,13 +113,29 @@ class UploadExtractedWatermarkResource(Resource):
                     orig_bits = (np.array(original_img) > 127).astype(int).flatten()
                     extr_bits = (np.array(extracted_img) > 127).astype(int).flatten()
                     nc_value = compute_nc(orig_bits, extr_bits)
+                    # Real quality metrics alongside NC: BER over the binarized
+                    # bit arrays, SSIM between the two watermark images.
+                    ber_value = compute_ber(orig_bits, extr_bits)
+                    ssim_value = None
+                    try:
+                        ssim_value = round(compute_ssim_simple(original_img, extracted_img), 6)
+                    except Exception as e:
+                        logging.warning("SSIM computation failed: %s", e)
 
-                    # Persist verification
+                    # Persist verification. psnr stays NULL here: this handler
+                    # only sees the two watermark images, not the host/stego
+                    # pair a PSNR would compare.
                     verification = WatermarkVerification(
                         application_id=app_id,
                         data_id=item.data_id,
                         data_type=item.data_type or "vector",
                         nc_value=round(nc_value, 6),
+                        algorithm=_optional_form("algorithm", 32),
+                        ssim=ssim_value,
+                        ber=round(ber_value, 6),
+                        delivery_uuid=_optional_form("delivery_uuid", 36),
+                        fingerprint_id=_optional_form("fingerprint_id", 32),
+                        host_type=_optional_form("host_type", 16),
                         original_hash=hashlib.sha256(item.qrcode.encode()).hexdigest(),
                         extracted_hash=hashlib.sha256(
                             base64.b64encode(open(save_path, "rb").read()).decode().encode()
@@ -191,6 +213,15 @@ class UploadOriAndExtWatermarkResource(Resource):
             ori_arr = (np.array(ori_img) > 127).astype(np.uint8)
             ext_arr = (np.array(ext_img) > 127).astype(np.uint8)
             nc_value = float((ori_arr == ext_arr).sum() / ori_arr.size)
+            # Real quality metrics alongside NC. compute_ber/SSIM work on the
+            # flat bit arrays / watermark images; psnr stays NULL (no
+            # host/stego pair available in this handler).
+            ber_value = compute_ber(ori_arr.flatten(), ext_arr.flatten())
+            ssim_value = None
+            try:
+                ssim_value = round(compute_ssim_simple(ori_img, ext_img), 6)
+            except Exception as e:
+                logging.warning("SSIM computation failed: %s", e)
 
             original_file.stream.seek(0)
             extracted_file.stream.seek(0)
@@ -204,6 +235,12 @@ class UploadOriAndExtWatermarkResource(Resource):
                 application_id=app_id,
                 data_type=data_type or "vector",
                 nc_value=round(nc_value, 6),
+                algorithm=_optional_form("algorithm", 32),
+                ssim=ssim_value,
+                ber=round(ber_value, 6),
+                delivery_uuid=_optional_form("delivery_uuid", 36),
+                fingerprint_id=_optional_form("fingerprint_id", 32),
+                host_type=_optional_form("host_type", 16),
                 original_hash=hashlib.sha256(ori_b64.encode()).hexdigest(),
                 extracted_hash=hashlib.sha256(ext_b64.encode()).hexdigest(),
                 verified_by=identity.get("number", "unknown"),

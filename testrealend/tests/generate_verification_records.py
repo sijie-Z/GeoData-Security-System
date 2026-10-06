@@ -1,8 +1,9 @@
 """Generate real verification records from existing applications.
 
 Takes the last N applications, runs the full embed→extract→verify
-pipeline on their associated data files, computes NC/BER, and writes
-WatermarkVerification records to the database.
+pipeline on their associated data files, computes NC/BER (+ psnr/ssim
+and the algorithm name), and writes WatermarkVerification records to
+the database.
 """
 
 import hashlib
@@ -84,6 +85,32 @@ def ber(a, b):
     return float(np.sum(a[:n] != b[:n]) / n)
 
 
+def _quality_metrics(orig_img, ext_img, embed_result):
+    """Extra metrics for the verification record.
+
+    psnr is taken from the embed result when the embedding algorithm reports
+    one (the raster pipeline does); the vector pipeline reports none, so it
+    stays None there. ssim is computed between the original QR image and the
+    extracted watermark image (resized to match).
+    """
+    from algorithm.quality_metrics import compute_ssim_simple
+
+    psnr_val = None
+    try:
+        raw_psnr = embed_result.get("psnr") if embed_result else None
+        psnr_val = round(float(raw_psnr), 4) if raw_psnr is not None else None
+    except (TypeError, ValueError):
+        psnr_val = None
+    ssim_val = None
+    try:
+        if ext_img.size != orig_img.size:
+            ext_img = ext_img.resize(orig_img.size)
+        ssim_val = round(compute_ssim_simple(orig_img.convert("L"), ext_img.convert("L")), 6)
+    except Exception as e:
+        print(f"    SSIM computation failed: {e}")
+    return psnr_val, ssim_val
+
+
 def compute_hash(img_or_path):
     """SHA256 hash of image pixels."""
     if isinstance(img_or_path, str):
@@ -140,7 +167,11 @@ def generate_qr_image(app_item):
 
 
 def run_verification_for_app(app_item, data_record, tmp_dir):
-    """Run embed+extract for one application, return (nc_value, ber_value, orig_hash, extract_hash)."""
+    """Run embed+extract for one application.
+
+    Returns a dict with nc/ber/orig_hash/ext_hash plus psnr/ssim/algorithm for
+    the verification record, or None when the data file is missing/failed.
+    """
     data_path = None
     if app_item.data_type == "vector":
         data_path = getattr(data_record, "shp_file_path", None)
@@ -157,10 +188,8 @@ def run_verification_for_app(app_item, data_record, tmp_dir):
 
     try:
         if app_item.data_type == "vector":
-            nc_val, ber_val, orig_h, ext_h = _verify_vector(data_path, qr_img, qr_size, tmp_dir)
-        else:
-            nc_val, ber_val, orig_h, ext_h = _verify_raster(data_path, qr_img, qr_size, tmp_dir)
-        return nc_val, ber_val, orig_h, ext_h
+            return _verify_vector(data_path, qr_img, qr_size, tmp_dir)
+        return _verify_raster(data_path, qr_img, qr_size, tmp_dir)
     except Exception as e:
         import traceback
 
@@ -206,8 +235,17 @@ def _verify_vector(shp_path, qr_img, qr_size, tmp_dir):
     ber_val = round(ber(orig_bits, ext_bits), 6)
     orig_h = compute_hash(qr_img)
     ext_h = compute_hash(ext_img)
+    psnr_val, ssim_val = _quality_metrics(qr_img, ext_img, result)
 
-    return nc_val, ber_val, orig_h, ext_h
+    return {
+        "nc": nc_val,
+        "ber": ber_val,
+        "orig_hash": orig_h,
+        "ext_hash": ext_h,
+        "psnr": psnr_val,
+        "ssim": ssim_val,
+        "algorithm": "vector",
+    }
 
 
 def _verify_raster(raster_path, qr_img, qr_size, tmp_dir):
@@ -232,8 +270,17 @@ def _verify_raster(raster_path, qr_img, qr_size, tmp_dir):
     ber_val = round(ber(orig_bits, ext_bits), 6)
     orig_h = compute_hash(qr_img)
     ext_h = compute_hash(ext_img)
+    psnr_val, ssim_val = _quality_metrics(qr_img, ext_img, result)
 
-    return nc_val, ber_val, orig_h, ext_h
+    return {
+        "nc": nc_val,
+        "ber": ber_val,
+        "orig_hash": orig_h,
+        "ext_hash": ext_h,
+        "psnr": psnr_val,
+        "ssim": ssim_val,
+        "algorithm": "LSB",
+    }
 
 
 def _find_best_data(app_item, prefer_idx):
@@ -295,16 +342,22 @@ def main():
                 print(f"  Using: {data.name} ({data_path})")
                 result = run_verification_for_app(a, data, tmp_dir)
                 if result:
-                    nc_val, ber_val, orig_h, ext_h = result
-                    print(f"  RESULT: NC={nc_val:.4f}, BER={ber_val:.4f}")
+                    print(
+                        f"  RESULT: NC={result['nc']:.4f}, BER={result['ber']:.4f}, "
+                        f"algorithm={result['algorithm']}, psnr={result['psnr']}, ssim={result['ssim']}"
+                    )
 
                     record = WatermarkVerification(
                         application_id=a.id,
                         data_id=data.id,
                         data_type=a.data_type or "vector",
-                        nc_value=nc_val,
-                        original_hash=orig_h,
-                        extracted_hash=ext_h,
+                        nc_value=result["nc"],
+                        algorithm=result["algorithm"],
+                        psnr=result["psnr"],
+                        ssim=result["ssim"],
+                        ber=result["ber"],
+                        original_hash=result["orig_hash"],
+                        extracted_hash=result["ext_hash"],
                         verified_by="benchmark_script",
                         verified_at=datetime.now(UTC),
                         ip_address="127.0.0.1",
@@ -322,7 +375,10 @@ def main():
         records = WatermarkVerification.query.order_by(WatermarkVerification.verified_at.desc()).limit(10).all()
         print(f"\n=== Current Verification Records ({len(records)}) ===")
         for r in records:
-            print(f"  #{r.id}: app_id={r.application_id} data_id={r.data_id} NC={r.nc_value:.4f} at={r.verified_at}")
+            print(
+                f"  #{r.id}: app_id={r.application_id} data_id={r.data_id} NC={r.nc_value:.4f} "
+                f"BER={r.ber} algorithm={r.algorithm} at={r.verified_at}"
+            )
 
 
 if __name__ == "__main__":
