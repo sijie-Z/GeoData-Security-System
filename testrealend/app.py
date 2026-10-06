@@ -48,6 +48,7 @@ def _bootstrap_runtime_schema(app):
     from model.anchor_record import AnchorRecord
     from model.Announcement import Announcement
     from model.Application import Application
+    from model.benchmark_result import BenchmarkResult
     from model.ChatMessage import ChatMessage
     from model.download_delivery import DownloadDelivery
     from model.Download_Record import DownloadRecord
@@ -100,6 +101,7 @@ def _bootstrap_runtime_schema(app):
         KeyRegistry,
         EvidenceEvent,
         AnchorRecord,
+        BenchmarkResult,
     ]
 
     # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
@@ -411,6 +413,7 @@ def create_app():
     )
     from resource.common_resource import (
         BenchmarkResultsResource,
+        BenchmarkStatsResource,
         LoginResource,
         LogoutResource,
         RefreshTokenResource,
@@ -508,6 +511,7 @@ def create_app():
     api.add_resource(LogoutResource, "/api/logout")
     api.add_resource(RefreshTokenResource, "/api/refresh-token")
     api.add_resource(BenchmarkResultsResource, "/api/benchmark/results")
+    api.add_resource(BenchmarkStatsResource, "/api/benchmark/stats")
     api.add_resource(ProtectedResource, "/api/protected")
 
     # Navigation
