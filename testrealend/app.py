@@ -66,6 +66,7 @@ def _bootstrap_runtime_schema(app):
     from model.Permission import Permission
     from model.Raster_Data import RasterData
     from model.RecallProposal import RecallProposal
+    from model.robustness_result import RobustnessResult
     from model.SendFileRecord import SendFileRecord
     from model.Shp_Data import Shp
     from model.TokenBlacklist import TokenBlacklist
@@ -102,6 +103,7 @@ def _bootstrap_runtime_schema(app):
         EvidenceEvent,
         AnchorRecord,
         BenchmarkResult,
+        RobustnessResult,
     ]
 
     # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
@@ -459,6 +461,11 @@ def create_app():
         RecallRestoreResource,
         RecallVoteResource,
     )
+    from resource.robustness_resource import (
+        RobustnessRunDetailResource,
+        RobustnessRunResource,
+        RobustnessRunsResource,
+    )
     from resource.shp_data_resource import (
         MapSearchResource,
         RasterDataViewingResource,
@@ -572,6 +579,11 @@ def create_app():
     api.add_resource(WatermarkPreviewResource, "/api/watermark/preview")
     api.add_resource(BatchGenerateWatermarkResource, "/api/watermark/batch_generate")
     api.add_resource(BatchEmbedWatermarkResource, "/api/watermark/batch_embed")
+
+    # Robustness（鲁棒性实验矩阵：legacy vs dqim1 × 标准攻击 → NC/BER 落库）
+    api.add_resource(RobustnessRunResource, "/api/robustness/run")
+    api.add_resource(RobustnessRunsResource, "/api/robustness/runs")
+    api.add_resource(RobustnessRunDetailResource, "/api/robustness/runs/<string:run_id>")
 
     # Raster
     api.add_resource(Adm1GetRasterApplicationsGenerateWatermark, "/api/adm1_get_raster_applications_generate_watermark")
