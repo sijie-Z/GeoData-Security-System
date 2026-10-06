@@ -12,15 +12,19 @@ import qrcode
 V2_QR_BOX_SIZE = 2
 
 
-def render_v2_qr_png(text, out_path, box_size=V2_QR_BOX_SIZE):
+def render_v2_qr_png(text, out_path, box_size=V2_QR_BOX_SIZE, error_correction=qrcode.constants.ERROR_CORRECT_M):
     """Render ``text`` as a 2D (mode "1") PNG QR code.
 
     Returns ``(png_path, side_length_px)`` where ``side_length_px`` is the real
     pixel edge length of the saved image (what ``algorithm.embed.embed`` will
     report back as ``side_length``).
+
+    ``error_correction`` defaults to the delivery convention (ECC M); the
+    raster robustness matrix passes ECC L at box_size=1 so the same payload
+    fits the blind scheme's block budget on a 512x512 host.
     """
     qr = qrcode.QRCode(
-        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        error_correction=error_correction,
         border=4,
         box_size=box_size,
     )
