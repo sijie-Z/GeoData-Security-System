@@ -11,8 +11,8 @@ from flask_restful import Resource
 from delivery.service import get_or_create_for_token, record_download_event
 from extension.extension import db, limiter
 from model.Application import Application
-from model.Download_Record import DownloadRecord
 from model.download_delivery import DownloadDelivery
+from model.Download_Record import DownloadRecord
 from model.download_token import DownloadToken
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp

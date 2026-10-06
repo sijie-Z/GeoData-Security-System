@@ -39,10 +39,10 @@ from delivery.artifact import file_root, shp_component_root
 from evidence.anchor import build_batch
 from evidence.chain import get_events, verify_stream
 from extension.extension import db, limiter
-from model.Application import Application
 from model.anchor_record import AnchorRecord
-from model.Download_Record import DownloadRecord
+from model.Application import Application
 from model.download_delivery import DownloadDelivery
+from model.Download_Record import DownloadRecord
 from resource.watermark_utils import QR_SECRET_KEY, decode_qr_from_image
 from resource.watermark_utils import parse_qr_text as parse_v1_lines
 from utils.required import admin_required
@@ -200,6 +200,7 @@ def _detect_vector_shp(shp_path, work_root):
         .limit(CANDIDATE_LIMIT)
         .all()
     )
+    saw_tampered = False
     for delivery in candidates:
         vr_data = _parse_vr_data(delivery.vr_data)
         if vr_data is None:
@@ -218,12 +219,17 @@ def _detect_vector_shp(shp_path, work_root):
         if is_v2_text(text):
             try:
                 parsed = parse_qr_text(text)
-            except Exception as e:
-                return {"kind": "tamper", "error": str(e)}
+            except Exception:
+                # A wrong-vr candidate can decode a corrupted copy of another
+                # delivery's text; only report tampering once no candidate matches.
+                saw_tampered = True
+                continue
             if parsed["fid_hex"] == delivery.fingerprint_id:
                 return {"kind": "v2", "delivery": delivery, "parsed": parsed, "fid_confidence": "候选交付提取一致"}
         elif V1_BANNER in text:
             return {"kind": "v1", "qr_text": text, "signature_ok": _verify_v1_hmac(text)}
+    if saw_tampered:
+        return {"kind": "tamper", "error": "signature verification failed for decodable v2 text"}
     return None
 
 
@@ -235,6 +241,7 @@ def _detect_raster_stego(image_path, work_root):
         .limit(CANDIDATE_LIMIT)
         .all()
     )
+    saw_tampered = False
     for delivery in candidates:
         meta_path = delivery.artifact_meta_path
         if not meta_path or not os.path.isfile(meta_path):
@@ -252,12 +259,15 @@ def _detect_raster_stego(image_path, work_root):
         if is_v2_text(text):
             try:
                 parsed = parse_qr_text(text)
-            except Exception as e:
-                return {"kind": "tamper", "error": str(e)}
+            except Exception:
+                saw_tampered = True
+                continue
             if parsed["fid_hex"] == delivery.fingerprint_id:
                 return {"kind": "v2", "delivery": delivery, "parsed": parsed, "fid_confidence": "候选交付提取一致"}
         elif V1_BANNER in text:
             return {"kind": "v1", "qr_text": text, "signature_ok": _verify_v1_hmac(text)}
+    if saw_tampered:
+        return {"kind": "tamper", "error": "signature verification failed for decodable v2 text"}
     return None
 
 
@@ -334,6 +344,8 @@ def _run_detection():
 
 def _empty_fields():
     return {
+        "found": False,
+        "watermark_version": 0,
         "fid": None,
         "fid_short": None,
         "delivery_uuid": None,
@@ -362,7 +374,7 @@ def _v2_fields(detection):
             artifact_match = False
     msg = "验证通过：指纹与交付记录一致"
     if artifact_check is not None:
-        msg += "，产物根一致" if artifact_match else f"，但产物根不一致（artifact_root_match=false）"
+        msg += "，产物根一致" if artifact_match else "，但产物根不一致（artifact_root_match=false）"
     return {
         "found": True,
         "watermark_version": 2,
@@ -698,9 +710,11 @@ class ForensicsKeyInfoResource(Resource):
     def get(self):
         info = crypto_keyinfo()
         _kid, private_key = ensure_active_key()
-        public_hex = private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw
-        ).hex()
+        public_hex = (
+            private_key.public_key()
+            .public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
+            .hex()
+        )
         return {
             "status": True,
             "kid": info["kid"],
