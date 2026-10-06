@@ -76,6 +76,14 @@ class Config:
     GEOSERVER_PASSWORD = os.environ.get("GEOSERVER_PASSWORD", "geoserver")
     GEOSERVER_WORKSPACE = os.environ.get("GEOSERVER_WORKSPACE", "test")
 
+    # EVM anchor (Sepolia testnet) — empty EVM_CONTRACT_ADDRESS = provider not configured.
+    # The private key is NOT a config value: it lives in instance/keys/evm_sepolia.key
+    # (git-ignored) and is read via evidence/evm.py.
+    EVM_RPC_URL = os.environ.get("EVM_RPC_URL", "https://ethereum-sepolia-rpc.publicnode.com")
+    EVM_CHAIN_ID = int(os.environ.get("EVM_CHAIN_ID", "11155111"))
+    EVM_CONTRACT_ADDRESS = os.environ.get("EVM_CONTRACT_ADDRESS", "")
+    EVM_ANCHOR_ENABLED = os.environ.get("EVM_ANCHOR_ENABLED", "auto")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True

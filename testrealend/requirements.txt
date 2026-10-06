@@ -34,6 +34,10 @@ cryptography>=42
 cbor2>=5.6
 httpx
 openai
+# EVM anchor (Sepolia): py-solc-x compiles AnchorRegistry.sol, eth-tester drives the in-memory chain in tests
+web3>=7
+py-solc-x>=2
+eth-tester[py-evm]>=0.11
 pytest
 pytest-cov
 backports.zoneinfo; python_version < '3.9'
