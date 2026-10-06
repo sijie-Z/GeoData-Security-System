@@ -13,7 +13,7 @@ import qrcode
 from flask import Response, current_app, request, send_file
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from algorithm.raster_dwt_watermark import embed_dwt, extract_dwt, recover_dwt
 from algorithm.raster_histogram_watermark import embed_histogram, extract_histogram, recover_histogram
@@ -214,6 +214,28 @@ def _to_preview_base64(file_path):
         return base64.b64encode(buffer.getvalue()).decode()
 
 
+def _is_within_preview_roots(path):
+    """True when *path* resides under one of the app's own data roots.
+
+    /api/raster/preview must not read arbitrary server-side files (the file
+    path was caller-controlled, an information-exposure surface). Only the
+    backend tree (runtime watermark artifacts, bundled static files) and the
+    configured storage folders the data layer uses are previewable; anything
+    else is treated as a non-existent path (404) so no existence information
+    leaks. Symlinks are resolved before the check (realpath).
+    """
+    try:
+        candidate = os.path.normcase(os.path.realpath(path))
+    except OSError:
+        return False
+    roots = [os.path.normcase(os.path.realpath(current_app.root_path))]
+    for key in ("UPLOAD_FOLDER", "WATERMARK_FOLDER", "EXTRACTED_FOLDER"):
+        value = current_app.config.get(key)
+        if value:
+            roots.append(os.path.normcase(os.path.realpath(value)))
+    return any(candidate == root or candidate.startswith(root + os.sep) for root in roots)
+
+
 class RasterPreviewResource(Resource):
     @jwt_required()
     def post(self):
@@ -222,9 +244,15 @@ class RasterPreviewResource(Resource):
         resolved = _resolve_existing_path(file_path)
         if not resolved or not os.path.isfile(resolved):
             return {"status": False, "message": "文件不存在或路径无效"}, 404
+        if not _is_within_preview_roots(resolved):
+            return {"status": False, "message": "文件不存在或路径无效"}, 404
         try:
             img_str = _to_preview_base64(resolved)
             return {"status": True, "base64": img_str}, 200
+        except (UnidentifiedImageError, OSError) as e:
+            # e.g. a text file: a client-visible condition, not a server fault
+            logging.warning("Preview rejected for %s: %s", resolved, e)
+            return {"status": False, "message": "文件不是可解析的图片"}, 400
         except Exception as e:
             logging.error(str(e))
             return {"status": False, "message": "操作失败，请稍后重试"}, 500
@@ -395,6 +423,17 @@ class CRMarkEmbedResource(Resource):
             # left with watermark_embedded=1 pointing at a missing file.
             db.session.commit()
             return response, 200
+        except ValueError as e:
+            db.session.rollback()
+            # Insufficient embedding capacity is a client-visible condition:
+            # the raster algorithms raise ValueError with the need-vs-available
+            # numbers ("Insufficient histogram capacity: need N bits but peak
+            # bin has only M pixels..."). Mirror the vector CapacityError ->
+            # 400 pattern; other ValueErrors are real defects -> 500 below.
+            if str(e).startswith("Insufficient"):
+                return {"status": False, "message": str(e)}, 400
+            logging.error(str(e))
+            return {"status": False, "message": "操作失败，请稍后重试"}, 500
         except Exception as e:
             db.session.rollback()
             logging.error(str(e))

@@ -206,11 +206,13 @@ class RegisterResource(Resource):
       - in: formData
         name: idNumber
         type: string
-        description: 身份证号
+        required: true
+        description: 身份证号（唯一，不可为空）
       - in: formData
         name: phone
         type: string
-        description: 手机号
+        required: true
+        description: 手机号（唯一，不可为空）
       - in: formData
         name: password
         type: string
@@ -222,16 +224,16 @@ class RegisterResource(Resource):
         description: 头像
     responses:
       201: {description: 注册成功}
-      400: {description: 员工编号已存在}
+      400: {description: 员工编号已存在 / 身份证号或手机号已被注册 / 缺少必填字段}
     """
 
     @limiter.limit("5 per minute")
     def post(self):
         # Multipart form data
-        name = request.form.get("name")
-        employee_id = request.form.get("employeeId")
-        id_number = request.form.get("idNumber")
-        phone = request.form.get("phone")
+        name = (request.form.get("name") or "").strip()
+        employee_id = (request.form.get("employeeId") or "").strip()
+        id_number = (request.form.get("idNumber") or "").strip()
+        phone = (request.form.get("phone") or "").strip()
         password = request.form.get("password")
         avatar = request.files.get("avatar")
 
@@ -241,9 +243,32 @@ class RegisterResource(Resource):
         if not any(c.isdigit() for c in password) or not any(c.isalpha() for c in password):
             return {"status": False, "msg": "密码必须包含字母和数字"}, 400
 
-        # Check if already exists
+        # Required fields — the matching Employee_Info columns are NOT NULL
+        # (model/Employee_Info.py), so a missing value must surface as a
+        # readable 400 instead of a DB IntegrityError mapped to a generic 500.
+        missing = [
+            label
+            for value, label in (
+                (name, "姓名"),
+                (employee_id, "员工编号"),
+                (id_number, "身份证号"),
+                (phone, "手机号"),
+            )
+            if not value
+        ]
+        if missing:
+            msg = f"缺少必填字段: {', '.join(missing)}"
+            return {"status": False, "msg": msg, "message": msg}, 400
+
+        # Unique-column pre-checks, naming the conflicting field
         if EmployeeInfo.query.filter_by(employee_number=employee_id).first():
             return {"status": False, "msg": "员工编号已存在"}, 400
+        if EmployeeInfo.query.filter_by(id_number=id_number).first():
+            msg = "身份证号已被注册"
+            return {"status": False, "msg": msg, "message": msg}, 400
+        if EmployeeInfo.query.filter_by(phone_number=phone).first():
+            msg = "手机号已被注册"
+            return {"status": False, "msg": msg, "message": msg}, 400
 
         # Create Info
         new_info = EmployeeInfo(

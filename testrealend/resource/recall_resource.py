@@ -158,7 +158,13 @@ class RecallVoteResource(Resource):
             return {"status": False, "msg": "提议人不能投票自己的提议"}, 400
 
         # Check voting deadline
-        if proposal.voting_deadline and datetime.now(UTC) > proposal.voting_deadline:
+        deadline = proposal.voting_deadline
+        if deadline is not None and deadline.tzinfo is None:
+            # DB DATETIME columns hold naive values that were written in UTC
+            # (datetime.now(UTC)); attach UTC before comparing so aware/naive
+            # never mix (same convention as download_file_resource.py).
+            deadline = deadline.replace(tzinfo=UTC)
+        if deadline and datetime.now(UTC) > deadline:
             # Auto-close the proposal
             proposal.status = "rejected"
             proposal.closed_at = datetime.now(UTC)

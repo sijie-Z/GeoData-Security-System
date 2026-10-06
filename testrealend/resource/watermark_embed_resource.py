@@ -92,6 +92,16 @@ class EmbeddingWatermarkResource(Resource):
             # Readable 4xx instead of a generic 500 when the data has too few
             # vertices to carry the generated watermark.
             return {"status": False, "msg": str(e)}, 400
+        except ValueError as e:
+            # Raster algorithms raise ValueError for insufficient embedding
+            # capacity, carrying the need-vs-available numbers ("Insufficient
+            # histogram capacity: need N bits but peak bin has only M
+            # pixels..."). Surface that readably like the vector path above;
+            # anything else is a genuine server-side defect -> 500.
+            if str(e).startswith("Insufficient"):
+                return {"status": False, "msg": str(e)}, 400
+            logging.error(str(e))
+            return {"status": False, "msg": "操作失败，请稍后重试"}, 500
         except Exception as e:
             logging.error(str(e))
             return {"status": False, "msg": "操作失败，请稍后重试"}, 500

@@ -47,6 +47,39 @@ def _display_name(number, role):
     return emp.name if emp and emp.name else str(number)
 
 
+def _canonical_chat_role(role):
+    """Canonical chat role used on the wire and for new rows.
+
+    Admin sub-roles (admin1/admin2/admin3) and the super-admin 'admin' are one
+    chat identity kind — the user number tells admins apart.
+    /api/chat/search_users and the chat UI already speak 'admin', so writes
+    normalise to it.
+    """
+    value = str(role or "").strip()
+    return "admin" if value.startswith("admin") else (value or "employee")
+
+
+def _chat_role_match(column, role):
+    """SQL predicate matching a stored chat role against *role*.
+
+    Legacy rows may hold the JWT sub-role ('admin1') while new rows and the UI
+    use the canonical 'admin'; both are the same chat identity, so admin-family
+    values match each other. The number column is always filtered alongside,
+    which keeps two admins with different numbers apart.
+    """
+    if str(role or "").startswith("admin"):
+        return column.like("admin%")
+    return column == role
+
+
+def _chat_role_row_match(stored_role, role):
+    """Python-side counterpart of _chat_role_match for already-loaded rows."""
+    stored = str(stored_role or "")
+    if str(role or "").startswith("admin"):
+        return stored.startswith("admin")
+    return stored == role
+
+
 def _ensure_announcement_table():
     engine = db.session.get_bind(mapper=Announcement)
     Announcement.__table__.create(bind=engine, checkfirst=True)
@@ -241,8 +274,14 @@ class ChatConversationsResource(Resource):
         rows = (
             ChatMessage.query.filter(
                 or_(
-                    and_(ChatMessage.sender_number == me_number, ChatMessage.sender_role == me_role),
-                    and_(ChatMessage.receiver_number == me_number, ChatMessage.receiver_role == me_role),
+                    and_(
+                        ChatMessage.sender_number == me_number,
+                        _chat_role_match(ChatMessage.sender_role, me_role),
+                    ),
+                    and_(
+                        ChatMessage.receiver_number == me_number,
+                        _chat_role_match(ChatMessage.receiver_role, me_role),
+                    ),
                 )
             )
             .order_by(ChatMessage.created_at.desc())
@@ -250,21 +289,22 @@ class ChatConversationsResource(Resource):
         )
         seen = {}
         for m in rows:
-            if m.sender_number == me_number and m.sender_role == me_role:
+            if m.sender_number == me_number and _chat_role_row_match(m.sender_role, me_role):
                 peer_number = m.receiver_number
                 peer_role = m.receiver_role
             else:
                 peer_number = m.sender_number
                 peer_role = m.sender_role
+            peer_role = _canonical_chat_role(peer_role)
             key = f"{peer_role}:{peer_number}"
             if key in seen:
                 continue
-            unread_count = ChatMessage.query.filter_by(
-                sender_number=peer_number,
-                sender_role=peer_role,
-                receiver_number=me_number,
-                receiver_role=me_role,
-                read=False,
+            unread_count = ChatMessage.query.filter(
+                ChatMessage.sender_number == peer_number,
+                _chat_role_match(ChatMessage.sender_role, peer_role),
+                ChatMessage.receiver_number == me_number,
+                _chat_role_match(ChatMessage.receiver_role, me_role),
+                ChatMessage.read == False,
             ).count()
             seen[key] = {
                 "peer_number": peer_number,
@@ -291,15 +331,15 @@ class ChatMessagesResource(Resource):
                 or_(
                     and_(
                         ChatMessage.sender_number == me_number,
-                        ChatMessage.sender_role == me_role,
+                        _chat_role_match(ChatMessage.sender_role, me_role),
                         ChatMessage.receiver_number == peer_number,
-                        ChatMessage.receiver_role == peer_role,
+                        _chat_role_match(ChatMessage.receiver_role, peer_role),
                     ),
                     and_(
                         ChatMessage.sender_number == peer_number,
-                        ChatMessage.sender_role == peer_role,
+                        _chat_role_match(ChatMessage.sender_role, peer_role),
                         ChatMessage.receiver_number == me_number,
-                        ChatMessage.receiver_role == me_role,
+                        _chat_role_match(ChatMessage.receiver_role, me_role),
                     ),
                 )
             )
@@ -313,7 +353,7 @@ class ChatMessagesResource(Resource):
                 "id": m.id,
                 "content": m.content,
                 "created_at": m.created_at.strftime("%Y-%m-%d %H:%M:%S"),
-                "is_me": m.sender_number == me_number and m.sender_role == me_role,
+                "is_me": m.sender_number == me_number and _chat_role_row_match(m.sender_role, me_role),
             }
             for m in rows
         ]
@@ -329,12 +369,12 @@ class ChatMarkReadResource(Resource):
         peer_role = data.get("peer_role", "employee")
         if not me_number or not peer_number:
             return {"status": False, "msg": "参数不完整"}, 400
-        ChatMessage.query.filter_by(
-            sender_number=str(peer_number),
-            sender_role=str(peer_role),
-            receiver_number=me_number,
-            receiver_role=me_role,
-            read=False,
+        ChatMessage.query.filter(
+            ChatMessage.sender_number == str(peer_number),
+            _chat_role_match(ChatMessage.sender_role, peer_role),
+            ChatMessage.receiver_number == me_number,
+            _chat_role_match(ChatMessage.receiver_role, me_role),
+            ChatMessage.read == False,
         ).update({"read": True})
         db.session.commit()
 
@@ -388,19 +428,20 @@ class ChatAddFriendResource(Resource):
     @jwt_required()
     def post(self):
         me_number, me_role, _ = _me()
+        me_role = _canonical_chat_role(me_role)
         data = request.get_json() or {}
         friend_number = str(data.get("friend_number") or "")
-        friend_role = str(data.get("friend_role") or "employee")
+        friend_role = _canonical_chat_role(data.get("friend_role") or "employee")
         if not me_number or not friend_number:
             return {"status": False, "msg": "参数不完整"}, 400
         if me_number == friend_number and me_role == friend_role:
             return {"status": False, "msg": "不能添加自己"}, 400
-        exists = FriendRequest.query.filter_by(
-            owner_number=me_number,
-            owner_role=me_role,
-            friend_number=friend_number,
-            friend_role=friend_role,
-            status="pending",
+        exists = FriendRequest.query.filter(
+            FriendRequest.owner_number == me_number,
+            _chat_role_match(FriendRequest.owner_role, me_role),
+            FriendRequest.friend_number == friend_number,
+            _chat_role_match(FriendRequest.friend_role, friend_role),
+            FriendRequest.status == "pending",
         ).first()
         if exists:
             return {"status": True, "msg": "申请已发送"}, 200
@@ -422,7 +463,11 @@ class ChatFriendRequestsResource(Resource):
     def get(self):
         me_number, me_role, _ = _me()
         rows = (
-            FriendRequest.query.filter_by(friend_number=me_number, friend_role=me_role, status="pending")
+            FriendRequest.query.filter(
+                FriendRequest.friend_number == me_number,
+                _chat_role_match(FriendRequest.friend_role, me_role),
+                FriendRequest.status == "pending",
+            )
             .order_by(FriendRequest.created_at.desc())
             .all()
         )
@@ -430,7 +475,7 @@ class ChatFriendRequestsResource(Resource):
             {
                 "id": i.id,
                 "owner_number": i.owner_number,
-                "owner_role": i.owner_role,
+                "owner_role": _canonical_chat_role(i.owner_role),
                 "owner_name": i.owner_name,
                 "created_at": i.created_at.strftime("%Y-%m-%d %H:%M:%S"),
             }
@@ -446,8 +491,11 @@ class ChatFriendRespondResource(Resource):
         data = request.get_json() or {}
         request_id = data.get("request_id")
         action = str(data.get("action") or "").lower()
-        req = FriendRequest.query.filter_by(
-            id=request_id, friend_number=me_number, friend_role=me_role, status="pending"
+        req = FriendRequest.query.filter(
+            FriendRequest.id == request_id,
+            FriendRequest.friend_number == me_number,
+            _chat_role_match(FriendRequest.friend_role, me_role),
+            FriendRequest.status == "pending",
         ).first()
         if not req:
             return {"status": False, "msg": "申请不存在"}, 404
@@ -461,9 +509,10 @@ class ChatSendResource(Resource):
     @limiter.limit("30 per minute")
     def post(self):
         me_number, me_role, _ = _me()
+        me_role = _canonical_chat_role(me_role)
         data = request.get_json() or {}
         receiver_number = str(data.get("receiver_number") or "")
-        receiver_role = str(data.get("receiver_role") or "employee")
+        receiver_role = _canonical_chat_role(data.get("receiver_role") or "employee")
         content = (data.get("content") or "").strip()
         if not me_number or not receiver_number or not content:
             return {"status": False, "msg": "参数不完整"}, 400
