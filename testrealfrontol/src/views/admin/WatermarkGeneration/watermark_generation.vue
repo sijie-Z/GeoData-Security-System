@@ -24,7 +24,7 @@
               v-if="scope.row.qrcode"
               :src="`data:image/png;base64,${scope.row.qrcode}`"
               fit="cover"
-              style="width: 48px; height: 48px; border-radius: 6px;"
+              style="width: 72px; height: 72px; border-radius: 6px;"
             />
             <span v-else style="color:#909399;">{{ $t('wmGen.notGenerated') }}</span>
           </template>

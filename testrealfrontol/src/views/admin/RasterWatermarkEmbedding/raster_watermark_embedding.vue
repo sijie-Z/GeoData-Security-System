@@ -42,7 +42,7 @@
               <WatermarkImage class="qr-code-image"
                 :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
                 fit="cover"
-                style="width: 50px; height: 50px;"
+                style="width: 72px; height: 72px;"
               />
               <span v-if="!scope.row.qrcode" class="qr-empty-text">—</span>
             </div>
@@ -494,8 +494,8 @@
   <style>
   /* 样式与矢量数据代码保持一致，确保外观统一 */
   .qr-code-image {
-    width: 50px;
-    height: 50px;
+    width: 72px;
+    height: 72px;
   }
 
   .qr-image-wrapper {
@@ -508,8 +508,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 50px;
-    height: 50px;
+    width: 72px;
+    height: 72px;
     background: #f5f7fa;
     border-radius: 4px;
     color: #c0c4cc;

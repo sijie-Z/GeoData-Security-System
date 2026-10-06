@@ -46,7 +46,7 @@
             <WatermarkImage class="qr-code-image"
               :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
               fit="cover"
-              style="width: 50px; height: 50px;"
+              style="width: 72px; height: 72px;"
             />
             <span v-if="!scope.row.qrcode" class="qr-empty-text">{{ $t('wmEmbed.noQRCode') || '—' }}</span>
           </div>
@@ -472,8 +472,8 @@ const handleClose = (dialogType, done) => {
 <style scoped>
 
 .qr-code-image {
-  width: 50px;
-  height: 50px;
+  width: 72px;
+  height: 72px;
 }
 
 .qr-image-wrapper {
@@ -486,8 +486,8 @@ const handleClose = (dialogType, done) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 50px;
-  height: 50px;
+  width: 72px;
+  height: 72px;
   background: #f5f7fa;
   border-radius: 4px;
   color: #c0c4cc;
