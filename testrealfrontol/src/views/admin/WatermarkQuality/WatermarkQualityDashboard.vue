@@ -119,6 +119,129 @@
       </el-row>
     </el-card>
 
+    <!-- ═══════════ 区三 · 算法能力矩阵（基准真数据） ═══════════ -->
+    <el-card class="section-card" shadow="never" v-loading="benchLoading">
+      <template #header>
+        <div class="card-header">
+          <div class="card-header-left">
+            <span class="section-title">{{ $t('watermarkQuality.capabilityMatrix') }}</span>
+            <el-tag v-if="benchSnapshotTime" type="info" size="small">
+              {{ $t('watermarkQuality.benchSnapshot') }} · {{ benchSnapshotTime }}
+            </el-tag>
+          </div>
+        </div>
+      </template>
+      <p class="matrix-legend">{{ $t('watermarkQuality.matrixSub') }}</p>
+
+      <el-table :data="matrixAttacks" stripe style="width: 100%" :empty-text="$t('common.noData')">
+        <el-table-column :label="$t('watermarkQuality.attackCol')" min-width="140" fixed>
+          <template #default="{ row }">
+            <span class="attack-name">{{ row }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column v-for="alg in matrixAlgos" :key="alg" :label="alg" align="center">
+          <el-table-column :label="$t('watermarkQuality.ncValue')" width="96" align="center">
+            <template #default="{ row }">
+              <span class="nc-cell" :class="ncCellClass(cellOf(row, alg)?.nc)">
+                {{ cellOf(row, alg)?.nc != null ? cellOf(row, alg).nc.toFixed(4) : '—' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.decodeCol')" width="78" align="center">
+            <template #default="{ row }">
+              <span v-if="cellOf(row, alg)?.decode_success === true" class="decode-ok">✓</span>
+              <span v-else-if="cellOf(row, alg)" class="decode-bad">✗</span>
+              <span v-else>—</span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.recoveryPsnrCol')" width="110" align="center">
+            <template #default="{ row }">
+              {{ cellOf(row, alg)?.recovery_psnr != null ? cellOf(row, alg).recovery_psnr.toFixed(1) : '—' }}
+            </template>
+          </el-table-column>
+        </el-table-column>
+      </el-table>
+
+      <!-- 嵌入质量总览（无攻击基线） -->
+      <div class="sub-section">
+        <h4 class="sub-title">{{ $t('watermarkQuality.stegoOverview') }}</h4>
+        <el-table :data="benchSummaries" stripe size="small" style="width: 100%" :empty-text="$t('common.noData')">
+          <el-table-column prop="algorithm" :label="$t('watermarkQuality.algoName')" width="110" />
+          <el-table-column :label="$t('watermarkQuality.wmBitCount')" width="110">
+            <template #default="{ row }">{{ row.wm_bit_count ?? '—' }}</template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120">
+            <template #default="{ row }">
+              <span :style="{ color: psnrColor(row.stego_psnr), fontWeight: 700 }">
+                {{ row.stego_psnr != null ? row.stego_psnr + ' dB' : '—' }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column label="SSIM" width="110">
+            <template #default="{ row }">
+              {{ row.stego_ssim != null ? row.stego_ssim.toFixed(5) : '—' }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
+            <template #default="{ row }">
+              <el-tag
+                :type="row.baseline_nc >= 0.95 ? 'success' : row.baseline_nc >= 0.8 ? 'warning' : 'danger'"
+                effect="dark"
+                size="small"
+              >
+                {{ row.baseline_nc != null ? row.baseline_nc.toFixed(4) : '—' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.baselineBer')" width="110">
+            <template #default="{ row }">
+              {{ row.baseline_ber != null ? row.baseline_ber.toFixed(4) : '—' }}
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.recovery')" width="100">
+            <template #default="{ row }">
+              <el-tag :type="row.recovery_perfect ? 'success' : 'danger'" size="small">
+                {{ row.recovery_perfect ? $t('watermarkQuality.perfect') : $t('watermarkQuality.broken') }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('watermarkQuality.colStatus')" min-width="120">
+            <template #default="{ row }">
+              <el-tag v-if="row.embed_error" type="danger" size="small">{{ $t('watermarkQuality.embedFailed') }}</el-tag>
+              <span v-else class="decode-ok">✓</span>
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+
+      <div class="bench-howto-row">
+        <el-icon><InfoFilled /></el-icon>
+        <span><b>{{ $t('watermarkQuality.benchHowTo') }}</b> · {{ $t('watermarkQuality.benchHowToDesc') }}</span>
+      </div>
+
+      <!-- 矢量 D-QIM（v3 新方案） -->
+      <div class="dqim-card hover-lift">
+        <div class="dqim-head">
+          <div>
+            <span class="dqim-title">{{ $t('watermarkQuality.dqimTitle') }}</span>
+            <span class="dqim-subtitle">{{ $t('watermarkQuality.dqimSubtitle') }}</span>
+          </div>
+          <el-tag type="warning" effect="plain" size="small">{{ $t('watermarkQuality.dqimBadge') }}</el-tag>
+        </div>
+        <p class="dqim-desc">{{ $t('watermarkQuality.dqimDesc') }}</p>
+        <div class="dqim-stats">
+          <div class="dqim-stat">
+            <span class="dqim-stat-value">{{ $t('watermarkQuality.dqimStatTranslationValue') }}</span>
+            <span class="dqim-stat-label">{{ $t('watermarkQuality.dqimStatTranslation') }}</span>
+          </div>
+          <div class="dqim-stat">
+            <span class="dqim-stat-value">{{ $t('watermarkQuality.dqimStatDeletionValue') }}</span>
+            <span class="dqim-stat-label">{{ $t('watermarkQuality.dqimStatDeletion') }}</span>
+          </div>
+        </div>
+      </div>
+    </el-card>
+
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
     <el-card class="records-card" shadow="never">
       <template #header>
@@ -235,7 +358,7 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Refresh, MapLocation, Picture,
-  DataLine, TrendCharts, Warning, Box, Download, Link, Aim, Odometer
+  DataLine, TrendCharts, Warning, Box, Download, Link, Aim, Odometer, InfoFilled
 } from '@element-plus/icons-vue'
 import { getVerificationRecords, getBenchmarkResults, getVerificationStats, getBenchmarkStats } from '@/api/watermark'
 import { getDeliveryStats } from '@/api/forensics'
@@ -578,6 +701,34 @@ const deliveryHealthOption = computed(() => {
     ],
   }
 })
+
+// ══════════════════ 区三 · 算法能力矩阵（benchmark/stats 真数据） ══════════════════
+const benchResults = computed(() => benchData.value?.results || [])
+const benchSnapshotTime = computed(() => {
+  const iso = benchData.value?.latest_run?.created_at
+  return iso ? fmtDateTime(iso) : ''
+})
+// [conc] 行为并发压缩变体，与旧页一致地排除在矩阵之外
+const benchAttackRows = computed(() =>
+  benchResults.value.filter((r) => r.attack && !String(r.attack).includes('[conc]')))
+const matrixAlgos = computed(() => [...new Set(benchAttackRows.value.map((r) => r.algorithm))])
+const matrixAttacks = computed(() => {
+  const seen = []
+  for (const r of benchAttackRows.value) {
+    if (!seen.includes(r.attack)) seen.push(r.attack)
+  }
+  return seen
+})
+const cellOf = (attack, alg) => benchAttackRows.value.find((r) => r.attack === attack && r.algorithm === alg)
+const ncCellClass = (nc) => {
+  if (nc == null) return ''
+  if (nc >= 0.9) return 'nc-good'
+  if (nc >= 0.75) return 'nc-mid'
+  return 'nc-bad'
+}
+const benchSummaries = computed(() =>
+  benchResults.value.filter((r) => 'stego_psnr' in r || r.embed_error))
+const psnrColor = (v) => (v == null ? '#64748b' : v >= 50 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444')
 
 // ══════════════════ 验证记录表（保留 · 新增时间范围筛选） ══════════════════
 const loading = ref(false)
@@ -968,4 +1119,105 @@ onMounted(() => {
   margin: 0;
   line-height: 1.6;
 }
+
+/* ── 区三 · 算法能力矩阵 ── */
+.matrix-legend {
+  font-size: 12px;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 12px;
+}
+
+.attack-name {
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.nc-cell {
+  display: inline-block;
+  min-width: 64px;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nc-good { background: rgba(16, 185, 129, 0.12); color: #047857; }
+.nc-mid { background: rgba(245, 158, 11, 0.14); color: #b45309; }
+.nc-bad { background: rgba(239, 68, 68, 0.12); color: #b91c1c; }
+
+.decode-ok { color: #10b981; font-weight: 700; }
+.decode-bad { color: #ef4444; font-weight: 700; }
+
+.sub-section { margin-top: 20px; }
+
+.sub-title {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary, #1e293b);
+}
+
+.bench-howto-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+.dqim-card {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: var(--radius-md, 10px);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.08));
+}
+
+.dqim-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dqim-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin-right: 8px;
+}
+
+.dqim-subtitle { font-size: 12px; color: var(--text-secondary, #64748b); }
+
+.dqim-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #475569;
+  margin: 10px 0 14px;
+}
+
+.dqim-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+
+.dqim-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 150px;
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 10px;
+}
+
+.dqim-stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #4f46e5;
+  font-variant-numeric: tabular-nums;
+}
+
+.dqim-stat-label { font-size: 12px; color: var(--text-secondary, #64748b); }
 </style>
