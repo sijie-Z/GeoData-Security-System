@@ -4,8 +4,9 @@
   关键点：
   1) preview-teleported 把放大预览层传送到 <body> 上渲染，不会被表格单元格（<td>）
      的层叠上下文困住、被其它行或固定列遮挡——这是"点小图没反应"的根因修复。
-  2) 老二维码原图只有一两百像素，直接点开放大仍是模糊小图；组件会在 src 变化时用
-     离屏 Image + canvas 以最近邻（nearest-neighbor）整数倍超采样到短边 ≥800（上限 8×），
+  2) 老二维码原图只有一两百像素（最早一批甚至只有 45px），直接点开放大仍是模糊小图；
+     组件会在 src 变化时用离屏 Image + canvas 以最近邻（nearest-neighbor）整数倍超采样到
+     短边 ≥800（上限 16×，45px 老图 → 720px、50px → 800px；公式天然保证输出短边 ≤1600px），
      仅用于放大预览（thumbnail 的 :src 保持原图不变）。最近邻不会糊掉二维码模块边缘，
      更利于查看；≥800 的大图（如 890px 的 v16 QR）原样使用，不做处理。
 -->
@@ -45,7 +46,7 @@ const previewSrc = ref('')
 let loadToken = 0 // 并发保护：src 连续变化时只采纳最后一次加载的结果
 
 const TARGET_SHORT_SIDE = 800 // 预览短边目标像素
-const MAX_SCALE = 8           // 放大倍数上限
+const MAX_SCALE = 16          // 放大倍数上限（45px 老图 → 720px；输出短边天然 ≤1600px，无需额外保护）
 
 /**
  * 用离屏 Image 加载原图；若短边 < TARGET_SHORT_SIDE，用 canvas 最近邻整数倍放大到
