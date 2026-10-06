@@ -87,13 +87,15 @@ const logout = async () => {
  import { ElMessage } from "element-plus";
  import {
    UserFilled, SwitchButton, ArrowDown,
-   QuestionFilled, InfoFilled, Expand, Fold
+   QuestionFilled, InfoFilled, Expand, Fold, Sunny, Moon
  } from "@element-plus/icons-vue";
  import Axios from "@/utils/Axios";
+import { useTheme } from "@/composables/useTheme.js";
 import NotificationCenter from "@/components/common/NotificationCenter.vue";
 import LanguageSwitcher from "@/components/common/LanguageSwitcher.vue";
 
 const { t } = useI18n();
+const { isDark, toggleTheme } = useTheme();
  
  const userStore = useUserStore();
  const router = useRouter();
@@ -220,15 +222,20 @@ const { t } = useI18n();
  
      <div class="header-right">
        <LanguageSwitcher />
+       <el-button
+         class="theme-toggle-button"
+         text
+         :icon="isDark ? Sunny : Moon"
+         :title="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+         :aria-label="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+         @click="toggleTheme"
+       />
        <NotificationCenter />
        <el-menu
          class="header-nav-menu"
          mode="horizontal"
          :ellipsis="false"
          :router="true"
-         background-color="#ffffff"
-         text-color="#555"
-         active-text-color="#409EFF"
          :default-active="$route.path"
        >
          <el-menu-item index="/employee">{{ $t('header.home') }}</el-menu-item>
@@ -261,76 +268,89 @@ const { t } = useI18n();
  <style scoped>
  .employee-header {
    height: 60px;
-   background-color: #ffffff;
-   color: #333;
+   background-color: var(--header-bg, #ffffff);
+   color: var(--text-primary, #333);
    display: flex;
    justify-content: space-between;
    align-items: center;
    padding: 0 20px;
-   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+   box-shadow: var(--header-shadow, 0 2px 8px rgba(0, 0, 0, 0.05));
    flex-shrink: 0;
    font-family: 'Inter', sans-serif;
    z-index: 100;
  }
- 
+
  .header-left {
    display: flex;
    align-items: center;
    gap: 15px;
  }
- 
+
  .toggle-sidebar-button {
    font-size: 20px;
-   color: #606266;
+   color: var(--text-secondary, #606266);
    margin-right: 10px;
  }
- 
+
  .wiki-logo {
   height: 20px;
   width: 20px;
   margin-right: 8px;
   vertical-align: middle;
 }
- 
+
  .system-title {
    font-size: 20px;
    font-weight: bold;
-   color: #333;
+   color: var(--text-primary, #333);
    letter-spacing: 0.5px;
    margin-left: 5px;
  }
- 
+
  .header-right {
    display: flex;
    align-items: center;
    gap: 30px;
  }
- 
+
+ .theme-toggle-button {
+   font-size: 18px;
+   color: var(--text-secondary, #606266);
+ }
+
+ .theme-toggle-button:hover {
+   color: var(--primary-500, #409EFF);
+ }
+
  .header-nav-menu {
    border-bottom: none !important;
+   --el-menu-bg-color: transparent;
+   --el-menu-text-color: var(--text-secondary, #555);
+   --el-menu-active-color: var(--primary-500, #409EFF);
+   --el-menu-hover-bg-color: transparent;
  }
- 
+
  .header-nav-menu .el-menu-item {
    height: 60px;
    line-height: 60px;
    font-size: 15px;
    font-weight: 500;
-   color: #555;
+   color: var(--text-secondary, #555);
    transition: all 0.3s ease;
  }
- 
+
  .header-nav-menu .el-menu-item:hover {
-   background-color: #f6f6f6 !important;
-   color: #409EFF !important;
+   background-color: var(--bg-tertiary, #f6f6f6) !important;
+   color: var(--primary-500, #409EFF) !important;
  }
- 
+
  .header-nav-menu .el-menu-item.is-active {
-   color: #409EFF !important;
-   border-bottom: 2px solid #409EFF !important;
+   color: var(--primary-500, #409EFF) !important;
+   border-bottom: 2px solid var(--primary-500, #409EFF) !important;
    background-color: transparent !important;
  }
- 
- 
+
+
  .user-info-dropdown {
    display: flex;
    align-items: center;
@@ -339,20 +359,20 @@ const { t } = useI18n();
    border-radius: 20px;
    transition: all 0.3s ease;
  }
- 
+
  .user-info-dropdown:hover {
-   background-color: #f5f7fa;
+   background-color: var(--bg-tertiary, #f5f7fa);
  }
- 
+
  .user-avatar {
    margin-right: 8px;
-   border: 1px solid #eee;
+   border: 1px solid var(--border-color, #eee);
    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
  }
- 
+
  .user-name {
    font-size: 15px;
-   color: #555;
+   color: var(--text-secondary, #555);
    margin-right: 5px;
  }
  

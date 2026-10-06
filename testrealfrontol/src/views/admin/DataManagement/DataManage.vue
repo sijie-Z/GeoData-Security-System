@@ -195,10 +195,10 @@ onMounted(fetchData)
 </script>
 
 <style scoped>
-.data-manage-container { padding: 24px 40px; background-color: #f7f8fa; min-height: calc(100vh - 50px); }
+.data-manage-container { padding: 24px 40px; background-color: var(--bg-secondary, #f7f8fa); min-height: calc(100vh - 50px); }
 .page-header { margin-bottom: 16px; }
-.page-title { font-size: 24px; font-weight: 600; color: #1d2129; margin: 0 0 8px 0; }
-.page-description { font-size: 14px; color: #86909c; margin: 0; }
+.page-title { font-size: 24px; font-weight: 600; color: var(--text-primary, #1d2129); margin: 0 0 8px 0; }
+.page-description { font-size: 14px; color: var(--text-tertiary, #86909c); margin: 0; }
 .data-tabs { margin-bottom: 16px; }
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
 .pagination-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }

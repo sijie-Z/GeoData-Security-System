@@ -24,7 +24,7 @@ html, body, #app {
   height: 100%;
   max-width: 100%;
   overflow: hidden;
-  background: #f0f2f5;
+  background: var(--bg-secondary, #f0f2f5);
 }
 .el-card {
   border-radius: var(--app-radius-lg) !important;

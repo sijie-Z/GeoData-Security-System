@@ -70,9 +70,9 @@ const reloadPage = () => {
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background-color: #f0f2f5;
+  background-color: var(--bg-secondary, #f0f2f5);
   font-family: 'Inter', sans-serif, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
-  color: #333;
+  color: var(--text-primary, #333);
 }
 
 .main-content-area {
@@ -86,7 +86,7 @@ const reloadPage = () => {
   min-width: 0;
   min-height: 0;
   padding: 16px;
-  background-color: #ffffff;
+  background-color: var(--bg-primary, #ffffff);
   border-radius: 10px;
   margin: 12px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);

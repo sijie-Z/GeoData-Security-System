@@ -289,12 +289,12 @@ const batchReview = async (action) => {
 .page-title {
   font-size: 22px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-primary, #1f2937);
   margin: 0 0 8px 0;
 }
 .page-desc {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   margin: 0;
 }
 .table-card {
@@ -307,7 +307,7 @@ const batchReview = async (action) => {
   margin-bottom: 10px;
 }
 .batch-tip {
-  color: #6b7280;
+  color: var(--text-secondary, #6b7280);
   font-size: 13px;
 }
 .approval-table {

@@ -54,6 +54,24 @@
   --border-color: #e2e8f0;
   --border-color-light: #f1f5f9;
 
+  /* Semantic tints（状态浅底：成功 / 失败 / 告警 / 信息 / 中性） */
+  --tint-success-bg: #f0f9eb;
+  --tint-success-border: #e1f3d8;
+  --tint-success-text: #047857;
+  --tint-danger-bg: #fef0f0;
+  --tint-danger-border: #fde2e2;
+  --tint-danger-text: #b91c1c;
+  --tint-warning-bg: #fdf6ec;
+  --tint-warning-border: #faecd8;
+  --tint-warning-text: #b45309;
+  --tint-info-bg: #ecf5ff;
+  --tint-info-border: #d9ecff;
+  --tint-neutral-bg: #f4f4f5;
+
+  /* Skeleton */
+  --skeleton-base: #e2e8f0;
+  --skeleton-highlight: #f1f5f9;
+
   /* Glass-morphism */
   --glass-bg: rgba(255, 255, 255, 0.75);
   --glass-bg-dark: rgba(15, 23, 42, 0.85);
@@ -66,6 +84,7 @@
   /* Sidebar */
   --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   --sidebar-bg-glass: rgba(15, 23, 42, 0.95);
+  --sidebar-solid-bg: #304156;
   --sidebar-width: 220px;
   --sidebar-collapsed-width: 64px;
   --sidebar-item-hover: rgba(255, 255, 255, 0.08);
@@ -76,6 +95,7 @@
   /* Header */
   --header-height: 60px;
   --header-bg: #ffffff;
+  --admin-header-bg: #2c3e50;
   --header-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 
   /* Border Radius */
@@ -131,19 +151,129 @@
   --z-tooltip: 1070;
 }
 
-/* Dark Mode */
-[data-theme="dark"] {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --bg-elevated: #1e293b;
-  --text-primary: #f1f5f9;
+/* ============================================
+   Dark Mode — 深海军蓝体系（html.dark，Element Plus 官方约定）
+   由 useTheme.js 在 <html> 上切换 dark 类名；本区块只定义值，不改结构。
+   ============================================ */
+
+html.dark {
+  /* --- 设计令牌：与 :root 同名变量一一对应（深海军蓝） --- */
+  --bg-primary: #131c2e;      /* 面板 / 卡片 */
+  --bg-secondary: #0b1220;    /* 页面底 */
+  --bg-tertiary: #1a2438;     /* 表头 / 次级底 */
+  --bg-elevated: #16203a;     /* 弹层 / 浮起面 */
+  --text-primary: #e6eaf2;
   --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
-  --border-color: #334155;
-  --border-color-light: #1e293b;
-  --glass-bg: rgba(15, 23, 42, 0.85);
-  --header-bg: #1e293b;
+  --text-inverse: #0b1220;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-color-light: rgba(255, 255, 255, 0.05);
+
+  /* Semantic tints（深色下改为低透明度彩色底） */
+  --tint-success-bg: rgba(16, 185, 129, 0.12);
+  --tint-success-border: rgba(16, 185, 129, 0.32);
+  --tint-success-text: #34d399;
+  --tint-danger-bg: rgba(239, 68, 68, 0.12);
+  --tint-danger-border: rgba(239, 68, 68, 0.32);
+  --tint-danger-text: #f87171;
+  --tint-warning-bg: rgba(245, 158, 11, 0.12);
+  --tint-warning-border: rgba(245, 158, 11, 0.32);
+  --tint-warning-text: #fbbf24;
+  --tint-info-bg: rgba(59, 130, 246, 0.12);
+  --tint-info-border: rgba(59, 130, 246, 0.32);
+  --tint-neutral-bg: rgba(255, 255, 255, 0.06);
+
+  /* Skeleton */
+  --skeleton-base: #1a2438;
+  --skeleton-highlight: #223049;
+
+  /* Glass-morphism */
+  --glass-bg: rgba(19, 28, 46, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+
+  /* Header */
+  --header-bg: #0e1626;
+  --admin-header-bg: #0e1626;
+  --header-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+
+  /* Sidebar（固定深色侧栏在深色下加深一档，与顶栏对齐） */
+  --sidebar-solid-bg: #0e1626;
+
+  /* Shadows（深色下加重） */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.55);
+
+  /* --- Element Plus 官方变量覆写：从 EP 默认深灰改为品牌深海军蓝 --- */
+  --el-bg-color: #131c2e;
+  --el-bg-color-overlay: #16203a;
+  --el-bg-color-page: #0b1220;
+  --el-text-color-primary: #e6eaf2;
+  --el-text-color-regular: #cbd5e1;
+  --el-text-color-secondary: #94a3b8;
+  --el-text-color-placeholder: #64748b;
+  --el-text-color-disabled: #4b5568;
+  --el-border-color: rgba(255, 255, 255, 0.12);
+  --el-border-color-light: rgba(255, 255, 255, 0.09);
+  --el-border-color-lighter: rgba(255, 255, 255, 0.07);
+  --el-border-color-extra-light: rgba(255, 255, 255, 0.04);
+  --el-fill-color: #1a2438;
+  --el-fill-color-light: #1a2438;
+  --el-fill-color-lighter: #16203a;
+  --el-fill-color-blank: #131c2e;
+  --el-fill-color-dark: #0e1626;
+  --el-fill-color-darker: #0b1220;
+  --el-mask-color: rgba(5, 9, 17, 0.8);
+  --el-mask-color-extra-light: rgba(5, 9, 17, 0.5);
+
+  /* 品牌主蓝 #3B82F6（light/dark 状态色阶按 EP 深色混色规则在 #3b82f6 上手工推导） */
+  --el-color-primary: #3b82f6;
+  --el-color-primary-light-3: #2f61b2;
+  --el-color-primary-light-5: #284b85;
+  --el-color-primary-light-7: #203558;
+  --el-color-primary-light-8: #1c2a41;
+  --el-color-primary-light-9: #181f2b;
+  --el-color-primary-dark-2: #629bf8;
+}
+
+/* ============================================
+   Dark Mode — Element Plus 组件级补充覆写
+   （官方 dark/css-vars 未覆盖、或被项目 !important 规则遮蔽处，集中于此）
+   ============================================ */
+
+html.dark .el-table {
+  --el-table-row-hover-bg-color: rgba(59, 130, 246, 0.08);
+  --el-table-border-color: var(--border-color);
+}
+
+html.dark .el-table th.el-table__cell {
+  border-bottom: 1px solid var(--border-color) !important;
+}
+
+html.dark .el-table td.el-table__cell {
+  border-bottom: 1px solid var(--border-color-light) !important;
+}
+
+/* 空态插图在深色底上降低亮度，避免刺眼 */
+html.dark .el-empty__image {
+  opacity: 0.75;
+}
+
+/* 滚动条（仅深色，避免浅色模式外观变化） */
+html.dark ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 4px;
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 /* ============================================
@@ -333,7 +463,7 @@ body {
 .skeleton-card {
   height: 120px;
   border-radius: var(--radius-lg);
-  background: linear-gradient(90deg, var(--neutral-100) 25%, var(--neutral-50) 50%, var(--neutral-100) 75%);
+  background: linear-gradient(90deg, var(--skeleton-base) 25%, var(--skeleton-highlight) 50%, var(--skeleton-base) 75%);
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s infinite;
 }

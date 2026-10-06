@@ -224,7 +224,7 @@ const download = async (row) => {
 .card-header span {
   font-size: 18px;
   font-weight: 500;
-  color: #303133;
+  color: var(--text-primary, #303133);
 }
 
 .loading-placeholder {
@@ -259,10 +259,10 @@ const download = async (row) => {
 
 /* 覆盖 el-descriptions 的样式 */
 :deep(.el-descriptions__label) {
-  color: #909399;
+  color: var(--text-tertiary, #909399);
 }
 :deep(.el-descriptions__content) {
-  color: #303133;
+  color: var(--text-primary, #303133);
 }
 
 .pagination-container {

@@ -26,7 +26,7 @@
               fit="cover"
               style="width: 72px; height: 72px; border-radius: 6px;"
             />
-            <span v-else style="color:#909399;">{{ $t('wmGen.notGenerated') }}</span>
+            <span v-else style="color:var(--text-tertiary, #909399);">{{ $t('wmGen.notGenerated') }}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('wmGen.colAction')" width="240" align="center" fixed="right">
@@ -121,9 +121,9 @@
               v-if="generatedQrcode"
               :src="`data:image/png;base64,${generatedQrcode}`"
               fit="contain"
-              style="width: 140px; height: 140px; border: 1px solid #e5e7eb; border-radius: 8px;"
+              style="width: 140px; height: 140px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px;"
             />
-            <span v-else style="color:#909399;">{{ $t('wmGen.qrPreviewAfter') }}</span>
+            <span v-else style="color:var(--text-tertiary, #909399);">{{ $t('wmGen.qrPreviewAfter') }}</span>
             <div v-if="generatedQrcode" class="qr-meta">
               <p v-if="generatedQrVersion">{{ $t('wmGen.version') }} V{{ generatedQrVersion }}</p>
               <p v-if="generatedSignature">{{ $t('wmGen.signature') }} {{ generatedSignature }}</p>
@@ -160,7 +160,7 @@
           <div ref="mapContainer" class="map-container"></div>
           <div v-if="mapLoading" class="map-loading-overlay">
             <el-icon class="is-loading" :size="32"><Loading /></el-icon>
-            <span style="margin-top: 8px; color: #6b7280; font-size: 14px;">{{ $t('wmGen.mapLoadingText') }}</span>
+            <span style="margin-top: 8px; color: var(--text-secondary, #6b7280); font-size: 14px;">{{ $t('wmGen.mapLoadingText') }}</span>
           </div>
           <div v-if="!selectedMapRow.data_url" class="map-placeholder">
             <el-empty :description="$t('wmGen.mapEmptyDesc')" />
@@ -633,33 +633,33 @@ onMounted(() => {
 <style scoped>
 .watermark-generation-page { padding: 20px 24px; }
 .page-header { margin-bottom: 16px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: #1f2937; }
-.page-desc { margin: 0; color: #6b7280; }
+.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-primary, #1f2937); }
+.page-desc { margin: 0; color: var(--text-secondary, #6b7280); }
 .table-card { border-radius: 12px; }
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
 
 /* Form layout */
 .gen-form :deep(.el-divider) { margin: 16px 0 12px; }
-.gen-form :deep(.el-divider__text) { font-size: 13px; font-weight: 600; color: #475569; }
+.gen-form :deep(.el-divider__text) { font-size: 13px; font-weight: 600; color: var(--text-secondary, #475569); }
 .form-row { display: flex; gap: 16px; }
 .form-half { flex: 1; }
 
 /* Map dialog */
 .map-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
 .map-dialog-layout { display: flex; gap: 16px; }
-.map-pane { flex: 3; position: relative; height: 500px; border-radius: 10px; overflow: hidden; background: #f1f5f9; }
+.map-pane { flex: 3; position: relative; height: 500px; border-radius: 10px; overflow: hidden; background: var(--bg-tertiary, #f1f5f9); }
 .map-container { width: 100%; height: 100%; }
-.map-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: #f8fafc; }
+.map-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary, #f8fafc); }
 .map-loading-overlay {
   position: absolute; inset: 0; z-index: 100;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--glass-bg, rgba(255, 255, 255, 0.85));
 }
 .info-pane { flex: 1; min-width: 260px; }
-.url-text { word-break: break-all; color: #6b7280; font-size: 12px; }
+.url-text { word-break: break-all; color: var(--text-secondary, #6b7280); font-size: 12px; }
 
 /* QR preview */
 .qr-preview-area { display: flex; flex-direction: column; gap: 8px; }
-.qr-meta { font-size: 12px; color: #6b7280; }
+.qr-meta { font-size: 12px; color: var(--text-secondary, #6b7280); }
 .qr-meta p { margin: 4px 0; }
 </style>
