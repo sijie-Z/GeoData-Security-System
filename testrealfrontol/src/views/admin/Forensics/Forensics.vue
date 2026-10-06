@@ -585,12 +585,12 @@ const buildAnchor = async () => {
 
 .page-header h2 {
   font-size: 24px;
-  color: #303133;
+  color: var(--text-primary, #303133);
   margin: 0 0 8px;
 }
 
 .subtitle {
-  color: #909399;
+  color: var(--text-tertiary, #909399);
   font-size: 14px;
   margin: 0;
 }
@@ -612,7 +612,7 @@ const buildAnchor = async () => {
 }
 
 .query-label {
-  color: #606266;
+  color: var(--text-secondary, #606266);
   font-size: 14px;
 }
 
@@ -630,7 +630,7 @@ const buildAnchor = async () => {
 
 .section-label {
   font-weight: 600;
-  color: #303133;
+  color: var(--text-primary, #303133);
   font-size: 14px;
   margin: 0 0 8px;
 }
@@ -675,21 +675,21 @@ const buildAnchor = async () => {
 }
 
 .verify-pass {
-  background: linear-gradient(135deg, #f0f9eb, #e1f3d8);
-  border: 1px solid #b3e19d;
-  color: #67c23a;
+  background: linear-gradient(135deg, var(--tint-success-bg, #f0f9eb), var(--tint-success-border, #e1f3d8));
+  border: 1px solid var(--tint-success-border, #b3e19d);
+  color: var(--tint-success-text, #67c23a);
 }
 
 .verify-fail {
-  background: linear-gradient(135deg, #fef0f0, #fde2e2);
-  border: 1px solid #fbc4c4;
-  color: #f56c6c;
+  background: linear-gradient(135deg, var(--tint-danger-bg, #fef0f0), var(--tint-danger-border, #fde2e2));
+  border: 1px solid var(--tint-danger-border, #fbc4c4);
+  color: var(--tint-danger-text, #f56c6c);
 }
 
 .verify-warn {
-  background: linear-gradient(135deg, #fdf6ec, #faecd8);
-  border: 1px solid #f5dab1;
-  color: #e6a23c;
+  background: linear-gradient(135deg, var(--tint-warning-bg, #fdf6ec), var(--tint-warning-border, #faecd8));
+  border: 1px solid var(--tint-warning-border, #f5dab1);
+  color: var(--tint-warning-text, #e6a23c);
 }
 
 .result-desc {
@@ -697,8 +697,8 @@ const buildAnchor = async () => {
 }
 
 .locate-card {
-  background: linear-gradient(135deg, #fef0f0, #fde2e2);
-  border: 1px solid #fbc4c4;
+  background: linear-gradient(135deg, var(--tint-danger-bg, #fef0f0), var(--tint-danger-border, #fde2e2));
+  border: 1px solid var(--tint-danger-border, #fbc4c4);
   border-radius: 10px;
   padding: 16px 20px;
   margin-bottom: 16px;
@@ -707,29 +707,29 @@ const buildAnchor = async () => {
 .locate-title {
   margin: 0 0 8px;
   font-size: 16px;
-  color: #f56c6c;
+  color: var(--tint-danger-text, #f56c6c);
 }
 
 .locate-line {
   margin: 0 0 8px;
   font-size: 15px;
   font-weight: 600;
-  color: #f56c6c;
+  color: var(--tint-danger-text, #f56c6c);
 }
 
 .locate-subtitle {
   margin: 16px 0 8px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary, #303133);
 }
 
 .approval-line {
   font-size: 14px;
-  color: #303133;
+  color: var(--text-primary, #303133);
 }
 
 .approval-comment {
-  color: #909399;
+  color: var(--text-tertiary, #909399);
   font-size: 13px;
 }
 
@@ -740,7 +740,7 @@ const buildAnchor = async () => {
 .disclaimer {
   margin-top: 24px;
   font-size: 12px;
-  color: #909399;
+  color: var(--text-tertiary, #909399);
   text-align: center;
   line-height: 1.6;
 }
