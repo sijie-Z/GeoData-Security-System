@@ -6,7 +6,9 @@ import hashlib
 import io
 import json
 import os
+import secrets
 import zipfile
+from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pytest
@@ -95,6 +97,7 @@ class TestDeliveryFastPath:
         delivery = data["delivery"]
         assert set(delivery.keys()) == {"uuid", "fingerprint_id", "status", "created_at", "artifact_root"}
         assert delivery["status"] == "READY"
+        assert delivery["created_at"].endswith("Z")  # UTC ISO, no local-time ambiguity
         assert len(delivery["fingerprint_id"]) == 32
 
         row = DownloadDelivery.query.filter_by(uuid=delivery["uuid"]).first()
@@ -275,3 +278,180 @@ class TestThreeUserAcceptance:
 
         print("FIDS:", fids)
         print("SHA256:", digests)
+
+
+class TestDownloadWiringHardening:
+    """Round-C wiring review: legacy branch, token-path gate matrix, lambda gate,
+    orphan-product cleanup after a failed personalization."""
+
+    def _mk_token(self, db, item, delivery_id=None, **kwargs):
+        token = DownloadToken(
+            application_id=item.id,
+            user_number="E001",
+            delivery_id=delivery_id,
+            expires_at=kwargs.pop("expires_at", datetime.now(UTC) + timedelta(hours=1)),
+            **kwargs,
+        )
+        db.session.add(token)
+        db.session.commit()
+        return token
+
+    def test_legacy_token_branch_downloads_and_records(self, db, client, employee_headers, tmp_path):
+        """Item 13: a delivery_id=NULL token takes _deliver_legacy — file 200,
+        server-side record written, recall then answers 403 on a fresh token."""
+        payload = tmp_path / "legacy.bin"
+        payload.write_bytes(b"LEGACY-PAYLOAD")
+        item = _seed_application(db, payload, data_id=21, alias="legacy")
+        token = self._mk_token(db, item)
+
+        dl = client.get(f"/api/download/{token.token}")
+        assert dl.status_code == 200
+        assert dl.data == b"LEGACY-PAYLOAD"
+
+        record = (
+            DownloadRecord.query.filter_by(application_id=item.id)
+            .order_by(DownloadRecord.id.desc())
+            .first()
+        )
+        assert record is not None, "server-side DownloadRecord missing for legacy branch"
+        assert record.delivery_id is None
+        assert record.filename == "legacy.bin"
+
+        # recall 403 semantics also hold on the legacy branch
+        item.is_recalled = True
+        db.session.commit()
+        fresh = self._mk_token(db, item)
+        resp = client.get(f"/api/download/{fresh.token}")
+        assert resp.status_code == 403
+        assert "回收" in resp.get_json()["msg"]
+
+    def test_token_download_gate_matrix(self, db, client, employee_headers, tmp_path):
+        """Item 15: expired 403 / used 403 / FAILED delivery 404 / recalled 403 /
+        download_enabled=False 403 — each gate on the token download path."""
+        payload = tmp_path / "matrix.bin"
+        payload.write_bytes(b"MATRIX")
+        item = _seed_application(db, payload, data_id=22, alias="matrix")
+
+        expired = self._mk_token(db, item, expires_at=datetime.now(UTC) - timedelta(minutes=1))
+        resp = client.get(f"/api/download/{expired.token}")
+        assert resp.status_code == 403
+        assert "过期" in resp.get_json()["msg"]
+
+        used = self._mk_token(db, item)
+        used.is_used = True
+        db.session.commit()
+        resp = client.get(f"/api/download/{used.token}")
+        assert resp.status_code == 403
+        assert "已使用" in resp.get_json()["msg"]
+
+        failed_delivery = DownloadDelivery(
+            application_id=item.id,
+            data_id=item.data_id,
+            data_type="vector",
+            user_number="E001",
+            fingerprint_id=secrets.token_bytes(16).hex(),
+            status="FAILED",
+            created_at=datetime.now(UTC),
+        )
+        db.session.add(failed_delivery)
+        db.session.commit()
+        failed_token = self._mk_token(db, item, delivery_id=failed_delivery.delivery_id)
+        resp = client.get(f"/api/download/{failed_token.token}")
+        assert resp.status_code == 404
+        assert "尚未就绪" in resp.get_json()["msg"]
+
+        item.is_recalled = True
+        db.session.commit()
+        recalled_token = self._mk_token(db, item)
+        resp = client.get(f"/api/download/{recalled_token.token}")
+        assert resp.status_code == 403
+        assert "回收" in resp.get_json()["msg"]
+
+        item.is_recalled = False
+        item.download_enabled = False
+        db.session.commit()
+        disabled_token = self._mk_token(db, item)
+        resp = client.get(f"/api/download/{disabled_token.token}")
+        assert resp.status_code == 403
+        assert "禁用" in resp.get_json()["msg"]
+
+    @staticmethod
+    def _insufficient_embed(available, needed):
+        def _fake_embed(shp_path, qr_image_path, n=4, R=None, output_dir=None):
+            zip_path = os.path.join(output_dir, "watermarked_vec.zip")
+            with zipfile.ZipFile(zip_path, "w") as zf:
+                zf.writestr("vec.shp", b"WM")
+                zf.writestr("vec.shx", b"X")
+                zf.writestr("vec.dbf", b"D")
+            return {
+                "zip_path": zip_path,
+                "vr": [116.0, 39.0],
+                "side_length": 130,
+                "capacity_report": {"available_chunks": available, "needed_chunks": needed, "sufficient": True},
+            }
+
+        return _fake_embed
+
+    def test_lambda_gate_blocks_delivery_and_removes_orphan_dir(
+        self, db, client, employee_headers, tmp_path, monkeypatch
+    ):
+        """Item 16 (+item 4): available < 4*needed -> FAILED + 500 + no
+        artifact_path and no orphan product directory left on disk."""
+        folder = tmp_path / "deliveries"
+        monkeypatch.setitem(client.application.config, "DELIVERY_FOLDER", str(folder))
+        base = tmp_path / "cap.shp"
+        base.write_bytes(b"SHP")
+        (tmp_path / "cap.shx").write_bytes(b"SHX")
+        (tmp_path / "cap.dbf").write_bytes(b"DBF")
+        item = _seed_application(db, base, data_id=23, alias="capacity")
+
+        monkeypatch.setattr("delivery.service.vector_embed", self._insufficient_embed(available=100, needed=100))
+        resp = client.post("/api/request_download_token", json={"application_id": item.id}, headers=employee_headers)
+        assert resp.status_code == 500
+        assert resp.get_json()["msg"] == "个性化交付生成失败: 详见服务端日志"
+
+        row = (
+            DownloadDelivery.query.filter_by(application_id=item.id)
+            .order_by(DownloadDelivery.delivery_id.desc())
+            .first()
+        )
+        assert row.status == "FAILED"
+        assert row.artifact_path is None
+        assert "顶点预算不足" in (row.error or "")
+        assert not (folder / row.uuid).exists(), "orphan product directory was not cleaned up"
+
+    def test_capacity_report_missing_needed_fails_closed(
+        self, db, client, employee_headers, tmp_path, monkeypatch
+    ):
+        """Item 6: a missing needed_chunks must fail the delivery, not pass silently."""
+        folder = tmp_path / "deliveries"
+        monkeypatch.setitem(client.application.config, "DELIVERY_FOLDER", str(folder))
+        base = tmp_path / "cap2.shp"
+        base.write_bytes(b"SHP")
+        (tmp_path / "cap2.shx").write_bytes(b"SHX")
+        (tmp_path / "cap2.dbf").write_bytes(b"DBF")
+        item = _seed_application(db, base, data_id=24, alias="capacity2")
+
+        def _fake_embed(shp_path, qr_image_path, n=4, R=None, output_dir=None):
+            zip_path = os.path.join(output_dir, "watermarked_vec.zip")
+            with zipfile.ZipFile(zip_path, "w") as zf:
+                zf.writestr("vec.shp", b"WM")
+            return {
+                "zip_path": zip_path,
+                "vr": [116.0, 39.0],
+                "side_length": 130,
+                "capacity_report": {"available_chunks": 20000, "sufficient": True},  # no needed_chunks
+            }
+
+        monkeypatch.setattr("delivery.service.vector_embed", _fake_embed)
+        resp = client.post("/api/request_download_token", json={"application_id": item.id}, headers=employee_headers)
+        assert resp.status_code == 500
+        row = (
+            DownloadDelivery.query.filter_by(application_id=item.id)
+            .order_by(DownloadDelivery.delivery_id.desc())
+            .first()
+        )
+        assert row.status == "FAILED"
+        assert row.artifact_path is None
+        assert "fail-closed" in (row.error or "")
+        assert not (folder / row.uuid).exists()

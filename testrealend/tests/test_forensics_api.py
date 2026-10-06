@@ -9,6 +9,8 @@ import secrets
 import zipfile
 from datetime import UTC, datetime
 
+import pytest
+
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
 from evidence.chain import append_event
@@ -121,6 +123,7 @@ class TestVerifyJson:
         assert data["data_type"] == "vector"
         assert data["signature_valid"] is True
         assert data["chain"]["valid"] is True and data["chain"]["length"] >= 1
+        assert data["issued_at"].endswith("Z")  # UTC ISO with explicit Z suffix
         blob = json.dumps(data, ensure_ascii=False)
         for pii in ("Approver One", "Tester", "E001", "applicant"):
             assert pii not in blob, f"verify leaked {pii!r}"
@@ -231,6 +234,7 @@ class TestAuth:
             assert set(d.keys()) == LIST_ITEM_FIELDS, set(d.keys()) ^ LIST_ITEM_FIELDS
             assert d["chain"]["valid"] is True
             assert set(d["anchor"].keys()) == {"status", "batch_id"}
+            assert d["created_at"].endswith("Z") and d["ready_at"].endswith("Z")
 
         resp = client.get(f"/api/forensics/deliveries?application_id={item.id}", headers=employee_headers)
         assert resp.status_code == 200
@@ -255,6 +259,7 @@ class TestDeliveriesDetail:
         assert [e["seq"] for e in data["events"]] == [1, 2, 3]
         for event in data["events"]:
             assert set(event.keys()) == {"seq", "event_type", "ts", "event_hash", "kid"}
+            assert event["ts"].endswith("Z")  # UTC ISO with explicit Z suffix
         assert set(data["anchor"].keys()) == {"batch_id", "status", "provider", "root_hex", "error"}
 
         # acceptance 6: tamper an event row -> detail reports the exact broken_at
@@ -275,6 +280,43 @@ class TestDeliveriesDetail:
         other = _seed_delivery(db, item, user="someone-else")
         resp = client.get(f"/api/forensics/deliveries/{other.uuid}", headers=employee_headers)
         assert resp.status_code == 403
+
+    def test_detail_paths_admin_only_owner_gets_whitelist(self, db, client, auth_headers, employee_headers):
+        """Item 3: artifact_path / vr_data / artifact_meta_path are admin-only;
+        the owner branch returns the whitelist without those three."""
+        item = _seed_app(db, alias="file-priv")
+        delivery = _seed_delivery(db, item, user="E001")
+        delivery.artifact_path = "/srv/artifacts/secret.zip"
+        delivery.artifact_meta_path = "/srv/artifacts/secret_meta.json"
+        delivery.vr_data = json.dumps({"vr": [1.0, 2.0], "side_length": 45})
+        db.session.commit()
+
+        admin_view = client.get(f"/api/forensics/deliveries/{delivery.uuid}", headers=auth_headers).get_json()
+        assert admin_view["delivery"]["artifact_path"] == "/srv/artifacts/secret.zip"
+        assert admin_view["delivery"]["vr_data"] == delivery.vr_data
+        assert admin_view["delivery"]["artifact_meta_path"] == "/srv/artifacts/secret_meta.json"
+
+        owner_view = client.get(f"/api/forensics/deliveries/{delivery.uuid}", headers=employee_headers).get_json()
+        for hidden in ("artifact_path", "vr_data", "artifact_meta_path"):
+            assert hidden not in owner_view["delivery"], hidden
+        assert owner_view["delivery"]["uuid"] == delivery.uuid
+        assert owner_view["delivery"]["artifact_root"] == delivery.artifact_root
+
+    def test_deliveries_list_limit_param(self, db, client, auth_headers):
+        """Item 3: the list endpoint honours ?limit= (default 200, invalid -> 200)."""
+        item = _seed_app(db, alias="file-lim")
+        for _ in range(3):
+            _seed_delivery(db, item, user="E001")
+
+        resp = client.get(f"/api/forensics/deliveries?application_id={item.id}&limit=2", headers=auth_headers)
+        assert resp.status_code == 200
+        assert len(resp.get_json()["deliveries"]) == 2
+
+        resp = client.get(f"/api/forensics/deliveries?application_id={item.id}", headers=auth_headers)
+        assert len(resp.get_json()["deliveries"]) == 3
+
+        resp = client.get(f"/api/forensics/deliveries?application_id={item.id}&limit=0", headers=auth_headers)
+        assert len(resp.get_json()["deliveries"]) == 3  # invalid values fall back to the default
 
 
 class TestAnchor:
@@ -333,6 +375,22 @@ class TestVerifyUploadArtifact:
         shp_path = _make_small_shp(tmp_path / "upload_src.shp")
         item = _seed_app(db, alias="upload-A")
         item.watermark_path = shp_path
+        # Item 17: seed PII around the application so the hit-path response can
+        # be checked against a realistic leak surface.
+        item.adm1_name = "Approver One"
+        item.adm1_user_number = "admin1"
+        item.adm1_comment = "should-not-leak"
+        db.session.add(
+            DownloadRecord(
+                application_id=item.id,
+                data_id=item.data_id,
+                data_name=item.data_name,
+                download_user_number="E001",
+                download_ip="10.9.8.7",
+                applicant_user_number="E001",
+                filename="artifact.zip",
+            )
+        )
         db.session.commit()
 
         from delivery.service import get_or_create_for_token
@@ -353,6 +411,9 @@ class TestVerifyUploadArtifact:
         assert data["fid"] == delivery.fingerprint_id
         assert data["delivery_uuid"] == delivery.uuid
         assert data["artifact_root_match"] is True
+        leaked = json.dumps(data, ensure_ascii=False)
+        for pii in ("Tester", "E001", "Approver One", "admin1", "should-not-leak", "10.9.8.7"):
+            assert pii not in leaked, f"verify upload path leaked {pii!r}"
 
         # one-byte-class tamper: append a newline to a component (.prj) -> root differs
         tamper_dir = tmp_path / "tampered"
@@ -379,6 +440,69 @@ class TestVerifyUploadArtifact:
         assert data2["found"] is True, data2
         assert data2["fid"] == delivery.fingerprint_id
         assert data2["artifact_root_match"] is False
+
+
+def _zip_bytes(entries):
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as zf:
+        for name, payload in entries:
+            zf.writestr(name, payload)
+    return buf.getvalue()
+
+
+class TestUploadZipDefenses:
+    """Item 14: traversal members / too many members / declared oversize all
+    answer 400 and never write the extraction target directory."""
+
+    @pytest.mark.parametrize(
+        ("entries", "msg_part"),
+        [
+            ([("../" * 3 + "evil.txt", b"pwn")], "非法文件路径"),
+            ([(f"m{i}.txt", b"x") for i in range(51)], "成员数超过 50"),
+        ],
+        ids=["traversal-member", "too-many-members"],
+    )
+    def test_malicious_zip_upload_400(self, db, client, auth_headers, entries, msg_part):
+        resp = client.post(
+            "/api/forensics/verify",
+            data={"file": (io.BytesIO(_zip_bytes(entries)), "evil.zip")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400
+        assert msg_part in resp.get_json()["msg"]
+
+    def test_oversized_declared_zip_upload_400(self, db, client, auth_headers, monkeypatch):
+        monkeypatch.setattr("resource.forensics_resource.ZIP_MAX_TOTAL_BYTES", 10)
+        resp = client.post(
+            "/api/forensics/verify",
+            data={"file": (io.BytesIO(_zip_bytes([("a.bin", b"x" * 100)])), "big.zip")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400
+        assert "解压总量" in resp.get_json()["msg"]
+
+    @pytest.mark.parametrize(
+        ("entries", "patch_limit"),
+        [
+            ([("../" * 3 + "evil.txt", b"pwn")], False),
+            ([(f"m{i}.txt", b"x") for i in range(51)], False),
+            ([("a.bin", b"x" * 100)], True),
+        ],
+        ids=["traversal-member", "too-many-members", "oversize"],
+    )
+    def test_unzip_safe_rejects_without_creating_target_dir(self, tmp_path, monkeypatch, entries, patch_limit):
+        from resource.forensics_resource import _unzip_safe
+
+        if patch_limit:
+            monkeypatch.setattr("resource.forensics_resource.ZIP_MAX_TOTAL_BYTES", 10)
+        evil_zip = tmp_path / "evil.zip"
+        evil_zip.write_bytes(_zip_bytes(entries))
+        out_dir = tmp_path / "never_written"
+        with pytest.raises(ValueError):
+            _unzip_safe(str(evil_zip), str(out_dir))
+        assert not out_dir.exists(), "extraction target must not be created for rejected zips"
 
     def test_raster_upload_hit_and_root_match(self, db, client, auth_headers, tmp_path, monkeypatch):
         from tests.test_raster import _make_geotiff
