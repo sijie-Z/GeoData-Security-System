@@ -198,3 +198,22 @@ export const generateRasterTiles = (data) => axios.post('/api/raster/generate_ti
  * @returns {Promise<AxiosResponse>}
  */
 export const getBenchmarkResults = () => axios.get('/api/benchmark/results')
+
+/**
+ * Get server-side aggregated verification statistics for the quality dashboard.
+ * Full-history totals plus a daily series whose window length is `days`.
+ * @param {Object} [params]
+ * @param {number} [params.days] - length of the daily trend window (1..365, default 30)
+ * @param {string} [params.data_type] - 'vector' | 'raster' filter (applies to every stat)
+ * @returns {Promise<AxiosResponse>} {status, stats:{total, avg_nc, min_nc, max_nc, p50_nc,
+ *   low_nc_count, by_data_type, by_algorithm, nc_histogram, daily, range}}
+ */
+export const getVerificationStats = (params) =>
+  axios.get('/api/watermark/verification_stats', { params })
+
+/**
+ * Get the latest robustness benchmark run from the database (preferred over
+ * the legacy JSON file behind getBenchmarkResults).
+ * @returns {Promise<AxiosResponse>} {status, runs_count, latest_run, results:[…]}
+ */
+export const getBenchmarkStats = () => axios.get('/api/benchmark/stats')

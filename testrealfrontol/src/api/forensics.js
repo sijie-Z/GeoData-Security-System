@@ -66,3 +66,12 @@ export const buildAnchorBatch = () => axios.post('/api/forensics/anchor/build')
  * @returns {Promise<AxiosResponse>}
  */
 export const getKeyInfo = () => axios.get('/api/forensics/keyinfo')
+
+/**
+ * Get server-side delivery aggregation stats for the quality dashboard:
+ * status distribution, anchor states, chain validity and recent deliveries.
+ * @returns {Promise<AxiosResponse>} {status, stats:{total, by_status, by_algorithm,
+ *   by_data_type, downloaded_count, anchor:{submitted,pending,none},
+ *   chain_valid_count, chain_checked, recent:[…]}}
+ */
+export const getDeliveryStats = () => axios.get('/api/forensics/deliveries/stats')
