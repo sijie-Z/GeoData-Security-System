@@ -6,7 +6,7 @@ for every scheme (``legacy`` absolute-coordinate QIM in ``algorithm/embed.py``,
 payload is embedded once, the no-attack baseline is measured first, then every
 standard coordinate attack (translation / scaling / vertex deletion / Gaussian
 noise / simplification) is applied to a copy of the stego shapefile and read
-back with that scheme's extractor. One row per (scheme, attack) carries:
+back with that scheme's extractor. One row per (scheme, attack, trial) carries:
 
   * ``decode_success`` — ``decode_qr_from_image`` returned exactly
     ``payload_text`` (the payload-level gate);
@@ -15,6 +15,13 @@ back with that scheme's extractor. One row per (scheme, attack) carries:
     ``compute_ber`` on 0/1 bit sequences, the same reference convention as
     ``tests/benchmark_all_algorithms.py``). A QR that cannot be decoded at all
     yields ``decode_success=False`` with NC/BER ``None`` (nothing to compare);
+  * ``trial`` — 1-based trial index of a multi-trial run;
+  * ``attack_params`` — the parameters actually used for this cell. With
+    ``trials > 1`` each trial samples the documented intervals with the fixed
+    seed ``TRIAL_BASE_SEED + trial`` (see ``sample_trial_params``), so the whole
+    matrix is bit-reproducible from the request alone; ``trials == 1`` keeps the
+    documented ``ATTACK_DEFAULTS`` (the interval midpoints) for continuity with
+    the pre-trials experiments;
   * ``duration_ms`` — wall time of the attack + extract + decode + metrics cell.
 
 Discipline: everything here is a pure function of its arguments — no Flask
@@ -61,8 +68,49 @@ ATTACK_DEFAULTS = {
     "simplify": {"tolerance": None},
 }
 
-# Fixed seed for the deterministic Gaussian-noise attack (E2 used seed 11).
+# Fixed seed for the deterministic Gaussian-noise attack (E2 used seed 11);
+# trial ``t`` (1-based) of a multi-trial run uses ``NOISE_SEED + t``.
 NOISE_SEED = 11
+
+# Multi-trial parameter sampling (feat_experiment_trials): with ``trials > 1``
+# trial ``t`` draws every attack's parameters from the documented intervals
+# below using ``np.random.default_rng(TRIAL_BASE_SEED + t)`` — a fixed seed,
+# so the same request reproduces bit-identical rows. The interval midpoints
+# equal the ``ATTACK_DEFAULTS``, which is what ``trials == 1`` keeps using.
+TRIAL_BASE_SEED = 11
+
+VECTOR_TRIAL_INTERVALS = {
+    "translate": {"dx": (0.003, 0.008), "dy": (0.002, 0.005)},
+    "scale": {"factor": (1.5, 3.0)},
+    "vertex_drop": {"pct": (0.03, 0.08)},
+    "noise": {"sigma": (5e-10, 2e-9)},
+    "simplify": {"tolerance_multiplier": (0.5, 1.5)},
+}
+
+
+def sample_trial_params(trial):
+    """Attack parameters for trial ``trial`` (1-based), fixed-seed sampled.
+
+    Draws run over the full canonical ``ATTACKS`` order (not just the requested
+    subset), so a trial's parameters are a property of the trial itself —
+    identical whether a caller requests every attack or a subset — and both
+    schemes of a run see the same attack conditions per trial (paired design).
+    ``none`` is not jittered (empty params, recorded as-is). ``simplify``
+    samples a multiplier against the dataset's auto tolerance; the resolved
+    tolerance is recorded in the row, not the multiplier.
+    """
+    rng = np.random.default_rng(TRIAL_BASE_SEED + trial)
+    sampled = {}
+    for attack in ATTACKS:
+        if attack == "none":
+            sampled[attack] = {}
+            continue
+        specs = VECTOR_TRIAL_INTERVALS.get(attack)
+        if not specs:
+            sampled[attack] = dict(ATTACK_DEFAULTS.get(attack, {}))
+            continue
+        sampled[attack] = {name: float(rng.uniform(lo, hi)) for name, (lo, hi) in specs.items()}
+    return sampled
 
 
 # --------------------------------------------------------------------------- #
@@ -318,10 +366,11 @@ def _image_bits(image_path):
     return (arr > 127).astype(int).flatten()
 
 
-def _row(scheme, attack, attack_params, decode_success, nc=None, ber=None, duration_ms=None, error=None):
+def _row(scheme, attack, attack_params, decode_success, nc=None, ber=None, duration_ms=None, error=None, trial=1):
     return {
         "scheme": scheme,
         "attack": attack,
+        "trial": trial,
         "attack_params": attack_params,
         "decode_success": decode_success,
         "nc": nc,
@@ -356,7 +405,41 @@ def _extract_watermark(scheme, attacked_shp, vr, side_length, out_dir):
     return wm_png
 
 
-def _run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir):
+def _trial_attack_params(attack, trial, trials, attack_input_shp):
+    """The real attack-parameter dict for one (attack, trial) cell.
+
+    ``trials == 1`` keeps the documented ``ATTACK_DEFAULTS`` (with the simplify
+    tolerance resolved against the actual input). ``trials > 1`` draws from
+    ``sample_trial_params``; the noise attack additionally gets its per-trial
+    fixed seed (``NOISE_SEED + trial``) and simplify resolves its tolerance
+    against the dataset's auto tolerance x the sampled multiplier.
+    """
+    if trials == 1:
+        params = dict(ATTACK_DEFAULTS[attack])
+        if attack == "simplify":
+            params["tolerance"] = default_simplify_tolerance(attack_input_shp)
+        return params
+    params = dict(sample_trial_params(trial)[attack])
+    if attack == "none":
+        return params
+    if attack == "simplify":
+        return {"tolerance": default_simplify_tolerance(attack_input_shp) * params["tolerance_multiplier"]}
+    if attack == "noise":
+        params["seed"] = NOISE_SEED + trial
+    return params
+
+
+def _unresolved_trial_params(attack, trial, trials):
+    """Recorded params when the cell never reached its attack (embed failure)."""
+    if trials == 1:
+        return dict(ATTACK_DEFAULTS[attack])
+    params = dict(sample_trial_params(trial)[attack])
+    if attack == "noise":
+        params["seed"] = NOISE_SEED + trial
+    return params
+
+
+def _run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir, trials=1):
     from algorithm.quality_metrics import compute_ber, compute_nc
     from resource.watermark_utils import decode_qr_from_image
 
@@ -364,67 +447,98 @@ def _run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_tex
     os.makedirs(scheme_dir, exist_ok=True)
 
     precomputed = (base_scheme_data or {}).get(scheme)
-    try:
-        if precomputed:
-            stego_shp = precomputed["stego_shp"]
-            vr = precomputed["vr"]
-            side_length = int(precomputed["side_length"])
-        else:
-            stego_shp, vr, side_length = _embed_stego(scheme, base_shp, qr_png, scheme_dir)
-    except Exception as e:
-        logging.exception("robustness matrix: embed failed for scheme %s", scheme)
-        error = f"embed failed: {e}"[:255]
-        return [_row(scheme, attack, dict(ATTACK_DEFAULTS[attack]), False, error=error) for attack in attacks]
-
     rows = []
-    for attack in attacks:
-        params = dict(ATTACK_DEFAULTS[attack])
-        started = time.perf_counter()
+    for trial in range(1, trials + 1):
+        trial_dir = os.path.join(scheme_dir, f"trial_{trial}")
+        os.makedirs(trial_dir, exist_ok=True)
+        # Every trial embeds its own stego: each trial is an independent
+        # replicate with its own attack copies, never cumulative state.
         try:
-            if attack == "none":
-                attacked_shp = stego_shp
+            if precomputed:
+                stego_shp = precomputed["stego_shp"]
+                vr = precomputed["vr"]
+                side_length = int(precomputed["side_length"])
             else:
-                if attack == "simplify" and params.get("tolerance") is None:
-                    params["tolerance"] = default_simplify_tolerance(stego_shp)
-                attacked_shp = _ATTACK_FUNCTIONS[attack](
-                    stego_shp,
-                    output_path=os.path.join(scheme_dir, f"attacked_{scheme}_{attack}.shp"),
-                    **params,
-                )
-            wm_png = _extract_watermark(
-                scheme, attacked_shp, vr, side_length, os.path.join(scheme_dir, f"extract_{attack}")
-            )
-            text = decode_qr_from_image(wm_png)
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            if text is None:
-                rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms))
-                continue
-            ext_bits = _image_bits(wm_png)
-            nc = compute_nc(orig_bits, ext_bits)
-            ber = compute_ber(orig_bits, ext_bits)
-            rows.append(_row(scheme, attack, params, text == payload_text, nc=nc, ber=ber, duration_ms=duration_ms))
+                stego_shp, vr, side_length = _embed_stego(scheme, base_shp, qr_png, trial_dir)
         except Exception as e:
-            logging.exception("robustness matrix: cell failed scheme=%s attack=%s", scheme, attack)
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255]))
+            logging.exception("robustness matrix: embed failed for scheme %s trial %s", scheme, trial)
+            error = f"embed failed: {e}"[:255]
+            rows.extend(
+                _row(scheme, attack, _unresolved_trial_params(attack, trial, trials), False, error=error, trial=trial)
+                for attack in attacks
+            )
+            continue
+
+        for attack in attacks:
+            started = time.perf_counter()
+            params = None
+            try:
+                params = _trial_attack_params(attack, trial, trials, stego_shp)
+                if attack == "none":
+                    attacked_shp = stego_shp
+                else:
+                    attacked_shp = _ATTACK_FUNCTIONS[attack](
+                        stego_shp,
+                        output_path=os.path.join(trial_dir, f"attacked_{scheme}_{attack}.shp"),
+                        **params,
+                    )
+                wm_png = _extract_watermark(
+                    scheme, attacked_shp, vr, side_length, os.path.join(trial_dir, f"extract_{attack}")
+                )
+                text = decode_qr_from_image(wm_png)
+                duration_ms = int((time.perf_counter() - started) * 1000)
+                if text is None:
+                    rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms, trial=trial))
+                    continue
+                ext_bits = _image_bits(wm_png)
+                nc = compute_nc(orig_bits, ext_bits)
+                ber = compute_ber(orig_bits, ext_bits)
+                rows.append(
+                    _row(
+                        scheme,
+                        attack,
+                        params,
+                        text == payload_text,
+                        nc=nc,
+                        ber=ber,
+                        duration_ms=duration_ms,
+                        trial=trial,
+                    )
+                )
+            except Exception as e:
+                logging.exception("robustness matrix: cell failed scheme=%s attack=%s trial=%s", scheme, attack, trial)
+                duration_ms = int((time.perf_counter() - started) * 1000)
+                if params is None:
+                    params = _unresolved_trial_params(attack, trial, trials)
+                rows.append(
+                    _row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255], trial=trial)
+                )
     return rows
 
 
-def run_matrix(base_shp, base_scheme_data=None, schemes=None, attacks=None, payload_text=None, work_dir=None):
-    """Run the full (scheme x attack) vector robustness matrix; returns row dicts.
+def run_matrix(base_shp, base_scheme_data=None, schemes=None, attacks=None, payload_text=None, work_dir=None, trials=1):
+    """Run the full (scheme x attack x trial) vector robustness matrix; returns row dicts.
 
     The payload QR is rendered once from ``payload_text`` (via
     ``delivery.qr2.render_v2_qr_png`` — the same renderer as the delivery
     chain) and serves as the ground-truth watermark every scheme embeds and
-    every NC/BER is computed against. For each scheme the watermark is embedded
-    once; the no-attack baseline is measured first, then each requested attack
-    runs on its own copy of the stego shapefile.
+    every NC/BER is computed against. For each scheme every trial embeds its
+    own stego shapefile; the no-attack baseline is measured first, then each
+    requested attack runs on its own copy of that trial's stego.
+
+    ``trials`` (>= 1) is the number of independent replicates per (scheme,
+    attack) cell. With ``trials > 1``, trial t (1-based, per-row ``trial``)
+    samples the documented parameter intervals with the fixed seed
+    ``TRIAL_BASE_SEED + t`` via ``sample_trial_params`` — same request, same
+    rows, bit for bit. ``trials == 1`` keeps the documented ``ATTACK_DEFAULTS``
+    (the interval midpoints) exactly as the pre-trials engine did.
 
     ``base_scheme_data`` optionally maps scheme -> precomputed
     ``{"stego_shp", "vr", "side_length"}`` so a caller can reuse an earlier
-    embed result instead of embedding again; pass None to embed fresh.
+    embed result instead of embedding again (the same stego then serves every
+    trial); pass None to embed fresh per trial.
 
-    Returns one row dict per (scheme, attack): ``{scheme, attack,
+    Returns one row dict per (scheme, attack, trial): ``{scheme, attack, trial,
     attack_params, nc, ber, decode_success, duration_ms, error}`` — None
     metrics mean "not measured" (pending in the DB sense); nothing is written
     to any database here.
@@ -433,6 +547,8 @@ def run_matrix(base_shp, base_scheme_data=None, schemes=None, attacks=None, payl
         raise ValueError("payload_text is required")
     if work_dir is None:
         raise ValueError("work_dir is required")
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(f"trials must be a positive integer, got {trials!r}")
     schemes = list(schemes or SCHEMES)
     attacks = _ordered_attacks(list(attacks or ATTACKS))
 
@@ -446,5 +562,7 @@ def run_matrix(base_shp, base_scheme_data=None, schemes=None, attacks=None, payl
 
     rows = []
     for scheme in schemes:
-        rows.extend(_run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir))
+        rows.extend(
+            _run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir, trials)
+        )
     return rows

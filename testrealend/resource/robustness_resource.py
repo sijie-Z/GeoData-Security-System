@@ -1,16 +1,27 @@
 """Robustness experiment matrix endpoints (admin).
 
-``POST /api/robustness/run`` queues one (scheme x attack) matrix run against a
-dataset's source shapefile. The run executes on a background thread (embedding
-a large shapefile can take minutes); the API answers immediately with the
-``run_id`` and the per-(scheme, attack) rows are pre-inserted with NULL metrics
+``POST /api/robustness/run`` queues one (scheme x attack x trial) matrix run
+against a dataset's source shapefile. The run executes on a background thread
+(embedding a large shapefile can take minutes); the API answers immediately
+with the ``run_id`` and the per-cell rows are pre-inserted with NULL metrics
 that the worker updates in place — so ``GET /api/robustness/runs/<run_id>``
 shows honest progress while the matrix is in flight, and ``GET
 /api/robustness/runs`` lists recent runs grouped by ``run_id``.
 
+``trials`` (1-10, default 1) replicates every cell N times with fixed-seed
+parameter sampling (see the engines); the row set per cell is bounded by
+``MAX_MATRIX_ROWS`` (cells x trials <= 200, over-limit -> 400). The run detail
+additionally carries a per-cell ``summary`` block (successes / success_rate /
+mean_nc / std_nc over the non-null NCs).
+
 Discipline:
   * one run at a time — a module lock rejects concurrent POSTs with 409;
-  * the pure engine (``algorithm/robustness.py``) never touches Flask or the
+  * before a new run is queued (which is the only moment no worker can be
+    alive in this process), zombie runs are swept: runs whose every row is
+    still pending with no error were killed by a backend restart, and their
+    rows are stamped ``ZOMBIE_ERROR_MESSAGE`` so they show as interrupted
+    instead of "running" forever;
+  * the pure engines (``algorithm/robustness*.py``) never touch Flask or the
     DB; this service layer is the only place that resolves the source file,
     builds the real v2 payload and persists rows;
   * a run that dies mid-flight stamps its still-pending rows with ``error``
@@ -25,6 +36,7 @@ import tempfile
 import threading
 import uuid
 from datetime import UTC, datetime
+from statistics import mean, pstdev
 
 from flask import current_app, request
 from flask_restful import Resource
@@ -53,6 +65,17 @@ ALLOWED_ATTACKS = ("none", "translate", "scale", "vertex_drop", "noise", "simpli
 DEFAULT_SCHEMES = list(ALLOWED_SCHEMES)
 DEFAULT_ATTACKS = list(ALLOWED_ATTACKS)
 RUNS_PER_PAGE_DEFAULT = 10
+
+# Multi-trial guard rails (feat_experiment_trials): 1-10 trials per cell and at
+# most 200 pre-inserted rows per run (cells x trials, over-limit -> 400).
+MIN_TRIALS = 1
+MAX_TRIALS = 10
+MAX_MATRIX_ROWS = 200
+
+# Zombie sweep (Step 3b): a run whose worker died with the process (backend
+# restart) keeps every row pending forever; the sweep stamps this message so
+# list/detail status derivation renders it as interrupted, not "running".
+ZOMBIE_ERROR_MESSAGE = "interrupted (no active worker)"
 
 # Raster matrix (kind="raster"): a programmatically generated 512x512 GeoTIFF
 # host, data_id ignored, same row schema. The reference raster matrix is
@@ -114,10 +137,10 @@ def _build_payload_text(data_id):
 
 
 def _apply_rows(run_id, rows):
-    """UPDATE the pre-inserted (scheme, attack) rows with measured metrics."""
-    existing = {(r.scheme, r.attack): r for r in RobustnessResult.query.filter_by(run_id=run_id).all()}
+    """UPDATE the pre-inserted (scheme, attack, trial) rows with measured metrics."""
+    existing = {(r.scheme, r.attack, r.trial): r for r in RobustnessResult.query.filter_by(run_id=run_id).all()}
     for row in rows:
-        record = existing.get((row["scheme"], row["attack"]))
+        record = existing.get((row["scheme"], row["attack"], row["trial"]))
         if record is None:
             continue
         record.attack_params = row["attack_params"]
@@ -129,6 +152,81 @@ def _apply_rows(run_id, rows):
     db.session.commit()
 
 
+def _sweep_zombie_runs(exclude_run_ids):
+    """Stamp runs whose worker died with the process as interrupted (Step 3b).
+
+    A zombie is a run whose every row is still pending (``decode_success IS
+    NULL``) and carries no ``error`` — only a backend restart can produce that
+    state, since a live worker either finishes, stamps its rows, or (on crash)
+    ``_mark_run_error`` catches it. Called right after the run lock is
+    acquired, when no worker can be alive in this process. Runs that made any
+    progress, or already carry an error, are left alone; the sweep itself must
+    never block a new experiment, so failures are logged and rolled back.
+    """
+    from sqlalchemy import case, func
+
+    try:
+        grouped = (
+            db.session.query(RobustnessResult.run_id)
+            .group_by(RobustnessResult.run_id)
+            .having(func.sum(case((RobustnessResult.decode_success.isnot(None), 1), else_=0)) == 0)
+            .having(func.sum(case((RobustnessResult.error.isnot(None), 1), else_=0)) == 0)
+            .all()
+        )
+        zombie_ids = [run_id for (run_id,) in grouped if run_id not in exclude_run_ids]
+        if not zombie_ids:
+            return
+        for record in RobustnessResult.query.filter(RobustnessResult.run_id.in_(zombie_ids)).all():
+            record.error = ZOMBIE_ERROR_MESSAGE
+        db.session.commit()
+        logging.info("robustness zombie sweep: stamped %d run(s): %s", len(zombie_ids), zombie_ids)
+    except Exception:
+        db.session.rollback()
+        logging.exception("robustness zombie sweep failed (continuing with the new run)")
+
+
+def _build_summary(rows):
+    """Per-(scheme, attack) aggregation block for the run detail.
+
+    ``trials`` counts the cell's rows, ``successes`` the rows whose
+    ``decode_success`` is true, ``success_rate = successes / trials``.
+    ``mean_nc`` / ``std_nc`` are computed over the non-null NC values only
+    (a null NC means "decode failed outright — nothing to compare");
+    an all-null cell reports ``None`` for both. ``std_nc`` is the population
+    standard deviation (ddof=0) of the same set.
+    """
+    buckets = {}
+    order = []
+    for row in rows:
+        key = (row.scheme, row.attack)
+        if key not in buckets:
+            buckets[key] = {"scheme": row.scheme, "attack": row.attack, "trials": 0, "successes": 0, "ncs": []}
+            order.append(key)
+        bucket = buckets[key]
+        bucket["trials"] += 1
+        if row.decode_success:
+            bucket["successes"] += 1
+        if row.nc is not None:
+            bucket["ncs"].append(float(row.nc))
+
+    summary = []
+    for key in order:
+        bucket = buckets[key]
+        ncs = bucket["ncs"]
+        summary.append(
+            {
+                "scheme": bucket["scheme"],
+                "attack": bucket["attack"],
+                "trials": bucket["trials"],
+                "successes": bucket["successes"],
+                "success_rate": (bucket["successes"] / bucket["trials"]) if bucket["trials"] else None,
+                "mean_nc": float(mean(ncs)) if ncs else None,
+                "std_nc": float(pstdev(ncs)) if ncs else None,
+            }
+        )
+    return summary
+
+
 def _mark_run_error(run_id, exc):
     """Stamp an aborted run's still-pending rows so it cannot look 'running'."""
     message = f"run aborted: {exc}"[:255]
@@ -138,10 +236,10 @@ def _mark_run_error(run_id, exc):
     db.session.commit()
 
 
-def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, payload_text, work_dir):
+def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, trials, payload_text, work_dir):
     """Background worker: run the pure matrix engine, then persist the rows."""
     try:
-        rows = run_matrix(base_shp, None, schemes, attacks, payload_text, work_dir)
+        rows = run_matrix(base_shp, None, schemes, attacks, payload_text, work_dir, trials=trials)
         with app.app_context():
             _apply_rows(run_id, rows)
     except Exception as e:
@@ -157,10 +255,10 @@ def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, payload_text, wo
         _RUN_LOCK.release()
 
 
-def _run_raster_matrix_worker(app, run_id, host_tif, schemes, attacks, payload_qr_png, work_dir):
+def _run_raster_matrix_worker(app, run_id, host_tif, schemes, attacks, trials, payload_qr_png, work_dir):
     """Background worker for kind="raster": run the raster engine, persist rows."""
     try:
-        rows = run_raster_matrix(host_tif, schemes, attacks, payload_qr_png, work_dir)
+        rows = run_raster_matrix(host_tif, schemes, attacks, payload_qr_png, work_dir, trials=trials)
         with app.app_context():
             _apply_rows(run_id, rows)
     except Exception as e:
@@ -186,17 +284,20 @@ def _kind_from_data_ref(data_ref):
 
 
 class RobustnessRunResource(Resource):
-    """POST /api/robustness/run — queue one (scheme x attack) matrix run.
+    """POST /api/robustness/run — queue one (scheme x attack x trial) matrix run.
 
     body: ``{"kind": "vector"|"raster", "data_id": int, "schemes": [...],
-    "attacks": [...]}``. ``kind`` defaults to "vector" (backwards compatible):
-    vector runs resolve the dataset's source shapefile; raster runs ignore
-    ``data_id`` and embed into a programmatically generated 512x512 GeoTIFF
-    host (``data_ref="synthetic_512x512"``). Schemes and attacks default to
-    the kind's whitelist. Returns 202 + run_id immediately; the matrix itself
-    runs on a background thread. 409 when a run is already in flight (vector
-    and raster share one lock), 400 when the dataset has no resolvable vector
-    source or kind/schemes/attacks are invalid.
+    "attacks": [...], "trials": int}``. ``kind`` defaults to "vector"
+    (backwards compatible): vector runs resolve the dataset's source shapefile;
+    raster runs ignore ``data_id`` and embed into a programmatically generated
+    512x512 GeoTIFF host (``data_ref="synthetic_512x512"``; with ``trials > 1``
+    one host per trial, seed 7 + trial). Schemes and attacks default to the
+    kind's whitelist. ``trials`` (1-10, default 1) replicates every cell N
+    times; cross-cell totals are bounded by ``MAX_MATRIX_ROWS``. Returns 202 +
+    run_id immediately; the matrix itself runs on a background thread. 409 when
+    a run is already in flight (vector and raster share one lock), 400 when the
+    dataset has no resolvable vector source, kind/schemes/attacks/trials are
+    invalid, or cells x trials exceeds the row cap.
     """
 
     @admin_required
@@ -205,6 +306,10 @@ class RobustnessRunResource(Resource):
         kind = body.get("kind", "vector")
         if kind not in ("vector", "raster"):
             return {"status": False, "msg": "kind 仅支持 vector / raster"}, 400
+
+        trials = body.get("trials", 1)
+        if isinstance(trials, bool) or not isinstance(trials, int) or not (MIN_TRIALS <= trials <= MAX_TRIALS):
+            return {"status": False, "msg": f"trials 必须是 {MIN_TRIALS}-{MAX_TRIALS} 的整数"}, 400
 
         if kind == "vector":
             data_id = body.get("data_id")
@@ -228,6 +333,13 @@ class RobustnessRunResource(Resource):
         schemes = list(dict.fromkeys(schemes))
         attacks = list(dict.fromkeys(attacks))
 
+        cells = len(schemes) * len(attacks)
+        if cells * trials > MAX_MATRIX_ROWS:
+            return {
+                "status": False,
+                "msg": f"实验规模超限：格子数 × trials 不得超过 {MAX_MATRIX_ROWS}（当前 {cells} × {trials}）",
+            }, 400
+
         if not _RUN_LOCK.acquire(blocking=False):
             return {"status": False, "msg": "已有鲁棒性实验正在运行，请稍后再试"}, 409
 
@@ -237,6 +349,10 @@ class RobustnessRunResource(Resource):
         try:
             app = current_app._get_current_object()
             work_dir = tempfile.mkdtemp(prefix=f"robustness_{kind}_run_")
+            # The lock is held and no worker of this process can be alive right
+            # now — the only window where a run that is all-pending with no
+            # error is certainly a zombie (backend restart killed its worker).
+            _sweep_zombie_runs(set(_ACTIVE_RUNS))
             if kind == "vector":
                 source_shp = _resolve_vector_source(data_id, os.path.join(work_dir, "resolve"))
                 if not source_shp:
@@ -245,7 +361,9 @@ class RobustnessRunResource(Resource):
                 payload_text = _build_payload_text(data_id)
                 data_ref = f"data_id={data_id}"
             else:
-                host_tif = make_host_tif(os.path.join(work_dir, "host_512x512.tif"))
+                # trials > 1: the engine generates a fresh host per trial
+                # (seed 7 + trial); a single-trial run keeps the caller host.
+                host_tif = make_host_tif(os.path.join(work_dir, "host_512x512.tif")) if trials == 1 else None
                 payload_text = _build_payload_text(0)
                 payload_qr = os.path.join(work_dir, "payload_qr.png")
                 render_raster_payload_qr(payload_text, payload_qr)
@@ -255,24 +373,26 @@ class RobustnessRunResource(Resource):
             created = datetime.now(UTC)
             for scheme in schemes:
                 for attack in attacks:
-                    db.session.add(
-                        RobustnessResult(
-                            run_id=run_id,
-                            scheme=scheme,
-                            attack=attack,
-                            attack_params=dict(attack_defaults[attack]),
-                            data_ref=data_ref,
-                            created_at=created,
+                    for trial in range(1, trials + 1):
+                        db.session.add(
+                            RobustnessResult(
+                                run_id=run_id,
+                                scheme=scheme,
+                                attack=attack,
+                                trial=trial,
+                                attack_params=dict(attack_defaults[attack]),
+                                data_ref=data_ref,
+                                created_at=created,
+                            )
                         )
-                    )
             db.session.commit()
 
             if kind == "vector":
                 worker_target = _run_matrix_worker
-                worker_args = (app, run_id, staged_shp, schemes, attacks, payload_text, work_dir)
+                worker_args = (app, run_id, staged_shp, schemes, attacks, trials, payload_text, work_dir)
             else:
                 worker_target = _run_raster_matrix_worker
-                worker_args = (app, run_id, host_tif, schemes, attacks, payload_qr, work_dir)
+                worker_args = (app, run_id, host_tif, schemes, attacks, trials, payload_qr, work_dir)
             worker = threading.Thread(target=worker_target, args=worker_args, daemon=True)
             _ACTIVE_RUNS[run_id] = worker
             worker.start()
@@ -298,7 +418,7 @@ class RobustnessRunResource(Resource):
         return {
             "status": True,
             "msg": "实验已开始",
-            "data": {"run_id": run_id, "total": len(schemes) * len(attacks), "kind": kind},
+            "data": {"run_id": run_id, "total": cells * trials, "kind": kind, "trials": trials},
         }, 202
 
 
@@ -306,7 +426,9 @@ class RobustnessRunsResource(Resource):
     """GET /api/robustness/runs?page= — recent runs (grouped), newest first.
 
     Every run entry carries ``kind`` ("vector" | "raster"), inferred from the
-    ``data_ref`` prefix (raster runs always record ``synthetic...``).
+    ``data_ref`` prefix (raster runs always record ``synthetic...``), and
+    ``trials`` (the run's per-cell trial count; derived from the rows —
+    legacy rows have NULL trial, so a pre-trials run reports 1).
     """
 
     @admin_required
@@ -328,6 +450,7 @@ class RobustnessRunsResource(Resource):
                 RobustnessResult.run_id,
                 func.min(RobustnessResult.created_at).label("created_at"),
                 func.max(RobustnessResult.data_ref).label("data_ref"),
+                func.max(RobustnessResult.trial).label("trials"),
                 func.count(RobustnessResult.id).label("total"),
                 func.sum(case((RobustnessResult.decode_success.isnot(None), 1), else_=0)).label("done"),
                 func.max(RobustnessResult.error).label("last_error"),
@@ -344,6 +467,7 @@ class RobustnessRunsResource(Resource):
                 "created_at": utc_iso_z(row.created_at),
                 "data_ref": row.data_ref,
                 "kind": _kind_from_data_ref(row.data_ref),
+                "trials": int(row.trials or 1),
                 "total": int(row.total or 0),
                 "done": int(row.done or 0),
                 "error": row.last_error,
@@ -354,10 +478,12 @@ class RobustnessRunsResource(Resource):
 
 
 class RobustnessRunDetailResource(Resource):
-    """GET /api/robustness/runs/<run_id> — rows + progress for one run.
+    """GET /api/robustness/runs/<run_id> — rows + progress + summary for one run.
 
-    Rows keep the shared (scheme, attack) schema; the run object carries
-    ``kind`` ("vector" | "raster") derived from its schemes.
+    Keys are only ever added: rows keep the shared (scheme, attack, trial)
+    schema, the run object carries ``kind`` ("vector" | "raster") derived from
+    its schemes, ``trials`` (max row trial; legacy NULL rows count as 1) and
+    the per-cell ``summary`` aggregation block (success rate + mean/std NC).
     """
 
     @admin_required
@@ -373,8 +499,10 @@ class RobustnessRunDetailResource(Resource):
                 "data_ref": rows[0].data_ref,
                 "kind": "raster" if rows[0].scheme in RASTER_SCHEMES else "vector",
                 "created_at": utc_iso_z(rows[0].created_at),
+                "trials": max((row.trial or 1) for row in rows),
                 "done": done,
                 "total": len(rows),
+                "summary": _build_summary(rows),
                 "rows": [row.to_dict() for row in rows],
             },
         }, 200

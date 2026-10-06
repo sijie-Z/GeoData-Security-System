@@ -1,10 +1,11 @@
 """Robustness experiment matrix engine for the raster watermarking schemes.
 
 Sibling of ``algorithm/robustness.py`` (the vector engine). For every raster
-scheme the same QR payload is embedded once into a synthetic host GeoTIFF, the
-no-attack baseline is measured first, then every image attack is applied to a
-copy of the stego raster and read back with that scheme's extractor. One row
-per (scheme, attack) carries the same keys as the vector engine:
+scheme the same QR payload is embedded once per trial into a synthetic host
+GeoTIFF, the no-attack baseline is measured first, then every image attack is
+applied to a copy of the stego raster and read back with that scheme's
+extractor. One row per (scheme, attack, trial) carries the same keys as the
+vector engine:
 
   * ``decode_success`` — ``decode_qr_from_image`` returned exactly the payload
     text the QR carries (the payload-level gate);
@@ -16,6 +17,14 @@ per (scheme, attack) carries the same keys as the vector engine:
     bitmap is compared against the payload bitmap at the embedded size. A QR
     that cannot be decoded at all yields ``decode_success=False`` with NC/BER
     ``None`` (nothing to compare), exactly like the vector matrix;
+  * ``trial`` — 1-based trial index of a multi-trial run;
+  * ``attack_params`` — the parameters actually used. With ``trials > 1`` each
+    trial samples the documented intervals with the fixed seed
+    ``RASTER_TRIAL_BASE_SEED + trial`` (see ``sample_raster_trial_params``) and
+    the host itself varies per trial (``RASTER_HOST_BASE_SEED + trial`` — the
+    dominant variance source on the raster side); ``trials == 1`` keeps the
+    documented ``RASTER_ATTACK_DEFAULTS`` (interval midpoints) and the
+    caller-provided host;
   * ``duration_ms`` — wall time of the attack + extract + decode + metrics cell.
 
 Schemes (label -> implementation):
@@ -85,8 +94,58 @@ RASTER_ATTACK_DEFAULTS = {
 }
 
 # Fixed seed for the deterministic Gaussian-noise attack (same as the vector
-# engine's noise attack).
+# engine's noise attack); trial ``t`` (1-based) uses ``RASTER_NOISE_SEED + t``.
 RASTER_NOISE_SEED = 11
+
+# Multi-trial parameter/host sampling (feat_experiment_trials): with
+# ``trials > 1`` trial ``t`` draws every attack's parameters from the
+# documented intervals below using ``np.random.default_rng(
+# RASTER_TRIAL_BASE_SEED + t)`` and embeds into a freshly generated host with
+# ``seed = RASTER_HOST_BASE_SEED + t`` (the host is the dominant variance
+# source on the raster side). The interval midpoints equal the
+# ``RASTER_ATTACK_DEFAULTS``, which is what ``trials == 1`` keeps using
+# together with the caller-provided host.
+RASTER_TRIAL_BASE_SEED = 11
+RASTER_HOST_BASE_SEED = 7
+
+RASTER_TRIAL_INTERVALS = {
+    "jpeg": {"quality": (60, 80)},
+    "resize": {"factor": (0.4, 0.6)},
+    "crop": {"keep": (0.6, 0.8)},
+    "rotate": {"deg": (3.0, 8.0)},
+    "noise": {"sigma": (3.0, 8.0)},
+    "blur": {"radius": (2.0, 4.0)},
+}
+
+
+def sample_raster_trial_params(trial):
+    """Attack parameters for trial ``trial`` (1-based), fixed-seed sampled.
+
+    Same discipline as the vector sampler: draws run over the full canonical
+    ``RASTER_ATTACKS`` order so a trial's parameters are a property of the
+    trial itself; ``none`` is not jittered; the JPEG quality is an integer
+    (PIL's quality parameter), rounded from the sampled uniform value after
+    the draw so the sampling stream stays stable.
+    """
+    rng = np.random.default_rng(RASTER_TRIAL_BASE_SEED + trial)
+    sampled = {}
+    for attack in RASTER_ATTACKS:
+        if attack == "none":
+            sampled[attack] = {}
+            continue
+        specs = RASTER_TRIAL_INTERVALS.get(attack)
+        if not specs:
+            sampled[attack] = dict(RASTER_ATTACK_DEFAULTS.get(attack, {}))
+            continue
+        params = {}
+        for name, (lo, hi) in specs.items():
+            value = float(rng.uniform(lo, hi))
+            if name == "quality":
+                value = round(value)  # PIL JPEG quality is an integer
+            params[name] = value
+        sampled[attack] = params
+    return sampled
+
 
 # Payload QR rendering for the raster matrix: box_size=1 and ECC L keep the
 # real v2 payload at 57x57 px (3249 bits), under the 512-host blind budget of
@@ -304,10 +363,11 @@ def _ordered_attacks(attacks):
     return (["none"] if "none" in attacks else []) + rest
 
 
-def _row(scheme, attack, attack_params, decode_success, nc=None, ber=None, duration_ms=None, error=None):
+def _row(scheme, attack, attack_params, decode_success, nc=None, ber=None, duration_ms=None, error=None, trial=1):
     return {
         "scheme": scheme,
         "attack": attack,
+        "trial": trial,
         "attack_params": attack_params,
         "decode_success": decode_success,
         "nc": nc,
@@ -373,74 +433,137 @@ def _extract_watermark(scheme, attacked_path, wm_meta_path, out_png):
     return extract(attacked_path, wm_meta_path, out_png)
 
 
-def _run_scheme(scheme, host_tif, host_profile, qr_png, attacks, payload_text, work_dir):
+def _raster_trial_attack_params(attack, trial, trials):
+    """The real attack-parameter dict for one (attack, trial) cell.
+
+    ``trials == 1`` keeps the documented ``RASTER_ATTACK_DEFAULTS`` exactly as
+    the pre-trials engine did; ``trials > 1`` draws from
+    ``sample_raster_trial_params`` and pins the noise attack's per-trial fixed
+    seed (``RASTER_NOISE_SEED + trial``).
+    """
+    if trials == 1:
+        return dict(RASTER_ATTACK_DEFAULTS[attack])
+    params = dict(sample_raster_trial_params(trial)[attack])
+    if attack == "noise":
+        params["seed"] = RASTER_NOISE_SEED + trial
+    return params
+
+
+def _run_scheme(scheme, host_tif, host_profile, qr_png, attacks, payload_text, work_dir, trials=1, host_fill=None):
     from algorithm.quality_metrics import compute_ber, compute_nc
     from resource.watermark_utils import decode_qr_from_image
 
     scheme_dir = os.path.join(work_dir, f"scheme_{scheme}")
     os.makedirs(scheme_dir, exist_ok=True)
 
-    try:
-        stego_path, wm_meta_path = _embed_stego(scheme, host_tif, qr_png, scheme_dir)
-        wm_w, wm_h = _watermark_dims(wm_meta_path)
-        gt_bits = _image_bits(qr_png, size=(wm_w, wm_h))
-    except Exception as e:
-        logging.exception("raster robustness matrix: embed failed for scheme %s", scheme)
-        error = f"embed failed: {e}"[:255]
-        return [_row(scheme, attack, dict(RASTER_ATTACK_DEFAULTS[attack]), False, error=error) for attack in attacks]
-
     rows = []
-    for attack in attacks:
-        params = dict(RASTER_ATTACK_DEFAULTS[attack])
-        started = time.perf_counter()
-        try:
-            if attack == "none":
-                attacked_path = stego_path
-            else:
-                attacked_path = _ATTACK_FUNCTIONS[attack](
-                    stego_path,
-                    output_path=os.path.join(scheme_dir, f"attacked_{scheme}_{attack}.tif"),
-                    base_profile=host_profile,
-                    **params,
-                )
-            wm_png = _extract_watermark(
-                scheme, attacked_path, wm_meta_path, os.path.join(scheme_dir, f"extract_{scheme}_{attack}.png")
+    for trial in range(1, trials + 1):
+        trial_dir = os.path.join(scheme_dir, f"trial_{trial}")
+        os.makedirs(trial_dir, exist_ok=True)
+        # Every trial embeds its own stego: trials > 1 generate a fresh host
+        # per trial (seed 7 + trial), the raster side's main variance source.
+        if trials == 1:
+            trial_host, trial_profile = host_tif, host_profile
+        else:
+            trial_host = make_host_tif(
+                os.path.join(work_dir, f"host_t{trial}.tif"), seed=RASTER_HOST_BASE_SEED + trial, fill=host_fill
             )
-            text = decode_qr_from_image(wm_png)
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            if text is None:
-                rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms))
-                continue
-            ext_bits = _image_bits(wm_png)
-            nc = compute_nc(gt_bits, ext_bits)
-            ber = compute_ber(gt_bits, ext_bits)
-            rows.append(_row(scheme, attack, params, text == payload_text, nc=nc, ber=ber, duration_ms=duration_ms))
+            _host_arr, trial_profile = _read_rgb_uint8(trial_host)
+        try:
+            stego_path, wm_meta_path = _embed_stego(scheme, trial_host, qr_png, trial_dir)
+            wm_w, wm_h = _watermark_dims(wm_meta_path)
+            gt_bits = _image_bits(qr_png, size=(wm_w, wm_h))
         except Exception as e:
-            logging.exception("raster robustness matrix: cell failed scheme=%s attack=%s", scheme, attack)
-            duration_ms = int((time.perf_counter() - started) * 1000)
-            rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255]))
+            logging.exception("raster robustness matrix: embed failed for scheme %s trial %s", scheme, trial)
+            error = f"embed failed: {e}"[:255]
+            rows.extend(
+                _row(
+                    scheme, attack, _raster_trial_attack_params(attack, trial, trials), False, error=error, trial=trial
+                )
+                for attack in attacks
+            )
+            continue
+
+        for attack in attacks:
+            started = time.perf_counter()
+            params = _raster_trial_attack_params(attack, trial, trials)
+            try:
+                if attack == "none":
+                    attacked_path = stego_path
+                else:
+                    attacked_path = _ATTACK_FUNCTIONS[attack](
+                        stego_path,
+                        output_path=os.path.join(trial_dir, f"attacked_{scheme}_{attack}.tif"),
+                        base_profile=trial_profile,
+                        **params,
+                    )
+                wm_png = _extract_watermark(
+                    scheme, attacked_path, wm_meta_path, os.path.join(trial_dir, f"extract_{scheme}_{attack}.png")
+                )
+                text = decode_qr_from_image(wm_png)
+                duration_ms = int((time.perf_counter() - started) * 1000)
+                if text is None:
+                    rows.append(_row(scheme, attack, params, False, duration_ms=duration_ms, trial=trial))
+                    continue
+                ext_bits = _image_bits(wm_png)
+                nc = compute_nc(gt_bits, ext_bits)
+                ber = compute_ber(gt_bits, ext_bits)
+                rows.append(
+                    _row(
+                        scheme,
+                        attack,
+                        params,
+                        text == payload_text,
+                        nc=nc,
+                        ber=ber,
+                        duration_ms=duration_ms,
+                        trial=trial,
+                    )
+                )
+            except Exception as e:
+                logging.exception(
+                    "raster robustness matrix: cell failed scheme=%s attack=%s trial=%s", scheme, attack, trial
+                )
+                duration_ms = int((time.perf_counter() - started) * 1000)
+                rows.append(
+                    _row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255], trial=trial)
+                )
     return rows
 
 
-def run_raster_matrix(host_tif, schemes=None, attacks=None, payload_qr_png=None, work_dir=None):
-    """Run the full (scheme x attack) raster robustness matrix; returns row dicts.
+def run_raster_matrix(
+    host_tif, schemes=None, attacks=None, payload_qr_png=None, work_dir=None, trials=1, host_fill=None
+):
+    """Run the full (scheme x attack x trial) raster robustness matrix; returns row dicts.
 
     The payload QR is rendered by the caller (``render_raster_payload_qr`` —
     the delivery renderer at a size the blind scheme can carry); the text it
     carries is read back from the PNG itself and serves as the ground truth
-    every cell's decoded text is compared against. For each scheme the
-    watermark is embedded once into ``host_tif``; the no-attack baseline is
-    measured first, then each requested attack runs on its own copy of the
-    stego raster.
+    every cell's decoded text is compared against. For each scheme every trial
+    embeds its own stego; the no-attack baseline is measured first, then each
+    requested attack runs on its own copy of that trial's stego raster.
 
-    Returns one row dict per (scheme, attack) with exactly the vector engine's
-    keys: ``{scheme, attack, attack_params, nc, ber, decode_success,
-    duration_ms, error}``. Nothing is written to any database here.
+    ``trials`` (>= 1) is the number of independent replicates per (scheme,
+    attack) cell. With ``trials > 1`` the engine generates a fresh host per
+    trial (``seed = RASTER_HOST_BASE_SEED + trial``, optional ``host_fill``)
+    under ``work_dir`` as ``host_t<trial>.tif`` — the host is the raster
+    side's dominant variance source — and ``host_tif`` may be None. With
+    ``trials == 1`` the caller-provided ``host_tif`` is used unchanged
+    (required) and the documented ``RASTER_ATTACK_DEFAULTS`` apply.
+
+    Returns one row dict per (scheme, attack, trial) with exactly the vector
+    engine's keys: ``{scheme, attack, trial, attack_params, nc, ber,
+    decode_success, duration_ms, error}``. Nothing is written to any database
+    here.
     """
     if not payload_qr_png:
         raise ValueError("payload_qr_png is required")
     if work_dir is None:
         raise ValueError("work_dir is required")
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(f"trials must be a positive integer, got {trials!r}")
+    if trials == 1 and not host_tif:
+        raise ValueError("host_tif is required when trials == 1")
     schemes = list(schemes or RASTER_SCHEMES)
     attacks = _ordered_attacks(list(attacks or RASTER_ATTACKS))
 
@@ -451,9 +574,16 @@ def run_raster_matrix(host_tif, schemes=None, attacks=None, payload_qr_png=None,
         raise ValueError(f"payload QR is not decodable: {payload_qr_png}")
 
     os.makedirs(work_dir, exist_ok=True)
-    _host_arr, host_profile = _read_rgb_uint8(host_tif)
+    if trials == 1:
+        _host_arr, host_profile = _read_rgb_uint8(host_tif)
+    else:
+        host_profile = None  # per-trial hosts are generated inside _run_scheme
 
     rows = []
     for scheme in schemes:
-        rows.extend(_run_scheme(scheme, host_tif, host_profile, payload_qr_png, attacks, payload_text, work_dir))
+        rows.extend(
+            _run_scheme(
+                scheme, host_tif, host_profile, payload_qr_png, attacks, payload_text, work_dir, trials, host_fill
+            )
+        )
     return rows

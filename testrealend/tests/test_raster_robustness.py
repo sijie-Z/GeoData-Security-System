@@ -153,6 +153,7 @@ class TestRasterMatrixEngine:
         assert set(rows[0].keys()) == {
             "scheme",
             "attack",
+            "trial",
             "attack_params",
             "decode_success",
             "nc",

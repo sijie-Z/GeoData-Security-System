@@ -59,6 +59,9 @@ MYSQL_ALTERS = [
     "ALTER TABLE watermark_verification ADD COLUMN delivery_uuid VARCHAR(36) NULL",
     "ALTER TABLE watermark_verification ADD COLUMN fingerprint_id VARCHAR(32) NULL",
     "ALTER TABLE watermark_verification ADD COLUMN host_type VARCHAR(16) NULL",
+    # feat_experiment_trials: per-trial rows for multi-trial robustness runs.
+    # NULL on legacy rows = single-trial run (the API derives trials=1).
+    "ALTER TABLE robustness_result ADD COLUMN trial INT NULL",
     # Indexes backing the quality-page aggregation endpoints; an existing index
     # name is skipped like a duplicate column (see run()).
     "CREATE INDEX idx_wmv_data_type_time ON watermark_verification (data_type, verified_at)",
