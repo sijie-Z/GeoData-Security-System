@@ -5,9 +5,12 @@
  */
 import axios from '@/utils/Axios'
 
-// FormData 走 multipart（浏览器自动补 boundary）；JSON（如 {qr_text}）保持实例默认头
-const formConfig = (data) =>
-  data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {}
+// verify/trace 需逐条提取水印，真机实测约 60-100s，远超共享实例默认 30s 超时，故单独放宽到 300s。
+// FormData 走 multipart（浏览器自动补 boundary）；JSON（如 {qr_text}）保持实例默认头。
+const longConfig = (data) => ({
+  timeout: 300000,
+  ...(data instanceof FormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {})
+})
 
 // ──────────────────────────────────────
 //  Verification / Tracing
@@ -19,7 +22,7 @@ const formConfig = (data) =>
  * @param {FormData|Object} data - FormData with 'file' (zip/shp/shx/dbf/prj/tif/tiff/png/jpg), or { qr_text: '...' }
  * @returns {Promise<AxiosResponse>}
  */
-export const verifyForensics = (data) => axios.post('/api/forensics/verify', data, formConfig(data))
+export const verifyForensics = (data) => axios.post('/api/forensics/verify', data, longConfig(data))
 
 /**
  * Verify and trace a leaked copy back to the applicant (admin only).
@@ -27,7 +30,7 @@ export const verifyForensics = (data) => axios.post('/api/forensics/verify', dat
  * @param {FormData|Object} data - FormData with 'file', or { qr_text: '...' }
  * @returns {Promise<AxiosResponse>}
  */
-export const traceForensics = (data) => axios.post('/api/forensics/trace', data, formConfig(data))
+export const traceForensics = (data) => axios.post('/api/forensics/trace', data, longConfig(data))
 
 // ──────────────────────────────────────
 //  Delivery Ledger
