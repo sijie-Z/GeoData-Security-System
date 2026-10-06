@@ -14,6 +14,7 @@ from PIL import Image
 from algorithm.embed import CapacityError
 from algorithm.embed import embed as vector_embed
 from algorithm.quality_metrics import compute_psnr
+from algorithm.raster_blind_watermark import embed_blind
 from algorithm.raster_dwt_watermark import embed_dwt
 from algorithm.raster_histogram_watermark import embed_histogram
 from algorithm.raster_reversible_watermark import embed_reversible
@@ -181,6 +182,8 @@ class EmbeddingWatermarkResource(Resource):
             result = embed_histogram(
                 host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}"
             )
+        elif algorithm in ("blind", "blind_watermark"):
+            result = embed_blind(host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}")
         else:
             result = embed_reversible(
                 host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}"
