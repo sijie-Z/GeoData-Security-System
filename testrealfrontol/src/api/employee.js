@@ -138,10 +138,13 @@ export const downloadFile = (data) => axios.post('/api/emp_download_zip', data, 
 
 /**
  * Request a download token for an application.
+ * The server may generate the personalized delivery copy on the fly,
+ * so callers should pass an extended timeout (e.g. 180000ms).
  * @param {Object} data
+ * @param {Object} [config] - Additional axios config (e.g., timeout)
  * @returns {Promise<AxiosResponse>}
  */
-export const requestDownloadToken = (data) => axios.post('/api/request_download_token', data)
+export const requestDownloadToken = (data, config = {}) => axios.post('/api/request_download_token', data, config)
 
 /**
  * Record a file download event.
