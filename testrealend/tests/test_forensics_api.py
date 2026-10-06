@@ -326,7 +326,7 @@ class TestAnchor:
 
         monkeypatch.setattr(
             "resource.forensics_resource.build_batch",
-            lambda: anchor_mod.build_batch(provider=NullAnchorProvider(ok=True)),
+            lambda provider=None: anchor_mod.build_batch(provider=provider or NullAnchorProvider(ok=True)),
         )
         item = _seed_app(db, alias="file-anchor")
         delivery = _seed_delivery(db, item)
@@ -335,7 +335,8 @@ class TestAnchor:
         first = client.post("/api/forensics/anchor/build", headers=auth_headers)
         assert first.status_code == 200, first.get_json()
         batch1 = first.get_json()["batch"]
-        assert set(batch1.keys()) == {"batch_id", "root_hex", "status", "provider", "error"}
+        assert set(batch1.keys()) == {"batch_id", "root_hex", "status", "provider", "error", "explorer_url"}
+        assert batch1["explorer_url"] is None  # OTS batches carry no explorer link
         assert len(batch1["root_hex"]) == 64
         assert batch1["status"] == "SUBMITTED"
 
