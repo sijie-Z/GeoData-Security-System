@@ -170,17 +170,20 @@
                   <div class="watermark-panel">
                     <h4>{{ $t('decodePlatform.extractedWatermark') }}</h4>
                     <div class="watermark-img-box">
-                      <img
+                      <WatermarkImage
                         v-if="watermarkBase64"
                         :src="`data:image/png;base64,${watermarkBase64}`"
-                        alt="Extracted Watermark"
+                        fit="contain"
                       />
                       <el-empty v-else :description="$t('decodePlatform.noWatermark')" />
                     </div>
                     <template v-if="recoveredBase64">
                       <h4 style="margin-top: 16px;">{{ $t('decodePlatform.recoveredImage') }}</h4>
                       <div class="watermark-img-box">
-                        <img :src="`data:image/png;base64,${recoveredBase64}`" alt="Recovered" />
+                        <WatermarkImage
+                          :src="`data:image/png;base64,${recoveredBase64}`"
+                          fit="contain"
+                        />
                       </div>
                     </template>
                   </div>
@@ -212,6 +215,7 @@ import {
   CircleCheckFilled, CircleCloseFilled
 } from '@element-plus/icons-vue'
 import QRProvenanceCard from './QRProvenanceCard.vue'
+import WatermarkImage from '@/components/common/WatermarkImage.vue'
 
 const { t } = useI18n()
 
@@ -545,10 +549,15 @@ const resetAll = () => {
   min-height: 200px;
 }
 
-.watermark-img-box img {
+.watermark-img-box :deep(.el-image) {
   max-width: 100%;
   max-height: 280px;
   border-radius: 4px;
+}
+
+.watermark-img-box :deep(img) {
+  max-height: 280px;
+  height: auto;
 }
 
 .provenance-panel {

@@ -39,18 +39,11 @@
         <el-table-column :label="$t('rasterWmEmbed.colWatermark')">
           <template #default="scope">
             <div class="qr-image-wrapper">
-              <el-image class="qr-code-image"
+              <WatermarkImage class="qr-code-image"
                 :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
-                :preview-src-list="[scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : '']"
                 fit="cover"
                 style="width: 50px; height: 50px;"
-              >
-                <template #error>
-                  <div class="qr-error-slot">
-                    <el-icon><Picture /></el-icon>
-                  </div>
-                </template>
-              </el-image>
+              />
               <span v-if="!scope.row.qrcode" class="qr-empty-text">—</span>
             </div>
           </template>
@@ -86,11 +79,10 @@
         <div class="preview-main">
           <div class="raster-preview-container">
             <div v-if="selectedData.preview_base64" class="preview-image-wrapper">
-              <el-image
+              <WatermarkImage
                 :src="`data:image/png;base64,${selectedData.preview_base64}`"
                 fit="contain"
                 style="width: 100%; height: 320px; border-radius: 12px;"
-                alt="栅格数据预览"
               />
             </div>
             <div v-else class="preview-placeholder">
@@ -139,7 +131,7 @@
           </div>
         </el-form-item>
         <el-form-item :label="$t('rasterWmEmbed.embeddedThumbnail')" v-if="crmarkResult.stego_preview_base64">
-          <el-image :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" fit="contain" style="width: 100%;" />
+          <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" fit="contain" style="width: 100%;" />
         </el-form-item>
         <el-form-item>
           <el-button type="success" @click="crmarkRecover" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path">{{ $t('rasterWmEmbed.recoverOriginal') }}</el-button>
@@ -163,6 +155,7 @@
     generateRasterTiles,
     getRasterTileToken
   } from '@/api/watermark';
+  import WatermarkImage from '@/components/common/WatermarkImage.vue';
 
   const { t } = useI18n();
 

@@ -20,10 +20,9 @@
         </el-table-column>
         <el-table-column :label="$t('wmGen.colWatermark')" width="100" align="center">
           <template #default="scope">
-            <el-image
+            <WatermarkImage
               v-if="scope.row.qrcode"
               :src="`data:image/png;base64,${scope.row.qrcode}`"
-              :preview-src-list="[`data:image/png;base64,${scope.row.qrcode}`]"
               fit="cover"
               style="width: 48px; height: 48px; border-radius: 6px;"
             />
@@ -118,10 +117,9 @@
         <el-divider content-position="left">{{ $t('wmGen.sectionQrPreview') }}</el-divider>
         <el-form-item>
           <div class="qr-preview-area">
-            <el-image
+            <WatermarkImage
               v-if="generatedQrcode"
               :src="`data:image/png;base64,${generatedQrcode}`"
-              :preview-src-list="[generatedQrcode ? `data:image/png;base64,${generatedQrcode}` : '']"
               fit="contain"
               style="width: 140px; height: 140px; border: 1px solid #e5e7eb; border-radius: 8px;"
             />
@@ -190,6 +188,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage, ElDivider } from 'element-plus';
 import { getApplicationsGenerateWatermark, generateWatermark } from '@/api/watermark';
 import { Search, Loading } from '@element-plus/icons-vue';
+import WatermarkImage from '@/components/common/WatermarkImage.vue';
 
 // TianDiTu key (same as data_viewing_new.vue)
 const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '11ac7f190ef74ee4bd64081fe7ae419c';

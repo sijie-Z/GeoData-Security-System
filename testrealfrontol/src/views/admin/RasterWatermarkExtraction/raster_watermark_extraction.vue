@@ -104,18 +104,11 @@
             <span>{{ $t('rasterWmExtract.originalWatermark') }}</span>
           </div>
           <div class="watermark-content">
-            <el-image
+            <WatermarkImage
               :src="`data:image/png;base64,${originalWatermarkBase64}`"
               fit="contain"
               class="watermark-image"
-            >
-              <template #error>
-                <div class="image-error">
-                  <el-icon size="32"><Picture /></el-icon>
-                  <span>{{ $t('rasterWmExtract.watermarkLoadFailed') }}</span>
-                </div>
-              </template>
-            </el-image>
+            />
           </div>
         </div>
 
@@ -143,18 +136,11 @@
             <span>{{ $t('rasterWmExtract.extractedWatermark') }}</span>
           </div>
           <div class="watermark-content">
-            <el-image
+            <WatermarkImage
               :src="`data:image/png;base64,${extractedWatermarkBase64}`"
               fit="contain"
               class="watermark-image"
-            >
-              <template #error>
-                <div class="image-error">
-                  <el-icon size="32"><Picture /></el-icon>
-                  <span>{{ $t('rasterWmExtract.watermarkLoadFailed') }}</span>
-                </div>
-              </template>
-            </el-image>
+            />
           </div>
         </div>
       </div>
@@ -240,9 +226,9 @@ import {
   InfoFilled,
   Key,
   Upload,
-  Search,
-  Picture
+  Search
 } from '@element-plus/icons-vue';
+import WatermarkImage from '@/components/common/WatermarkImage.vue';
 
 const { t } = useI18n();
 const userStore = useUserStore();

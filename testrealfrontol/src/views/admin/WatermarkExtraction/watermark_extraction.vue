@@ -16,7 +16,11 @@
         </div>
       </template>
       <div v-if="extractedWatermarkBase64" class="watermark-image-wrapper">
-        <img :src="`data:image/png;base64,${extractedWatermarkBase64}`" alt="Extracted Watermark" class="watermark-image"/>
+        <WatermarkImage
+          :src="`data:image/png;base64,${extractedWatermarkBase64}`"
+          fit="contain"
+          class="watermark-image"
+        />
       </div>
       <div v-else class="watermark-placeholder">
         <el-empty :description="$t('wmExtract.watermarkPlaceholder')"></el-empty>
@@ -30,7 +34,11 @@
         </div>
       </template>
       <div class="watermark-image-wrapper">
-        <img :src="`data:image/png;base64,${recoveredBase64}`" alt="Recovered Original" class="watermark-image"/>
+        <WatermarkImage
+          :src="`data:image/png;base64,${recoveredBase64}`"
+          fit="contain"
+          class="watermark-image"
+        />
       </div>
       <div style="text-align: center; margin-top: 8px;">
         <el-tag type="success" effect="dark">{{ $t('wmExtract.reversibleSuccess') || 'Reversible recovery successful — original image perfectly restored' }}</el-tag>
@@ -115,6 +123,7 @@
 
 <script setup>
 import { UploadFilled, QuestionFilled } from "@element-plus/icons-vue";
+import WatermarkImage from '@/components/common/WatermarkImage.vue';
 import { ref, computed } from "vue";
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
