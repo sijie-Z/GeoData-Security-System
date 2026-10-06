@@ -1,100 +1,121 @@
 <template>
-  <div class="register-container">
-    <div ref="particlesContainer" class="particles-background"></div>
-    
-    <div class="register-content">
-      <el-card class="register-card" shadow="hover">
-        <template #header>
-          <div class="card-header">
-            <h1 class="register-title">{{ $t('register.title') }}</h1>
-            <p class="register-subtitle">{{ $t('register.subtitle') }}</p>
-          </div>
-        </template>
-        
-        <el-form :model="data" :rules="rules" ref="elFormRef" label-position="top">
-          <el-form-item :label="$t('register.avatar')" prop="avatar">
-            <div class="avatar-upload-section">
-              <div class="avatar-preview" @click="triggerFileInput">
-                <img v-if="data.avatarUrl" :src="data.avatarUrl" alt="头像预览" class="avatar-image" />
-                <div v-else class="avatar-placeholder">
-                  <el-icon size="32" color="#909399"><User /></el-icon>
-                  <span class="avatar-text">{{ $t('register.avatarUpload') }}</span>
+  <div class="auth-page">
+    <!-- 顶栏小工具：语言切换（复用现有机制） -->
+    <div class="auth-lang">
+      <LanguageSwitcher />
+    </div>
+
+    <div class="auth-layout">
+      <!-- 左侧品牌栏 -->
+      <AuthBrandPanel />
+
+      <!-- 右侧表单栏 -->
+      <main class="auth-main">
+        <section class="auth-card auth-card-register">
+          <header class="auth-card-header">
+            <h2 class="auth-form-title">{{ $t('register.title') }}</h2>
+            <p class="auth-form-subtitle">{{ $t('register.subtitle') }}</p>
+          </header>
+
+          <el-form :model="data" :rules="rules" ref="elFormRef" label-position="top" status-icon class="auth-form">
+            <el-form-item :label="$t('register.avatar')" prop="avatar" class="avatar-item">
+              <div class="avatar-upload-section">
+                <div class="avatar-preview" @click="triggerFileInput">
+                  <img v-if="data.avatarUrl" :src="data.avatarUrl" alt="头像预览" class="avatar-image" />
+                  <div v-else class="avatar-placeholder">
+                    <el-icon size="30" color="#94a3b8"><User /></el-icon>
+                    <span class="avatar-text">{{ $t('register.avatarUpload') }}</span>
+                  </div>
+                  <div class="avatar-overlay">
+                    <el-icon color="white" size="20"><Camera /></el-icon>
+                    <span>{{ $t('register.avatarChange') }}</span>
+                  </div>
                 </div>
-                <div class="avatar-overlay">
-                  <el-icon color="white" size="20"><Camera /></el-icon>
-                  <span>{{ $t('register.avatarChange') }}</span>
+                <div class="avatar-tips">
+                  <el-text type="info" size="small">
+                    {{ $t('register.avatarTip') }}
+                  </el-text>
                 </div>
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept="image/*"
+                  style="display: none"
+                  @change="handleAvatarChange"
+                />
               </div>
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                style="display: none"
-                @change="handleAvatarChange"
-              />
-              <div class="avatar-tips">
-                <el-text type="info" size="small">
-                  {{ $t('register.avatarTip') }}
-                </el-text>
-              </div>
+            </el-form-item>
+
+            <!-- 分组：个人信息 -->
+            <div class="form-group-title">
+              <el-icon><User /></el-icon>
+              <span>{{ $t('register.groupPersonal') }}</span>
             </div>
-          </el-form-item>
 
-          <el-form-item :label="$t('register.nameLabel')" prop="name">
-            <el-input v-model="data.name" :placeholder="$t('register.namePlaceholder')" :prefix-icon="User" />
-          </el-form-item>
+            <el-form-item :label="$t('register.nameLabel')" prop="name">
+              <el-input v-model="data.name" :placeholder="$t('register.namePlaceholder')" :prefix-icon="User" class="auth-input" />
+            </el-form-item>
 
-          <el-form-item :label="$t('register.employeeIdLabel')" prop="employeeId">
-            <el-input v-model="data.employeeId" :placeholder="$t('register.employeeIdPlaceholder')" :prefix-icon="Key" />
-          </el-form-item>
+            <el-form-item :label="$t('register.idNumberLabel')" prop="idNumber">
+              <el-input v-model="data.idNumber" :placeholder="$t('register.idNumberPlaceholder')" :prefix-icon="CreditCard" class="auth-input" />
+            </el-form-item>
 
-          <el-form-item :label="$t('register.idNumberLabel')" prop="idNumber">
-            <el-input v-model="data.idNumber" :placeholder="$t('register.idNumberPlaceholder')" :prefix-icon="CreditCard" />
-          </el-form-item>
+            <el-form-item :label="$t('register.phoneLabel')" prop="phone">
+              <el-input v-model="data.phone" :placeholder="$t('register.phonePlaceholder')" :prefix-icon="Phone" class="auth-input" />
+            </el-form-item>
 
-          <el-form-item :label="$t('register.phoneLabel')" prop="phone">
-            <el-input v-model="data.phone" :placeholder="$t('register.phonePlaceholder')" :prefix-icon="Phone" />
-          </el-form-item>
+            <!-- 分组：账号信息 -->
+            <div class="form-group-title">
+              <el-icon><Key /></el-icon>
+              <span>{{ $t('register.groupAccount') }}</span>
+            </div>
 
-          <el-form-item :label="$t('register.passwordLabel')" prop="password">
-            <el-input show-password v-model="data.password" :placeholder="$t('register.passwordPlaceholder')" :prefix-icon="Lock" />
-          </el-form-item>
+            <el-form-item :label="$t('register.employeeIdLabel')" prop="employeeId">
+              <el-input v-model="data.employeeId" :placeholder="$t('register.employeeIdPlaceholder')" :prefix-icon="Key" class="auth-input" />
+            </el-form-item>
 
-          <el-form-item :label="$t('register.confirmPasswordLabel')" prop="confirmPassword">
-            <el-input show-password v-model="data.confirmPassword" :placeholder="$t('register.confirmPasswordPlaceholder')" :prefix-icon="Lock" />
-          </el-form-item>
+            <el-form-item :label="$t('register.passwordLabel')" prop="password">
+              <el-input show-password v-model="data.password" :placeholder="$t('register.passwordPlaceholder')" :prefix-icon="Lock" class="auth-input" />
+            </el-form-item>
 
-          <el-form-item>
-            <el-button type="primary" class="register-button" @click="register" :loading="loading" size="large">
-              <el-icon><CircleCheck /></el-icon>
-              {{ $t('register.createButton') }}
-            </el-button>
-          </el-form-item>
+            <el-form-item :label="$t('register.confirmPasswordLabel')" prop="confirmPassword">
+              <el-input show-password v-model="data.confirmPassword" :placeholder="$t('register.confirmPasswordPlaceholder')" :prefix-icon="Lock" class="auth-input" />
+            </el-form-item>
 
-          <div class="login-link-container">
+            <el-form-item class="submit-item">
+              <el-button class="auth-submit" @click="register" :loading="loading">
+                <el-icon v-if="!loading" class="submit-icon"><CircleCheck /></el-icon>
+                {{ $t('register.createButton') }}
+              </el-button>
+            </el-form-item>
+          </el-form>
+
+          <div class="auth-card-footer">
             <span class="login-text">{{ $t('register.hasAccount') }}</span>
-            <el-link type="primary" @click="login" :underline="false">{{ $t('register.loginNow') }}</el-link>
+            <el-link type="primary" @click="login" :underline="false" class="auth-link">{{ $t('register.loginNow') }}</el-link>
           </div>
-        </el-form>
-      </el-card>
-      
-      <div class="features-section">
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureSecure') }}</span></div>
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureService') }}</span></div>
-        <div class="feature-item"><el-icon color="#67C23A"><Check /></el-icon><span>{{ $t('register.featureSupport') }}</span></div>
-      </div>
+
+          <!-- 服务保障 -->
+          <div class="trust-row">
+            <span class="trust-item"><el-icon color="#67C23A"><Check /></el-icon>{{ $t('register.featureSecure') }}</span>
+            <span class="trust-item"><el-icon color="#67C23A"><Check /></el-icon>{{ $t('register.featureService') }}</span>
+            <span class="trust-item"><el-icon color="#67C23A"><Check /></el-icon>{{ $t('register.featureSupport') }}</span>
+          </div>
+        </section>
+      </main>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, ref, onMounted, onUnmounted } from 'vue';
-import * as THREE from 'three';
+import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { post } from '@/utils/Axios';
 import { User, Key, CreditCard, Phone, Lock, CircleCheck, Camera, Check } from '@element-plus/icons-vue';
+import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
+import AuthBrandPanel from '@/components/common/AuthBrandPanel.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -182,14 +203,14 @@ const register = async () => {
     formData.append('phone', data.phone);
     formData.append('password', data.password);
     formData.append('confirmPassword', data.confirmPassword);
-    
+
     // 如果有头像文件，添加到 FormData
     if (data.avatar) {
       formData.append('avatar', data.avatar);
     }
 
     const response = await post('/api/register', formData);
-    
+
     ElMessage.success(response.message + "，" + t('register.pleaseLogin'));
     router.push('/login');
   } catch (err) {
@@ -201,166 +222,191 @@ const register = async () => {
 };
 
 const login = () => { router.push('/login'); };
-
-/**
- * 3D粒子背景效果 - 小白说明：
- * 用 THREE.js 创建会缓慢旋转的小点点，让页面更有科技感。
- */
-const particlesContainer = ref(null);
-let scene, camera, renderer, particles;
-
-/**
- * 初始化粒子场景 - 小白说明：
- * 搭建三要素：场景、相机、渲染器，然后生成一堆随机点。
- */
-const initParticles = () => {
-  if (!particlesContainer.value) return;
-  
-  // 创建场景
-  scene = new THREE.Scene();
-  camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-  renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-  
-  renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setClearColor(0x000000, 0);
-  particlesContainer.value.appendChild(renderer.domElement);
-  
-  // 创建粒子几何体
-  const particlesGeometry = new THREE.BufferGeometry();
-  const particlesCount = 600;
-  const posArray = new Float32Array(particlesCount * 3);
-  
-  for (let i = 0; i < particlesCount * 3; i++) {
-    posArray[i] = (Math.random() - 0.5) * 80;
-  }
-  
-  particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-  
-  // 创建粒子材质
-  const particlesMaterial = new THREE.PointsMaterial({
-    size: 0.6,
-    color: 0x10b981,
-    transparent: true,
-    opacity: 0.5,
-    sizeAttenuation: true
-  });
-  
-  particles = new THREE.Points(particlesGeometry, particlesMaterial);
-  scene.add(particles);
-  
-  camera.position.z = 25;
-  
-  // 动画循环
-  const animate = () => {
-    requestAnimationFrame(animate);
-    
-    particles.rotation.x += 0.0008;
-    particles.rotation.y += 0.0015;
-    
-    renderer.render(scene, camera);
-  };
-  
-  animate();
-};
-
-/**
- * 窗口大小调整 - 小白说明：
- * 浏览器变宽变窄时，更新相机比例和画布尺寸，避免拉伸变形。
- */
-const handleResize = () => {
-  if (camera && renderer) {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-  }
-};
-
-/**
- * 组件挂载时执行 - 小白说明：
- * 页面加载完成后，启动粒子背景，并监听窗口大小变化。
- */
-onMounted(() => {
-  // 初始化3D粒子背景
-  initParticles();
-  window.addEventListener('resize', handleResize);
-});
-
-/**
- * 组件卸载时执行 - 小白说明：
- * 页面关闭或切换路由时，移除事件监听，并清理画布。
- */
-onUnmounted(() => {
-  window.removeEventListener('resize', handleResize);
-  if (renderer && particlesContainer.value) {
-    particlesContainer.value.removeChild(renderer.domElement);
-  }
-});
 </script>
 
 <style scoped>
-.register-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  background-color: #ffffff;
-}
-
-.register-content {
+.auth-page {
   position: relative;
-  z-index: 10;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: #f4f6fb;
+}
+
+/* 顶栏语言切换：悬浮胶囊，明暗底上均可见 */
+.auth-lang {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  z-index: 60;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 6px 18px -6px rgba(15, 23, 42, 0.22);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ---------- 右侧表单栏 ---------- */
+.auth-main {
+  flex: 1 1 auto;
+  display: flex;
+  padding: 56px 32px;
+  background:
+    radial-gradient(60% 50% at 85% 12%, rgba(99, 102, 241, 0.07), transparent 70%),
+    radial-gradient(50% 45% at 12% 88%, rgba(37, 99, 235, 0.06), transparent 70%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2f9 100%);
+}
+
+.auth-card {
   width: 100%;
+  max-width: 460px;
+  margin: auto;
+  padding: 44px 40px 36px;
+  background: #ffffff;
+  border: 1px solid #e9eef5;
+  border-radius: 24px;
+  box-shadow: 0 24px 56px -28px rgba(15, 23, 42, 0.25), 0 4px 16px -8px rgba(15, 23, 42, 0.08);
+  animation: card-in 0.55s cubic-bezier(0.22, 0.8, 0.36, 1) both;
+}
+
+.auth-card-register {
   max-width: 500px;
-  padding: 20px;
 }
 
-.register-card {
-  border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.95);
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
 }
 
-.card-header {
-  text-align: center;
-  padding: 20px 0;
+.auth-card-header {
+  margin-bottom: 26px;
 }
 
-.register-title {
-  font-size: 28px;
-  font-weight: 600;
-  color: #2c3e50;
-  margin: 0 0 8px 0;
+.auth-form-title {
+  margin: 0 0 8px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  color: #0f172a;
 }
 
-.register-subtitle {
-  font-size: 16px;
-  color: #7f8c8d;
+.auth-form-subtitle {
   margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ---------- 输入框与校验态 ---------- */
+.auth-form :deep(.el-form-item) {
+  margin-bottom: 20px;
+}
+
+.auth-form :deep(.el-form-item__label) {
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.4;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper) {
+  height: 50px;
+  border-radius: 13px;
+  background: #f8fafc;
+  box-shadow: 0 0 0 1px #e2e8f0 inset;
+  transition: box-shadow 0.25s ease, background 0.25s ease;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper:hover) {
+  background: #ffffff;
+  box-shadow: 0 0 0 1px #cbd5e1 inset;
+}
+
+.auth-form :deep(.auth-input .el-input__wrapper.is-focus) {
+  background: #ffffff;
+  box-shadow: 0 0 0 1.5px #3b82f6 inset, 0 0 0 4px rgba(59, 130, 246, 0.14);
+}
+
+.auth-form :deep(.auth-input .el-input__prefix) {
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+/* 校验态：成功绿 / 错误红 */
+.auth-form :deep(.el-form-item.is-success .auth-input .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #10b981 inset;
+}
+
+.auth-form :deep(.el-form-item.is-error .auth-input .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #ef4444 inset;
+}
+
+.auth-form :deep(.el-form-item__error) {
+  padding-top: 4px;
+  font-size: 12px;
+  color: #ef4444;
+}
+
+/* ---------- 分组标题 ---------- */
+.form-group-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 10px 0 18px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #4f46e5;
+}
+
+.form-group-title .el-icon {
+  font-size: 15px;
+}
+
+.form-group-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.35), transparent);
+}
+
+/* ---------- 头像上传 ---------- */
+.avatar-item {
+  margin-bottom: 10px !important;
+}
+
+.avatar-item :deep(.el-form-item__content) {
+  justify-content: center;
 }
 
 .avatar-upload-section {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
 .avatar-preview {
   position: relative;
-  width: 100px;
-  height: 100px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
-  border: 2px dashed #dcdfe6;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
   overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
 }
 
 .avatar-preview:hover {
-  border-color: #409eff;
-  transform: scale(1.05);
+  border-color: #6366f1;
+  box-shadow: 0 0 0 5px rgba(99, 102, 241, 0.12);
+  transform: translateY(-1px);
 }
 
 .avatar-image {
@@ -375,27 +421,28 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   height: 100%;
-  color: #909399;
+  gap: 4px;
+  color: #94a3b8;
 }
 
 .avatar-text {
-  font-size: 12px;
-  margin-top: 4px;
+  font-size: 11px;
+  line-height: 1.3;
+  padding: 0 8px;
+  text-align: center;
 }
 
 .avatar-overlay {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: white;
+  gap: 2px;
+  color: #ffffff;
   font-size: 12px;
+  background: rgba(15, 23, 42, 0.55);
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -408,94 +455,106 @@ onUnmounted(() => {
   text-align: center;
 }
 
-.register-button {
+/* ---------- 提交按钮 ---------- */
+.submit-item {
+  margin: 24px 0 6px !important;
+}
+
+.submit-item :deep(.el-form-item__content) {
   width: 100%;
-  height: 48px;
-  font-size: 16px;
-  font-weight: 500;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #4caf50, #45a049);
+}
+
+.auth-submit {
+  width: 100%;
+  height: 52px;
   border: none;
-  transition: all 0.3s ease;
+  border-radius: 14px;
+  font-size: 15.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);
+  box-shadow: 0 14px 28px -12px rgba(37, 99, 235, 0.6);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
 }
 
-.register-button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(76, 175, 80, 0.3);
+.auth-submit:hover,
+.auth-submit:focus-visible {
+  color: #ffffff;
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+  box-shadow: 0 18px 32px -12px rgba(37, 99, 235, 0.7);
 }
 
-.login-link-container {
-  text-align: center;
-  margin-top: 20px;
-  font-size: 14px;
-  color: #606266;
+.auth-submit:active {
+  transform: translateY(0);
 }
 
-.login-text {
-  margin-right: 8px;
+.submit-icon {
+  font-size: 17px;
+  margin-right: 2px;
 }
 
-.features-section {
-  display: flex;
-  justify-content: center;
-  gap: 30px;
-  margin-top: 30px;
-  flex-wrap: wrap;
-}
-
-.feature-item {
+/* ---------- 底部链接与服务保障 ---------- */
+.auth-card-footer {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 20px;
   font-size: 14px;
-  color: #67c23a;
+  color: #64748b;
 }
 
-.particles-background {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1;
-  pointer-events: none;
+.auth-link {
+  font-weight: 600;
 }
 
-:deep(.el-input__wrapper) {
-  border-radius: 8px !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
-  border: 1px solid #e4e7ed !important;
-  transition: all 0.3s ease;
+.trust-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 18px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid #f1f5f9;
 }
 
-:deep(.el-input__wrapper:hover) {
-  border-color: #409eff !important;
-  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2) !important;
+.trust-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  color: #64748b;
 }
 
-:deep(.el-input__wrapper.is-focus) {
-  border-color: #409eff !important;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.2) !important;
-}
-
-:deep(.el-form-item__label) {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-@media (max-width: 768px) {
-  .register-content {
-    padding: 10px;
-  }
-  
-  .features-section {
+/* ---------- 响应式 ---------- */
+@media (max-width: 1024px) {
+  .auth-layout {
     flex-direction: column;
-    align-items: center;
-    gap: 15px;
   }
-  
-  .feature-item {
-    justify-content: center;
+
+  .auth-main {
+    padding: 32px 20px 48px;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-main {
+    padding: 24px 14px 40px;
+  }
+
+  .auth-card {
+    padding: 28px 18px 24px;
+    border-radius: 20px;
+  }
+
+  .auth-form-title {
+    font-size: 22px;
+  }
+
+  .trust-row {
+    gap: 8px 12px;
   }
 }
 </style>

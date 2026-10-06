@@ -612,6 +612,8 @@ export default {
     confirmPasswordRequired: '请再次输入密码',
     registerFailed: '注册失败：',
     pleaseLogin: '请登录',
+    groupPersonal: '个人信息',
+    groupAccount: '账号信息',
   },
   firstHome: {
     title: '空间数据跟踪系统',

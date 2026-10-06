@@ -651,6 +651,8 @@ export default {
     confirmPasswordRequired: 'Please enter password again',
     registerFailed: 'Registration failed: ',
     pleaseLogin: 'Please login',
+    groupPersonal: 'Personal Info',
+    groupAccount: 'Account Info',
   },
   firstHome: {
     title: 'Spatial Data Tracking System',
