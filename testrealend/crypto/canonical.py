@@ -32,9 +32,17 @@ def _validate(obj):
 
 
 def dumps(obj) -> bytes:
-    """Recursively whitelist-check ``obj``, then encode with cbor2 canonical mode."""
+    """Recursively whitelist-check ``obj``, then encode with cbor2 canonical mode.
+
+    Encoding failures (e.g. a lone surrogate string that cannot be UTF-8
+    encoded) are surfaced as ValueError. No Unicode normalisation is performed:
+    callers must hand in NFC-normalised text.
+    """
     _validate(obj)
-    return cbor2.dumps(obj, canonical=True)
+    try:
+        return cbor2.dumps(obj, canonical=True)
+    except Exception as e:
+        raise ValueError(f"canonical CBOR encoding failed: {e}") from e
 
 
 def loads(data: bytes):

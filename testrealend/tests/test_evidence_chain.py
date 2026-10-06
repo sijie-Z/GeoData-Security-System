@@ -156,6 +156,76 @@ class TestChain:
         assert e1.kid == active_kid
         assert verify_stream(stream_id)["valid"] is True
 
+    def test_column_by_column_tampering_is_detected(self, db):
+        """§3: changing any single stored column must break verification at that event."""
+        cases = {
+            "stream_id": lambda event: setattr(event, "stream_id", "moved-" + event.stream_id),
+            "seq": lambda event: setattr(event, "seq", 99),
+            "event_type": lambda event: setattr(event, "event_type", event.event_type + "!"),
+            "ts": lambda event: setattr(event, "ts", event.ts + timedelta(hours=1)),
+            "prev_hash": lambda event: setattr(event, "prev_hash", "f" * 64),
+        }
+        for name, mutate in cases.items():
+            stream_id = _stream_id(f"chain-tamper-{name}")
+            for i in range(3):
+                append_event(stream_id, "EVT", {"i": i})
+            mutate(get_events(stream_id)[1])
+            db.session.commit()
+            result = verify_stream(stream_id)
+            assert result["valid"] is False, name
+            assert result["broken_at"] == 2, (name, result)
+
+    def test_kid_column_tampering_is_detected(self, db):
+        """§3: switching the kid to another registered key must break the signature check."""
+        other_kid = self._register_other_key(db)
+        stream_id = _stream_id("chain-tamper-kid")
+        for i in range(3):
+            append_event(stream_id, "EVT", {"i": i})
+        get_events(stream_id)[1].kid = other_kid
+        db.session.commit()
+        result = verify_stream(stream_id)
+        assert result["valid"] is False
+        assert result["broken_at"] == 2
+        assert "signature" in result["reason"]
+
+    def test_tampered_payload_cbor_with_trailing_garbage_detected(self, db):
+        """B-5: appending bytes after the CBOR event body must break the chain
+        (previously the decoder silently ignored trailing garbage)."""
+        stream_id = _stream_id("chain-trailing")
+        for i in range(3):
+            append_event(stream_id, "EVT", {"i": i})
+
+        row = get_events(stream_id)[1]
+        row.payload_cbor = bytes(row.payload_cbor) + b"\xff\x00trailing-garbage"
+        db.session.commit()
+
+        result = verify_stream(stream_id)
+        assert result["valid"] is False
+        assert result["broken_at"] == 2
+        assert "trailing bytes" in result["reason"]
+
+    @pytest.mark.parametrize(
+        "corrupt",
+        [
+            pytest.param(lambda event: setattr(event, "payload_cbor", None), id="payload_cbor-null"),
+            pytest.param(lambda event: setattr(event, "ts", None), id="ts-null"),
+            pytest.param(lambda event: setattr(event, "signature", b"\x00"), id="short-signature"),
+            pytest.param(lambda event: setattr(event, "kid", 999999), id="unknown-kid"),
+        ],
+    )
+    def test_corrupt_rows_report_broken_without_raising(self, db, corrupt):
+        """§3: physically corrupt rows must degrade to valid=False, never an exception."""
+        stream_id = _stream_id("chain-corrupt")
+        for i in range(3):
+            append_event(stream_id, "EVT", {"i": i})
+        corrupt(get_events(stream_id)[1])
+        db.session.commit()
+
+        result = verify_stream(stream_id)  # must not raise
+        assert result["valid"] is False
+        assert result["broken_at"] == 2
+        assert result["reason"]
+
 
 class TestMerkle:
     H1, H2, H3, H4 = "aa" * 32, "bb" * 32, "cc" * 32, "dd" * 32

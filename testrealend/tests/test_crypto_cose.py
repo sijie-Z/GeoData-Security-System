@@ -7,7 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from crypto import canonical
-from crypto.cose import CoseVerifyError, sign1_sign, sign1_verify
+from crypto.cose import CoseVerifyError, QrPayloadError, sign1_sign, sign1_verify
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text, is_v2_text, parse_qr_text
 
@@ -23,6 +23,38 @@ class TestCanonical:
             canonical.dumps(1.5)
         with pytest.raises(ValueError):
             canonical.dumps({"nested": [0.25]})
+
+    def test_non_finite_floats_rejected(self):
+        for bad in (float("nan"), float("inf"), float("-inf")):
+            with pytest.raises(ValueError):
+                canonical.dumps({"x": bad})
+
+    def test_deeply_nested_float_key_rejected(self):
+        with pytest.raises(ValueError):
+            canonical.dumps({"outer": [{"inner": {3.5: "v"}}]})
+
+    def test_tuple_and_bytearray_rejected(self):
+        with pytest.raises(ValueError):
+            canonical.dumps({"t": (1, 2)})
+        with pytest.raises(ValueError):
+            canonical.dumps({"b": bytearray(b"ab")})
+
+    def test_large_integer_encoding_stable(self):
+        value = 2**70
+        encoded = canonical.dumps({"n": value})
+        assert encoded == b"\xa1an\xc2I" + b"\x40" + b"\x00" * 8  # bignum tag 2, 9 bytes
+        assert canonical.dumps({"n": value}) == encoded
+        assert canonical.loads(encoded) == {"n": value}
+
+    def test_mixed_length_key_ordering_canonical(self):
+        a = canonical.dumps({"aa": 1, "b": 2, "zzz": 4, "": 3})
+        b = canonical.dumps({"zzz": 4, "": 3, "b": 2, "aa": 1})
+        assert a == b  # length-first then bytewise ordering is deterministic
+
+    def test_lone_surrogate_surfaces_as_value_error(self):
+        """A-3: encoding failures inside cbor2 are wrapped as ValueError."""
+        with pytest.raises(ValueError):
+            canonical.dumps({"bad": "\ud800"})
 
     def test_bytes_and_nested_roundtrip(self):
         obj = {"bin": b"\x00\xff\x10", "nested": [1, True, None, "s", {"k": b"v"}, [b""]], "n": -42}
@@ -87,6 +119,52 @@ class TestCoseSign1:
         cose = sign1_sign(b"x", 1, private_key)
         with pytest.raises(CoseVerifyError):
             sign1_verify(cose, other_public_key)
+
+    def test_verify_error_is_qr_payload_error_subclass(self):
+        assert issubclass(CoseVerifyError, QrPayloadError)
+
+    def test_nonempty_unprotected_header_rejected(self):
+        """B-1: the unprotected header is not covered by the signature; this
+        system always signs with {} and must reject a non-empty one."""
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        cose = sign1_sign(b"data", 1, private_key)
+        obj = cbor2.loads(cose)
+        obj[1] = {"kid": 999, "crit": True}
+        with pytest.raises(CoseVerifyError):
+            sign1_verify(cbor2.dumps(obj, canonical=True), public_key)
+
+    def test_trailing_bytes_after_message_rejected(self):
+        """A-1: appended garbage after a valid COSE message must be rejected."""
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        cose = sign1_sign(b"payload", 1, private_key)
+        with pytest.raises(CoseVerifyError):
+            sign1_verify(cose + b"\xff", public_key)
+        tagged = cbor2.dumps(cbor2.CBORTag(18, cbor2.loads(cose)))
+        with pytest.raises(CoseVerifyError):
+            sign1_verify(tagged + b"\x00", public_key)
+
+    def test_alg_float_rejected(self):
+        """A-2: -8.0 == -8 in Python; the alg check must be type-strict."""
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        payload = b"data"
+        protected_bstr = cbor2.dumps({"alg": -8.0, "kid": 1})
+        signature = private_key.sign(canonical.dumps(["Signature1", protected_bstr, b"", payload]))
+        cose = cbor2.dumps([protected_bstr, {}, payload, signature], canonical=True)
+        with pytest.raises(CoseVerifyError):
+            sign1_verify(cose, public_key)
+
+    def test_alg_int_other_than_eddsa_rejected(self):
+        private_key = ed25519.Ed25519PrivateKey.generate()
+        public_key = private_key.public_key()
+        payload = b"data"
+        protected_bstr = canonical.dumps({"alg": -7, "kid": 1})
+        signature = private_key.sign(canonical.dumps(["Signature1", protected_bstr, b"", payload]))
+        cose = cbor2.dumps([protected_bstr, {}, payload, signature], canonical=True)
+        with pytest.raises(CoseVerifyError):
+            sign1_verify(cose, public_key)
 
 
 class TestQrV2Payload:

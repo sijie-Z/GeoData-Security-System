@@ -4,6 +4,10 @@ Wire format: CBOR array [protected: bstr, unprotected: map, payload: bstr,
 signature: bstr], serialised WITHOUT a CBOR tag 18. The parser additionally
 accepts tag-18-wrapped input for interoperability.
 
+Decoding is strict: the input must be exactly one CBOR item (trailing bytes
+are rejected, A-1) and the unprotected header must be empty (B-1) — this
+system only ever signs with everything in the protected header.
+
 The signing input is the canonical-CBOR ``Sig_structure``:
 ["Signature1", protected_bstr, external_aad="", payload_bstr].
 
@@ -12,6 +16,7 @@ tag is involved, so everything is normalised to plain list/dict right after
 decoding — structural checks must not depend on cbor2's decode flavours.
 """
 
+import io
 from collections.abc import Mapping
 
 import cbor2
@@ -22,7 +27,17 @@ ALG_EDDSA = -8
 COSE_SIGN1_TAG = 18
 
 
-class CoseVerifyError(Exception):
+class QrPayloadError(Exception):
+    """Umbrella error for unparseable or untrusted QR v2 payload text.
+
+    ``crypto.payload.parse_qr_text`` converts every failure mode (invalid
+    base64url framing, CBOR/COSE structural errors, unknown kid, missing
+    fields, payload/protected kid mismatch) into this type. ``CoseVerifyError``
+    is the more specific subclass raised by the COSE layer itself.
+    """
+
+
+class CoseVerifyError(QrPayloadError):
     """Raised when a COSE_Sign1 message fails structural or signature validation."""
 
 
@@ -36,11 +51,18 @@ def _to_plain(obj):
 
 
 def _decode_structure(cose_bytes: bytes):
-    """Parse a COSE_Sign1 message into (protected_bstr, protected_map, unprotected, payload, signature)."""
+    """Parse a COSE_Sign1 message into (protected_bstr, protected_map, unprotected, payload, signature).
+
+    Rejects trailing bytes after the CBOR message (A-1): appended garbage must
+    never be silently ignored when verifying a signed payload.
+    """
+    stream = io.BytesIO(cose_bytes)
     try:
-        obj = cbor2.loads(cose_bytes)
+        obj = cbor2.CBORDecoder(stream).decode()
     except Exception as e:
         raise CoseVerifyError(f"CBOR decode failed: {e}") from e
+    if stream.read(1):
+        raise CoseVerifyError("trailing bytes after COSE_Sign1 message")
     if isinstance(obj, cbor2.CBORTag):
         if obj.tag != COSE_SIGN1_TAG:
             raise CoseVerifyError(f"unexpected CBOR tag {obj.tag}, expected {COSE_SIGN1_TAG} (COSE_Sign1)")
@@ -86,9 +108,15 @@ def decode_sign1_protected(cose_bytes: bytes) -> dict:
 
 def sign1_verify(cose_bytes: bytes, public_key) -> bytes:
     """Verify a COSE_Sign1 message and return its payload, or raise CoseVerifyError."""
-    protected_bstr, protected, _unprotected, payload, signature = _decode_structure(cose_bytes)
-    if protected.get("alg") != ALG_EDDSA:
-        raise CoseVerifyError(f"unsupported alg {protected.get('alg')!r}, expected {ALG_EDDSA} (EdDSA)")
+    protected_bstr, protected, unprotected, payload, signature = _decode_structure(cose_bytes)
+    # B-1: this system always signs with everything in the protected header, so
+    # a non-empty unprotected header is either tampering or a protocol error.
+    if unprotected:
+        raise CoseVerifyError("unprotected header must be empty")
+    # A-2: alg must be the exact integer -8; float -8.0 (or bools) are rejected.
+    alg = protected.get("alg")
+    if not (isinstance(alg, int) and not isinstance(alg, bool) and alg == ALG_EDDSA):
+        raise CoseVerifyError(f"unsupported alg {alg!r}, expected {ALG_EDDSA} (EdDSA)")
     try:
         public_key.verify(signature, _sig_structure(protected_bstr, payload))
     except Exception as e:

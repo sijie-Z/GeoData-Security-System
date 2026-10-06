@@ -15,8 +15,10 @@ event_hash values (no UNIQUE(event_hash) collision).
 """
 
 import hashlib
+import io
 from datetime import UTC, datetime
 
+import cbor2
 from cryptography.hazmat.primitives import serialization
 
 from crypto import canonical
@@ -26,6 +28,20 @@ from extension.extension import db
 from model.evidence_event import EvidenceEvent
 
 GENESIS_HASH = "0" * 64
+
+
+def _strict_loads(data: bytes):
+    """Decode exactly one CBOR item, rejecting trailing bytes (B-5).
+
+    Same idea as the strict decode in ``crypto.cose``: a payload_cbor column
+    with appended garbage must fail verification instead of being silently
+    accepted by a trailing-byte-tolerant decoder.
+    """
+    stream = io.BytesIO(data)
+    obj = cbor2.CBORDecoder(stream).decode()
+    if stream.read(1):
+        raise ValueError("trailing bytes after CBOR event body")
+    return obj
 
 
 def _epoch(ts: datetime) -> int:
@@ -146,7 +162,7 @@ def verify_stream(stream_id: str) -> dict:
         if event.prev_hash != prev_hash:
             return _broken(len(events), position, "prev_hash does not match previous event_hash")
         try:
-            stored_body = canonical.loads(bytes(event.payload_cbor))
+            stored_body = _strict_loads(bytes(event.payload_cbor))
             recomputed = hashlib.sha256(
                 DOMAIN_EVENT
                 + bytes.fromhex(event.prev_hash)
