@@ -1,5 +1,5 @@
 <template>
-  <div class="employee-dashboard" v-loading="loading">
+  <div class="employee-dashboard" :class="{ 'theme-dark': isDark }" v-loading="loading">
     <template v-if="loading">
       <div class="skeleton-hero glass">
         <div class="sk-line long"></div>
@@ -261,7 +261,8 @@ onActivated(async () => {
   background: radial-gradient(1200px 600px at 0% 0%, var(--dash-c1) 0%, var(--dash-c2) 45%, var(--dash-c3) 100%);
   min-height: calc(100vh - 80px);
 }
-:global(html.dark) .employee-dashboard {
+/* 深色模式：由模板上的 theme-dark 类驱动（scoped 编译稳定，不在样式里用 :global 前缀） */
+.employee-dashboard.theme-dark {
   --dash-c1: #1a2438; --dash-c2: #0b1220; --dash-c3: #0e1626;
 }
 .glass {
@@ -270,7 +271,7 @@ onActivated(async () => {
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 16px;
 }
-:global(html.dark) .glass {
+.employee-dashboard.theme-dark .glass {
   background: rgba(19, 28, 46, 0.75);
   border-color: rgba(148, 163, 184, 0.18);
 }
