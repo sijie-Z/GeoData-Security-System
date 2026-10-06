@@ -30,6 +30,11 @@ Thumbs.db
 # Flask
 instance/
 
+# Cryptographic material — never commit private keys
+*.pem
+*.key
+keys/
+
 # Test data & uploads (may contain sensitive data)
 test/upload_folder/
 test/watermark_folder/
