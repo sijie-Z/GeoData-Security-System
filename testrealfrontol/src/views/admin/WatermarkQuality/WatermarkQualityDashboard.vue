@@ -1,25 +1,33 @@
 <template>
   <div class="watermark-quality-dashboard">
     <div class="page-header">
-      <div class="page-header-left">
+      <div class="page-header-left" :ref="setTourEl('header')">
         <h2>{{ $t('watermarkQuality.title') }}</h2>
         <p class="subtitle">{{ $t('watermarkQuality.subtitle') }}</p>
       </div>
-      <el-button type="primary" plain :icon="Refresh" :loading="globalLoading" @click="refreshAll">
-        {{ $t('common.refresh') }}
-      </el-button>
+      <div class="page-header-actions">
+        <el-button :icon="Guide" @click="startTour">
+          {{ $t('watermarkQuality.replayTour') }}
+        </el-button>
+        <el-button type="primary" :icon="Refresh" :loading="globalLoading" @click="refreshAll">
+          {{ $t('common.refresh') }}
+        </el-button>
+      </div>
     </div>
 
     <!-- ═══════════ 区一 · Hero 统计带（8 KPI · 数字滚动） ═══════════ -->
-    <el-row :gutter="16" class="hero-band">
+    <el-row :gutter="16" class="hero-band" :ref="setTourEl('hero')">
       <el-col v-for="card in kpiCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="6">
         <div class="kpi-card hover-lift">
-          <div class="kpi-icon" :style="{ background: card.gradient }">
-            <el-icon size="22"><component :is="card.icon" /></el-icon>
+          <div class="kpi-icon">
+            <el-icon size="18"><component :is="card.icon" /></el-icon>
           </div>
           <div class="kpi-body">
             <span class="kpi-value">{{ kpiText(card) }}</span>
-            <span class="kpi-label">{{ card.label }}</span>
+            <span class="kpi-label-row">
+              <span class="kpi-label">{{ card.label }}</span>
+              <GlossaryHelp v-bind="glossary[card.help]" />
+            </span>
             <span v-if="card.meta" class="kpi-meta" :title="card.meta">{{ card.meta }}</span>
           </div>
         </div>
@@ -27,7 +35,7 @@
     </el-row>
 
     <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="verifLoading">
+    <el-card class="section-card" shadow="never" v-loading="verifLoading" :ref="setTourEl('gallery')">
       <template #header>
         <div class="card-header">
           <span class="section-title">{{ $t('watermarkQuality.analyticsGallery') }}</span>
@@ -40,7 +48,10 @@
           <div class="chart-box">
             <div class="chart-head">
               <div class="chart-head-left">
-                <span class="chart-title">{{ $t('watermarkQuality.ncHistogram') }}</span>
+                <span class="chart-title-row">
+                  <span class="chart-title">{{ $t('watermarkQuality.ncHistogram') }}</span>
+                  <GlossaryHelp v-bind="glossary.histogram" />
+                </span>
                 <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
               </div>
             </div>
@@ -52,7 +63,10 @@
           <div class="chart-box" v-loading="trendLoading">
             <div class="chart-head">
               <div class="chart-head-left">
-                <span class="chart-title">{{ $t('watermarkQuality.ncTrend') }}</span>
+                <span class="chart-title-row">
+                  <span class="chart-title">{{ $t('watermarkQuality.ncTrend') }}</span>
+                  <GlossaryHelp v-bind="glossary.trend" />
+                </span>
                 <span class="chart-sub">{{ $t('watermarkQuality.ncTrendSub', { days: 30 }) }}</span>
               </div>
               <el-radio-group v-model="trendDataType" size="small">
@@ -71,7 +85,10 @@
       <div class="chart-box">
         <div class="chart-head">
           <div class="chart-head-left">
-            <span class="chart-title">{{ $t('watermarkQuality.algoBreakdown') }}</span>
+            <span class="chart-title-row">
+              <span class="chart-title">{{ $t('watermarkQuality.algoBreakdown') }}</span>
+              <GlossaryHelp v-bind="glossary.algo" />
+            </span>
             <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
           </div>
         </div>
@@ -85,7 +102,10 @@
           <div class="chart-box">
             <div class="chart-head">
               <div class="chart-head-left">
-                <span class="chart-title">{{ $t('watermarkQuality.verificationShare') }}</span>
+                <span class="chart-title-row">
+                  <span class="chart-title">{{ $t('watermarkQuality.verificationShare') }}</span>
+                  <GlossaryHelp v-bind="glossary.share" />
+                </span>
                 <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
               </div>
             </div>
@@ -97,7 +117,10 @@
           <div class="chart-box" v-loading="dLoading">
             <div class="chart-head">
               <div class="chart-head-left">
-                <span class="chart-title">{{ $t('watermarkQuality.deliveryHealth') }}</span>
+                <span class="chart-title-row">
+                  <span class="chart-title">{{ $t('watermarkQuality.deliveryHealth') }}</span>
+                  <GlossaryHelp v-bind="glossary.deliveryChart" />
+                </span>
                 <span class="chart-sub">
                   {{ $t('watermarkQuality.ringInner') }} / {{ $t('watermarkQuality.ringOuter') }}
                 </span>
@@ -120,11 +143,12 @@
     </el-card>
 
     <!-- ═══════════ 区三 · 算法能力矩阵（基准真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="benchLoading">
+    <el-card class="section-card" shadow="never" v-loading="benchLoading" :ref="setTourEl('matrix')">
       <template #header>
         <div class="card-header">
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.capabilityMatrix') }}</span>
+            <GlossaryHelp v-bind="glossary.matrix" />
             <el-tag v-if="benchSnapshotTime" type="info" size="small">
               {{ $t('watermarkQuality.benchSnapshot') }} · {{ benchSnapshotTime }}
             </el-tag>
@@ -319,7 +343,7 @@
     </el-card>
 
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
-    <el-card class="records-card" shadow="never">
+    <el-card class="records-card" shadow="never" :ref="setTourEl('records')">
       <template #header>
         <div class="card-header">
           <div class="card-header-left">
@@ -393,7 +417,7 @@
     </el-card>
 
     <!-- ═══════════ 区五 · 质量指标说明（阈值可视化小卡） ═══════════ -->
-    <el-card class="section-card" shadow="never">
+    <el-card class="section-card" shadow="never" :ref="setTourEl('metrics')">
       <template #header><span class="section-title">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
       <el-row :gutter="16">
         <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">
@@ -423,6 +447,22 @@
         </el-col>
       </el-row>
     </el-card>
+
+    <!-- ═══════════ 首入引导（ElTour · localStorage 'tour:v1:quality' 只自动弹一次） ═══════════ -->
+    <el-tour
+      v-model="tourVisible"
+      :mask="tourMask"
+      :z-index="3000"
+      @close="onTourClose"
+      @finish="onTourClose"
+    >
+      <el-tour-step :target="() => tourEls.header" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
+      <el-tour-step :target="() => tourEls.hero" :title="$t('watermarkQuality.tourStep2Title')" :description="$t('watermarkQuality.tourStep2Desc')" />
+      <el-tour-step :target="() => tourEls.gallery" :title="$t('watermarkQuality.tourStep3Title')" :description="$t('watermarkQuality.tourStep3Desc')" />
+      <el-tour-step :target="() => tourEls.matrix" :title="$t('watermarkQuality.tourStep4Title')" :description="$t('watermarkQuality.tourStep4Desc')" />
+      <el-tour-step :target="() => tourEls.metrics" :title="$t('watermarkQuality.tourStep5Title')" :description="$t('watermarkQuality.tourStep5Desc')" />
+      <el-tour-step :target="() => tourEls.records" :title="$t('watermarkQuality.tourStep6Title')" :description="$t('watermarkQuality.tourStep6Desc')" />
+    </el-tour>
   </div>
 </template>
 
@@ -431,7 +471,7 @@ import { ref, reactive, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import {
-  Refresh, MapLocation, Picture,
+  Refresh, MapLocation, Picture, Guide,
   DataLine, TrendCharts, Warning, Box, Download, Link, Aim, Odometer, InfoFilled
 } from '@element-plus/icons-vue'
 import { getVerificationRecords, getBenchmarkResults, getVerificationStats, getBenchmarkStats } from '@/api/watermark'
@@ -442,6 +482,7 @@ import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useTheme } from '@/composables/useTheme.js'
+import GlossaryHelp from './GlossaryHelp.vue'
 
 // ── ECharts 按需注册：本页用到的渲染器 / 图表 / 组件 ──
 use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])
@@ -449,6 +490,22 @@ use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComp
 const { t } = useI18n()
 const router = useRouter()
 const { isDark } = useTheme()
+
+// ══════════════════ 首入引导（ElTour · localStorage key 'tour:v1:quality' 只自动弹一次） ══════════════════
+const TOUR_KEY = 'tour:v1:quality'
+const tourVisible = ref(false)
+const tourEls = reactive({ header: null, hero: null, gallery: null, matrix: null, metrics: null, records: null })
+// 同时兼容 DOM 元素与组件（el-row / el-card）实例
+const setTourEl = (key) => (el) => { tourEls[key] = el?.$el ?? el }
+// 遮罩色随模式：深色 A 用 rgba(10,10,12,.65)，浅色 B 用中性黑 50%
+const tourMask = computed(() => (isDark.value
+  ? { color: 'rgba(10,10,12,0.65)' }
+  : { color: 'rgba(10,10,10,0.5)' }))
+let tourAutoTimer = null
+const startTour = () => { tourVisible.value = true }
+const onTourClose = () => {
+  try { localStorage.setItem(TOUR_KEY, '1') } catch { /* 隐私模式等场景忽略 */ }
+}
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
 // 注意：此 ref 绝不能命名为 vLoading —— <script setup> 会把模板里的
@@ -512,6 +569,7 @@ const animateKpi = (key, target) => {
 
 onBeforeUnmount(() => {
   Object.values(kpiRaf).forEach((id) => id && cancelAnimationFrame(id))
+  if (tourAutoTimer) clearTimeout(tourAutoTimer)
 })
 
 const fmtKpiValue = (val, fmt) => {
@@ -539,43 +597,43 @@ const kpiCards = computed(() => {
   const snap = benchData.value?.latest_run?.created_at
   return [
     {
-      key: 'verify', icon: DataLine, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      key: 'verify', icon: DataLine, help: 'verify',
       label: t('watermarkQuality.totalVerifications'), value: numOrNull(v.total), fmt: 'int',
       meta: verificationWindow(v) || (v.min_nc != null && v.max_nc != null
         ? t('watermarkQuality.kpiNcMinMax', { min: v.min_nc.toFixed(3), max: v.max_nc.toFixed(3) })
         : t('watermarkQuality.kpiTotalNote')),
     },
     {
-      key: 'avgNc', icon: TrendCharts, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+      key: 'avgNc', icon: TrendCharts, help: 'nc',
       label: t('watermarkQuality.avgNc'), value: numOrNull(v.avg_nc), fmt: 'dec4',
       meta: v.p50_nc != null ? t('watermarkQuality.kpiNcMedian', { p50: v.p50_nc.toFixed(4) }) : '',
     },
     {
-      key: 'lowNc', icon: Warning, gradient: 'linear-gradient(135deg, #f59e0b, #d97706)',
+      key: 'lowNc', icon: Warning, help: 'lowNc',
       label: t('watermarkQuality.lowNc'), value: numOrNull(v.low_nc_count), fmt: 'int',
       meta: v.total ? `${((v.low_nc_count / v.total) * 100).toFixed(1)}% / ${v.total}` : '',
     },
     {
-      key: 'deliveries', icon: Box, gradient: 'linear-gradient(135deg, #0ea5e9, #0369a1)',
+      key: 'deliveries', icon: Box, help: 'deliveries',
       label: t('watermarkQuality.kpiDeliveries'), value: numOrNull(d.total), fmt: 'int',
       meta: d.total != null
         ? t('watermarkQuality.kpiDeliveryDetail', { downloaded: d.downloaded_count ?? 0, total: d.total })
         : '',
     },
     {
-      key: 'downloaded', icon: Download, gradient: 'linear-gradient(135deg, #10b981, #059669)',
+      key: 'downloaded', icon: Download, help: 'downloaded',
       label: t('watermarkQuality.kpiDownloaded'), value: numOrNull(d.downloaded_count), fmt: 'int',
       meta: d.total ? `${((d.downloaded_count / d.total) * 100).toFixed(0)}%` : '',
     },
     {
-      key: 'chain', icon: Link, gradient: 'linear-gradient(135deg, #14b8a6, #0f766e)',
+      key: 'chain', icon: Link, help: 'chain',
       label: t('watermarkQuality.kpiChainIntegrity'), value: chainRate, fmt: 'pct1',
       meta: d.chain_checked != null
         ? t('watermarkQuality.kpiChainDetail', { valid: d.chain_valid_count ?? 0, checked: d.chain_checked })
         : '',
     },
     {
-      key: 'anchor', icon: Aim, gradient: 'linear-gradient(135deg, #0ea5e9, #0e7490)',
+      key: 'anchor', icon: Aim, help: 'anchor',
       label: t('watermarkQuality.kpiAnchoredBatches'),
       value: anchor.submitted != null && anchor.pending != null ? anchor.submitted + anchor.pending : null,
       fmt: 'int',
@@ -584,7 +642,7 @@ const kpiCards = computed(() => {
         : '',
     },
     {
-      key: 'bench', icon: Odometer, gradient: 'linear-gradient(135deg, #f43f5e, #be123c)',
+      key: 'bench', icon: Odometer, help: 'bench',
       label: t('watermarkQuality.kpiBenchmarkRuns'), value: numOrNull(benchData.value?.runs_count), fmt: 'int',
       meta: snap ? t('watermarkQuality.kpiSnapshot', { time: fmtDateTime(snap) }) : '',
     },
@@ -596,27 +654,43 @@ watch(kpiCards, (cards) => {
 }, { immediate: true })
 
 // ══════════════════ 区二 · 图表 ══════════════════
-// 图表深色适配色（canvas 内无法用 CSS 变量，随 isDark 切换）
+// 图表配色（canvas 内无法用 CSS 变量，随 isDark 切换；对齐 A/B 设计体系）
 const chartInk = computed(() => (isDark.value
   ? {
-      axisLabel: '#8fa0b8',
-      axisLabelMinor: '#94a3b8',
-      pieBorder: '#131c2e',
-      chartLabel: '#cbd5e1',
-      tooltipBg: 'rgba(22,32,58,0.96)',
-      tooltipBorder: 'rgba(120,170,255,0.25)',
-      tooltipText: '#e6eaf2',
-      chainTrack: 'rgba(255,255,255,0.12)',
+      axisLabel: '#a0a0ab',
+      axisLabelMinor: '#6e6e7a',
+      pieBorder: '#111114',
+      chartLabel: '#a0a0ab',
+      tooltipBg: 'rgba(17,17,20,0.96)',
+      tooltipBorder: 'rgba(94,106,210,0.35)',
+      tooltipText: '#ededf0',
+      chainTrack: 'rgba(255,255,255,0.08)',
+      accent: '#5e6ad2',
+      accentHi: '#6e79de',
+      accentSoft: 'rgba(94,106,210,0.16)',
+      green: '#5cc08f',
+      greenHi: '#6fce9f',
+      red: '#e06a6a',
+      amber: '#d6a75c',
+      neutral: '#6e6e7a',
     }
   : {
-      axisLabel: '#64748b',
-      axisLabelMinor: '#94a3b8',
-      pieBorder: '#fff',
-      chartLabel: '#475569',
-      tooltipBg: 'rgba(255,255,255,0.95)',
-      tooltipBorder: '#e0e0e0',
-      tooltipText: '#303133',
-      chainTrack: '#e2e8f0',
+      axisLabel: '#666666',
+      axisLabelMinor: '#8f8f8f',
+      pieBorder: '#ffffff',
+      chartLabel: '#666666',
+      tooltipBg: 'rgba(255,255,255,0.98)',
+      tooltipBorder: '#eaeaea',
+      tooltipText: '#0a0a0a',
+      chainTrack: '#eaeaea',
+      accent: '#0070f3',
+      accentHi: '#4d9bf7',
+      accentSoft: 'rgba(0,112,243,0.12)',
+      green: '#0e7a4e',
+      greenHi: '#3e9c74',
+      red: '#b42318',
+      amber: '#9a6b15',
+      neutral: '#8f8f8f',
     }))
 // ── NC 直方图（服务端 10 桶，低于 0.8 冷暖双色渐变） ──
 const hasHistogram = computed(() => (vStats.value?.total || 0) > 0)
@@ -643,10 +717,10 @@ const ncHistogramOption = computed(() => {
             borderRadius: [6, 6, 0, 0],
             color: low < 0.8
               ? new graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#fbbf24' }, { offset: 1, color: '#ef4444' },
+                { offset: 0, color: chartInk.value.amberHi }, { offset: 1, color: chartInk.value.red },
               ])
               : new graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: '#34d399' }, { offset: 1, color: '#059669' },
+                { offset: 0, color: chartInk.value.greenHi }, { offset: 1, color: chartInk.value.green },
               ]),
           },
         }
@@ -685,14 +759,14 @@ const ncTrendOption = computed(() => {
       {
         name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%',
         data: daily.map((d) => d.count),
-        itemStyle: { color: 'rgba(59, 130, 246, 0.16)', borderRadius: [3, 3, 0, 0] },
+        itemStyle: { color: chartInk.value.accentSoft, borderRadius: [3, 3, 0, 0] },
       },
       {
         name: ncLabel, type: 'line', yAxisIndex: 0, smooth: true, connectNulls: false,
         data: daily.map((d) => d.avg_nc),
         symbolSize: 6,
-        lineStyle: { width: 2.5, color: '#3b82f6' },
-        itemStyle: { color: '#3b82f6' },
+        lineStyle: { width: 2.5, color: chartInk.value.accent },
+        itemStyle: { color: chartInk.value.accent },
       },
     ],
   }
@@ -739,15 +813,15 @@ const algoBreakdownOption = computed(() => {
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#60a5fa' }, { offset: 1, color: '#2563eb' },
+            { offset: 0, color: chartInk.value.accentHi }, { offset: 1, color: chartInk.value.accent },
           ]),
         },
       },
       {
         name: ncLabel, type: 'line', yAxisIndex: 1, symbolSize: 9,
         data: rows.map((r) => r.avg_nc),
-        lineStyle: { width: 2.5, color: '#10b981' },
-        itemStyle: { color: '#10b981' },
+        lineStyle: { width: 2.5, color: chartInk.value.green },
+        itemStyle: { color: chartInk.value.green },
       },
     ],
   }
@@ -774,18 +848,19 @@ const verificationShareOption = computed(() => ({
       name: dataTypeLabel(d.data_type),
       value: d.count,
       itemStyle: {
-        color: d.data_type === 'vector' ? '#3b82f6' : d.data_type === 'raster' ? '#10b981' : '#94a3b8',
+        color: d.data_type === 'vector' ? chartInk.value.accent : d.data_type === 'raster' ? chartInk.value.green : chartInk.value.neutral,
       },
     })),
   }],
 }))
 
 // ── 交付健康度（内环 = 交付状态，外环 = 锚定状态，中心叠加汇总） ──
-const STATUS_COLORS = { READY: '#10b981', FAILED: '#ef4444', PENDING: '#f59e0b' }
+const STATUS_INK_KEY = { READY: 'green', FAILED: 'red', PENDING: 'amber' }
 const hasDelivery = computed(() => (dStats.value?.total || 0) > 0)
 const deliveryHealthOption = computed(() => {
   const d = dStats.value || {}
   const anchor = d.anchor || {}
+  const ink = chartInk.value
   return {
     tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
     legend: { bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
@@ -797,7 +872,7 @@ const deliveryHealthOption = computed(() => {
         label: { show: false }, labelLine: { show: false },
         data: (d.by_status || []).map((s) => ({
           name: s.status, value: s.count,
-          itemStyle: { color: STATUS_COLORS[s.status] || '#94a3b8' },
+          itemStyle: { color: ink[STATUS_INK_KEY[s.status]] || ink.neutral },
         })),
       },
       {
@@ -806,9 +881,9 @@ const deliveryHealthOption = computed(() => {
         itemStyle: { borderColor: chartInk.value.pieBorder, borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: [
-          { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: '#0ea5e9' } },
-          { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: '#f59e0b' } },
-          { name: t('watermarkQuality.anchorNone'), value: anchor.none || 0, itemStyle: { color: '#cbd5e1' } },
+          { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: ink.accent } },
+          { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: ink.amber } },
+          { name: t('watermarkQuality.anchorNone'), value: anchor.none || 0, itemStyle: { color: ink.neutral } },
         ].filter((x) => x.value > 0),
       },
     ],
@@ -841,7 +916,10 @@ const ncCellClass = (nc) => {
 }
 const benchSummaries = computed(() =>
   benchResults.value.filter((r) => 'stego_psnr' in r || r.embed_error))
-const psnrColor = (v) => (v == null ? '#64748b' : v >= 50 ? '#10b981' : v >= 40 ? '#f59e0b' : '#ef4444')
+const psnrColor = (v) => (v == null ? 'var(--text-tertiary)'
+  : v >= 50 ? 'var(--tint-success-text)'
+  : v >= 40 ? 'var(--tint-warning-text)'
+  : 'var(--tint-danger-text)')
 
 // ══════════════════ 区四 · 证据链健康度 ══════════════════
 const chainPct = computed(() => {
@@ -850,7 +928,7 @@ const chainPct = computed(() => {
   return Math.round((d.chain_valid_count / d.chain_checked) * 100)
 })
 const chainRingStyle = computed(() => ({
-  background: `conic-gradient(${chainPct.value >= 100 ? '#10b981' : '#f59e0b'} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
+  background: `conic-gradient(${chainPct.value >= 100 ? chartInk.value.green : chartInk.value.amber} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
 }))
 const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
 const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
@@ -1014,35 +1092,101 @@ const metricCards = computed(() => {
       tag: 'PSNR', type: 'primary',
       range: t('watermarkQuality.psnrRange'), desc: t('watermarkQuality.psnrDesc'),
       scale: { min: 20, max: 60 }, markers: [{ value: 40, label: '40 dB' }],
-      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 42%, #10b981 58%, #059669 100%)',
+      gradient: 'linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 42%, var(--tint-success-text) 58%)',
       scaleLabels: [poor, good, excellent],
     },
     {
       tag: 'NC', type: 'success',
       range: t('watermarkQuality.ncRange'), desc: t('watermarkQuality.ncDesc'),
       scale: { min: 0, max: 1 }, markers: [{ value: 0.8, label: '0.8' }, { value: 0.95, label: '0.95' }],
-      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 78%, #10b981 96%)',
+      gradient: 'linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 78%, var(--tint-success-text) 96%)',
       scaleLabels: [poor, good, excellent],
     },
     {
       tag: 'SSIM', type: 'warning',
       range: t('watermarkQuality.ssimRange'), desc: t('watermarkQuality.ssimDesc'),
       scale: { min: 0, max: 1 }, markers: [{ value: 0.95, label: '0.95' }],
-      gradient: 'linear-gradient(90deg, #ef4444 0%, #f59e0b 80%, #10b981 95%)',
+      gradient: 'linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 80%, var(--tint-success-text) 95%)',
       scaleLabels: [poor, good, excellent],
     },
     {
       tag: 'BER', type: 'danger',
       range: t('watermarkQuality.berRange'), desc: t('watermarkQuality.berDesc'),
       scale: { min: 0, max: 0.1 }, markers: [{ value: 0.01, label: '0.01' }],
-      gradient: 'linear-gradient(90deg, #10b981 0%, #f59e0b 10%, #ef4444 40%)',
+      gradient: 'linear-gradient(90deg, var(--tint-success-text) 0%, var(--tint-warning-text) 10%, var(--tint-danger-text) 40%)',
       scaleLabels: [excellent, good, poor],
     },
   ]
 })
 
+// ══════════════════ v4 · 指标详解数据（ⓘ tooltip + popover 详解卡） ══════════════════
+const glossary = computed(() => {
+  const m = (k) => t(`watermarkQuality.${k}`)
+  const formulaLabel = m('helpFormulaLabel')
+  const thresholdLabel = m('thresholdLabel')
+  const levels = [m('scalePoor'), m('scaleGood'), m('scaleExcellent')]
+  const scaleOf = (gradient, min, max, markers, labels = levels) => ({ gradient, min, max, markers, labels })
+  return {
+    // ── 五张指标详解卡（文案定稿逐字）──
+    nc: {
+      tip: m('helpNcTip'), title: m('helpNcTitle'), desc: m('metricNcDesc'),
+      formula: m('helpNcFormula'), caveat: m('helpNcCaveat'), formulaLabel, thresholdLabel,
+      scale: scaleOf('linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 78%, var(--tint-success-text) 96%)',
+        0, 1, [{ value: 0.8, label: '0.8' }, { value: 0.95, label: '0.95' }]),
+    },
+    ber: {
+      tip: m('helpBerTip'), title: m('helpBerTitle'), desc: m('metricBerDesc'),
+      formula: m('helpBerFormula'), formulaLabel, thresholdLabel,
+      scale: scaleOf('linear-gradient(90deg, var(--tint-success-text) 0%, var(--tint-warning-text) 10%, var(--tint-danger-text) 40%)',
+        0, 0.1, [{ value: 0.01, label: '0.01' }],
+        [m('scaleExcellent'), m('scaleGood'), m('scalePoor')]),
+    },
+    psnr: {
+      tip: m('helpPsnrTip'), title: m('helpPsnrTitle'), desc: m('metricPsnrDesc'),
+      formula: m('helpPsnrFormula'), formulaLabel, thresholdLabel,
+      scale: scaleOf('linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 42%, var(--tint-success-text) 58%)',
+        20, 60, [{ value: 40, label: '40 dB' }]),
+    },
+    ssim: {
+      tip: m('helpSsimTip'), title: m('helpSsimTitle'), desc: m('metricSsimDesc'),
+      formula: m('helpSsimFormula'), caveat: m('helpSsimCaveat'), formulaLabel, thresholdLabel,
+      scale: scaleOf('linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 80%, var(--tint-success-text) 95%)',
+        0, 1, [{ value: 0.95, label: '0.95' }]),
+    },
+    recovery: {
+      tip: m('helpRecoveryTip'), title: m('helpRecoveryTitle'), desc: m('metricRecoveryDesc'),
+      formula: m('helpRecoveryFormula'), caveat: m('helpRecoveryCaveat'), formulaLabel, thresholdLabel,
+    },
+    // ── KPI / 图表的流程与口径解释 ──
+    verify: { tip: m('helpVerifyTip'), title: m('helpVerifyTitle'), desc: m('helpVerifyDesc') },
+    lowNc: {
+      tip: m('helpLowNcTip'), title: m('helpLowNcTitle'), desc: m('helpLowNcDesc'),
+      formulaLabel, thresholdLabel,
+      scale: scaleOf('linear-gradient(90deg, var(--tint-danger-text) 0%, var(--tint-warning-text) 78%, var(--tint-success-text) 96%)',
+        0, 1, [{ value: 0.8, label: '0.8' }]),
+    },
+    deliveries: { tip: m('helpDeliveriesTip'), title: m('helpDeliveriesTitle'), desc: m('helpDeliveriesDesc') },
+    downloaded: { tip: m('helpDownloadedTip'), title: m('helpDownloadedTitle'), desc: m('helpDownloadedDesc') },
+    chain: { tip: m('helpChainTip'), title: m('helpChainTitle'), desc: m('helpChainDesc') },
+    anchor: { tip: m('helpAnchorTip'), title: m('helpAnchorTitle'), desc: m('helpAnchorDesc') },
+    bench: { tip: m('helpBenchTip'), title: m('helpBenchTitle'), desc: m('helpBenchDesc') },
+    histogram: { tip: m('helpHistogramTip'), title: m('helpHistogramTitle'), desc: m('helpHistogramDesc') },
+    trend: { tip: m('helpTrendTip'), title: m('helpTrendTitle'), desc: m('helpTrendDesc') },
+    algo: { tip: m('helpAlgoTip'), title: m('helpAlgoTitle'), desc: m('helpAlgoDesc') },
+    share: { tip: m('helpShareTip'), title: m('helpShareTitle'), desc: m('helpShareDesc') },
+    deliveryChart: { tip: m('helpDeliveryChartTip'), title: m('helpDeliveryChartTitle'), desc: m('helpDeliveryChartDesc') },
+    matrix: { tip: m('helpMatrixTip'), title: m('helpMatrixTitle'), desc: m('helpMatrixDesc') },
+  }
+})
+
 onMounted(() => {
   refreshAll()
+  // 首入自动讲解：仅当从未看过（localStorage 'tour:v1:quality'）
+  let seen = null
+  try { seen = localStorage.getItem(TOUR_KEY) } catch { /* 隐私模式等场景忽略 */ }
+  if (!seen) {
+    tourAutoTimer = setTimeout(() => { tourVisible.value = true }, 800)
+  }
 })
 </script>
 
@@ -1065,53 +1209,62 @@ onMounted(() => {
 
 .page-header h2 {
   font-size: 24px;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #0a0a0a);
   margin-bottom: 4px;
 }
 
 .subtitle {
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #666666);
   font-size: 14px;
 }
 
 .page-header-left { min-width: 0; }
 
-/* ── 区一 · Hero 统计带 ── */
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* ── 区一 · Hero 统计带（A：近黑卡+灰阶层次 / B：白卡+1px 边框 · 安静排版） ── */
 .hero-band { margin-bottom: 8px; }
 
 .hero-band .el-col { margin-bottom: 16px; }
 
 .kpi-card {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 14px;
   height: 100%;
-  padding: 18px 16px;
-  background: linear-gradient(135deg, var(--bg-primary, #ffffff) 0%, var(--bg-secondary, #f8fafc) 100%);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: var(--radius-lg, 14px);
+  padding: 20px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: var(--radius-lg, 8px);
 }
 
 .hover-lift {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
 .hover-lift:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+  transform: none;
+  border-color: var(--border-color-hover, #d4d4d4);
 }
 
 .kpi-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 12px;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-md, 8px);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-secondary, #666666);
+  background: var(--bg-tertiary, #fafafa);
+  border: 1px solid var(--border-color, #eaeaea);
   flex-shrink: 0;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
 }
 
 .kpi-body {
@@ -1121,22 +1274,28 @@ onMounted(() => {
 }
 
 .kpi-value {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 600;
   line-height: 1.15;
-  color: var(--text-primary, #1e293b);
+  letter-spacing: -0.01em;
+  color: var(--text-primary, #0a0a0a);
   font-variant-numeric: tabular-nums;
+}
+
+.kpi-label-row {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 2px;
 }
 
 .kpi-label {
   font-size: 13px;
-  color: var(--text-secondary, #64748b);
-  margin-top: 2px;
+  color: var(--text-secondary, #666666);
 }
 
 .kpi-meta {
-  font-size: 11px;
-  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
+  color: var(--text-tertiary, #8f8f8f);
   margin-top: 2px;
   white-space: nowrap;
   overflow: hidden;
@@ -1145,8 +1304,8 @@ onMounted(() => {
 
 /* ── 区二 · 图表画廊 ── */
 .section-card {
-  border-radius: var(--radius-lg, 14px);
-  margin-bottom: 20px;
+  border-radius: var(--radius-lg, 8px);
+  margin-bottom: 24px;
 }
 
 .card-header {
@@ -1167,14 +1326,14 @@ onMounted(() => {
 
 .section-title {
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0a0a0a);
 }
 
 .chart-box {
-  background: var(--bg-secondary, #f8fafc);
-  border: 1px solid var(--border-color-light, #f1f5f9);
-  border-radius: var(--radius-md, 10px);
-  padding: 14px;
+  background: var(--bg-tertiary, #fafafa);
+  border: 1px solid var(--border-color-light, #f0f0f0);
+  border-radius: var(--radius-md, 8px);
+  padding: 16px;
   margin-bottom: 16px;
 }
 
@@ -1193,15 +1352,20 @@ onMounted(() => {
   min-width: 0;
 }
 
+.chart-title-row {
+  display: inline-flex;
+  align-items: center;
+}
+
 .chart-title {
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0a0a0a);
 }
 
 .chart-sub {
-  font-size: 11px;
-  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
+  color: var(--text-tertiary, #8f8f8f);
 }
 
 .chart-holder {
@@ -1225,26 +1389,26 @@ onMounted(() => {
 
 .donut-center-value {
   font-size: 24px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.1;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0a0a0a);
   font-variant-numeric: tabular-nums;
 }
 
 .donut-center-label {
   font-size: 12px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #666666);
 }
 
 .donut-center-sub {
-  font-size: 11px;
-  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
+  color: var(--text-tertiary, #8f8f8f);
 }
 
 /* ── 验证记录表 ── */
 .records-card {
-  border-radius: var(--radius-lg, 14px);
-  margin-bottom: 20px;
+  border-radius: var(--radius-lg, 8px);
+  margin-bottom: 24px;
 }
 
 .pagination-wrapper {
@@ -1258,9 +1422,9 @@ onMounted(() => {
   height: 100%;
   margin-bottom: 16px;
   padding: 16px;
-  background: var(--bg-secondary, #f8fafc);
-  border-radius: 10px;
-  border: 1px solid var(--border-color, #e2e8f0);
+  background: var(--bg-tertiary, #fafafa);
+  border-radius: var(--radius-lg, 8px);
+  border: 1px solid var(--border-color, #eaeaea);
 }
 
 .metric-bar {
@@ -1284,8 +1448,8 @@ onMounted(() => {
   top: -4px;
   width: 2px;
   height: 16px;
-  background: #fff;
-  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35);
+  background: var(--bg-primary, #ffffff);
+  box-shadow: 0 0 0 1px var(--border-color-hover, #d4d4d4);
   border-radius: 2px;
 }
 
@@ -1294,8 +1458,8 @@ onMounted(() => {
   top: -16px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 10px;
-  color: var(--text-secondary, #64748b);
+  font-size: 12px;
+  color: var(--text-secondary, #666666);
   white-space: nowrap;
 }
 
@@ -1303,8 +1467,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 11px;
-  color: var(--text-tertiary, #94a3b8);
+  font-size: 12px;
+  color: var(--text-tertiary, #8f8f8f);
 }
 
 .metric-header {
@@ -1314,11 +1478,11 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.metric-range { font-size: 12px; color: var(--text-secondary, #64748b); }
+.metric-range { font-size: 12px; color: var(--text-secondary, #666666); }
 
 .metric-desc {
   font-size: 13px;
-  color: var(--text-secondary, #475569);
+  color: var(--text-secondary, #666666);
   margin: 0;
   line-height: 1.6;
 }
@@ -1326,20 +1490,20 @@ onMounted(() => {
 /* ── 区三 · 算法能力矩阵 ── */
 .matrix-legend {
   font-size: 12px;
-  color: var(--text-secondary, #64748b);
+  color: var(--text-secondary, #666666);
   margin: 0 0 12px;
 }
 
 .attack-name {
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0a0a0a);
 }
 
 .nc-cell {
   display: inline-block;
   min-width: 64px;
   padding: 2px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm, 6px);
   font-weight: 600;
   font-size: 12px;
   font-variant-numeric: tabular-nums;
@@ -1349,8 +1513,8 @@ onMounted(() => {
 .nc-mid { background: var(--tint-warning-bg, rgba(245, 158, 11, 0.14)); color: var(--tint-warning-text, #b45309); }
 .nc-bad { background: var(--tint-danger-bg, rgba(239, 68, 68, 0.12)); color: var(--tint-danger-text, #b91c1c); }
 
-.decode-ok { color: #10b981; font-weight: 700; }
-.decode-bad { color: #ef4444; font-weight: 700; }
+.decode-ok { color: var(--tint-success-text, #0e7a4e); font-weight: 700; }
+.decode-bad { color: var(--tint-danger-text, #b42318); font-weight: 700; }
 
 .sub-section { margin-top: 20px; }
 
@@ -1358,7 +1522,7 @@ onMounted(() => {
   margin: 0 0 10px;
   font-size: 14px;
   font-weight: 600;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0a0a0a);
 }
 
 .bench-howto-row {
@@ -1368,15 +1532,15 @@ onMounted(() => {
   margin-top: 10px;
   font-size: 12px;
   line-height: 1.6;
-  color: var(--text-tertiary, #94a3b8);
+  color: var(--text-tertiary, #8f8f8f);
 }
 
 .dqim-card {
   margin-top: 20px;
   padding: 18px;
-  border-radius: var(--radius-md, 10px);
-  border: 1px solid var(--tint-info-border, rgba(59, 130, 246, 0.25));
-  background: linear-gradient(135deg, var(--tint-info-bg, rgba(59, 130, 246, 0.06)), rgba(14, 165, 233, 0.08));
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--tint-info-border, rgba(0, 112, 243, 0.2));
+  background: var(--tint-info-bg, #f0f7ff);
 }
 
 .dqim-head {
@@ -1389,17 +1553,17 @@ onMounted(() => {
 
 .dqim-title {
   font-size: 15px;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  font-weight: 600;
+  color: var(--text-primary, #0a0a0a);
   margin-right: 8px;
 }
 
-.dqim-subtitle { font-size: 12px; color: var(--text-secondary, #64748b); }
+.dqim-subtitle { font-size: 12px; color: var(--text-secondary, #666666); }
 
 .dqim-desc {
   font-size: 13px;
   line-height: 1.7;
-  color: var(--text-secondary, #475569);
+  color: var(--text-secondary, #666666);
   margin: 10px 0 14px;
 }
 
@@ -1411,18 +1575,18 @@ onMounted(() => {
   min-width: 150px;
   padding: 10px 16px;
   background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 10px;
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: var(--radius-md, 8px);
 }
 
 .dqim-stat-value {
   font-size: 16px;
-  font-weight: 700;
-  color: #1d4ed8;
+  font-weight: 600;
+  color: var(--primary-500, #0070f3);
   font-variant-numeric: tabular-nums;
 }
 
-.dqim-stat-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+.dqim-stat-label { font-size: 12px; color: var(--text-secondary, #666666); }
 
 /* ── 区四 · 证据链健康度 ── */
 .chain-top { margin-bottom: 16px; }
@@ -1458,14 +1622,14 @@ onMounted(() => {
 
 .chain-ring-value {
   font-size: 22px;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  font-weight: 600;
+  color: var(--text-primary, #0a0a0a);
   font-variant-numeric: tabular-nums;
 }
 
-.chain-ring-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+.chain-ring-label { font-size: 12px; color: var(--text-secondary, #666666); }
 
-.chain-ring-meta { font-size: 12px; color: var(--text-tertiary, #94a3b8); }
+.chain-ring-meta { font-size: 12px; color: var(--text-tertiary, #8f8f8f); }
 
 .chain-anchor-box {
   height: 100%;
@@ -1476,7 +1640,7 @@ onMounted(() => {
   padding: 10px 4px;
 }
 
-.chain-anchor-title { font-size: 13px; font-weight: 600; color: var(--text-secondary, #64748b); }
+.chain-anchor-title { font-size: 13px; font-weight: 600; color: var(--text-secondary, #666666); }
 
 .anchor-chips { display: flex; gap: 12px; flex-wrap: wrap; }
 
@@ -1487,21 +1651,21 @@ onMounted(() => {
   min-width: 110px;
   padding: 12px 20px;
   background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #e2e8f0);
-  border-radius: 10px;
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: var(--radius-md, 8px);
 }
 
 .anchor-chip-value {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 
-.anchor-chip-label { font-size: 12px; color: var(--text-secondary, #64748b); }
+.anchor-chip-label { font-size: 12px; color: var(--text-secondary, #666666); }
 
-.chip-submitted .anchor-chip-value { color: #0ea5e9; }
-.chip-pending .anchor-chip-value { color: #f59e0b; }
-.chip-none .anchor-chip-value { color: #94a3b8; }
+.chip-submitted .anchor-chip-value { color: var(--primary-500, #0070f3); }
+.chip-pending .anchor-chip-value { color: var(--tint-warning-text, #9a6b15); }
+.chip-none .anchor-chip-value { color: var(--text-tertiary, #8f8f8f); }
 
 .clickable-table :deep(.el-table__row) { cursor: pointer; }
 
