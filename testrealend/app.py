@@ -483,6 +483,7 @@ def create_app():
         UploadOriginalWatermarkResource,
         WatermarkPreviewResource,
         WatermarkVerificationRecordsResource,
+        WatermarkVerificationStatsResource,
     )
 
     # --- Security Headers ---
@@ -562,6 +563,7 @@ def create_app():
     api.add_resource(UploadOriAndExtWatermarkResource, "/api/upload/ori&ext_watermark")
     api.add_resource(GetOriginalWatermarkResource, "/api/get_original_watermark")
     api.add_resource(WatermarkVerificationRecordsResource, "/api/watermark/verification_records")
+    api.add_resource(WatermarkVerificationStatsResource, "/api/watermark/verification_stats")
     api.add_resource(WatermarkPreviewResource, "/api/watermark/preview")
     api.add_resource(BatchGenerateWatermarkResource, "/api/watermark/batch_generate")
     api.add_resource(BatchEmbedWatermarkResource, "/api/watermark/batch_embed")
