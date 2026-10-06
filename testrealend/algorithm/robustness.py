@@ -29,6 +29,18 @@ import zipfile
 
 import numpy as np
 
+# The raster matrix engine (feat_raster_robustness) lives in its own module;
+# re-exported here so both matrices have one import point. Nothing in this
+# file's vector engine changes.
+from algorithm.robustness_raster import (
+    RASTER_ATTACK_DEFAULTS,
+    RASTER_ATTACKS,
+    RASTER_SCHEMES,
+    make_host_tif,
+    render_raster_payload_qr,
+    run_raster_matrix,
+)
+
 # The two vector schemes the matrix compares. "legacy" artifacts carry no
 # scheme marker; "dqim1" matches ``algorithm.vector_dqim.SCHEME``.
 SCHEMES = ("legacy", "dqim1")
