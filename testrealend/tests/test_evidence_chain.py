@@ -3,12 +3,20 @@
 import hashlib
 import os
 import uuid
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta, timezone
 
+import pytest
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import ed25519
+
+from crypto import canonical
+from crypto.keys import ensure_active_key
 from evidence.anchor import NullAnchorProvider, build_batch
 from evidence.chain import GENESIS_HASH, append_event, get_events, verify_stream
+from evidence.constants import DOMAIN_EVENT
 from evidence.merkle import merkle_root
 from model.evidence_event import EvidenceEvent
+from model.key_registry import KeyRegistry
 
 
 def _stream_id(prefix: str) -> str:
@@ -82,6 +90,70 @@ class TestChain:
     def test_empty_stream_is_valid_and_empty(self, db):
         result = verify_stream(_stream_id("chain-empty"))
         assert result == {"valid": True, "length": 0, "head_hash": None, "broken_at": None, "reason": None}
+
+    def test_aware_non_utc_ts_normalised_to_utc_and_hashes_as_utc_equivalent(self, db):
+        """C-1: a +08:00 ts must be stored as naive UTC and commit to exactly the
+        same epoch as the equivalent UTC instant (regression: 8h epoch skew made
+        an intact chain report broken)."""
+        stream_id = _stream_id("chain-tz")
+        aware = datetime(2026, 1, 2, 10, 0, tzinfo=timezone(timedelta(hours=8)))
+        e1 = append_event(stream_id, "EVT", {"i": 1}, ts=aware)
+
+        assert e1.ts.tzinfo is None
+        assert e1.ts == datetime(2026, 1, 2, 2, 0)
+        assert verify_stream(stream_id)["valid"] is True
+
+        equivalent_utc = datetime(2026, 1, 2, 2, 0, tzinfo=UTC)
+        expected_body = canonical.dumps(
+            {"stream": stream_id, "seq": 1, "type": "EVT", "payload": {"i": 1}, "ts": int(equivalent_utc.timestamp())}
+        )
+        expected_hash = hashlib.sha256(DOMAIN_EVENT + bytes.fromhex(GENESIS_HASH) + expected_body).hexdigest()
+        assert e1.event_hash == expected_hash
+
+    def test_naive_ts_kept_naive_and_interpreted_as_utc(self, db):
+        """C-1: naive input is interpreted as UTC and stays naive in the column."""
+        stream_id = _stream_id("chain-naive")
+        naive = datetime(2026, 1, 2, 3, 0, 0)
+        e1 = append_event(stream_id, "EVT", {"i": 1}, ts=naive)
+        assert e1.ts.tzinfo is None
+        assert e1.ts == naive
+        assert verify_stream(stream_id)["valid"] is True
+
+    @staticmethod
+    def _register_other_key(db) -> int:
+        other = ed25519.Ed25519PrivateKey.generate()
+        raw = other.public_key().public_bytes(serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+        row = KeyRegistry(name="other-key", public_key=raw, status="active", created_at=datetime.now(UTC))
+        db.session.add(row)
+        db.session.commit()
+        return row.kid
+
+    def test_explicit_kid_mismatch_raises_and_writes_nothing(self, db):
+        """C-3: an explicit kid for a different registered key must fail closed."""
+        other_kid = self._register_other_key(db)
+        stream_id = _stream_id("chain-kid-mismatch")
+        before = EvidenceEvent.query.count()
+        with pytest.raises(ValueError):
+            append_event(stream_id, "EVT", {"i": 1}, kid=other_kid)
+        assert EvidenceEvent.query.count() == before
+        assert get_events(stream_id) == []
+
+    def test_unknown_explicit_kid_raises_and_writes_nothing(self, db):
+        """C-3: an explicit kid that is not registered must fail closed."""
+        stream_id = _stream_id("chain-kid-unknown")
+        before = EvidenceEvent.query.count()
+        with pytest.raises(ValueError):
+            append_event(stream_id, "EVT", {"i": 1}, kid=10**6)
+        assert EvidenceEvent.query.count() == before
+        assert get_events(stream_id) == []
+
+    def test_explicit_correct_kid_accepted(self, db):
+        """C-3 positive: the active kid is a valid explicit argument."""
+        active_kid, _private_key = ensure_active_key()
+        stream_id = _stream_id("chain-kid-ok")
+        e1 = append_event(stream_id, "EVT", {"i": 1}, kid=active_kid)
+        assert e1.kid == active_kid
+        assert verify_stream(stream_id)["valid"] is True
 
 
 class TestMerkle:

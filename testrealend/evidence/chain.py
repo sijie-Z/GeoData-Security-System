@@ -17,6 +17,8 @@ event_hash values (no UNIQUE(event_hash) collision).
 import hashlib
 from datetime import UTC, datetime
 
+from cryptography.hazmat.primitives import serialization
+
 from crypto import canonical
 from crypto.keys import ensure_active_key, get_public_key_by_kid
 from evidence.constants import DOMAIN_EVENT
@@ -27,10 +29,33 @@ GENESIS_HASH = "0" * 64
 
 
 def _epoch(ts: datetime) -> int:
-    """Epoch seconds for the signed body; naive datetimes are treated as UTC."""
+    """Epoch seconds for the signed body; naive datetimes are treated as UTC.
+
+    The epoch is second-resolution: sub-second components of ``ts`` are NOT
+    committed to the hash (two events differing only in microseconds hash
+    identically with respect to ts).
+    """
     if ts.tzinfo is None:
         ts = ts.replace(tzinfo=UTC)
     return int(ts.timestamp())
+
+
+def _raw_public_bytes(public_key) -> bytes:
+    return public_key.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
+
+
+def _assert_kid_matches_signing_key(kid: int, private_key) -> None:
+    """Reject an explicit kid whose registered public key is not the signer's.
+
+    Unknown kids and key mismatches both raise ValueError *before* any row is
+    written, so a mis-stamped event can never reach the table.
+    """
+    try:
+        registered = get_public_key_by_kid(kid)
+    except KeyError as e:
+        raise ValueError(f"unknown kid: {kid}") from e
+    if _raw_public_bytes(registered) != _raw_public_bytes(private_key.public_key()):
+        raise ValueError(f"kid {kid} does not match the signing key")
 
 
 def _event_body(stream_id: str, seq: int, event_type: str, payload: dict, epoch: int) -> bytes:
@@ -39,12 +64,29 @@ def _event_body(stream_id: str, seq: int, event_type: str, payload: dict, epoch:
 
 
 def append_event(stream_id: str, event_type: str, payload: dict, kid=None, ts=None) -> EvidenceEvent:
-    """Append one event to the stream (first seq=1) and return the stored row."""
+    """Append one event to the stream (first seq=1) and return the stored row.
+
+    Single-writer assumption: ``seq`` is computed as MAX(seq)+1 with no
+    concurrency protection. Two racing writers on one stream make the loser hit
+    the UNIQUE(stream_id, seq) constraint and fail closed (no row stored).
+
+    An explicit ``kid`` must name a registered key whose public half matches
+    the signing key; anywhere else ValueError is raised before any write.
+
+    ``ts`` is normalised to naive UTC (tz-aware input is converted, naive input
+    is interpreted as UTC and kept naive) so that the stored column always
+    equals the value committed to by event_hash. Only second resolution is
+    committed (see ``_epoch``).
+    """
     active_kid, private_key = ensure_active_key()
     if kid is None:
         kid = active_kid
+    else:
+        _assert_kid_matches_signing_key(kid, private_key)
     if ts is None:
         ts = datetime.now(UTC)
+    if ts.tzinfo is not None:
+        ts = ts.astimezone(UTC).replace(tzinfo=None)
 
     last = EvidenceEvent.query.filter_by(stream_id=stream_id).order_by(EvidenceEvent.seq.desc()).first()
     seq = last.seq + 1 if last is not None else 1
