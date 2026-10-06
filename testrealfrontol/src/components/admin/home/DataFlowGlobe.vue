@@ -64,7 +64,7 @@ const GLOBE_RADIUS = 100; // three-globe 世界单位半径
 const ARC_ALT_AUTOSCALE = 0.5; // 弧线最高点自动缩放（拾取曲线必须同值复刻）
 const ORIGIN = { lat: 39.9042, lng: 116.4074 }; // 起点：数据中心（北京）
 const ORIGIN_COLOR = '#ffd166';
-const TYPE_COLORS = { vector: '#4fc3f7', raster: '#b388ff', unknown: '#8fa3b8' };
+const TYPE_COLORS = { vector: '#4fc3f7', raster: '#F59E0B', unknown: '#8fa3b8' };
 const RAD = Math.PI / 180;
 const DEG = 180 / Math.PI;
 
@@ -810,7 +810,7 @@ onBeforeUnmount(() => {
 }
 .dot-origin { background: #ffd166; box-shadow: 0 0 8px rgba(255, 209, 102, 0.9); }
 .dot-vector { background: #4fc3f7; }
-.dot-raster { background: #b388ff; }
+.dot-raster { background: #F59E0B; }
 
 .dfg-stage { position: relative; }
 .dfg-state {
