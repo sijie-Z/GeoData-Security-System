@@ -468,6 +468,13 @@ const fmtDateTime = (iso) => {
   const s = String(iso).replace('T', ' ')
   return s.length >= 16 ? s.slice(0, 16) : s
 }
+// verification_stats.range → 真实验证历史窗口（如 2026-05-15 ~ 2026-10-05）
+const verificationWindow = (v) => {
+  const a = v?.range?.min_verified_at
+  const b = v?.range?.max_verified_at
+  if (!a || !b) return ''
+  return `${String(a).slice(0, 10)} ~ ${String(b).slice(0, 10)}`
+}
 
 // ══════════════════ 区一 · KPI（count-up rAF，200ms） ══════════════════
 const kpiDisplay = reactive({})
@@ -528,9 +535,9 @@ const kpiCards = computed(() => {
     {
       key: 'verify', icon: DataLine, gradient: 'linear-gradient(135deg, #667eea, #764ba2)',
       label: t('watermarkQuality.totalVerifications'), value: numOrNull(v.total), fmt: 'int',
-      meta: v.min_nc != null && v.max_nc != null
+      meta: verificationWindow(v) || (v.min_nc != null && v.max_nc != null
         ? t('watermarkQuality.kpiNcMinMax', { min: v.min_nc.toFixed(3), max: v.max_nc.toFixed(3) })
-        : t('watermarkQuality.kpiTotalNote'),
+        : t('watermarkQuality.kpiTotalNote')),
     },
     {
       key: 'avgNc', icon: TrendCharts, gradient: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
