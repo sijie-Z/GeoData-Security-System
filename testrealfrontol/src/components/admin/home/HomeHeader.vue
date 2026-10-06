@@ -118,24 +118,25 @@ const logout = async () => {
 <style scoped>
 .admin-header {
   height: 60px;
-  background-color: var(--admin-header-bg, #2c3e50);
-  color: #ffffff;
+  background-color: var(--admin-header-bg, #ffffff);
+  color: var(--text-primary);
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--header-shadow);
   flex-shrink: 0;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-family);
 }
 
 .theme-toggle-button {
   font-size: 18px;
-  color: #ffffff;
+  color: var(--text-secondary);
 }
 
 .theme-toggle-button:hover {
-  color: #60a5fa;
+  color: var(--primary-500);
 }
 
 .header-left {
@@ -145,12 +146,13 @@ const logout = async () => {
 
 .toggle-sidebar-button {
   font-size: 20px;
-  color: #ffffff;
+  color: var(--text-secondary);
   margin-right: 10px;
   transition: all 0.3s ease;
 }
 
 .toggle-sidebar-button:hover {
+  color: var(--text-primary);
   transform: rotate(90deg);
 }
 
@@ -178,14 +180,14 @@ const logout = async () => {
 }
 
 .return-home .return-link {
-  color: #a0a0a0;
+  color: var(--text-tertiary);
   text-decoration: none;
   font-size: 14px;
   transition: color 0.3s ease;
 }
 
 .return-home .return-link:hover {
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .header-right {
@@ -206,15 +208,13 @@ const logout = async () => {
 }
 
 .el-button.el-button--danger.is-circle {
-  background-color: #f56c6c;
-  border-color: #f56c6c;
+  background-color: var(--tint-danger-text);
+  border-color: var(--tint-danger-text);
   color: white;
   transition: all 0.3s ease;
 }
 
 .el-button.el-button--danger.is-circle:hover {
-  background-color: #f78989;
-  border-color: #f78989;
-  transform: translateY(-2px);
+  opacity: 0.85;
 }
 </style>

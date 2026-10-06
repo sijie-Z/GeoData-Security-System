@@ -66,11 +66,12 @@ defineProps({
 <style scoped>
 .sidebar {
   width: 200px;
-  background: var(--sidebar-solid-bg, #304156);
+  background: var(--sidebar-solid-bg, #ffffff);
+  border-right: 1px solid var(--border-color);
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width 0.2s ease;
+  transition: width 0.2s ease, background-color 0.25s ease, border-color 0.25s ease;
   flex-shrink: 0;
 }
 
@@ -92,25 +93,29 @@ defineProps({
 :deep(.el-sub-menu__title) {
   height: 46px;
   line-height: 46px;
-  color: #bfcbd9 !important;
+  color: var(--sidebar-text) !important;
   font-size: 14px;
   transition: all 0.15s ease !important;
 }
 
 :deep(.el-menu-item:hover),
 :deep(.el-sub-menu__title:hover) {
-  background-color: #263445 !important;
-  color: var(--primary-500, #409EFF) !important;
+  background-color: var(--sidebar-item-hover) !important;
+  color: var(--sidebar-text-active) !important;
 }
 
 :deep(.el-menu-item.is-active) {
-  color: var(--primary-500, #409EFF) !important;
-  background-color: #1f2d3d !important;
-  border-left: 3px solid var(--primary-500, #409EFF);
+  color: var(--sidebar-text-active) !important;
+  background-color: var(--sidebar-item-active) !important;
+  border-left: 3px solid var(--primary-500);
+}
+
+:deep(.el-sub-menu.is-active > .el-sub-menu__title) {
+  color: var(--sidebar-text-active) !important;
 }
 
 :deep(.el-menu--inline) {
-  background-color: #1f2d3d !important;
+  background-color: transparent !important;
 }
 
 :deep(.el-sub-menu .el-menu-item) {
@@ -130,7 +135,7 @@ defineProps({
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.2);
+  background: var(--border-color-hover);
   border-radius: 2px;
 }
 </style>

@@ -274,9 +274,10 @@ const { isDark, toggleTheme } = useTheme();
    justify-content: space-between;
    align-items: center;
    padding: 0 20px;
-   box-shadow: var(--header-shadow, 0 2px 8px rgba(0, 0, 0, 0.05));
+   border-bottom: 1px solid var(--border-color);
+   box-shadow: var(--header-shadow);
    flex-shrink: 0;
-   font-family: 'Inter', sans-serif;
+   font-family: var(--font-family);
    z-index: 100;
  }
 
@@ -367,7 +368,7 @@ const { isDark, toggleTheme } = useTheme();
  .user-avatar {
    margin-right: 8px;
    border: 1px solid var(--border-color, #eee);
-   box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+   box-shadow: none;
  }
 
  .user-name {
