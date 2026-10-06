@@ -261,6 +261,7 @@ import {
   User, Clock, FolderOpened, TrendCharts, Download, RefreshRight,
   Document, UserFilled, List, ChatDotRound, Upload
 } from '@element-plus/icons-vue';
+import { useTheme } from '@/composables/useTheme.js';
 import { use, graphic } from 'echarts/core';
 import { CanvasRenderer } from 'echarts/renderers';
 import { LineChart, BarChart, PieChart } from 'echarts/charts';
@@ -279,6 +280,7 @@ use([
 ]);
 
 const { t } = useI18n();
+const { isDark } = useTheme();
 const router = useRouter();
 const userStore = useUserStore();
 const loading = ref(false);
@@ -380,6 +382,35 @@ const C = {
   indigo: ['#5C6BC0', '#283593'],
 };
 
+// 图表主题色：随浅/深主题切换（深色下换深底提示框与浅色轴文字）
+const chartColors = computed(() => (isDark.value
+  ? {
+      tooltipBg: 'rgba(22,32,58,0.96)',
+      tooltipBorder: 'rgba(120,170,255,0.25)',
+      tooltipText: '#e6eaf2',
+      divider: '1px solid rgba(255,255,255,0.12)',
+      legendText: '#94a3b8',
+      axisLine: 'rgba(255,255,255,0.14)',
+      axisLabelMuted: '#8fa0b8',
+      axisLabelStrong: '#cbd5e1',
+      splitLine: 'rgba(255,255,255,0.08)',
+      centerLabel: '#e6eaf2',
+      centerSubLabel: '#94a3b8',
+    }
+  : {
+      tooltipBg: 'rgba(255,255,255,0.95)',
+      tooltipBorder: '#e0e0e0',
+      tooltipText: '#1a1a2e',
+      divider: '1px solid #eee',
+      legendText: '#666',
+      axisLine: '#e8e8e8',
+      axisLabelMuted: '#999',
+      axisLabelStrong: '#444',
+      splitLine: '#f5f5f5',
+      centerLabel: '#1a1a2e',
+      centerSubLabel: '#999',
+    }));
+
 // ── 图表 option（vue-echarts 响应式渲染，替代手写实例生命周期管理） ──
 
 // ========== 1. 趋势图：面积渐变 + 数据缩放 + 峰值标记 ==========
@@ -392,12 +423,12 @@ const trendOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e0e0e0',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
       borderWidth: 1,
-      textStyle: { color: '#1a1a2e', fontSize: 13 },
+      textStyle: { color: chartColors.value.tooltipText, fontSize: 13 },
       formatter: params => {
-        let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px">${params[0].axisValue}</div>`;
+        let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:${chartColors.value.divider};padding-bottom:4px">${params[0].axisValue}</div>`;
         params.forEach(p => {
           const dot = p.seriesName === t('adminDashboard.chartApplications') ? '#2196F3'
                    : p.seriesName === t('adminDashboard.chartLogins') ? '#0EA5E9' : '#66BB6A';
@@ -412,18 +443,18 @@ const trendOption = computed(() => {
     },
     legend: {
       bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 4,
-      textStyle: { color: '#666', fontSize: 12 }
+      textStyle: { color: chartColors.value.legendText, fontSize: 12 }
     },
     grid: { top: 24, bottom: 52, left: 48, right: 24 },
     xAxis: {
       type: 'category', data: dates,
-      axisLine: { lineStyle: { color: '#e8e8e8' } },
-      axisLabel: { color: '#999', fontSize: 11 },
+      axisLine: { lineStyle: { color: chartColors.value.axisLine } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 },
       axisTick: { show: false }
     },
     yAxis: {
-      type: 'value', splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 11 }
+      type: 'value', splitLine: { lineStyle: { color: chartColors.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
     },
     dataZoom: [{
       type: 'inside', start: 0, end: 100, height: 8,
@@ -480,8 +511,8 @@ const statusOption = computed(() => {
   return {
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e0e0e0',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
       borderWidth: 1,
       formatter: params => `
         <div style="font-weight:600;font-size:15px;margin-bottom:4px">${params.name}</div>
@@ -494,7 +525,7 @@ const statusOption = computed(() => {
     graphic: total > 0 ? [{
       type: 'text', left: 'center', top: '42%',
       style: {
-        text: `${total}`, fill: '#1a1a2e',
+        text: `${total}`, fill: chartColors.value.centerLabel,
         font: 'bold 32px Inter, -apple-system, sans-serif',
         textAlign: 'center'
       },
@@ -502,7 +533,7 @@ const statusOption = computed(() => {
     }, {
       type: 'text', left: 'center', top: '56%',
       style: {
-        text: '总计', fill: '#999',
+        text: '总计', fill: chartColors.value.centerSubLabel,
         font: '13px Inter, -apple-system, sans-serif',
         textAlign: 'center'
       },
@@ -513,7 +544,7 @@ const statusOption = computed(() => {
       avoidLabelOverlap: true,
       label: {
         show: true, formatter: '{b}\n{d}%',
-        color: '#666', fontSize: 12, lineHeight: 18
+        color: chartColors.value.legendText, fontSize: 12, lineHeight: 18
       },
       labelLine: { length: 12, length2: 8, smooth: true },
       emphasis: {
@@ -561,8 +592,8 @@ const hourlyOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e0e0e0',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
       borderWidth: 1,
       formatter: params => {
         const p = params[0];
@@ -580,14 +611,14 @@ const hourlyOption = computed(() => {
     grid: { top: 20, bottom: 28, left: 44, right: 20 },
     xAxis: {
       type: 'category', data: hourlyActivity.value.map(i => i.hour),
-      axisLine: { lineStyle: { color: '#e8e8e8' } },
-      axisLabel: { color: '#999', fontSize: 11, interval: 2 },
+      axisLine: { lineStyle: { color: chartColors.value.axisLine } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11, interval: 2 },
       axisTick: { show: false }
     },
     yAxis: {
       type: 'value', max: maxVal * 1.25,
-      splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 11 }
+      splitLine: { lineStyle: { color: chartColors.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
     },
     series: [{
       type: 'bar', barMaxWidth: 20,
@@ -620,8 +651,8 @@ const dataTypeOption = computed(() => {
   return {
     tooltip: {
       trigger: 'item',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e0e0e0',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
       borderWidth: 1,
       formatter: params => `
         <div style="font-weight:600;font-size:15px;margin-bottom:4px">${params.name}</div>
@@ -634,7 +665,7 @@ const dataTypeOption = computed(() => {
     graphic: dtTotal > 0 ? [{
       type: 'text', left: 'center', top: '40%',
       style: {
-        text: `${dtTotal}`, fill: '#1a1a2e',
+        text: `${dtTotal}`, fill: chartColors.value.centerLabel,
         font: 'bold 30px Inter, -apple-system, sans-serif',
         textAlign: 'center'
       },
@@ -642,7 +673,7 @@ const dataTypeOption = computed(() => {
     }, {
       type: 'text', left: 'center', top: '54%',
       style: {
-        text: '数据总量', fill: '#999',
+        text: '数据总量', fill: chartColors.value.centerSubLabel,
         font: '13px Inter, -apple-system, sans-serif',
         textAlign: 'center'
       },
@@ -652,7 +683,7 @@ const dataTypeOption = computed(() => {
       type: 'pie', radius: ['44%', '70%'], center: ['50%', '48%'],
       label: {
         show: true, formatter: '{b}\n{d}%',
-        color: '#666', fontSize: 12, lineHeight: 18
+        color: chartColors.value.legendText, fontSize: 12, lineHeight: 18
       },
       labelLine: { length: 12, length2: 8, smooth: true },
       emphasis: {
@@ -691,13 +722,13 @@ const efficiencyOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis', axisPointer: { type: 'shadow' },
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: '#e0e0e0',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
       borderWidth: 1,
       formatter: params => {
         const name = params[0].name;
         const total = params.reduce((s, p) => s + p.value, 0);
-        let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:1px solid #eee;padding-bottom:4px">${name}</div>`;
+        let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:${chartColors.value.divider};padding-bottom:4px">${name}</div>`;
         params.forEach(p => {
           html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0">
             <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
@@ -705,24 +736,24 @@ const efficiencyOption = computed(() => {
             <span style="font-weight:600">${p.value}</span>
           </div>`;
         });
-        html += `<div style="border-top:1px solid #eee;margin-top:4px;padding-top:4px;font-weight:600">合计: ${total}</div>`;
+        html += `<div style="border-top:${chartColors.value.divider};margin-top:4px;padding-top:4px;font-weight:600">合计: ${total}</div>`;
         return html;
       }
     },
     legend: {
       bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 4,
-      textStyle: { color: '#666', fontSize: 12 }
+      textStyle: { color: chartColors.value.legendText, fontSize: 12 }
     },
     grid: { top: 16, bottom: 40, left: 80, right: 60 },
     xAxis: {
       type: 'value',
-      splitLine: { lineStyle: { color: '#f5f5f5', type: 'dashed' } },
-      axisLabel: { color: '#999', fontSize: 11 }
+      splitLine: { lineStyle: { color: chartColors.value.splitLine, type: 'dashed' } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
     },
     yAxis: {
       type: 'category', data: names, axisLine: { show: false },
       axisTick: { show: false },
-      axisLabel: { color: '#444', fontSize: 12, fontWeight: 500 }
+      axisLabel: { color: chartColors.value.axisLabelStrong, fontSize: 12, fontWeight: 500 }
     },
     series: [
       {
@@ -804,7 +835,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .admin-dashboard {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--bg-secondary, #f5f7fa);
   min-height: calc(100vh - 60px);
 }
 
@@ -835,17 +866,17 @@ onBeforeUnmount(() => {
 .kpi-icon.orange { background: linear-gradient(135deg, #E6A23C, #d9a028); }
 .kpi-icon.green { background: linear-gradient(135deg, #67C23A, #5cb530); }
 .kpi-icon.cyan { background: linear-gradient(135deg, #00d2d3, #01b8b8); }
-.kpi-info span.kpi-label { color: #909399; font-size: 13px; }
-.kpi-info h2.kpi-value { margin: 4px 0; font-size: 28px; color: #303133; }
-.kpi-info small { color: #909399; font-size: 12px; }
+.kpi-info span.kpi-label { color: var(--text-tertiary, #909399); font-size: 13px; }
+.kpi-info h2.kpi-value { margin: 4px 0; font-size: 28px; color: var(--text-primary, #303133); }
+.kpi-info small { color: var(--text-tertiary, #909399); font-size: 12px; }
 
 /* 快捷入口 */
 .quick-actions { margin-bottom: 20px; }
 .action-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
 .action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: 8px; cursor: pointer; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
-.action-item:hover { background: #f0f2f5; transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
-.action-item span { font-size: 13px; color: #606266; }
-.action-item .el-icon { color: #409EFF; }
+.action-item:hover { background: var(--bg-tertiary, #f0f2f5); transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
+.action-item span { font-size: 13px; color: var(--text-secondary, #606266); }
+.action-item .el-icon { color: var(--primary-500, #409EFF); }
 
 /* 图表 */
 .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
@@ -858,26 +889,26 @@ onBeforeUnmount(() => {
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 .stats-row { display: flex; gap: 40px; padding: 12px 0; }
 .stat-item { display: flex; flex-direction: column; gap: 8px; }
-.stat-label { font-size: 13px; color: #909399; }
-.stat-value { font-size: 32px; font-weight: 600; color: #303133; }
+.stat-label { font-size: 13px; color: var(--text-tertiary, #909399); }
+.stat-value { font-size: 32px; font-weight: 600; color: var(--text-primary, #303133); }
 
 /* 热门列表 */
 .hot-list { max-height: 200px; overflow-y: auto; }
-.hot-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
+.hot-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border-color, #f0f0f0); }
 .hot-item:last-child { border-bottom: none; }
-.rank { width: 24px; height: 24px; border-radius: 4px; background: #e4e7ed; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #909399; }
-.rank.top { background: #409EFF; color: #fff; }
-.hot-item .name { flex: 1; font-size: 13px; color: #303133; }
-.hot-item .count { font-size: 12px; color: #909399; }
+.rank { width: 24px; height: 24px; border-radius: 4px; background: var(--bg-tertiary, #e4e7ed); display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-tertiary, #909399); }
+.rank.top { background: var(--primary-500, #409EFF); color: #fff; }
+.hot-item .name { flex: 1; font-size: 13px; color: var(--text-primary, #303133); }
+.hot-item .count { font-size: 12px; color: var(--text-tertiary, #909399); }
 
 /* 日志列表 */
 .log-list { max-height: 200px; overflow-y: auto; }
-.log-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px dashed #ebeef5; }
+.log-item { display: flex; align-items: center; gap: 12px; padding: 8px 0; border-bottom: 1px dashed var(--border-color, #ebeef5); }
 .log-item:last-child { border-bottom: none; }
-.log-user { flex: 1; font-size: 13px; color: #606266; }
-.log-time { font-size: 12px; color: #909399; }
+.log-user { flex: 1; font-size: 13px; color: var(--text-secondary, #606266); }
+.log-time { font-size: 12px; color: var(--text-tertiary, #909399); }
 
-.empty-tip { text-align: center; padding: 20px; color: #909399; font-size: 13px; }
+.empty-tip { text-align: center; padding: 20px; color: var(--text-tertiary, #909399); font-size: 13px; }
 
 /* 响应式 */
 @media (max-width: 1200px) {
@@ -897,7 +928,7 @@ onBeforeUnmount(() => {
 .sk-line {
   height: 16px;
   border-radius: 8px;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background: linear-gradient(90deg, var(--skeleton-base, #e2e8f0) 25%, var(--skeleton-highlight, #f1f5f9) 50%, var(--skeleton-base, #e2e8f0) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
