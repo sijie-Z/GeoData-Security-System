@@ -10,6 +10,9 @@ jobs:
   # ─── Backend Lint & Test ──────────────────────────────────
   backend:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
     defaults:
       run:
         working-directory: testrealend
@@ -61,6 +64,10 @@ jobs:
           except OSError:
               tail = '(no pytest log captured)'
           body = "CI backend pytest failure summary (auto):\n```\n" + tail + "\n```"
+          summary_path = os.environ.get('GITHUB_STEP_SUMMARY')
+          if summary_path:
+              with open(summary_path, 'a', encoding='utf-8') as f:
+                  f.write(body + "\n")
           req = urllib.request.Request(
               f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/issues/1/comments",
               data=json.dumps({'body': body}).encode(),
