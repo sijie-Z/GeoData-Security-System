@@ -8,6 +8,7 @@ import pymysql
 from pymysql.cursors import DictCursor
 from werkzeug.security import generate_password_hash
 from datetime import datetime
+import os
 
 def create_test_users_direct():
     """
@@ -18,7 +19,7 @@ def create_test_users_direct():
         conn = pymysql.connect(
             host='localhost',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             port=3306,
             charset='utf8mb4',

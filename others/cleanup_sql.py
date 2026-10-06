@@ -5,6 +5,7 @@
 """
 
 import pymysql
+import os
 
 def cleanup_with_sql():
     """使用SQL直接清理数据"""
@@ -13,7 +14,7 @@ def cleanup_with_sql():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             charset='utf8mb4'
         )

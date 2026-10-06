@@ -6,6 +6,7 @@
 
 import requests
 import json
+import os
 
 def test_personal_center():
     """测试个人中心功能"""
@@ -96,7 +97,7 @@ def debug_database():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test'
         )
         

@@ -48,8 +48,8 @@ app.config['STATIC_FOLDER'] = app.config['WATERMARK_FOLDER']
 
 # # 云服务器数据库配置
 # app.config['SQLALCHEMY_BINDS'] = {
-#     'mysql_db': 'mysql+mysqldb://root:123456@127.0.0.1/testreal',
-#     'postgres_db': 'postgresql://postgres:KANGsumeng2003-@127.0.0.1/test'
+#     'mysql_db': 'mysql+mysqldb://root:***@127.0.0.1/testreal',
+#     'postgres_db': 'postgresql://postgres:***@127.0.0.1/test'
 # }
 
 

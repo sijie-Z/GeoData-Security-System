@@ -6,6 +6,7 @@
 
 import pymysql
 import logging
+import os
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -19,7 +20,7 @@ def create_raster_table():
             port=3306,
             database='esri_test',
             user='root',
-            password='root'
+            password=os.environ.get("MYSQL_PASSWORD", "root")
         )
         cursor = conn.cursor()
         

@@ -5,6 +5,7 @@
 """
 
 import pymysql
+import os
 
 def check_employee_detail():
     """详细检查员工数据"""
@@ -14,7 +15,7 @@ def check_employee_detail():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             charset='utf8mb4'
         )

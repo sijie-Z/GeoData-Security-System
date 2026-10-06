@@ -5,6 +5,7 @@
 """
 
 from importlib import import_module
+import os
 
 try:
     mysql_connector = import_module("mysql.connector")
@@ -25,7 +26,7 @@ def modify_enum_definition():
         conn = mysql_connector.connect(
             host='localhost',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             port=3306
         )

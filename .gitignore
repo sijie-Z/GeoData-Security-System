@@ -69,3 +69,14 @@ testrealfrontol/dist-ssr/
 *.tmp
 temp_qrcode.png
 filelist.txt
+
+# Credentials removed from tracking (kept on local disk only — do not re-add)
+C1165/C1165安装及配置文件/账号和密码/员工账号及密码.txt
+C1165/C1165安装及配置文件/账号和密码/管理员账号与密码.txt
+C1165/authorize.txt
+C1165/GeoScene_Enterprise_Portal_41_512190_20250513.json
+others/debug_log.txt
+others/GeoScene Enterprise安装部署信息.txt
+others/check_employee_passwords.py
+others/reset_admin_credentials.py
+others/fix_admin_role.py

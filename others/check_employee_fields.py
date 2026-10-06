@@ -4,6 +4,7 @@
 """
 
 import pymysql
+import os
 
 def check_employee_info_fields():
     """检查员工信息表的所有字段"""
@@ -14,7 +15,7 @@ def check_employee_info_fields():
         connection = pymysql.connect(
             host='127.0.0.1',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test'
         )
         

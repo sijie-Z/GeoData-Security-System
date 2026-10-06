@@ -6,6 +6,7 @@
 
 import pymysql
 import logging
+import os
 
 # 配置日志
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -21,7 +22,7 @@ def fix_enum_values():
         conn = pymysql.connect(
             host='localhost',
             user='root',
-            password='root',
+            password=os.environ.get("MYSQL_PASSWORD", "root"),
             database='esri_test',
             port=3306,
             charset='utf8mb4'
