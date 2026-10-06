@@ -18,6 +18,7 @@ from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
 from utils.metrics import record_download
+from utils.time_fmt import utc_iso_z
 
 
 def _resolve_existing_path(path_value):
@@ -98,21 +99,31 @@ def _resolve_download_file(app):
 
 
 def _write_download_record(app, token_record, filename):
-    """Server-side DownloadRecord for a completed token download (v3 audit trail)."""
-    record = DownloadRecord(
-        application_id=app.id,
-        delivery_id=token_record.delivery_id,
-        data_id=app.data_id,
-        data_name=app.data_name or "",
-        download_user_number=token_record.user_number,
-        download_time=datetime.now(UTC),
-        download_ip=request.remote_addr,
-        applicant_user_number=app.applicant_user_number,
-        filename=filename,
-        timestamp=datetime.now(UTC),
-    )
-    db.session.add(record)
-    db.session.commit()
+    """Server-side DownloadRecord for a completed token download (v3 audit trail).
+
+    Best effort only: a failed audit write must never burn the token and answer
+    500 for a download whose file was already validated — same discipline as
+    ``_log_event`` ("evidence never blocks business"). The rollback keeps the
+    session usable for the caller's subsequent commits.
+    """
+    try:
+        record = DownloadRecord(
+            application_id=app.id,
+            delivery_id=token_record.delivery_id,
+            data_id=app.data_id,
+            data_name=app.data_name or "",
+            download_user_number=token_record.user_number,
+            download_time=datetime.now(UTC),
+            download_ip=request.remote_addr,
+            applicant_user_number=app.applicant_user_number,
+            filename=filename,
+            timestamp=datetime.now(UTC),
+        )
+        db.session.add(record)
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        logging.warning("download record write failed for application %s", app.id, exc_info=True)
 
 
 class EmpDownloadZipResource(Resource):
@@ -233,9 +244,10 @@ class RequestDownloadTokenResource(Resource):
 
         try:
             token, delivery, reused = get_or_create_for_token(app, user_number)
-        except Exception as e:
-            logging.error("personalize delivery failed for application %s: %s", app_id, e, exc_info=True)
-            return {"status": False, "msg": f"个性化交付生成失败: {e}"}, 500
+        except Exception:
+            logging.error("personalize delivery failed for application %s", app_id, exc_info=True)
+            # Details go to the server log only (no exception text in the API).
+            return {"status": False, "msg": "个性化交付生成失败: 详见服务端日志"}, 500
 
         log_action(
             user_number,
@@ -253,8 +265,8 @@ class RequestDownloadTokenResource(Resource):
             "delivery": {
                 "uuid": delivery.uuid,
                 "fingerprint_id": delivery.fingerprint_id,
-                "status": "READY",
-                "created_at": delivery.created_at.isoformat() if delivery.created_at else None,
+                "status": delivery.status,
+                "created_at": utc_iso_z(delivery.created_at),
                 "artifact_root": delivery.artifact_root,
             },
         }, 200
@@ -298,6 +310,10 @@ class TokenDownloadResource(Resource):
             return {"status": False, "msg": "申请不存在"}, 404
         if app.is_recalled:
             return {"status": False, "msg": "数据已被回收"}, 403
+        # Parity with the recall gate: an admin disabling downloads must also
+        # invalidate already-issued tokens, not just new token requests.
+        if not app.download_enabled:
+            return {"status": False, "msg": "该数据已被禁用下载"}, 403
 
         if token_record.delivery_id is not None:
             return self._deliver_personalized(token_record, app)

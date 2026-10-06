@@ -46,6 +46,7 @@ from model.Download_Record import DownloadRecord
 from resource.watermark_utils import QR_SECRET_KEY, decode_qr_from_image
 from resource.watermark_utils import parse_qr_text as parse_v1_lines
 from utils.required import admin_required
+from utils.time_fmt import utc_iso_z
 
 V1_BANNER = "=== SPATIAL DATA TRACKING SYSTEM ==="
 CANDIDATE_LIMIT = 50
@@ -152,15 +153,19 @@ def _chain_full(stream_id):
 
 
 def _anchor_for(delivery):
-    """Latest AnchorRecord covering this delivery (created after ready_at), else None."""
+    """Latest AnchorRecord covering this delivery (created after ready_at), else None.
+
+    Single targeted query — no full-table scan: DATETIME columns store naive
+    UTC wall times, so the aware boundary is bound as naive UTC.
+    """
     if delivery.ready_at is None:
         return None
-    ready = _as_utc(delivery.ready_at)
-    records = AnchorRecord.query.order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc()).all()
-    for record in records:
-        if _as_utc(record.created_at) >= ready:
-            return record
-    return None
+    ready_naive = _as_utc(delivery.ready_at).replace(tzinfo=None)
+    return (
+        AnchorRecord.query.filter(AnchorRecord.created_at >= ready_naive)
+        .order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc())
+        .first()
+    )
 
 
 # --------------------------------------------------------------------------- #
@@ -383,7 +388,7 @@ def _v2_fields(detection):
         "delivery_uuid": delivery.uuid,
         "data_alias": app_row.data_alias if app_row else None,
         "data_type": delivery.data_type,
-        "issued_at": delivery.created_at.isoformat() if delivery.created_at else None,
+        "issued_at": utc_iso_z(delivery.created_at),
         "signature_valid": True,
         "artifact_root": delivery.artifact_root,
         "artifact_root_match": artifact_match,
@@ -598,13 +603,19 @@ class ForensicsDeliveriesResource(Resource):
         application_id = request.args.get("application_id", type=int)
         if application_id:
             query = query.filter_by(application_id=application_id)
+        # Bounded result set: default 200, clamp invalid/out-of-range to 200.
+        limit = request.args.get("limit", default=200, type=int)
+        if limit is None or limit < 1 or limit > 1000:
+            limit = 200
         if is_admin:
-            deliveries = query.order_by(DownloadDelivery.delivery_id.desc()).all()
+            deliveries = query.order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
         else:
             number = identity.get("number")
             if not number:
                 return {"status": False, "msg": "需要管理员权限"}, 403
-            deliveries = query.filter_by(user_number=number).order_by(DownloadDelivery.delivery_id.desc()).all()
+            deliveries = (
+                query.filter_by(user_number=number).order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
+            )
 
         items = []
         for delivery in deliveries:
@@ -621,9 +632,9 @@ class ForensicsDeliveriesResource(Resource):
                     "status": delivery.status,
                     "algorithm": delivery.algorithm,
                     "artifact_root": delivery.artifact_root,
-                    "created_at": delivery.created_at.isoformat() if delivery.created_at else None,
-                    "ready_at": delivery.ready_at.isoformat() if delivery.ready_at else None,
-                    "completed_at": delivery.completed_at.isoformat() if delivery.completed_at else None,
+                    "created_at": utc_iso_z(delivery.created_at),
+                    "ready_at": utc_iso_z(delivery.ready_at),
+                    "completed_at": utc_iso_z(delivery.completed_at),
                     "downloaded": DownloadRecord.query.filter_by(delivery_id=delivery.delivery_id).count() > 0,
                     "chain": _chain_summary(delivery.uuid),
                     "anchor": {
@@ -654,7 +665,7 @@ class ForensicsDeliveryDetailResource(Resource):
                     {
                         "seq": event.seq,
                         "event_type": event.event_type,
-                        "ts": event.ts.isoformat() if event.ts else None,
+                        "ts": utc_iso_z(event.ts),
                         "event_hash": event.event_hash,
                         "kid": event.kid,
                     }
@@ -663,9 +674,33 @@ class ForensicsDeliveryDetailResource(Resource):
             logging.warning("event listing failed for stream %s", delivery.uuid, exc_info=True)
 
         anchor = _anchor_for(delivery)
+        # Explicit whitelist — never hand out the raw to_dict(). Internal
+        # personalization material (vr_data extraction basis, artifact paths)
+        # is admin-only: relaying it to the artifact holder would weaken the
+        # anti-copy / anti-tamper evidence position.
+        delivery_view = {
+            "delivery_id": delivery.delivery_id,
+            "uuid": delivery.uuid,
+            "application_id": delivery.application_id,
+            "data_id": delivery.data_id,
+            "data_type": delivery.data_type,
+            "user_number": delivery.user_number,
+            "fingerprint_id": delivery.fingerprint_id,
+            "status": delivery.status,
+            "algorithm": delivery.algorithm,
+            "artifact_root": delivery.artifact_root,
+            "error": delivery.error,
+            "created_at": utc_iso_z(delivery.created_at),
+            "ready_at": utc_iso_z(delivery.ready_at),
+            "completed_at": utc_iso_z(delivery.completed_at),
+        }
+        if is_admin:
+            delivery_view["artifact_path"] = delivery.artifact_path
+            delivery_view["vr_data"] = delivery.vr_data
+            delivery_view["artifact_meta_path"] = delivery.artifact_meta_path
         return {
             "status": True,
-            "delivery": delivery.to_dict(),
+            "delivery": delivery_view,
             "events": events,
             "chain": _chain_full(delivery.uuid),
             "anchor": {

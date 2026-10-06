@@ -58,6 +58,10 @@ def _log_event(stream_id, event_type, payload):
     try:
         append_event(stream_id, event_type, payload)
     except Exception:
+        # A failed append (e.g. commit error) leaves the session in a failed
+        # state; roll back so the caller's next business commit cannot die with
+        # PendingRollbackError because of an optional evidence write.
+        db.session.rollback()
         logging.warning("evidence append failed: stream=%s type=%s", stream_id, event_type, exc_info=True)
 
 
@@ -121,9 +125,19 @@ def _safe_unzip(zip_path, extract_dir):
 
 
 def _find_shp_file(directory):
+    """A .shp counts only when its .shx and .dbf siblings exist.
+
+    Same criterion as forensics ``_find_vector_base``: a shapefile missing its
+    components would produce a "delivered" artifact that can never be verified
+    again, so such zips degrade to passthrough instead.
+    """
     for root, _dirs, files in os.walk(directory):
+        names = {name.lower() for name in files}
         for name in sorted(files):
-            if name.lower().endswith(".shp"):
+            if not name.lower().endswith(".shp"):
+                continue
+            stem = name[:-4].lower()
+            if f"{stem}.shx" in names and f"{stem}.dbf" in names:
                 return os.path.join(root, name)
     return None
 
@@ -171,7 +185,10 @@ def _personalize_vector(delivery_row, shp_path, product_dir):
     capacity = result.get("capacity_report") or {}
     needed = int(capacity.get("needed_chunks") or 0)
     available = int(capacity.get("available_chunks") or 0)
-    if needed and available < MIN_VOTES_PER_CHUNK * needed:
+    # Fail-closed: a missing/empty capacity report is not a pass.
+    if needed <= 0:
+        raise DeliveryError("嵌入容量报告缺失 needed_chunks，拒绝交付（fail-closed）")
+    if available < MIN_VOTES_PER_CHUNK * needed:
         raise DeliveryError(
             f"顶点预算不足以保证可靠提取：需要至少 {MIN_VOTES_PER_CHUNK * needed} 个顶点"
             f"（每区块平均投票 {available / needed:.2f}，实测可靠下限 {MIN_VOTES_PER_CHUNK}），"
@@ -203,6 +220,7 @@ def _personalize_raster(delivery_row, host_path, product_dir):
 
 def personalize_delivery(delivery_row, application_row):
     """PENDING -> PROCESSING -> READY (or FAILED + raise on honest failure)."""
+    product_dir = None
     try:
         delivery_row.status = "PROCESSING"
         db.session.commit()
@@ -232,6 +250,11 @@ def personalize_delivery(delivery_row, application_row):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
+        # The failure may have happened after vector_embed already wrote its
+        # product into product_dir (e.g. the lambda gate) — never leave orphan
+        # artifacts behind for a delivery that will never be served.
+        if product_dir:
+            shutil.rmtree(product_dir, ignore_errors=True)
         delivery_row.status = "FAILED"
         delivery_row.error = str(e)[:255]
         db.session.commit()
@@ -265,6 +288,12 @@ def get_or_create_for_token(application_row, user_number):
     Reuses an unused, unexpired token whose delivery is READY; otherwise creates
     a fresh delivery (fid + DeliveryCreated/FingerprintIssued events) + token.
     A token whose delivery FAILED is ignored and a new one is issued.
+
+    Concurrency: there is no mutual exclusion — two simultaneous requests for
+    the same (application, user) can both miss the reuse branch and each build
+    their own delivery with a full personalization pass. This is known
+    behavior: the extra deliveries are still valid, independently auditable,
+    and only the last issued token is typically used.
     """
     now = datetime.now(UTC)
     existing = (
