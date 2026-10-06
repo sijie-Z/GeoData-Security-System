@@ -8,6 +8,10 @@ Chain layout per event:
 The signature deliberately signs the chain NODE (the event_hash digest), not
 the event body itself: the digest already commits to prev_hash + body, so the
 signature anchors both content and position in the stream.
+
+The body binds stream id and sequence number, so identical genesis content
+written to two different streams within the same second still yields distinct
+event_hash values (no UNIQUE(event_hash) collision).
 """
 
 import hashlib
@@ -29,6 +33,11 @@ def _epoch(ts: datetime) -> int:
     return int(ts.timestamp())
 
 
+def _event_body(stream_id: str, seq: int, event_type: str, payload: dict, epoch: int) -> bytes:
+    """Canonical event body committed to by event_hash — single source of truth for append/verify."""
+    return canonical.dumps({"stream": stream_id, "seq": seq, "type": event_type, "payload": payload, "ts": epoch})
+
+
 def append_event(stream_id: str, event_type: str, payload: dict, kid=None, ts=None) -> EvidenceEvent:
     """Append one event to the stream (first seq=1) and return the stored row."""
     active_kid, private_key = ensure_active_key()
@@ -41,7 +50,7 @@ def append_event(stream_id: str, event_type: str, payload: dict, kid=None, ts=No
     seq = last.seq + 1 if last is not None else 1
     prev_hash = last.event_hash if last is not None else GENESIS_HASH
 
-    event_bytes = canonical.dumps({"type": event_type, "payload": payload, "ts": _epoch(ts)})
+    event_bytes = _event_body(stream_id, seq, event_type, payload, _epoch(ts))
     event_hash = hashlib.sha256(DOMAIN_EVENT + bytes.fromhex(prev_hash) + event_bytes).hexdigest()
     signature = private_key.sign(bytes.fromhex(event_hash))
 
@@ -73,6 +82,10 @@ def _broken(length: int, broken_at: int, reason: str) -> dict:
 def verify_stream(stream_id: str) -> dict:
     """Recompute the whole chain and verify every signature.
 
+    The event body is re-derived field-by-field from the stored row (payload is
+    re-parsed from payload_cbor; ts is normalised back to epoch seconds), so
+    tampering with any stored field or the CBOR body is detected.
+
     Returns ``{"valid", "length", "head_hash", "broken_at", "reason"}`` where
     ``broken_at`` is the 1-based position (== seq for healthy prefixes) of the
     first broken event, or None when the stream is valid.
@@ -85,9 +98,15 @@ def verify_stream(stream_id: str) -> dict:
             return _broken(len(events), position, f"seq gap: expected {expected_seq}, got {event.seq}")
         if event.prev_hash != prev_hash:
             return _broken(len(events), position, "prev_hash does not match previous event_hash")
-        recomputed = hashlib.sha256(
-            DOMAIN_EVENT + bytes.fromhex(event.prev_hash) + bytes(event.payload_cbor)
-        ).hexdigest()
+        try:
+            stored_body = canonical.loads(bytes(event.payload_cbor))
+            recomputed = hashlib.sha256(
+                DOMAIN_EVENT
+                + bytes.fromhex(event.prev_hash)
+                + _event_body(event.stream_id, event.seq, event.event_type, stored_body["payload"], _epoch(event.ts))
+            ).hexdigest()
+        except Exception as e:
+            return _broken(len(events), position, f"event body re-derivation failed: {e}")
         if recomputed != event.event_hash:
             return _broken(len(events), position, "event_hash mismatch (payload tampered?)")
         try:

@@ -3,6 +3,7 @@
 import hashlib
 import os
 import uuid
+from datetime import UTC, datetime
 
 from evidence.anchor import NullAnchorProvider, build_batch
 from evidence.chain import GENESIS_HASH, append_event, get_events, verify_stream
@@ -14,23 +15,12 @@ def _stream_id(prefix: str) -> str:
     return f"{prefix}-{uuid.uuid4().hex}"
 
 
-def _payload(stream_id: str, **fields) -> dict:
-    """Stream-tagged payload, keeping genesis hashes unique across streams.
-
-    The chain hash commits to (type, payload, second-precision ts, prev_hash)
-    only, so two genesis events with identical content within the same second
-    would produce the same event_hash (UNIQUE violation) — tagging payloads
-    with the unique stream id avoids that.
-    """
-    return {"stream": stream_id, **fields}
-
-
 class TestChain:
     def test_append_and_verify_stream(self, db):
         stream_id = _stream_id("chain")
-        e1 = append_event(stream_id, "DELIVERY_CREATED", _payload(stream_id, n=1))
-        e2 = append_event(stream_id, "ARTIFACT_SEALED", _payload(stream_id, n=2))
-        e3 = append_event(stream_id, "DELIVERY_READY", _payload(stream_id, n=3))
+        e1 = append_event(stream_id, "DELIVERY_CREATED", {"n": 1})
+        e2 = append_event(stream_id, "ARTIFACT_SEALED", {"n": 2})
+        e3 = append_event(stream_id, "DELIVERY_READY", {"n": 3})
 
         events = get_events(stream_id)
         assert [event.seq for event in events] == [1, 2, 3]
@@ -45,10 +35,25 @@ class TestChain:
         assert result["broken_at"] is None
         assert result["reason"] is None
 
+    def test_same_second_identical_genesis_events_across_streams_do_not_collide(self, db):
+        """Regression: two streams writing identical genesis content in the same
+        second must both persist with distinct event_hash values (stream + seq
+        are bound into the body that the hash commits to)."""
+        ts = datetime(2026, 1, 2, 3, 4, 5, tzinfo=UTC)
+        stream_a = _stream_id("chain-genesis-a")
+        stream_b = _stream_id("chain-genesis-b")
+
+        e1 = append_event(stream_a, "EVT", {"same": True}, ts=ts)
+        e2 = append_event(stream_b, "EVT", {"same": True}, ts=ts)
+
+        assert e1.event_hash != e2.event_hash
+        assert verify_stream(stream_a)["valid"] is True
+        assert verify_stream(stream_b)["valid"] is True
+
     def test_tampered_payload_detected_at_second_event(self, db):
         stream_id = _stream_id("chain-tamper")
         for i in range(3):
-            append_event(stream_id, "EVT", _payload(stream_id, i=i))
+            append_event(stream_id, "EVT", {"i": i})
 
         row = get_events(stream_id)[1]
         row.payload_cbor = b"\x00" + bytes(row.payload_cbor[1:])
@@ -62,7 +67,7 @@ class TestChain:
     def test_tampered_last_signature_invalid(self, db):
         stream_id = _stream_id("chain-sig")
         for i in range(3):
-            append_event(stream_id, "EVT", _payload(stream_id, i=i))
+            append_event(stream_id, "EVT", {"i": i})
 
         row = get_events(stream_id)[-1]
         signature = bytearray(row.signature)
@@ -113,7 +118,7 @@ class TestMerkle:
 class TestAnchoring:
     def test_null_provider_success_and_failure(self, db):
         stream_id = _stream_id("anchor")
-        append_event(stream_id, "EVT", _payload(stream_id, ok=True))
+        append_event(stream_id, "EVT", {"ok": True})
 
         record = build_batch(NullAnchorProvider(ok=True))
         assert record.status == "SUBMITTED"
@@ -129,8 +134,8 @@ class TestAnchoring:
 
     def test_replay_without_new_events_yields_same_root(self, db):
         stream_id = _stream_id("anchor-replay")
-        append_event(stream_id, "EVT", _payload(stream_id, i=1))
-        append_event(stream_id, "EVT", _payload(stream_id, i=2))
+        append_event(stream_id, "EVT", {"i": 1})
+        append_event(stream_id, "EVT", {"i": 2})
 
         first = build_batch(NullAnchorProvider(ok=True))
         second = build_batch(NullAnchorProvider(ok=True))
@@ -138,7 +143,7 @@ class TestAnchoring:
 
     def test_root_matches_manual_merkle_over_all_events(self, db):
         stream_id = _stream_id("anchor-manual")
-        append_event(stream_id, "EVT", _payload(stream_id, x=1))
+        append_event(stream_id, "EVT", {"x": 1})
         record = build_batch(NullAnchorProvider(ok=True))
 
         events = EvidenceEvent.query.order_by(EvidenceEvent.stream_id.asc(), EvidenceEvent.seq.asc()).all()
