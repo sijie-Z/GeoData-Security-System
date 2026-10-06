@@ -1647,6 +1647,7 @@ export default {
     embedFailed: '嵌入水印失败',
     confirmClose: '确认关闭？',
     algorithm: '算法',
+    algorithmBlind: '盲水印（抗裁剪）',
     algorithmTip: 'LSB: 可逆但脆弱。DWT: 频域嵌入，抗攻击。Histogram: 集中分布图像高容量。',
     preview: '预览',
     previewTitle: '水印嵌入预览',

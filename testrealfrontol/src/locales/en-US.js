@@ -1647,6 +1647,7 @@ export default {
     embedFailed: 'Watermark embedding failed',
     confirmClose: 'Confirm close?',
     algorithm: 'Algorithm',
+    algorithmBlind: 'Blind (crop-resistant)',
     algorithmTip: 'LSB: reversible but fragile. DWT: frequency-domain, robust to attacks. Histogram: high capacity for concentrated images.',
     preview: 'Preview',
     previewTitle: 'Watermark Embedding Preview',
