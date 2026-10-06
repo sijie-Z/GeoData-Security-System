@@ -82,7 +82,7 @@ def deploy_sepolia(abi, bytecode, rpc_url):
 
     private_key = load_private_key()
     if not private_key:
-        print(f"no private key at {key_file_path()} — run:  cd testrealend && python -m evidence.evm --new-key")
+        print(f"no private key at {key_file_path()} - run:  cd testrealend && python -m evidence.evm --new-key")
         print("then fund the printed address from a Sepolia faucet (see contracts/README.md)")
         return 2
 
