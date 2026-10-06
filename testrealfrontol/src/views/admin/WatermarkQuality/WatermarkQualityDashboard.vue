@@ -27,7 +27,7 @@
     </el-row>
 
     <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="vLoading">
+    <el-card class="section-card" shadow="never" v-loading="verifLoading">
       <template #header>
         <div class="card-header">
           <span class="section-title">{{ $t('watermarkQuality.analyticsGallery') }}</span>
@@ -449,7 +449,11 @@ const { t } = useI18n()
 const router = useRouter()
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
-const vLoading = ref(false)
+// 注意：此 ref 绝不能命名为 vLoading —— <script setup> 会把模板里的
+// `v-loading` 解析为名为 `vLoading` 的本地绑定（当作自定义指令定义），
+// 不再是 ElementPlus 注册的 loading 指令；ref 为 false 时 withDirectives
+// 会产出空 dirs 数组，下次补丁直接崩溃（invokeDirectiveHook 读 .value）。
+const verifLoading = ref(false)
 const vStats = ref(null)        // /api/watermark/verification_stats → stats
 const trendLoading = ref(false)
 const trendDataType = ref('')   // '' | 'vector' | 'raster' — 仅作用于趋势图
@@ -459,7 +463,7 @@ const dStats = ref(null)        // /api/forensics/deliveries/stats → stats
 const benchLoading = ref(false)
 const benchData = ref(null)     // /api/benchmark/stats（或旧 JSON 回退的等价结构）
 
-const globalLoading = computed(() => vLoading.value || dLoading.value || benchLoading.value)
+const globalLoading = computed(() => verifLoading.value || dLoading.value || benchLoading.value)
 
 // ── 工具 ──
 const numOrNull = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : null)
@@ -883,7 +887,7 @@ watch(dateRange, () => {
 
 // ══════════════════ 三个统计端点的取数 ══════════════════
 const fetchVerificationStats = async () => {
-  vLoading.value = true
+  verifLoading.value = true
   try {
     const resp = await getVerificationStats({ days: 30 })
     if (resp?.data?.status) {
@@ -892,7 +896,7 @@ const fetchVerificationStats = async () => {
   } catch (e) {
     console.error('Failed to fetch verification stats:', e)
   } finally {
-    vLoading.value = false
+    verifLoading.value = false
   }
 }
 
