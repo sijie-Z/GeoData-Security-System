@@ -430,6 +430,7 @@ def create_app():
         ForensicsAnchorBuildResource,
         ForensicsDeliveriesResource,
         ForensicsDeliveryDetailResource,
+        ForensicsDeliveryStatsResource,
         ForensicsKeyInfoResource,
         ForensicsTraceResource,
         ForensicsVerifyResource,
@@ -594,6 +595,7 @@ def create_app():
     api.add_resource(ForensicsVerifyResource, "/api/forensics/verify")
     api.add_resource(ForensicsTraceResource, "/api/forensics/trace")
     api.add_resource(ForensicsDeliveriesResource, "/api/forensics/deliveries")
+    api.add_resource(ForensicsDeliveryStatsResource, "/api/forensics/deliveries/stats")
     api.add_resource(ForensicsDeliveryDetailResource, "/api/forensics/deliveries/<string:delivery_uuid>")
     api.add_resource(ForensicsAnchorBuildResource, "/api/forensics/anchor/build")
     api.add_resource(ForensicsKeyInfoResource, "/api/forensics/keyinfo")

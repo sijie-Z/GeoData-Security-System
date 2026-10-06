@@ -27,6 +27,7 @@ from cryptography.hazmat.primitives import serialization
 from flask import request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
+from sqlalchemy import func
 
 from algorithm.extract import extract as vector_extract
 from algorithm.raster_dwt_watermark import extract_dwt
@@ -37,12 +38,13 @@ from crypto.keys import keyinfo as crypto_keyinfo
 from crypto.payload import is_v2_text, parse_qr_text
 from delivery.artifact import file_root, shp_component_root
 from evidence.anchor import build_batch
-from evidence.chain import get_events, verify_stream
+from evidence.chain import get_events, verify_events, verify_stream
 from extension.extension import db, limiter
 from model.anchor_record import AnchorRecord
 from model.Application import Application
 from model.download_delivery import DownloadDelivery
 from model.Download_Record import DownloadRecord
+from model.evidence_event import EvidenceEvent
 from resource.watermark_utils import QR_SECRET_KEY, decode_qr_from_image
 from resource.watermark_utils import parse_qr_text as parse_v1_lines
 from utils.required import admin_required
@@ -644,6 +646,128 @@ class ForensicsDeliveriesResource(Resource):
                 }
             )
         return {"status": True, "deliveries": items}, 200
+
+
+class ForensicsDeliveryStatsResource(Resource):
+    """GET /api/forensics/deliveries/stats — admin.
+
+    Live aggregate for the delivery board: the list endpoint above costs N+2
+    queries per row (chain + anchor per delivery), so it must not be a polling
+    source. Everything here is aggregate SQL except two bounded pieces:
+
+    * ``anchor`` mirrors ``_anchor_for`` batch-wise: the latest AnchorRecord
+      covers every delivery with ``ready_at <= created_at`` (an anchor is a
+      cumulative snapshot), so the bucket is decided by that one record.
+    * ``chain`` validity is checked over a SAMPLE of the latest 200 deliveries,
+      whose events are fetched in ONE batched query and verified per stream
+      with the pure ``verify_events`` (no per-row ``verify_stream`` queries).
+      ``chain_checked`` reports the sample size; a stream with no events is
+      "valid" exactly as ``verify_stream`` reports it.
+    """
+
+    CHAIN_SAMPLE_LIMIT = 200
+
+    @jwt_required()
+    def get(self):
+        _identity, is_admin = _identity_and_admin()
+        if not is_admin:
+            return {"status": False, "msg": "需要管理员权限"}, 403
+
+        total = db.session.query(func.count(DownloadDelivery.delivery_id)).scalar() or 0
+
+        by_status = [
+            {"status": row[0] or "unknown", "count": int(row[1])}
+            for row in db.session.query(DownloadDelivery.status, func.count()).group_by(DownloadDelivery.status).all()
+        ]
+
+        algo_col = func.coalesce(DownloadDelivery.algorithm, "unknown")
+        by_algorithm = [
+            {"algorithm": row[0], "count": int(row[1])}
+            for row in db.session.query(algo_col, func.count()).group_by(algo_col).all()
+        ]
+
+        type_col = func.coalesce(DownloadDelivery.data_type, "unknown")
+        by_data_type = [
+            {"data_type": row[0], "count": int(row[1])}
+            for row in db.session.query(type_col, func.count()).group_by(type_col).all()
+        ]
+
+        downloaded_count = (
+            db.session.query(func.count(func.distinct(DownloadRecord.delivery_id)))
+            .filter(DownloadRecord.delivery_id.isnot(None))
+            .scalar()
+            or 0
+        )
+
+        # anchor buckets: batch equivalent of _anchor_for (latest covering
+        # anchor decides), without one query per delivery.
+        anchor_buckets = {"submitted": 0, "pending": 0, "none": int(total)}
+        latest_anchor = AnchorRecord.query.order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc()).first()
+        if latest_anchor is not None and latest_anchor.created_at is not None:
+            covered = (
+                db.session.query(func.count())
+                .select_from(DownloadDelivery)
+                .filter(
+                    DownloadDelivery.ready_at.isnot(None),
+                    DownloadDelivery.ready_at <= latest_anchor.created_at,
+                )
+                .scalar()
+                or 0
+            )
+            bucket = "submitted" if str(latest_anchor.status or "").upper() == "SUBMITTED" else "pending"
+            anchor_buckets = {
+                "submitted": int(covered) if bucket == "submitted" else 0,
+                "pending": int(covered) if bucket == "pending" else 0,
+                "none": int(total) - int(covered),
+            }
+
+        # chain validity over the latest CHAIN_SAMPLE_LIMIT deliveries, events
+        # fetched in one batched query.
+        sample_uuids = [
+            row[0]
+            for row in DownloadDelivery.query.with_entities(DownloadDelivery.uuid)
+            .order_by(DownloadDelivery.delivery_id.desc())
+            .limit(self.CHAIN_SAMPLE_LIMIT)
+            .all()
+        ]
+        chain_valid_count = 0
+        if sample_uuids:
+            stream_events = {}
+            for event in (
+                EvidenceEvent.query.filter(EvidenceEvent.stream_id.in_(sample_uuids))
+                .order_by(EvidenceEvent.stream_id.asc(), EvidenceEvent.seq.asc())
+                .all()
+            ):
+                stream_events.setdefault(event.stream_id, []).append(event)
+            for stream_id in sample_uuids:
+                if verify_events(stream_events.get(stream_id, []))["valid"]:
+                    chain_valid_count += 1
+
+        recent = [
+            {
+                "uuid": row.uuid,
+                "fid_short": (row.fingerprint_id or "")[:12] or None,
+                "user_number": row.user_number,
+                "status": row.status,
+                "created_at": utc_iso_z(row.created_at),
+            }
+            for row in DownloadDelivery.query.order_by(DownloadDelivery.delivery_id.desc()).limit(10).all()
+        ]
+
+        return {
+            "status": True,
+            "stats": {
+                "total": int(total),
+                "by_status": by_status,
+                "by_algorithm": by_algorithm,
+                "by_data_type": by_data_type,
+                "downloaded_count": int(downloaded_count),
+                "anchor": anchor_buckets,
+                "chain_valid_count": chain_valid_count,
+                "chain_checked": len(sample_uuids),
+                "recent": recent,
+            },
+        }, 200
 
 
 class ForensicsDeliveryDetailResource(Resource):

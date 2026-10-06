@@ -159,7 +159,16 @@ def verify_stream(stream_id: str) -> dict:
     Completeness must be checked against an anchor record's ``event_count`` /
     ``head_hash`` (or the stream's own head against an anchored head).
     """
-    events = get_events(stream_id)
+    return verify_events(get_events(stream_id))
+
+
+def verify_events(events: list[EvidenceEvent]) -> dict:
+    """``verify_stream``'s core over a preloaded, ascending-seq event list.
+
+    Batch-friendly variant (same semantics, same return shape) for callers that
+    fetch many streams' events in one query — e.g. the forensics deliveries
+    stats endpoint — instead of one ``get_events`` round-trip per stream.
+    """
     prev_hash = GENESIS_HASH
     expected_seq = 1
     for position, event in enumerate(events, start=1):
