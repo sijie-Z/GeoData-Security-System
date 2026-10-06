@@ -8,6 +8,7 @@ class DownloadRecord(db.Model):
     __tablename__ = "download_record"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     application_id = db.Column(db.Integer, nullable=True)
+    delivery_id = db.Column(db.Integer, nullable=True)
     data_id = db.Column(db.Integer, nullable=False)
     data_name = db.Column(db.String(255), nullable=False, default="")
     download_user_number = db.Column(db.String(255), nullable=False)

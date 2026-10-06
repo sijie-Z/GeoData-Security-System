@@ -45,9 +45,11 @@ def _bootstrap_runtime_schema(app):
     from model.Adm_Nav import AdmNav
     from model.AdmAccountPermission import AdmAccountPermissions
     from model.AdminApplication import AdminApplication
+    from model.anchor_record import AnchorRecord
     from model.Announcement import Announcement
     from model.Application import Application
     from model.ChatMessage import ChatMessage
+    from model.download_delivery import DownloadDelivery
     from model.Download_Record import DownloadRecord
     from model.download_token import DownloadToken
     from model.Embed_File_Record import EmbedFileRecord
@@ -55,8 +57,10 @@ def _bootstrap_runtime_schema(app):
     from model.Employee_Info import EmployeeInfo
     from model.Employee_Nav import EmployeeNav
     from model.EmployeeNotification import EmployeeNotification
+    from model.evidence_event import EvidenceEvent
     from model.Extract_Helper import ExtractHelper
     from model.FriendRequest import FriendRequest
+    from model.key_registry import KeyRegistry
     from model.Log_Info import LogInfo
     from model.Permission import Permission
     from model.Raster_Data import RasterData
@@ -92,6 +96,10 @@ def _bootstrap_runtime_schema(app):
         EmbedFileRecord,
         ExtractHelper,
         SendFileRecord,
+        DownloadDelivery,
+        KeyRegistry,
+        EvidenceEvent,
+        AnchorRecord,
     ]
 
     # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
