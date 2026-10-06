@@ -414,6 +414,11 @@ const resetAll = () => {
 
 .qr-result-section {
   margin-top: 24px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 /* ── File Traceability Tab ── */
@@ -524,17 +529,22 @@ const resetAll = () => {
 
 .result-columns {
   display: flex;
-  gap: 24px;
+  gap: 20px;
+  align-items: flex-start;
 }
 
 .watermark-panel {
   flex: 0 0 320px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
-.watermark-panel h4,
-.provenance-panel h4 {
+.watermark-panel h4 {
   font-size: 15px;
-  color: #303133;
+  color: var(--text-primary);
   margin: 0 0 12px;
 }
 
@@ -563,6 +573,11 @@ const resetAll = () => {
 .provenance-panel {
   flex: 1;
   min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
 }
 
 @media (max-width: 768px) {
