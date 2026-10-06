@@ -2094,7 +2094,6 @@ export default {
     applicationIdLabel: '申请 ID',
     applicationIdPlaceholder: '请输入申请 ID',
     queryBtn: '查询',
-    ledgerAppIdRequired: '请输入申请 ID 后再查询',
     fetchDeliveriesFailed: '获取交付记录失败',
     emptyDeliveries: '暂无交付记录',
     colUuidShort: '交付号',

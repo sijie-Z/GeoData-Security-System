@@ -2094,7 +2094,6 @@ export default {
     applicationIdLabel: 'Application ID',
     applicationIdPlaceholder: 'Enter application ID',
     queryBtn: 'Search',
-    ledgerAppIdRequired: 'Please enter an application ID first',
     fetchDeliveriesFailed: 'Failed to fetch delivery records',
     emptyDeliveries: 'No delivery records',
     colUuidShort: 'Delivery No.',

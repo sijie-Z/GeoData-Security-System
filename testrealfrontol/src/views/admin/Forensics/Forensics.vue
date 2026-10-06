@@ -361,13 +361,12 @@ const locateText = computed(() => {
 })
 
 const queryDeliveries = async () => {
-  if (!queryAppId.value) {
-    ElMessage.warning(t('forensics.ledgerAppIdRequired'))
-    return
-  }
   deliveriesLoading.value = true
   try {
-    const res = await getDeliveries({ application_id: queryAppId.value })
+    // application_id 为可选过滤条件：为空时列出全部交付
+    const params = {}
+    if (queryAppId.value) params.application_id = queryAppId.value
+    const res = await getDeliveries(params)
     const body = res?.data
     if (!body?.status) {
       ElMessage.error(body?.msg || t('forensics.fetchDeliveriesFailed'))
@@ -414,6 +413,7 @@ const doVerify = async () => {
     const res = await verifyForensics(payload)
     const body = res?.data
     if (!body?.status) {
+      result.value = null
       ElMessage.error(body?.msg || t('forensics.verifyFailed'))
       return
     }
@@ -421,6 +421,7 @@ const doVerify = async () => {
     isTrace.value = false
   } catch (err) {
     console.error('Forensics verify failed:', err)
+    result.value = null
     ElMessage.error(err?.response?.data?.msg || t('forensics.verifyFailed'))
   } finally {
     verifying.value = false
@@ -438,6 +439,7 @@ const doTrace = async () => {
     const res = await traceForensics(payload)
     const body = res?.data
     if (!body?.status) {
+      result.value = null
       ElMessage.error(body?.msg || t('forensics.traceFailed'))
       return
     }
@@ -445,6 +447,7 @@ const doTrace = async () => {
     isTrace.value = true
   } catch (err) {
     console.error('Forensics trace failed:', err)
+    result.value = null
     ElMessage.error(err?.response?.data?.msg || t('forensics.traceFailed'))
   } finally {
     tracing.value = false
@@ -459,8 +462,14 @@ const openDeliveryDetail = async (row) => {
   try {
     const res = await getDeliveryDetail(row.uuid)
     const body = res?.data
-    if (body?.status) {
-      detail.value = body
+    const delivery = body?.delivery
+    if (body?.status && delivery) {
+      detail.value = {
+        ...delivery,
+        events: body.events || [],
+        chain: body.chain || null,
+        anchor: body.anchor || null
+      }
     } else {
       ElMessage.error(body?.msg || t('forensics.detailFailed'))
     }
