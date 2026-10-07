@@ -534,3 +534,136 @@ class TestUploadZipDefenses:
         assert data["fid"] == delivery.fingerprint_id
         assert data["data_type"] == "raster"
         assert data["artifact_root_match"] is True
+
+
+class TestDeliveriesFourDimFilters:
+    """§3 four-dimension search on GET /api/forensics/deliveries:
+    user_number (exact) / fingerprint_id (prefix) / uuid (exact or prefix) /
+    time_from-time_to (ISO8601 UTC), all combinable, employee scope enforced."""
+
+    @staticmethod
+    def _mk(db, alias, user="FX-D4", fid=None, created_at=None):
+        item = _seed_app(db, alias=alias)
+        delivery = DownloadDelivery(
+            application_id=item.id,
+            data_id=item.data_id,
+            data_type="vector",
+            user_number=user,
+            fingerprint_id=fid or secrets.token_bytes(16).hex(),
+            status="READY",
+            algorithm="vector",
+            created_at=created_at or datetime.now(UTC),
+            ready_at=datetime.now(UTC),
+        )
+        db.session.add(delivery)
+        db.session.commit()
+        return delivery
+
+    def test_user_number_filter_exact(self, db, client, auth_headers):
+        mine = self._mk(db, "fx-d4-user-a", user="FX-D4-USER-A")
+        self._mk(db, "fx-d4-user-b", user="FX-D4-USER-B")
+        resp = client.get(
+            "/api/forensics/deliveries", query_string={"user_number": "FX-D4-USER-A"}, headers=auth_headers
+        )
+        assert resp.status_code == 200
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [mine.uuid]
+        # 精确匹配：前缀不会误命中
+        resp = client.get("/api/forensics/deliveries", query_string={"user_number": "FX-D4-USER"}, headers=auth_headers)
+        assert resp.get_json()["deliveries"] == []
+
+    def test_fingerprint_id_prefix(self, db, client, auth_headers):
+        delivery = self._mk(db, "fx-d4-fid", user="FX-D4-FID")
+        prefix = delivery.fingerprint_id[:8]
+        resp = client.get("/api/forensics/deliveries", query_string={"fingerprint_id": prefix}, headers=auth_headers)
+        assert resp.status_code == 200
+        rows = resp.get_json()["deliveries"]
+        assert delivery.uuid in {row["uuid"] for row in rows}
+        assert all(row["fingerprint_id"].startswith(prefix) for row in rows)
+        # 大写输入也命中（hex 大小写不敏感）
+        resp = client.get(
+            "/api/forensics/deliveries", query_string={"fingerprint_id": prefix.upper()}, headers=auth_headers
+        )
+        assert delivery.uuid in {row["uuid"] for row in resp.get_json()["deliveries"]}
+
+    def test_uuid_exact_and_prefix(self, db, client, auth_headers):
+        delivery = self._mk(db, "fx-d4-uuid", user="FX-D4-UUID")
+        resp = client.get("/api/forensics/deliveries", query_string={"uuid": delivery.uuid}, headers=auth_headers)
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [delivery.uuid]
+        resp = client.get("/api/forensics/deliveries", query_string={"uuid": delivery.uuid[:13]}, headers=auth_headers)
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [delivery.uuid]
+
+    def test_time_range_filter(self, db, client, auth_headers):
+        jan = self._mk(db, "fx-d4-time-jan", user="FX-D4-TIME", created_at=datetime(2026, 1, 1, 6, 0, 0))
+        mar = self._mk(db, "fx-d4-time-mar", user="FX-D4-TIME", created_at=datetime(2026, 3, 1, 6, 0, 0))
+        resp = client.get(
+            "/api/forensics/deliveries",
+            query_string={
+                "user_number": "FX-D4-TIME",
+                "time_from": "2026-01-01T00:00:00Z",
+                "time_to": "2026-01-02T00:00:00Z",
+            },
+            headers=auth_headers,
+        )
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [jan.uuid]
+        resp = client.get(
+            "/api/forensics/deliveries",
+            query_string={"user_number": "FX-D4-TIME", "time_from": "2026-03-01T00:00:00Z"},
+            headers=auth_headers,
+        )
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [mar.uuid]
+        resp = client.get(
+            "/api/forensics/deliveries",
+            query_string={"user_number": "FX-D4-TIME", "time_to": "2025-12-31T00:00:00Z"},
+            headers=auth_headers,
+        )
+        assert resp.get_json()["deliveries"] == []
+
+    def test_combined_filters(self, db, client, auth_headers):
+        match = self._mk(db, "fx-d4-comb", user="FX-D4-COMB", created_at=datetime(2026, 2, 1, 6, 0, 0))
+        self._mk(db, "fx-d4-comb-other", user="FX-D4-COMB2", created_at=datetime(2026, 2, 1, 6, 0, 0))
+        query = {
+            "user_number": "FX-D4-COMB",
+            "fingerprint_id": match.fingerprint_id[:10],
+            "uuid": match.uuid[:13],
+            "time_from": "2026-01-31T00:00:00Z",
+            "time_to": "2026-02-02T00:00:00Z",
+        }
+        resp = client.get("/api/forensics/deliveries", query_string=query, headers=auth_headers)
+        assert [row["uuid"] for row in resp.get_json()["deliveries"]] == [match.uuid]
+        # 任一维不匹配 -> 空
+        query["time_from"] = "2026-03-01T00:00:00Z"
+        resp = client.get("/api/forensics/deliveries", query_string=query, headers=auth_headers)
+        assert resp.get_json()["deliveries"] == []
+
+    def test_employee_cannot_escape_own_scope(self, db, client, employee_headers):
+        mine = self._mk(db, "fx-d4-emp-mine", user="E001")
+        foreign = self._mk(db, "fx-d4-emp-foreign", user="FX-D4-FOREIGN")
+        # 员工带他人 user_number：交集为空，不越权
+        resp = client.get(
+            "/api/forensics/deliveries", query_string={"user_number": "FX-D4-FOREIGN"}, headers=employee_headers
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["deliveries"] == []
+        # 员工带本人 user_number：只返回自己的
+        resp = client.get("/api/forensics/deliveries", query_string={"user_number": "E001"}, headers=employee_headers)
+        rows = resp.get_json()["deliveries"]
+        assert mine.uuid in {row["uuid"] for row in rows}
+        assert all(row["user_number"] == "E001" for row in rows)
+        assert foreign.uuid not in {row["uuid"] for row in rows}
+
+    def test_invalid_time_400(self, db, client, auth_headers):
+        for query_string in ({"time_from": "not-a-date"}, {"time_to": "2026-99-01"}, {"time_from": "2026/01/01"}):
+            resp = client.get("/api/forensics/deliveries", query_string=query_string, headers=auth_headers)
+            assert resp.status_code == 400, (query_string, resp.status_code)
+
+    def test_invalid_limit_still_clamped(self, db, client, auth_headers):
+        self._mk(db, "fx-d4-limit-a", user="FX-D4-LIM")
+        self._mk(db, "fx-d4-limit-b", user="FX-D4-LIM")
+        for limit in ("0", "99999", "abc"):
+            resp = client.get(
+                "/api/forensics/deliveries",
+                query_string={"user_number": "FX-D4-LIM", "limit": limit},
+                headers=auth_headers,
+            )
+            assert resp.status_code == 200
+            assert len(resp.get_json()["deliveries"]) == 2
