@@ -847,13 +847,13 @@ const handleClose = (dialogType, done) => {
 
 .algo-label {
   font-size: 13px;
-  color: #64748b;
+  color: var(--text-2, #64748b);
 }
 
 .algo-host-hint {
   margin: 0;
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-3, #94a3b8);
   line-height: 1.5;
 }
 
@@ -874,15 +874,15 @@ const handleClose = (dialogType, done) => {
   justify-content: center;
   width: 72px;
   height: 72px;
-  background: #f5f7fa;
+  background: var(--bg-inset, #f5f7fa);
   border-radius: 4px;
-  color: #c0c4cc;
+  color: var(--text-4, #c0c4cc);
   font-size: 24px;
 }
 
 .qr-empty-text {
   font-size: 12px;
-  color: #c0c4cc;
+  color: var(--text-4, #c0c4cc);
 }
 
 .view-pagination{
@@ -901,8 +901,8 @@ const handleClose = (dialogType, done) => {
   height: 520px;
   border-radius: 12px;
   overflow: hidden;
-  background: #e8ecf1;
-  border: 1px solid #d0d5dd;
+  background: var(--bg-inset, #e8ecf1);
+  border: 1px solid var(--border-default, #d0d5dd);
 }
 
 .vector-preview-layout .map-container {
@@ -917,7 +917,7 @@ const handleClose = (dialogType, done) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f8fafc;
+  background: var(--bg-inset, #f8fafc);
 }
 
 .vector-preview-layout .info-container {
@@ -929,13 +929,13 @@ const handleClose = (dialogType, done) => {
 .info-title {
   font-size: 15px;
   font-weight: 600;
-  color: #1e293b;
+  color: var(--text-1, #1e293b);
   margin: 0 0 12px 0;
 }
 
 .url-text {
   font-size: 12px;
-  color: #64748b;
+  color: var(--text-2, #64748b);
   word-break: break-all;
   display: -webkit-box;
   -webkit-line-clamp: 3;
@@ -945,7 +945,7 @@ const handleClose = (dialogType, done) => {
 
 .info-tip {
   font-size: 12px;
-  color: #94a3b8;
+  color: var(--text-3, #94a3b8);
   margin: 16px 0 0 0;
 }
 
