@@ -4,7 +4,7 @@
     <!-- 页面标题区域 -->
     <div class="page-header">
       <div class="header-icon">
-        <el-icon size="32" color="#409EFF"><Document /></el-icon>
+        <el-icon size="32" color="var(--accent-9)"><Document /></el-icon>
       </div>
       <div class="header-content">
         <h2>{{ $t('rasterWmExtract.pageTitle') }}</h2>
@@ -328,7 +328,7 @@ const handleUploadError = (err, file) => {
   padding: 24px;
   max-width: 1200px;
   margin: 0 auto;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-canvas);
   min-height: calc(100vh - 120px);
   border-radius: 12px;
 }
@@ -339,9 +339,9 @@ const handleUploadError = (err, file) => {
   gap: 16px;
   margin-bottom: 32px;
   padding: 24px;
-  background: white;
+  background: var(--bg-surface);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elevation-2);
 }
 
 .header-icon {
@@ -350,21 +350,21 @@ const handleUploadError = (err, file) => {
   justify-content: center;
   width: 64px;
   height: 64px;
-  background: linear-gradient(135deg, #409EFF 0%, #67C23A 100%);
+  background: linear-gradient(135deg, var(--accent-9) 0%, var(--success-500) 100%);
   border-radius: 12px;
   color: white;
 }
 
 .header-content h2 {
   margin: 0 0 8px 0;
-  color: #303133;
+  color: var(--text-1);
   font-size: 24px;
   font-weight: 600;
 }
 
 .header-content .description {
   margin: 0;
-  color: #606266;
+  color: var(--text-2);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -375,9 +375,9 @@ const handleUploadError = (err, file) => {
   justify-content: center;
   margin-bottom: 32px;
   padding: 24px;
-  background: white;
+  background: var(--bg-surface);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elevation-2);
 }
 
 .step-item {
@@ -392,8 +392,8 @@ const handleUploadError = (err, file) => {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: #e4e7ed;
-  color: #909399;
+  background: var(--bg-fill);
+  color: var(--text-4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -402,34 +402,34 @@ const handleUploadError = (err, file) => {
 }
 
 .step-item.active .step-number {
-  background: #409EFF;
+  background: var(--accent-9);
   color: white;
 }
 
 .step-item.completed .step-number {
-  background: #67C23A;
+  background: var(--success-500);
   color: white;
 }
 
 .step-text {
   font-size: 14px;
-  color: #909399;
+  color: var(--text-3);
   transition: color 0.3s ease;
 }
 
 .step-item.active .step-text {
-  color: #409EFF;
+  color: var(--accent-9);
   font-weight: 400;
 }
 
 .step-item.completed .step-text {
-  color: #67C23A;
+  color: var(--tint-success-text);
 }
 
 .step-line {
   flex: 1;
   height: 2px;
-  background: #e4e7ed;
+  background: var(--border-default);
   margin: 0 16px;
   position: relative;
   top: 16px;
@@ -437,7 +437,7 @@ const handleUploadError = (err, file) => {
 }
 
 .step-line.active {
-  background: #409EFF;
+  background: var(--accent-9);
 }
 
 .input-and-upload-section {
@@ -449,10 +449,10 @@ const handleUploadError = (err, file) => {
 
 .input-section,
 .upload-section {
-  background: white;
+  background: var(--bg-surface);
   padding: 24px;
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elevation-2);
 }
 
 .section-title {
@@ -462,7 +462,7 @@ const handleUploadError = (err, file) => {
   margin-bottom: 16px;
   font-size: 16px;
   font-weight: 400;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .data-id-input {
@@ -471,7 +471,7 @@ const handleUploadError = (err, file) => {
 
 .input-tip {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-3);
   line-height: 1.4;
 }
 
@@ -488,7 +488,7 @@ const handleUploadError = (err, file) => {
 }
 
 .upload-icon {
-  color: #409EFF;
+  color: var(--accent-9);
   opacity: 0.8;
 }
 
@@ -498,25 +498,25 @@ const handleUploadError = (err, file) => {
 
 .main-text {
   font-size: 16px;
-  color: #606266;
+  color: var(--text-2);
   margin-bottom: 8px;
 }
 
 .main-text em {
-  color: #409EFF;
+  color: var(--accent-9);
   font-style: normal;
   font-weight: 400;
 }
 
 .sub-text {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-3);
 }
 
 .comparison-card {
-  background: white;
+  background: var(--bg-surface);
   border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--elevation-2);
   border: none;
 }
 
@@ -526,7 +526,7 @@ const handleUploadError = (err, file) => {
   gap: 8px;
   font-size: 18px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .watermark-comparison-area {
@@ -553,11 +553,11 @@ const handleUploadError = (err, file) => {
   gap: 8px;
   margin-bottom: 16px;
   font-weight: 400;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .watermark-content {
-  background: #f5f7fa;
+  background: var(--bg-inset);
   border-radius: 8px;
   padding: 16px;
   min-height: 200px;
@@ -570,7 +570,7 @@ const handleUploadError = (err, file) => {
   max-width: 100%;
   max-height: 200px;
   border-radius: 4px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-1);
 }
 
 .image-error {
@@ -578,7 +578,7 @@ const handleUploadError = (err, file) => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #909399;
+  color: var(--text-3);
   font-size: 14px;
 }
 
@@ -588,7 +588,7 @@ const handleUploadError = (err, file) => {
   align-items: center;
   gap: 24px;
   padding: 24px;
-  background: #f5f7fa;
+  background: var(--bg-inset);
   border-radius: 8px;
   min-width: 200px;
 }
@@ -599,7 +599,7 @@ const handleUploadError = (err, file) => {
 
 .nc-label {
   font-size: 14px;
-  color: #606266;
+  color: var(--text-2);
   margin-bottom: 8px;
 }
 
@@ -610,15 +610,15 @@ const handleUploadError = (err, file) => {
 }
 
 .nc-value.high {
-  color: #67C23A;
+  color: var(--tint-success-text);
 }
 
 .nc-value.medium {
-  color: #E6A23C;
+  color: var(--tint-warning-text);
 }
 
 .nc-value.low {
-  color: #F56C6C;
+  color: var(--tint-danger-text);
 }
 
 .similarity-indicator {
@@ -628,7 +628,7 @@ const handleUploadError = (err, file) => {
 
 .similarity-text {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-3);
   margin-top: 8px;
 }
 
@@ -642,13 +642,13 @@ const handleUploadError = (err, file) => {
 }
 
 .result-message.success {
-  background: linear-gradient(135deg, #f0f9eb 0%, #e1f3d8 100%);
-  border: 1px solid #d9f0c8;
+  background: linear-gradient(135deg, var(--tint-success-bg) 0%, var(--tint-success-border) 100%);
+  border: 1px solid var(--tint-success-border);
 }
 
 .result-message.danger {
-  background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
-  border: 1px solid #fcd3d3;
+  background: linear-gradient(135deg, var(--tint-danger-bg) 0%, var(--tint-danger-border) 100%);
+  border: 1px solid var(--tint-danger-border);
 }
 
 .result-text {
@@ -662,16 +662,16 @@ const handleUploadError = (err, file) => {
 }
 
 .result-message.success .result-title {
-  color: #67C23A;
+  color: var(--tint-success-text);
 }
 
 .result-message.danger .result-title {
-  color: #F56C6C;
+  color: var(--tint-danger-text);
 }
 
 .result-desc {
   font-size: 14px;
-  color: #606266;
+  color: var(--text-2);
   line-height: 1.5;
 }
 
@@ -679,7 +679,7 @@ const handleUploadError = (err, file) => {
   font-family: 'Courier New', Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
-  background: #fafafa;
+  background: var(--bg-inset);
 }
 
 /* 响应式设计 */
