@@ -125,7 +125,7 @@ defineProps({
   height: 100vh;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: width 0.2s ease, background-color 0.25s ease, border-color 0.25s ease;
+  transition: width 220ms var(--ease-drawer), background-color var(--duration-200) var(--ease-out-soft), border-color var(--duration-200) var(--ease-out-soft);
   flex-shrink: 0;
 }
 
@@ -149,7 +149,7 @@ defineProps({
   line-height: 46px;
   color: var(--sidebar-text) !important;
   font-size: 14px;
-  transition: all 0.15s ease !important;
+  transition: all var(--transition-fast) !important;
 }
 
 :deep(.el-menu-item:hover),
