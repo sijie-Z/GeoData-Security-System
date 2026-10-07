@@ -582,13 +582,15 @@ body {
   transform: translateY(0) scale(0.97);
 }
 
-.el-button--primary {
+/* 实心主按钮仅作用于默认变体；plain / link / text 变体保留 EP 语义
+   （深色下实心覆写会让这些变体文字与底色同色而隐形；对照 danger 的豁免） */
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text) {
   background: var(--btn-primary-bg) !important;
   border: none !important;
 }
 
-.el-button--primary:hover,
-.el-button--primary:focus {
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):hover,
+.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):focus {
   background: var(--btn-primary-bg-hover) !important;
   box-shadow: none !important;
 }
