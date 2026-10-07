@@ -15,6 +15,24 @@ import axios from '@/utils/Axios'
  */
 export const getDashboard = () => axios.get('/api/admin/dashboard')
 
+/**
+ * Get download statistics for the dashboard board (daily series, Top users,
+ * Top data, 7d-vs-7d comparison).
+ * @param {Object} [params]
+ * @param {number} [params.days] - one of 7/14/30/90 (anything else -> 30)
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getDownloadStats = (params) => axios.get('/api/admin/download_stats', { params })
+
+/**
+ * Export the download statistics as a multi-section CSV (blob response).
+ * @param {Object} [params]
+ * @param {number} [params.days] - one of 7/14/30/90 (anything else -> 30)
+ * @returns {Promise<AxiosResponse>} Blob response
+ */
+export const exportDownloadStats = (params) =>
+  axios.get('/api/admin/download_stats/export', { params, responseType: 'blob' })
+
 // ──────────────────────────────────────
 //  Employee CRUD
 // ──────────────────────────────────────
@@ -168,6 +186,19 @@ export const submitAdminApplication = (data) => axios.post('/api/admin-applicati
  * @returns {Promise<AxiosResponse>}
  */
 export const getSystemLogs = (params) => axios.get('/api/admin/logs', { params })
+
+/**
+ * Export audit logs as CSV mirroring the list filters (blob response).
+ * @param {Object} [params]
+ * @param {string} [params.username]
+ * @param {string} [params.user_number]
+ * @param {string} [params.action]
+ * @param {string} [params.status]
+ * @param {string} [params.time_from] - ISO8601 UTC
+ * @param {string} [params.time_to] - ISO8601 UTC
+ * @returns {Promise<AxiosResponse>} Blob response
+ */
+export const exportSystemLogs = (params) => axios.get('/api/admin/logs/export', { params, responseType: 'blob' })
 
 // ──────────────────────────────────────
 //  Announcements

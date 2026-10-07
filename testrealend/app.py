@@ -421,7 +421,12 @@ def create_app():
         RefreshTokenResource,
         RegisterResource,
     )
-    from resource.dashboard_resource import AdminDashboardResource, EmployeeDashboardResource
+    from resource.dashboard_resource import (
+        AdminDashboardResource,
+        AdminDownloadStatsExportResource,
+        AdminDownloadStatsResource,
+        EmployeeDashboardResource,
+    )
     from resource.download_file_resource import (
         EmpDownloadZipResource,
         RecordDownloadResource,
@@ -440,7 +445,7 @@ def create_app():
         ForensicsTraceResource,
         ForensicsVerifyResource,
     )
-    from resource.log_resource import SystemLogResource
+    from resource.log_resource import SystemLogExportResource, SystemLogResource
     from resource.nav_resource import NavListResource, NavTreeResource
     from resource.profile_resource import EmployeePasswordResource, EmployeePhotoResource, EmployeeProfileResource
     from resource.raster_resource import (
@@ -631,7 +636,10 @@ def create_app():
 
     # Logs & Dashboard
     api.add_resource(SystemLogResource, "/api/admin/logs")
+    api.add_resource(SystemLogExportResource, "/api/admin/logs/export")
     api.add_resource(AdminDashboardResource, "/api/admin/dashboard")
+    api.add_resource(AdminDownloadStatsResource, "/api/admin/download_stats")
+    api.add_resource(AdminDownloadStatsExportResource, "/api/admin/download_stats/export")
     api.add_resource(EmployeeDashboardResource, "/api/employee/dashboard")
     api.add_resource(AnnouncementResource, "/api/announcements")
     api.add_resource(AdminAnnouncementManageResource, "/api/admin/announcements")

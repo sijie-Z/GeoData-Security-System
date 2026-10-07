@@ -1,7 +1,9 @@
+import csv
+import io
 import logging
 from datetime import UTC, datetime, timedelta
 
-from flask import request
+from flask import Response, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
 from sqlalchemy import and_, case, func, or_
@@ -13,6 +15,7 @@ from model.AdminApplication import AdminApplication
 from model.Application import Application
 from model.Download_Record import DownloadRecord
 from model.Employee_Account import EmployeeAccount
+from model.Employee_Info import EmployeeInfo
 from model.Log_Info import LogInfo
 from model.Raster_Data import RasterData
 from model.RecallProposal import RecallProposal
@@ -48,6 +51,168 @@ def _batch_day_counts(model, timestamp_col, days=14, extra_filters=None):
         db_date = (now - timedelta(days=i)).strftime("%Y-%m-%d")
         result.append((d, rows.get(db_date, 0)))
     return result
+
+
+#: Allowed values of the ``days`` query parameter for the download-stats board
+#: (the UI offers 7/30/90; 14 is accepted for API symmetry with dl_trend).
+DOWNLOAD_STATS_ALLOWED_DAYS = (7, 14, 30, 90)
+DOWNLOAD_STATS_DEFAULT_DAYS = 30
+DOWNLOAD_STATS_TOP_LIMIT = 10
+
+
+def _clamped_days():
+    """``days`` constrained to {7,14,30,90}; anything else (missing, non-integer,
+    out of set) falls back to 30."""
+    days = request.args.get("days", default=DOWNLOAD_STATS_DEFAULT_DAYS, type=int)
+    return days if days in DOWNLOAD_STATS_ALLOWED_DAYS else DOWNLOAD_STATS_DEFAULT_DAYS
+
+
+def _collect_download_stats(days):
+    """Download statistics over the last ``days`` days — pure SQL aggregates.
+
+    * ``daily``      per-day download count + distinct downloaders (one GROUP BY
+                     with a fill-in loop, same shape as ``_batch_day_counts``)
+    * ``top_users``  top downloaders inside the window, display names resolved
+                     with ONE batched ``IN`` lookup (no N+1)
+    * ``top_data``   top applications inside the window (data_name/data_type),
+                     types resolved with ONE batched ``IN`` lookup
+    * ``comparison`` fixed 7-days-vs-previous-7-days counts and growth
+    """
+    now = datetime.now(UTC)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    window_start = today_start - timedelta(days=days - 1)
+
+    date_col = func.date(DownloadRecord.timestamp)
+    daily_rows = {
+        str(row[0]): (row[1], row[2])
+        for row in db.session.query(
+            date_col,
+            func.count(),
+            func.count(func.distinct(DownloadRecord.download_user_number)),
+        )
+        .filter(DownloadRecord.timestamp >= window_start)
+        .group_by(date_col)
+        .all()
+    }
+    daily = []
+    for i in range(days - 1, -1, -1):
+        day = now - timedelta(days=i)
+        downloads, users = daily_rows.get(day.strftime("%Y-%m-%d"), (0, 0))
+        daily.append({"date": day.strftime("%m-%d"), "downloads": int(downloads), "users": int(users)})
+
+    top_user_rows = (
+        db.session.query(DownloadRecord.download_user_number, func.count().label("downloads"))
+        .filter(DownloadRecord.timestamp >= window_start)
+        .group_by(DownloadRecord.download_user_number)
+        .order_by(func.count().desc(), DownloadRecord.download_user_number.asc())
+        .limit(DOWNLOAD_STATS_TOP_LIMIT)
+        .all()
+    )
+    user_numbers = [row[0] for row in top_user_rows if row[0]]
+    user_names = {}
+    if user_numbers:
+        user_names = dict(
+            db.session.query(EmployeeInfo.employee_number, EmployeeInfo.name)
+            .filter(EmployeeInfo.employee_number.in_(user_numbers))
+            .all()
+        )
+    top_users = [
+        {"user_number": row[0] or "", "name": user_names.get(row[0]), "downloads": int(row[1])} for row in top_user_rows
+    ]
+
+    top_data_rows = (
+        db.session.query(DownloadRecord.application_id, DownloadRecord.data_name, func.count().label("downloads"))
+        .filter(DownloadRecord.timestamp >= window_start)
+        .group_by(DownloadRecord.application_id, DownloadRecord.data_name)
+        .order_by(func.count().desc(), DownloadRecord.application_id.asc())
+        .limit(DOWNLOAD_STATS_TOP_LIMIT)
+        .all()
+    )
+    app_ids = [row[0] for row in top_data_rows if row[0]]
+    app_types = {}
+    if app_ids:
+        app_types = dict(
+            db.session.query(Application.id, Application.data_type).filter(Application.id.in_(app_ids)).all()
+        )
+    top_data = [
+        {
+            "application_id": row[0],
+            "data_name": row[1] or "",
+            "data_type": (app_types.get(row[0]) or "unknown").lower() if row[0] else "unknown",
+            "downloads": int(row[2]),
+        }
+        for row in top_data_rows
+    ]
+
+    this_week_start = now - timedelta(days=7)
+    last_week_start = now - timedelta(days=14)
+    week_cols = (func.count(), func.count(func.distinct(DownloadRecord.download_user_number)))
+    this_week = db.session.query(*week_cols).filter(DownloadRecord.timestamp >= this_week_start).first()
+    last_week = (
+        db.session.query(*week_cols)
+        .filter(DownloadRecord.timestamp >= last_week_start, DownloadRecord.timestamp < this_week_start)
+        .first()
+    )
+    this_dl, this_users = int(this_week[0]), int(this_week[1])
+    last_dl, last_users = int(last_week[0]), int(last_week[1])
+
+    def _growth(current, previous):
+        return round((current - previous) / previous * 100, 1) if previous else 0
+
+    comparison = {
+        "this_week_downloads": this_dl,
+        "last_week_downloads": last_dl,
+        "downloads_growth": _growth(this_dl, last_dl),
+        "this_week_users": this_users,
+        "last_week_users": last_users,
+        "users_growth": _growth(this_users, last_users),
+    }
+
+    return {"days": days, "daily": daily, "top_users": top_users, "top_data": top_data, "comparison": comparison}
+
+
+def _download_stats_csv(days, stats, generated_at):
+    """Multi-section CSV: metadata row, then [每日下载] / [Top 用户] / [Top 数据]
+    / [近7天 vs 前7天] blocks in one file (documented export format)."""
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
+    writer.writerow(["下载统计导出", f"窗口=近{days}天", f"生成时间={generated_at} (UTC)"])
+    writer.writerow([])
+
+    writer.writerow(["[每日下载]"])
+    writer.writerow(["日期", "下载量", "独立下载人数"])
+    for row in stats["daily"]:
+        writer.writerow([row["date"], row["downloads"], row["users"]])
+    writer.writerow([])
+
+    writer.writerow(["[Top 用户]"])
+    writer.writerow(["排名", "用户编号", "姓名", "下载次数"])
+    for idx, row in enumerate(stats["top_users"], start=1):
+        writer.writerow([idx, row["user_number"], row["name"] or "", row["downloads"]])
+    writer.writerow([])
+
+    writer.writerow(["[Top 数据]"])
+    writer.writerow(["排名", "申请ID", "数据名称", "数据类型", "下载次数"])
+    for idx, row in enumerate(stats["top_data"], start=1):
+        app_id = row["application_id"] if row["application_id"] is not None else ""
+        writer.writerow([idx, app_id, row["data_name"], row["data_type"], row["downloads"]])
+    writer.writerow([])
+
+    comparison = stats["comparison"]
+    writer.writerow(["[近7天 vs 前7天]"])
+    writer.writerow(["指标", "近7天", "前7天", "增长率%"])
+    writer.writerow(
+        ["下载量", comparison["this_week_downloads"], comparison["last_week_downloads"], comparison["downloads_growth"]]
+    )
+    writer.writerow(
+        [
+            "独立下载人数",
+            comparison["this_week_users"],
+            comparison["last_week_users"],
+            comparison["users_growth"],
+        ]
+    )
+    return buffer.getvalue()
 
 
 class AdminDashboardResource(Resource):
@@ -366,6 +531,36 @@ class AdminDashboardResource(Resource):
                 "recent_logs": recent_logs,
             },
         }, 200
+
+
+class AdminDownloadStatsResource(Resource):
+    """GET /api/admin/download_stats?days=30 — admin. Download-stats board data:
+    daily downloads + unique downloaders, Top users, Top data and the fixed
+    7-days-vs-previous-7-days comparison. All aggregates are single SQL queries.
+    """
+
+    @admin_required
+    def get(self):
+        days = _clamped_days()
+        return {"status": True, "data": _collect_download_stats(days)}, 200
+
+
+class AdminDownloadStatsExportResource(Resource):
+    """GET /api/admin/download_stats/export?days= — admin. Multi-section CSV of
+    the same data (BOM, csv-module escaping): [每日下载] / [Top 用户] /
+    [Top 数据] / [近7天 vs 前7天] blocks in one file.
+    """
+
+    @admin_required
+    def get(self):
+        days = _clamped_days()
+        stats = _collect_download_stats(days)
+        generated_at = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        payload = ("\ufeff" + _download_stats_csv(days, stats, generated_at)).encode("utf-8")
+        filename = f"download_stats_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.csv"
+        response = Response(payload, mimetype="text/csv")
+        response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
 
 
 class EmployeeDashboardResource(Resource):

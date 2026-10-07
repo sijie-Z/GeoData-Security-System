@@ -24,12 +24,21 @@
               :placeholder="$t('forensics.filterOperator')"
               clearable
               class="query-input"
+              @keyup.enter="queryDeliveries"
             />
             <el-input
               v-model="queryFid"
               :placeholder="$t('forensics.filterFingerprint')"
               clearable
               class="query-input"
+              @keyup.enter="queryDeliveries"
+            />
+            <el-input
+              v-model="queryUuid"
+              :placeholder="$t('forensics.filterUuid')"
+              clearable
+              class="query-input"
+              @keyup.enter="queryDeliveries"
             />
             <el-date-picker
               v-model="queryTimeRange"
@@ -46,7 +55,7 @@
 
           <el-table
             v-loading="deliveriesLoading"
-            :data="filteredDeliveries"
+            :data="deliveries"
             stripe
             class="delivery-table"
             :empty-text="$t('forensics.emptyDeliveries')"
@@ -380,36 +389,14 @@ const router = useRouter()
 
 const activeTab = ref('deliveries')
 
-// ── 交付台账（§5.16 四维检索：操作人 / 指纹 / 编号 / 时间）──
+// ── 交付台账（§5.16 四维检索：操作人 / 指纹 / 交付号 / 时间 —— 全部下推后端过滤）──
 const queryAppId = ref(null)
 const queryUser = ref('')
 const queryFid = ref('')
+const queryUuid = ref('')
 const queryTimeRange = ref(null)
 const deliveries = ref([])
 const deliveriesLoading = ref(false)
-
-const hasExtraFilters = computed(() =>
-  !!(queryUser.value || queryFid.value || (queryTimeRange.value && queryTimeRange.value.length === 2))
-)
-
-// 后端 deliveries 端点仅支持 application_id；四维过滤在前端做（带附加过滤时拉取 1000 条超集）
-const filteredDeliveries = computed(() => {
-  let rows = deliveries.value
-  const u = queryUser.value.trim().toLowerCase()
-  const f = queryFid.value.trim().toLowerCase()
-  const range = (queryTimeRange.value && queryTimeRange.value.length === 2) ? queryTimeRange.value : null
-  if (u) rows = rows.filter((r) => String(r.user_number || '').toLowerCase().includes(u))
-  if (f) rows = rows.filter((r) => `${r.fid_short || ''} ${r.fingerprint_id || ''}`.toLowerCase().includes(f))
-  if (range) {
-    const t0 = Date.parse(range[0])
-    const t1 = Date.parse(range[1])
-    rows = rows.filter((r) => {
-      const ts = Date.parse(r.created_at)
-      return !Number.isNaN(ts) && ts >= t0 && ts <= t1
-    })
-  }
-  return rows
-})
 
 // ── 泄漏取证 ──
 const selectedFile = ref(null)
@@ -494,10 +481,20 @@ const locateText = computed(() => {
 const queryDeliveries = async () => {
   deliveriesLoading.value = true
   try {
-    // application_id 为可选过滤条件：为空时列出全部交付
+    // 四维检索全部直连后端：application_id / user_number（精确）/ fingerprint_id（短前缀）/
+    // uuid（完整或前缀）/ 时间范围，可任意组合
     const params = {}
     if (queryAppId.value) params.application_id = queryAppId.value
-    if (hasExtraFilters.value) params.limit = 1000 // 四维检索：拉取超集后前端过滤
+    if (queryUser.value.trim()) params.user_number = queryUser.value.trim()
+    if (queryFid.value.trim()) params.fingerprint_id = queryFid.value.trim()
+    if (queryUuid.value.trim()) params.uuid = queryUuid.value.trim()
+    const range = queryTimeRange.value
+    if (range && range.length === 2) {
+      // 台账展示的 created_at 是 UTC 墙钟（如 2026-10-06T10:55:16Z），
+      // 故选择器值按 UTC 语义加 Z 后缀发送，与项目 utc_iso_z 惯例一致
+      params.time_from = `${range[0]}Z`
+      params.time_to = `${range[1]}Z`
+    }
     const res = await getDeliveries(params)
     const body = res?.data
     if (!body?.status) {
@@ -508,7 +505,7 @@ const queryDeliveries = async () => {
     deliveries.value = body.deliveries || []
   } catch (err) {
     console.error('Forensics deliveries query failed:', err)
-    ElMessage.error(t('forensics.fetchDeliveriesFailed'))
+    ElMessage.error(err?.response?.data?.msg || t('forensics.fetchDeliveriesFailed'))
   } finally {
     deliveriesLoading.value = false
   }

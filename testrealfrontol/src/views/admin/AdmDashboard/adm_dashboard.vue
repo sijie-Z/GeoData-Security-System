@@ -176,6 +176,101 @@
       </el-card>
     </section>
 
+    <!-- 下载统计（7/30/90 天切换）：逐日下载量 + 独立下载人数、两个 Top 小表 + 导出 CSV -->
+    <section class="download-stats-section">
+      <el-card shadow="hover" v-loading="dlStatsLoading">
+        <template #header>
+          <div class="dl-stats-header">
+            <span>{{ $t('adminDashboard.dlStatsTitle') }}</span>
+            <div class="dl-stats-actions">
+              <el-radio-group v-model="dlStatsDays" size="small" @change="fetchDownloadStats">
+                <el-radio-button :value="7">{{ $t('adminDashboard.day7') }}</el-radio-button>
+                <el-radio-button :value="30">{{ $t('adminDashboard.day30') }}</el-radio-button>
+                <el-radio-button :value="90">{{ $t('adminDashboard.day90') }}</el-radio-button>
+              </el-radio-group>
+              <el-button plain size="small" :icon="Download" :loading="dlStatsExporting" @click="exportDlStats">
+                {{ $t('adminDashboard.dlStatsExport') }}
+              </el-button>
+            </div>
+          </div>
+        </template>
+
+        <div class="dl-stats-summary">
+          <div class="dl-summary-item">
+            <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekDownloads') }}</span>
+            <span class="dl-summary-value">{{ dlComparison.this_week_downloads ?? 0 }}</span>
+            <el-tag size="small" :type="(dlComparison.downloads_growth ?? 0) >= 0 ? 'success' : 'danger'">
+              {{ (dlComparison.downloads_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.downloads_growth ?? 0 }}%
+            </el-tag>
+          </div>
+          <div class="dl-summary-item">
+            <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekUsers') }}</span>
+            <span class="dl-summary-value">{{ dlComparison.this_week_users ?? 0 }}</span>
+            <el-tag size="small" :type="(dlComparison.users_growth ?? 0) >= 0 ? 'success' : 'danger'">
+              {{ (dlComparison.users_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.users_growth ?? 0 }}%
+            </el-tag>
+          </div>
+        </div>
+
+        <v-chart
+          v-if="dlStats.daily.length > 0"
+          class="dl-stats-chart"
+          :option="dlStatsOption"
+          autoresize
+        />
+        <div v-else class="chart-empty dl-stats-chart">
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
+        </div>
+
+        <div class="dl-stats-tables">
+          <div class="dl-stats-table">
+            <h4 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopUsers') }}</h4>
+            <el-table :data="dlStats.top_users" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
+              <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
+                <template #default="{ $index }">
+                  <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('adminDashboard.colUser')" min-width="150" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="dl-user">{{ row.name || row.user_number || '—' }}</span>
+                  <span v-if="row.name && row.user_number" class="dl-user-number">{{ row.user_number }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('adminDashboard.colCount')" width="90" align="right">
+                <template #default="{ row }"><span class="dl-num">{{ row.downloads ?? 0 }}</span></template>
+              </el-table-column>
+            </el-table>
+          </div>
+          <div class="dl-stats-table">
+            <h4 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopData') }}</h4>
+            <el-table :data="dlStats.top_data" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
+              <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
+                <template #default="{ $index }">
+                  <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('adminDashboard.colDataName')" min-width="180" show-overflow-tooltip>
+                <template #default="{ row }">
+                  <span class="dl-user">{{ row.data_name || $t('adminDashboard.untitled') }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('adminDashboard.colDataType')" width="90" align="center">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.data_type === 'vector' ? 'primary' : (row.data_type === 'raster' ? 'success' : 'info')">
+                    {{ dlTypeLabel(row.data_type) }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column :label="$t('adminDashboard.colCount')" width="90" align="right">
+                <template #default="{ row }"><span class="dl-num">{{ row.downloads ?? 0 }}</span></template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </div>
+      </el-card>
+    </section>
+
     <!-- 管理员审批效率 -->
     <section class="full-chart-section">
       <el-card shadow="hover">
@@ -256,7 +351,8 @@ import { ref, computed, onMounted, onActivated, onDeactivated, onBeforeUnmount }
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';
 import { useRouter } from 'vue-router';
-import { getDashboard } from '@/api/admin';
+import { ElMessage } from 'element-plus';
+import { getDashboard, getDownloadStats, exportDownloadStats } from '@/api/admin';
 import {
   User, Clock, FolderOpened, TrendCharts, Download, RefreshRight,
   Document, UserFilled, List, ChatDotRound, Upload
@@ -302,6 +398,20 @@ const hotData = ref([]);
 const hourlyActivity = ref([]);
 const adminEfficiency = ref([]);
 const alerts = ref([]);
+
+// ── 下载统计区块（7/30/90 天切换，独立于主仪表盘按需拉取） ──
+const dlStatsDays = ref(7);
+const dlStatsLoading = ref(false);
+const dlStatsExporting = ref(false);
+const dlStats = ref({ daily: [], top_users: [], top_data: [] });
+const dlComparison = ref({
+  this_week_downloads: 0,
+  last_week_downloads: 0,
+  downloads_growth: 0,
+  this_week_users: 0,
+  last_week_users: 0,
+  users_growth: 0
+});
 
 const greeting = computed(() => {
   const h = new Date().getHours();
@@ -809,7 +919,124 @@ const efficiencyOption = computed(() => {
 });
 
 const goTo = (path) => router.push(path);
-const refreshNow = () => fetchDashboard();
+const refreshNow = () => {
+  fetchDashboard();
+  fetchDownloadStats();
+};
+
+// ── 下载统计：数据拉取 / 图表 option（沿用本页 ECharts + 深浅色 palette 惯例） ──
+const dlTypeLabel = (dataType) => {
+  if (dataType === 'vector') return t('adminDashboard.vector');
+  if (dataType === 'raster') return t('adminDashboard.raster');
+  return t('adminDashboard.dlStatsUnknownType');
+};
+
+const fetchDownloadStats = async () => {
+  dlStatsLoading.value = true;
+  try {
+    const res = await getDownloadStats({ days: dlStatsDays.value });
+    const data = res.data?.data || {};
+    dlStats.value = {
+      daily: Array.isArray(data.daily) ? data.daily : [],
+      top_users: Array.isArray(data.top_users) ? data.top_users : [],
+      top_data: Array.isArray(data.top_data) ? data.top_data : []
+    };
+    if (data.comparison) dlComparison.value = data.comparison;
+  } catch (err) {
+    console.error('获取下载统计失败:', err);
+  } finally {
+    dlStatsLoading.value = false;
+  }
+};
+
+const dlStatsOption = computed(() => {
+  const dates = dlStats.value.daily.map(i => i.date);
+  const dlData = dlStats.value.daily.map(i => i.downloads || 0);
+  const userData = dlStats.value.daily.map(i => i.users || 0);
+
+  return {
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: chartColors.value.tooltipBg,
+      borderColor: chartColors.value.tooltipBorder,
+      borderWidth: 1,
+      textStyle: { color: chartColors.value.tooltipText, fontSize: 13 }
+    },
+    legend: {
+      bottom: 0, icon: 'roundRect', itemWidth: 12, itemHeight: 4,
+      textStyle: { color: chartColors.value.legendText, fontSize: 12 }
+    },
+    grid: { top: 24, bottom: 52, left: 48, right: 48 },
+    xAxis: {
+      type: 'category', data: dates,
+      axisLine: { lineStyle: { color: chartColors.value.axisLine } },
+      axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 },
+      axisTick: { show: false }
+    },
+    yAxis: [
+      {
+        type: 'value',
+        splitLine: { lineStyle: { color: chartColors.value.splitLine, type: 'dashed' } },
+        axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
+      },
+      {
+        type: 'value', minInterval: 1,
+        splitLine: { show: false },
+        axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
+      }
+    ],
+    series: [
+      {
+        name: t('adminDashboard.dlStatsDownloads'), type: 'line', smooth: true,
+        data: dlData, symbol: 'circle', symbolSize: 6,
+        lineStyle: { width: 2.5, color: C.value.green[0] },
+        itemStyle: { color: C.value.green[0] },
+        areaStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexA(C.value.green[0], 0.28) },
+            { offset: 1, color: hexA(C.value.green[0], 0.02) }
+          ])
+        }
+      },
+      {
+        name: t('adminDashboard.dlStatsUniqueUsers'), type: 'bar', yAxisIndex: 1,
+        data: userData, barMaxWidth: 22,
+        itemStyle: {
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: hexA(C.value.cyan[0], 0.75) },
+            { offset: 1, color: hexA(C.value.cyan[0], 0.25) }
+          ]),
+          borderRadius: [3, 3, 0, 0]
+        }
+      }
+    ]
+  };
+});
+
+// 导出 CSV：文件名优先取服务端 Content-Disposition（同 AnchorCenter 惯例）
+const exportDlStats = async () => {
+  dlStatsExporting.value = true;
+  try {
+    const res = await exportDownloadStats({ days: dlStatsDays.value });
+    const cd = res?.headers?.['content-disposition'] || '';
+    const match = /filename="?([^";]+)"?/i.exec(cd);
+    const filename = match ? decodeURIComponent(match[1]) : `download_stats_${Date.now()}.csv`;
+    const url = URL.createObjectURL(new Blob([res.data], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    ElMessage.success(t('adminDashboard.dlStatsExportSuccess'));
+  } catch (err) {
+    console.error('导出下载统计失败:', err);
+    ElMessage.error(t('adminDashboard.dlStatsExportFailed'));
+  } finally {
+    dlStatsExporting.value = false;
+  }
+};
 
 const exportSnapshot = () => {
   const payload = {
@@ -832,12 +1059,18 @@ const exportSnapshot = () => {
 // ── keep-alive 兼容：图表由 v-chart 组件托管（deactivate 保持挂载，unmount 自动销毁，autoresize 处理尺寸） ──
 onMounted(async () => {
   // Vue 3.4 keep-alive 下 onActivated 有时不触发，用 onMounted 兜底
-  await fetchDashboard();
-  autoRefreshTimer = setInterval(fetchDashboard, 60000);
+  await Promise.all([fetchDashboard(), fetchDownloadStats()]);
+  autoRefreshTimer = setInterval(() => {
+    fetchDashboard();
+    fetchDownloadStats();
+  }, 60000);
 });
 onActivated(async () => {
-  await fetchDashboard();
-  autoRefreshTimer = setInterval(fetchDashboard, 60000);
+  await Promise.all([fetchDashboard(), fetchDownloadStats()]);
+  autoRefreshTimer = setInterval(() => {
+    fetchDashboard();
+    fetchDownloadStats();
+  }, 60000);
 });
 
 onDeactivated(() => {
@@ -929,12 +1162,30 @@ onBeforeUnmount(() => {
 
 .empty-tip { text-align: center; padding: 20px; color: var(--text-tertiary, #909399); font-size: 13px; }
 
+/* 下载统计区块 */
+.download-stats-section { margin-bottom: 24px; }
+.dl-stats-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.dl-stats-actions { display: flex; align-items: center; gap: 12px; }
+.dl-stats-summary { display: flex; gap: 48px; padding: 4px 0 12px; flex-wrap: wrap; }
+.dl-summary-item { display: flex; align-items: center; gap: 10px; }
+.dl-summary-label { font-size: 13px; color: var(--text-tertiary, #909399); }
+.dl-summary-value { font-size: 26px; font-weight: 600; color: var(--text-primary, #303133); font-variant-numeric: tabular-nums; }
+.dl-stats-chart { height: 280px; }
+.dl-stats-tables { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; }
+.dl-table-title { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary, #666666); }
+.dl-rank { width: 22px; height: 22px; border-radius: 4px; background: var(--bg-tertiary, #e4e7ed); display: inline-flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-tertiary, #909399); }
+.dl-rank.top { background: var(--primary-500, #409EFF); color: #fff; }
+.dl-user { font-size: 13px; color: var(--text-primary, #303133); }
+.dl-user-number { margin-left: 8px; font-size: 12px; color: var(--text-tertiary, #909399); }
+.dl-num { font-variant-numeric: tabular-nums; font-weight: 600; }
+
 /* 响应式 */
 @media (max-width: 1200px) {
   .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   .charts-grid { grid-template-columns: 1fr; }
   .bottom-grid { grid-template-columns: 1fr; }
   .action-grid { grid-template-columns: repeat(3, 1fr); }
+  .dl-stats-tables { grid-template-columns: 1fr; }
 }
 
 .skeleton-hero {

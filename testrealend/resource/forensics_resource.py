@@ -2,7 +2,7 @@
 
   POST /api/forensics/verify              multipart file | JSON {qr_text}
   POST /api/forensics/trace               same inputs (+ optional application_id) + provenance
-  GET  /api/forensics/deliveries          ?application_id=  (admin or owner)
+  GET  /api/forensics/deliveries          ?application_id=&user_number=&fingerprint_id=&uuid=&time_from=&time_to=&limit=  (admin or owner)
   GET  /api/forensics/deliveries/<uuid>   (admin or owner)
   POST /api/forensics/anchor/build        (admin; optional body {"provider": "ots"|"evm"})
   GET  /api/forensics/anchors             ?page=&page_size=  (admin) batch ledger + summary
@@ -54,7 +54,7 @@ from model.evidence_event import EvidenceEvent
 from resource.watermark_utils import QR_SECRET_KEY, decode_qr_from_image
 from resource.watermark_utils import parse_qr_text as parse_v1_lines
 from utils.required import admin_required
-from utils.time_fmt import utc_iso_z
+from utils.time_fmt import parse_utc_iso, utc_iso_z
 
 V1_BANNER = "=== SPATIAL DATA TRACKING SYSTEM ==="
 CANDIDATE_LIMIT = 50
@@ -158,6 +158,12 @@ def _as_utc(dt):
     if dt is None:
         return None
     return dt.replace(tzinfo=UTC) if dt.tzinfo is None else dt.astimezone(UTC)
+
+
+def _like_prefix(value):
+    """Escape LIKE wildcards so a user-supplied value matches literally as a
+    prefix (short fid / uuid fragments are user input, not patterns)."""
+    return value.replace("\\", "\\\\").replace("%", r"\%").replace("_", r"\_")
 
 
 def _chain_summary(stream_id):
@@ -704,7 +710,18 @@ def _identity_and_admin():
 
 
 class ForensicsDeliveriesResource(Resource):
-    """GET /api/forensics/deliveries?application_id= — admin or owner."""
+    """GET /api/forensics/deliveries — admin or owner.
+
+    Optional, combinable filters: ``application_id`` (exact), ``user_number``
+    (exact), ``fingerprint_id`` (case-insensitive prefix — short fids work),
+    ``uuid`` (exact or prefix), ``time_from``/``time_to`` (ISO8601, project
+    utc_iso_z convention, applied to ``created_at``; invalid -> 400).
+    ``limit`` defaults to 200 and clamps invalid/out-of-range values to 200.
+
+    Employee semantics are unchanged: the caller's own rows are the bound base
+    set, and every requested filter is intersected on top of it — passing
+    another user's number can never widen the result.
+    """
 
     @jwt_required()
     def get(self):
@@ -713,19 +730,42 @@ class ForensicsDeliveriesResource(Resource):
         application_id = request.args.get("application_id", type=int)
         if application_id:
             query = query.filter_by(application_id=application_id)
+
+        user_number = request.args.get("user_number")
+        if user_number:
+            query = query.filter_by(user_number=user_number)
+
+        fingerprint_id = request.args.get("fingerprint_id")
+        if fingerprint_id:
+            prefix = _like_prefix(fingerprint_id.strip().lower())
+            query = query.filter(DownloadDelivery.fingerprint_id.like(f"{prefix}%", escape="\\"))
+
+        delivery_uuid = request.args.get("uuid")
+        if delivery_uuid:
+            # prefix LIKE also covers the exact full uuid
+            prefix = _like_prefix(delivery_uuid.strip().lower())
+            query = query.filter(DownloadDelivery.uuid.like(f"{prefix}%", escape="\\"))
+
+        try:
+            time_from = request.args.get("time_from")
+            if time_from:
+                query = query.filter(DownloadDelivery.created_at >= parse_utc_iso(time_from))
+            time_to = request.args.get("time_to")
+            if time_to:
+                query = query.filter(DownloadDelivery.created_at <= parse_utc_iso(time_to))
+        except ValueError:
+            return {"status": False, "msg": "时间参数格式非法（应为 ISO8601，如 2026-01-02T04:29:30Z）"}, 400
+
         # Bounded result set: default 200, clamp invalid/out-of-range to 200.
         limit = request.args.get("limit", default=200, type=int)
         if limit is None or limit < 1 or limit > 1000:
             limit = 200
-        if is_admin:
-            deliveries = query.order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
-        else:
+        if not is_admin:
             number = identity.get("number")
             if not number:
                 return {"status": False, "msg": "需要管理员权限"}, 403
-            deliveries = (
-                query.filter_by(user_number=number).order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
-            )
+            query = query.filter_by(user_number=number)
+        deliveries = query.order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
 
         items = []
         for delivery in deliveries:

@@ -9,7 +9,12 @@
       <template #header>
         <div class="card-header">
           <span class="card-title">{{ $t('adminLogViewer.logList') }}</span>
-          <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
+          <div class="card-header-actions">
+            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportLogs">
+              {{ $t('adminLogViewer.exportCsv') }}
+            </el-button>
+            <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
+          </div>
         </div>
       </template>
 
@@ -112,13 +117,14 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Search, RefreshRight, RefreshLeft, User, UserFilled } from '@element-plus/icons-vue'
+import { Search, RefreshRight, RefreshLeft, Download, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getSystemLogs } from '@/api/admin'
+import { getSystemLogs, exportSystemLogs } from '@/api/admin'
 
 const { t } = useI18n()
 
 const loading = ref(false)
+const exporting = ref(false)
 const logList = ref([])
 const total = ref(0)
 const currentPage = ref(1)
@@ -188,6 +194,35 @@ const formatDetails = (details) => {
   return String(details);
 };
 
+// 导出 CSV：携带当前筛选参数（与列表同一套过滤），文件名优先取服务端 Content-Disposition
+const exportLogs = async () => {
+  exporting.value = true;
+  try {
+    const response = await exportSystemLogs({
+      username: filters.username || undefined,
+      user_number: filters.user_number || undefined,
+      action: filters.action || undefined
+    });
+    const cd = response?.headers?.['content-disposition'] || '';
+    const match = /filename="?([^";]+)"?/i.exec(cd);
+    const filename = match ? decodeURIComponent(match[1]) : `audit_logs_${Date.now()}.csv`;
+    const url = URL.createObjectURL(new Blob([response.data], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    ElMessage.success(t('adminLogViewer.exportSuccess'));
+  } catch (err) {
+    console.error('exportLogs error', err);
+    ElMessage.error(err.response?.data?.msg || t('adminLogViewer.exportFailed'));
+  } finally {
+    exporting.value = false;
+  }
+};
+
 onMounted(() => fetchLogs());
 </script>
 
@@ -219,6 +254,11 @@ onMounted(() => fetchLogs());
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+.card-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 .card-title {
   font-size: 16px;
