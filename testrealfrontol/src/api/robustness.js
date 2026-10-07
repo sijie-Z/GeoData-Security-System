@@ -27,7 +27,9 @@ export const getRobustnessRun = (runId) => axios.get(`/api/robustness/runs/${run
  * Queue one (scheme x attack x trial) matrix run against a dataset.
  * Returns 202 with { run_id, total (cells x trials), trials }; 409 when a run
  * is already in flight; 400 when trials is outside 1-10 or cells x trials > 200.
- * @param {Object} data - { data_id: int, schemes?: string[], attacks?: string[], trials?: int }
+ * kind 'vector' requires data_id (vector source file); kind 'raster' ignores
+ * data_id — the host is a programmatically generated 512x512 test GeoTIFF.
+ * @param {Object} data - { kind?: 'vector'|'raster', data_id?: int (vector only), schemes?: string[], attacks?: string[], trials?: int }
  * @returns {Promise<AxiosResponse>}
  */
 export const startRobustnessRun = (data) => axios.post('/api/robustness/run', data, START_CONFIG)

@@ -2,17 +2,20 @@
   <div>
     <div class="data-type-tabs" style="margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
       <span class="data-type-label">{{ $t('wmEmbed.dataTypeLabel') }}</span>
-      <div v-if="hasRasterData" style="display: flex; align-items: center; gap: 8px;">
-        <span style="font-size: 13px; color: #64748b;">{{ $t('wmEmbed.algorithm') || 'Algorithm' }}:</span>
-        <el-select v-model="selectedAlgorithm" size="small" style="width: 180px;">
-          <el-option label="LSB (Reversible)" value="lsb" />
-          <el-option label="DWT (Frequency)" value="dwt" />
-          <el-option label="Histogram Shift" value="histogram" />
-          <el-option :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant)'" value="blind" />
-        </el-select>
-        <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
-          <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
-        </el-tooltip>
+      <div v-if="hasRasterData" class="algo-block">
+        <div class="algo-row">
+          <span class="algo-label">{{ $t('wmEmbed.algorithm') || 'Algorithm' }}:</span>
+          <el-select v-model="selectedAlgorithm" size="small" style="width: 180px;">
+            <el-option label="LSB (Reversible)" value="lsb" />
+            <el-option label="DWT (Frequency)" value="dwt" />
+            <el-option label="Histogram Shift" value="histogram" />
+            <el-option :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant, needs large image)'" value="blind" />
+          </el-select>
+          <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
+            <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
+          </el-tooltip>
+        </div>
+        <p class="algo-host-hint">{{ $t('wmEmbed.algorithmHostHint') }}</p>
       </div>
     </div>
     <el-table :data="data.list" border style="width: 100%" v-loading="loading">
@@ -471,6 +474,31 @@ const handleClose = (dialogType, done) => {
 </script>
 
 <style scoped>
+
+/* 栅格算法选择块：行内选择器 + 宿主约束提示行 */
+.algo-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.algo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.algo-label {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.algo-host-hint {
+  margin: 0;
+  font-size: 12px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
 
 .qr-code-image {
   width: 72px;

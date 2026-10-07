@@ -56,32 +56,21 @@
         <span class="kpi-note">{{ baselineNoteText }}</span>
       </div>
 
-      <div class="kpi-card">
+      <div v-for="(scheme, i) in kpiPair" :key="scheme" class="kpi-card">
         <span class="kpi-label">
-          {{ $t('robustnessLab.scheme.legacy') }}
-          <el-tooltip :content="$t('robustnessLab.schemeDesc.legacy')" placement="top" :show-after="120">
+          {{ schemeLabel(scheme) }}
+          <el-tooltip :content="$t(`robustnessLab.schemeDesc.${scheme}`)" placement="top" :show-after="120">
             <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
           </el-tooltip>
         </span>
-        <span class="kpi-value mono-num">{{ schemeValueText('legacy') }}</span>
-        <span class="kpi-note">{{ schemeNoteText('legacy') }}</span>
-      </div>
-
-      <div class="kpi-card">
-        <span class="kpi-label">
-          {{ $t('robustnessLab.scheme.dqim1') }}
-          <el-tooltip :content="$t('robustnessLab.schemeDesc.dqim1')" placement="top" :show-after="120">
-            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
-          </el-tooltip>
-        </span>
-        <span class="kpi-value mono-num">{{ schemeValueText('dqim1') }}</span>
-        <span class="kpi-note">{{ schemeNoteText('dqim1') }}</span>
+        <span class="kpi-value mono-num">{{ schemeValueText(i) }}</span>
+        <span class="kpi-note">{{ schemeNoteText(i) }}</span>
       </div>
 
       <div class="kpi-card is-win">
         <span class="kpi-label">
           {{ $t('robustnessLab.kpiWinLabel') }}
-          <el-tooltip :content="$t('robustnessLab.kpiWinDesc')" placement="top" :show-after="120">
+          <el-tooltip :content="kpiWinDescText" placement="top" :show-after="120">
             <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
           </el-tooltip>
         </span>
@@ -99,42 +88,53 @@
         <h4 class="card-title">{{ $t('robustnessLab.runTitle') }}</h4>
 
         <div class="form-row">
-          <label class="form-label">{{ $t('robustnessLab.dataLabel') }}</label>
-          <el-select
-            v-model="selectedDataId"
-            class="data-select"
-            filterable
-            clearable
-            :loading="dataLoading"
-            :placeholder="$t('robustnessLab.dataPlaceholder')"
-          >
-            <el-option
-              v-for="d in vectorDataList"
-              :key="d.data_id"
-              :label="dataOptionLabel(d)"
-              :value="d.data_id"
-            />
-          </el-select>
+          <label class="form-label">{{ $t('robustnessLab.kindLabel') }}</label>
+          <el-radio-group v-model="runKind" class="kind-segment">
+            <el-radio-button value="vector">{{ $t('robustnessLab.kind.vector') }}</el-radio-button>
+            <el-radio-button value="raster">{{ $t('robustnessLab.kind.raster') }}</el-radio-button>
+          </el-radio-group>
         </div>
 
-        <div class="form-row">
-          <label class="form-label">{{ $t('robustnessLab.dataIdLabel') }}</label>
-          <el-input-number
-            v-model="manualDataId"
-            class="data-id-input"
-            :min="1"
-            :step="1"
-            :controls="false"
-            placeholder="data_id"
-          />
-        </div>
-        <p class="form-hint">{{ $t('robustnessLab.dataIdHint') }}</p>
+        <template v-if="runKind === 'vector'">
+          <div class="form-row">
+            <label class="form-label">{{ $t('robustnessLab.dataLabel') }}</label>
+            <el-select
+              v-model="selectedDataId"
+              class="data-select"
+              filterable
+              clearable
+              :loading="dataLoading"
+              :placeholder="$t('robustnessLab.dataPlaceholder')"
+            >
+              <el-option
+                v-for="d in vectorDataList"
+                :key="d.data_id"
+                :label="dataOptionLabel(d)"
+                :value="d.data_id"
+              />
+            </el-select>
+          </div>
+
+          <div class="form-row">
+            <label class="form-label">{{ $t('robustnessLab.dataIdLabel') }}</label>
+            <el-input-number
+              v-model="manualDataId"
+              class="data-id-input"
+              :min="1"
+              :step="1"
+              :controls="false"
+              placeholder="data_id"
+            />
+          </div>
+          <p class="form-hint">{{ $t('robustnessLab.dataIdHint') }}</p>
+        </template>
+        <p v-else class="form-hint is-kind">{{ $t('robustnessLab.hostLineRaster') }}</p>
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.schemesLabel') }}</label>
           <el-checkbox-group v-model="selectedSchemes" class="check-group">
-            <el-checkbox v-for="s in SCHEMES" :key="s" :value="s" class="check-item">
-              {{ $t(`robustnessLab.scheme.${s}`) }}
+            <el-checkbox v-for="s in kindSchemeOptions" :key="s" :value="s" class="check-item">
+              {{ schemeLabel(s) }}
             </el-checkbox>
           </el-checkbox-group>
         </div>
@@ -142,8 +142,8 @@
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.attacksLabel') }}</label>
           <el-checkbox-group v-model="selectedAttacks" class="check-group">
-            <el-checkbox v-for="a in ATTACKS" :key="a" :value="a" class="check-item">
-              {{ $t(`robustnessLab.attack.${a}`) }}
+            <el-checkbox v-for="a in kindAttackOptions" :key="a" :value="a" class="check-item">
+              {{ attackLabel(a, runKind) }}
             </el-checkbox>
           </el-checkbox-group>
         </div>
@@ -182,6 +182,13 @@
           <el-table-column :label="$t('robustnessLab.colRunId')" min-width="130">
             <template #default="{ row }">
               <HashText :value="row.run_id" :head="8" :tail="4" />
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('robustnessLab.colKind')" width="76" align="center">
+            <template #default="{ row }">
+              <span class="kind-badge" :class="`is-${historyKind(row)}`">
+                {{ $t(`robustnessLab.kind.${historyKind(row)}`) }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column :label="$t('robustnessLab.colDataRef')" min-width="100">
@@ -373,19 +380,21 @@
                     <template v-if="cellMultiTrial(row.cells[idx])">
                       <div>{{ $t('robustnessLab.tipMeanNc') }}: {{ formatMeanNc(row.cells[idx]) }}</div>
                       <div>{{ $t('robustnessLab.tipStdNc') }}: {{ formatStdNc(row.cells[idx]) }}</div>
-                      <div
-                        v-for="r in row.cells[idx].rows"
-                        :key="r.trial ?? 0"
-                        class="tip-trial-line"
-                      >
-                        {{ $t('robustnessLab.tipTrial', { n: r.trial ?? 1 }) }}:
-                        {{ trialResultText(r) }} · {{ formatParams(r.attack_params) }}
-                      </div>
+                      <template v-for="r in row.cells[idx].rows" :key="r.trial ?? 0">
+                        <div class="tip-trial-line">
+                          {{ $t('robustnessLab.tipTrial', { n: r.trial ?? 1 }) }}:
+                          {{ trialResultText(r) }} · {{ formatParams(r.attack_params) }}
+                        </div>
+                        <div v-if="r.error" class="tip-trial-error">{{ r.error }}</div>
+                      </template>
                     </template>
                     <template v-else>
                       <div>{{ $t('robustnessLab.tipParams') }}: {{ formatParams(cellSingleRow(row.cells[idx]).attack_params) }}</div>
                       <div>BER: {{ formatBer(cellSingleRow(row.cells[idx]).ber) }}</div>
                       <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(cellSingleRow(row.cells[idx]).duration_ms) }}</div>
+                      <div v-if="cellSingleRow(row.cells[idx]).error" class="tip-trial-error">
+                        {{ $t('robustnessLab.tipError') }}: {{ cellSingleRow(row.cells[idx]).error }}
+                      </div>
                     </template>
                     <div class="tip-metric-hint">{{ $t('robustnessLab.metricNcShort') }}</div>
                     <div class="tip-metric-hint">{{ $t('robustnessLab.metricBerShort') }}</div>
@@ -403,7 +412,7 @@
 
         <p class="footnote">
           <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
-          <span>{{ $t('robustnessLab.methodBoundary') }}</span>
+          <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.methodBoundaryRaster') : $t('robustnessLab.methodBoundary') }}</span>
         </p>
         <p class="footnote">
           <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
@@ -420,7 +429,7 @@
                 <p v-for="(sentence, i) in verdictSentences" :key="i" class="verdict-line">{{ sentence }}</p>
               </template>
               <p v-else-if="!verdictComparable" class="verdict-line is-muted">
-                {{ $t('robustnessLab.verdictNotComparable') }}
+                {{ runMeta.kind === 'raster' ? $t('robustnessLab.verdictNotComparableRaster') : $t('robustnessLab.verdictNotComparable') }}
               </p>
               <p v-else class="verdict-line is-muted">
                 {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
@@ -430,7 +439,7 @@
           <div v-if="verdictComparable" class="verdict-stat">
             <span class="verdict-stat-label">{{ $t('robustnessLab.verdictStatLabel') }}</span>
             <span class="verdict-stat-value mono-num">
-              {{ verdictStatLegacy }} <i>→</i> {{ verdictStatDqim }}
+              {{ verdictStatA }} <i>→</i> {{ verdictStatB }}
             </span>
           </div>
           <div class="verdict-tags">
@@ -521,11 +530,13 @@ const { t } = useI18n()
 // 与后端白名单同名同序（schemes 决定矩阵行、attacks 决定矩阵列）
 const SCHEMES = ['legacy', 'dqim1']
 const ATTACKS = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify']
-
-// 矩阵行/列顺序（含栅格 kind 的白名单，历史里点到栅格运行也能如实成表）
-const SCHEME_ORDER = ['legacy', 'dqim1', 'lsb', 'dwt', 'histogram', 'blind']
-const ATTACK_ORDER = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify', 'jpeg', 'resize', 'crop', 'rotate', 'blur']
+// 栅格 kind：宿主由后端程序化生成（512×512 GeoTIFF，data_id 忽略）；
+// 攻击默认勾选含 blur（后端白名单支持，已实测 202 接受）
+const RASTER_SCHEMES = ['lsb', 'dwt', 'histogram', 'blind']
+const RASTER_ATTACKS = ['none', 'jpeg', 'resize', 'crop', 'rotate', 'noise', 'blur']
 const RASTER_ONLY_ATTACKS = new Set(['jpeg', 'resize', 'crop', 'rotate', 'blur'])
+// 实验规模上限（与后端 MAX_MATRIX_ROWS 一致）：格子数 × 试验次数 ≤ 200
+const MAX_MATRIX_ROWS = 200
 
 // 试验次数选项（1 = 文档化默认参数；>1 = 每格 N 次参数抖动试验，seed 固定可复现）
 const TRIAL_OPTIONS = [1, 3, 5, 10]
@@ -536,6 +547,7 @@ const COUNT_UP_MS = 160
 const STAGGER_STEP_MS = 30
 
 // ── 运行控制状态 ──
+const runKind = ref('vector')
 const vectorDataList = ref([])
 const dataLoading = ref(false)
 const selectedDataId = ref(null)
@@ -544,6 +556,22 @@ const selectedSchemes = ref([...SCHEMES])
 const selectedAttacks = ref([...ATTACKS])
 const selectedTrials = ref(1)
 const startLoading = ref(false)
+
+// 各 kind 分开记住勾选；切换"数据类型"时恢复对应 kind 的选择
+const kindSelections = {
+  vector: { schemes: [...SCHEMES], attacks: [...ATTACKS] },
+  raster: { schemes: [...RASTER_SCHEMES], attacks: [...RASTER_ATTACKS] },
+}
+watch(runKind, (nv, ov) => {
+  kindSelections[ov].schemes = [...selectedSchemes.value]
+  kindSelections[ov].attacks = [...selectedAttacks.value]
+  selectedSchemes.value = [...kindSelections[nv].schemes]
+  selectedAttacks.value = [...kindSelections[nv].attacks]
+})
+
+// 发起卡的方案/攻击选项随"数据类型"切换
+const kindSchemeOptions = computed(() => (runKind.value === 'raster' ? RASTER_SCHEMES : SCHEMES))
+const kindAttackOptions = computed(() => (runKind.value === 'raster' ? RASTER_ATTACKS : ATTACKS))
 
 // ── 历史列表状态 ──
 const runs = ref([])
@@ -692,28 +720,40 @@ const resolvedDataId = computed(() => {
 })
 
 const startRun = async () => {
-  const dataId = resolvedDataId.value
-  if (dataId === null) {
-    ElMessage.warning(t('robustnessLab.dataRequired'))
-    return
-  }
-  if (!Number.isInteger(dataId) || dataId <= 0) {
-    ElMessage.warning(t('robustnessLab.dataIdInvalid'))
-    return
+  const isRaster = runKind.value === 'raster'
+  let dataId = null
+  if (!isRaster) {
+    dataId = resolvedDataId.value
+    if (dataId === null) {
+      ElMessage.warning(t('robustnessLab.dataRequired'))
+      return
+    }
+    if (!Number.isInteger(dataId) || dataId <= 0) {
+      ElMessage.warning(t('robustnessLab.dataIdInvalid'))
+      return
+    }
   }
   if (!selectedSchemes.value.length || !selectedAttacks.value.length) {
     ElMessage.warning(t('robustnessLab.comboRequired'))
     return
   }
+  const cells = selectedSchemes.value.length * selectedAttacks.value.length
+  if (cells * selectedTrials.value > MAX_MATRIX_ROWS) {
+    ElMessage.warning(t('robustnessLab.scaleLimit', { cells, trials: selectedTrials.value }))
+    return
+  }
 
   startLoading.value = true
   try {
-    const res = await startRobustnessRun({
-      data_id: dataId,
+    const payload = {
+      kind: runKind.value,
       schemes: [...selectedSchemes.value],
       attacks: [...selectedAttacks.value],
       trials: selectedTrials.value,
-    })
+    }
+    // data_id 仅矢量必填；栅格宿主由后端程序化生成（data_id 忽略）
+    if (!isRaster) payload.data_id = dataId
+    const res = await startRobustnessRun(payload)
     const body = res.data
     if (body?.status && body.data?.run_id) {
       ElMessage.success(t('robustnessLab.startOk', { total: body.data.total }))
@@ -741,6 +781,9 @@ const onRunRowClick = (row) => {
   loadRun(row.run_id)
 }
 
+// 历史行 kind 徽章（后端列表已带 kind 字段；缺省按矢量）
+const historyKind = (row) => (row.kind === 'raster' ? 'raster' : 'vector')
+
 const runStatusText = (row) => {
   if (row.error && row.done < row.total) return t('robustnessLab.statusError')
   if (row.total > 0 && row.done >= row.total) return t('robustnessLab.statusDone')
@@ -767,22 +810,21 @@ const refreshAll = async () => {
 }
 
 // ──────────────────────────────────────
-//  结果矩阵（行/列从 run rows 推导，未知方案/攻击也能如实成表）
+//  结果矩阵（行/列一律从 run rows 推导——按首次出现顺序 = 后端入库顺序，
+//  不绑定任何 kind 的方案/攻击常量，未知值也能如实成表）
 // ──────────────────────────────────────
 
-const matrixSchemes = computed(() => {
-  const present = new Set(runRows.value.map((r) => r.scheme))
-  const known = SCHEME_ORDER.filter((s) => present.has(s))
-  const unknown = [...present].filter((s) => !SCHEME_ORDER.includes(s)).sort()
-  return [...known, ...unknown]
-})
+const firstSeenValues = (key) => {
+  const seen = []
+  for (const r of runRows.value) {
+    if (!seen.includes(r[key])) seen.push(r[key])
+  }
+  return seen
+}
 
-const matrixAttacks = computed(() => {
-  const present = new Set(runRows.value.map((r) => r.attack))
-  const known = ATTACK_ORDER.filter((a) => present.has(a))
-  const unknown = [...present].filter((a) => !ATTACK_ORDER.includes(a)).sort()
-  return [...known, ...unknown]
-})
+const matrixSchemes = computed(() => firstSeenValues('scheme'))
+
+const matrixAttacks = computed(() => firstSeenValues('attack'))
 
 // (scheme|attack) -> 行数组（按 trial 升序）；试验次数 > 1 时每格多行
 const rowsByCell = computed(() => {
@@ -901,14 +943,16 @@ const progressPct = computed(() => {
 //  攻击词典 / 源码抽屉
 // ──────────────────────────────────────
 
-const attackKind = (attack) => {
+// 攻击名/词典的 kind 归属：栅格专属攻击（jpeg/resize/crop/rotate/blur）始终按栅格，
+// noise 按调用方上下文（默认=当前加载 run 的 kind；发起卡传表单选择的 kind）
+const attackKind = (attack, kind = runMeta.value?.kind ?? 'vector') => {
   if (RASTER_ONLY_ATTACKS.has(attack)) return 'raster'
-  if (attack === 'noise') return runMeta.value?.kind === 'raster' ? 'raster' : 'vector'
+  if (attack === 'noise') return kind === 'raster' ? 'raster' : 'vector'
   return 'vector'
 }
 
-const attackLabel = (attack) =>
-  attackKind(attack) === 'raster'
+const attackLabel = (attack, kind) =>
+  attackKind(attack, kind) === 'raster'
     ? t(`robustnessLab.attackRaster.${attack}`)
     : t(`robustnessLab.attack.${attack}`)
 
@@ -972,6 +1016,19 @@ const openAttackCode = async (attack) => {
 //  Hero KPI 带（全部数字从 run rows 推导；无 run → 空态）
 // ──────────────────────────────────────
 
+// KPI / 结论卡对比的一对方案：矢量 = 旧方案 vs D-QIM；栅格 = 该 run 的前两个方案（数据推导）
+const kpiPair = computed(() => {
+  if (runMeta.value?.kind === 'raster') {
+    const pair = matrixSchemes.value.slice(0, 2)
+    for (const s of RASTER_SCHEMES) {
+      if (pair.length >= 2) break
+      if (!pair.includes(s)) pair.push(s)
+    }
+    return pair
+  }
+  return ['legacy', 'dqim1']
+})
+
 const cellMeanNc = (scheme, attack) => {
   const rows = rowsByCell.value[`${scheme}|${attack}`]
   if (!rows || !rows.length) return null
@@ -993,8 +1050,9 @@ const kpi = computed(() => {
     ? noneRows.reduce((s, r) => s + Number(r.nc), 0) / noneRows.length
     : null
 
-  const legacyPresent = runRows.value.some((r) => r.scheme === 'legacy')
-  const dqimPresent = runRows.value.some((r) => r.scheme === 'dqim1')
+  const [slotA, slotB] = kpiPair.value
+  const slotAPresent = runRows.value.some((r) => r.scheme === slotA)
+  const slotBPresent = runRows.value.some((r) => r.scheme === slotB)
 
   const schemeSuccess = (scheme) => {
     if (!runRows.value.some((r) => r.scheme === scheme)) return null
@@ -1009,28 +1067,28 @@ const kpi = computed(() => {
   }
 
   const improved = attacks.filter((a) => {
-    const legacy = rowsByCell.value[`legacy|${a}`]
-    const dqim = rowsByCell.value[`dqim1|${a}`]
+    const rowsA = rowsByCell.value[`${slotA}|${a}`]
+    const rowsB = rowsByCell.value[`${slotB}|${a}`]
     return (
-      legacy &&
-      legacy.length &&
-      dqim &&
-      dqim.length &&
-      !legacy.every((r) => r.decode_success === true) &&
-      dqim.every((r) => r.decode_success === true)
+      rowsA &&
+      rowsA.length &&
+      rowsB &&
+      rowsB.length &&
+      !rowsA.every((r) => r.decode_success === true) &&
+      rowsB.every((r) => r.decode_success === true)
     )
   })
 
   // 基线注记：两方案一致 / 不一致取均值 / 仅单一方案
   let baselineNoteKind = null
   let baselineNoteScheme = null
-  const legacyBase = legacyPresent ? cellMeanNc('legacy', 'none') : null
-  const dqimBase = dqimPresent ? cellMeanNc('dqim1', 'none') : null
-  if (legacyBase !== null && dqimBase !== null) {
-    baselineNoteKind = Math.abs(legacyBase - dqimBase) < 1e-9 ? 'same' : 'avg'
-  } else if (legacyBase !== null || dqimBase !== null) {
+  const baseA = slotAPresent ? cellMeanNc(slotA, 'none') : null
+  const baseB = slotBPresent ? cellMeanNc(slotB, 'none') : null
+  if (baseA !== null && baseB !== null) {
+    baselineNoteKind = Math.abs(baseA - baseB) < 1e-9 ? 'same' : 'avg'
+  } else if (baseA !== null || baseB !== null) {
     baselineNoteKind = 'scheme'
-    baselineNoteScheme = legacyBase !== null ? 'legacy' : 'dqim1'
+    baselineNoteScheme = baseA !== null ? slotA : slotB
   }
 
   return {
@@ -1038,17 +1096,17 @@ const kpi = computed(() => {
     baselineNoteKind,
     baselineNoteScheme,
     attacksCount,
-    legacy: schemeSuccess('legacy'),
-    dqim: schemeSuccess('dqim1'),
-    legacyFailNames: schemeFailNames('legacy'),
-    dqimFailNames: schemeFailNames('dqim1'),
+    slotA: schemeSuccess(slotA),
+    slotB: schemeSuccess(slotB),
+    slotAFailNames: schemeFailNames(slotA),
+    slotBFailNames: schemeFailNames(slotB),
     improved: improved.map((a) => attackLabel(a)),
   }
 })
 
 // KPI 数字 count-up（160ms，rAF；尊重 prefers-reduced-motion）
-const kpiAnim = reactive({ baseline: null, legacy: null, dqim: null, win: null })
-const animTokens = { baseline: 0, legacy: 0, dqim: 0, win: 0 }
+const kpiAnim = reactive({ baseline: null, s0: null, s1: null, win: null })
+const animTokens = { baseline: 0, s0: 0, s1: 0, win: 0 }
 
 const prefersReducedMotion = () => {
   try {
@@ -1084,8 +1142,8 @@ watch(
   kpi,
   (val) => {
     animateTo('baseline', val ? val.baseline : null)
-    animateTo('legacy', val ? val.legacy : null)
-    animateTo('dqim', val ? val.dqim : null)
+    animateTo('s0', val ? val.slotA : null)
+    animateTo('s1', val ? val.slotB : null)
     animateTo('win', val ? val.improved.length : null)
   },
   { immediate: true }
@@ -1095,10 +1153,11 @@ const baselineText = computed(() =>
   kpiAnim.baseline === null ? '—' : Number(kpiAnim.baseline).toFixed(4)
 )
 
-const schemeValueText = (scheme) => {
+// idx=0/1 对应 kpiPair 的甲/乙方案卡片
+const schemeValueText = (idx) => {
   const val = kpi.value
   if (!val) return '—'
-  const n = scheme === 'legacy' ? kpiAnim.legacy : kpiAnim.dqim
+  const n = idx === 0 ? kpiAnim.s0 : kpiAnim.s1
   if (n === null) return '—'
   return `${Math.round(n)}/${val.attacksCount}`
 }
@@ -1113,19 +1172,16 @@ const baselineNoteText = computed(() => {
   if (val.baselineNoteKind === 'same') return t('robustnessLab.kpiBaselineNoteSame')
   if (val.baselineNoteKind === 'avg') return t('robustnessLab.kpiBaselineNoteAvg')
   return t('robustnessLab.kpiBaselineNoteScheme', {
-    scheme:
-      val.baselineNoteScheme === 'legacy'
-        ? t('robustnessLab.scheme.legacy')
-        : t('robustnessLab.scheme.dqim1'),
+    scheme: schemeLabel(val.baselineNoteScheme),
   })
 })
 
-const schemeNoteText = (scheme) => {
+const schemeNoteText = (idx) => {
   const val = kpi.value
   if (!val) return ''
-  const success = scheme === 'legacy' ? val.legacy : val.dqim
+  const success = idx === 0 ? val.slotA : val.slotB
   if (success === null) return ''
-  const fails = scheme === 'legacy' ? val.legacyFailNames : val.dqimFailNames
+  const fails = idx === 0 ? val.slotAFailNames : val.slotBFailNames
   if (!fails.length) return t('robustnessLab.kpiNoteAllPass')
   if (fails.length >= val.attacksCount) return t('robustnessLab.kpiNoteAllFail')
   if (fails.length <= 3) {
@@ -1141,29 +1197,42 @@ const winNoteText = computed(() => {
   return t('robustnessLab.kpiWinNote', { list: val.improved.join(' · ') })
 })
 
+// 转败为胜卡 tooltip：栅格按 run 的方案对切换文案
+const kpiWinDescText = computed(() => {
+  if (runMeta.value?.kind === 'raster') {
+    return t('robustnessLab.kpiWinDescRaster', {
+      a: schemeLabel(kpiPair.value[0]),
+      b: schemeLabel(kpiPair.value[1]),
+    })
+  }
+  return t('robustnessLab.kpiWinDesc')
+})
+
 // ──────────────────────────────────────
 //  对比结论（全部来自数据）
 // ──────────────────────────────────────
 
 const verdictComparable = computed(() => {
   const present = new Set(runRows.value.map((r) => r.scheme))
-  return present.has('legacy') && present.has('dqim1')
+  const [slotA, slotB] = kpiPair.value
+  return present.has(slotA) && present.has(slotB)
 })
 
 const verdictItems = computed(() => {
   const incomplete = (rows) => !rows || !rows.length || rows.some((r) => r.decode_success === null)
+  const [slotA, slotB] = kpiPair.value
   return matrixAttacks.value.map((attack) => {
-    const legacyRows = rowsByCell.value[`legacy|${attack}`]
-    const dqimRows = rowsByCell.value[`dqim1|${attack}`]
-    if (incomplete(legacyRows) || incomplete(dqimRows)) {
+    const rowsA = rowsByCell.value[`${slotA}|${attack}`]
+    const rowsB = rowsByCell.value[`${slotB}|${attack}`]
+    if (incomplete(rowsA) || incomplete(rowsB)) {
       return { attack, kind: 'pending' }
     }
     // 多次试验时"成功" = 该格全部试验解码成功（trials=1 时与单行判定一致）
-    const legacyOk = legacyRows.every((r) => r.decode_success === true)
-    const dqimOk = dqimRows.every((r) => r.decode_success === true)
-    if (!legacyOk && dqimOk) return { attack, kind: 'improved' }
-    if (legacyOk && !dqimOk) return { attack, kind: 'regressed' }
-    if (legacyOk && dqimOk) return { attack, kind: 'same-pass' }
+    const aOk = rowsA.every((r) => r.decode_success === true)
+    const bOk = rowsB.every((r) => r.decode_success === true)
+    if (!aOk && bOk) return { attack, kind: 'improved' }
+    if (aOk && !bOk) return { attack, kind: 'regressed' }
+    if (aOk && bOk) return { attack, kind: 'same-pass' }
     return { attack, kind: 'same-fail' }
   })
 })
@@ -1183,24 +1252,39 @@ const verdictSentences = computed(() => {
   const samePass = items.filter((i) => i.kind === 'same-pass')
   const sameFail = items.filter((i) => i.kind === 'same-fail')
   const sentences = []
-  if (improved.length) sentences.push(t('robustnessLab.verdictImproved', { n: improved.length }))
-  if (regressed.length) sentences.push(t('robustnessLab.verdictRegressed', { n: regressed.length }))
+  // 栅格 run 按 run 的方案对给句子（方案名来自数据推导）；矢量维持原文案
+  const isRaster = runMeta.value?.kind === 'raster'
+  const winner = schemeLabel(kpiPair.value[1])
+  if (improved.length) {
+    sentences.push(
+      isRaster
+        ? t('robustnessLab.verdictImprovedRaster', { scheme: winner, n: improved.length })
+        : t('robustnessLab.verdictImproved', { n: improved.length })
+    )
+  }
+  if (regressed.length) {
+    sentences.push(
+      isRaster
+        ? t('robustnessLab.verdictRegressedRaster', { scheme: winner, n: regressed.length })
+        : t('robustnessLab.verdictRegressed', { n: regressed.length })
+    )
+  }
   if (!improved.length && !regressed.length) {
     sentences.push(t('robustnessLab.verdictTie', { pass: samePass.length, fail: sameFail.length }))
   }
   return sentences
 })
 
-const verdictStatLegacy = computed(() => {
+const verdictStatA = computed(() => {
   const val = kpi.value
-  if (!val || val.legacy === null) return '—'
-  return `${val.legacy}/${val.attacksCount}`
+  if (!val || val.slotA === null) return '—'
+  return `${val.slotA}/${val.attacksCount}`
 })
 
-const verdictStatDqim = computed(() => {
+const verdictStatB = computed(() => {
   const val = kpi.value
-  if (!val || val.dqim === null) return '—'
-  return `${val.dqim}/${val.attacksCount}`
+  if (!val || val.slotB === null) return '—'
+  return `${val.slotB}/${val.attacksCount}`
 })
 
 const tagText = (kind) => t(`robustnessLab.tag.${kind}`)
@@ -1216,30 +1300,36 @@ const flowNodes = computed(() => [
   { name: t('robustnessLab.stepJudge'), desc: t('robustnessLab.stepJudgeDesc'), icon: CircleCheck },
 ])
 
-const setupItems = computed(() => [
-  {
-    label: t('robustnessLab.setupHostLabel'),
-    text: runMeta.value
-      ? t('robustnessLab.setupHostValue', { ref: runMeta.value.data_ref })
-      : t('robustnessLab.setupHostIdle'),
-    code: null,
-  },
-  { label: t('robustnessLab.setupPayloadLabel'), text: t('robustnessLab.setupPayloadValue'), code: null },
-  { label: t('robustnessLab.setupParamsLabel'), text: t('robustnessLab.setupParamsValue'), code: null },
-  {
-    label: t('robustnessLab.setupRepeatLabel'),
-    text: runMeta.value
-      ? t('robustnessLab.setupRepeatValue', { trials: runMeta.value.trials })
-      : t('robustnessLab.setupRepeatIdle'),
-    code: null,
-  },
-  { label: t('robustnessLab.setupMetricsLabel'), text: t('robustnessLab.setupMetricsValue'), code: null },
-  {
-    label: t('robustnessLab.setupReproLabel'),
-    text: t('robustnessLab.setupReproValue'),
-    code: 'python tests/robustness_trials_battle.py',
-  },
-])
+const setupItems = computed(() => {
+  // 宿主行随 run/表单的 kind 切换（栅格 = 程序化生成的 512×512 GeoTIFF）
+  const isRaster = (runMeta.value?.kind ?? runKind.value) === 'raster'
+  return [
+    {
+      label: t('robustnessLab.setupHostLabel'),
+      text: runMeta.value
+        ? t(isRaster ? 'robustnessLab.setupHostValueRaster' : 'robustnessLab.setupHostValue', {
+            ref: runMeta.value.data_ref,
+          })
+        : t(isRaster ? 'robustnessLab.setupHostIdleRaster' : 'robustnessLab.setupHostIdle'),
+      code: null,
+    },
+    { label: t('robustnessLab.setupPayloadLabel'), text: t('robustnessLab.setupPayloadValue'), code: null },
+    { label: t('robustnessLab.setupParamsLabel'), text: t('robustnessLab.setupParamsValue'), code: null },
+    {
+      label: t('robustnessLab.setupRepeatLabel'),
+      text: runMeta.value
+        ? t('robustnessLab.setupRepeatValue', { trials: runMeta.value.trials })
+        : t('robustnessLab.setupRepeatIdle'),
+      code: null,
+    },
+    { label: t('robustnessLab.setupMetricsLabel'), text: t('robustnessLab.setupMetricsValue'), code: null },
+    {
+      label: t('robustnessLab.setupReproLabel'),
+      text: t('robustnessLab.setupReproValue'),
+      code: 'python tests/robustness_trials_battle.py',
+    },
+  ]
+})
 
 // ──────────────────────────────────────
 //  ElTour 首入引导（6 步；localStorage tour:v1:lab）
@@ -1355,6 +1445,7 @@ const exportJson = () => {
   if (!runMeta.value) return
   const payload = {
     run_id: runMeta.value.run_id,
+    kind: runMeta.value.kind,
     data_ref: runMeta.value.data_ref,
     created_at: runMeta.value.created_at,
     trials: runMeta.value.trials,
@@ -1594,6 +1685,11 @@ onMounted(async () => {
   color: var(--text-tertiary);
 }
 
+.form-hint.is-kind {
+  margin-top: 0;
+  line-height: 1.6;
+}
+
 .check-group {
   display: flex;
   flex-wrap: wrap;
@@ -1654,6 +1750,26 @@ onMounted(async () => {
 .status-badge.is-error {
   color: var(--tint-danger-text);
   background: var(--tint-danger-bg);
+}
+
+/* 历史行 kind 徽章（矢量 / 栅格） */
+.kind-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 9px;
+  font-size: 12px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.kind-badge.is-vector {
+  color: var(--text-secondary);
+  background: var(--tint-neutral-bg);
+}
+
+.kind-badge.is-raster {
+  color: var(--primary-700);
+  background: var(--primary-50);
 }
 
 /* 进行中状态徽点 pulse（克制：仅透明度呼吸） */
@@ -2002,6 +2118,14 @@ onMounted(async () => {
 
 .cell-tip .tip-trial-line {
   font-variant-numeric: tabular-nums;
+}
+
+.cell-tip .tip-trial-error {
+  color: inherit;
+  opacity: 0.72;
+  font-size: 11.5px;
+  line-height: 1.55;
+  word-break: break-all;
 }
 
 .footnote {
