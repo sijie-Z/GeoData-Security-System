@@ -1,7 +1,6 @@
 import logging
 
 from flask import request
-from flask_jwt_extended import jwt_required
 from flask_restful import Resource
 
 from extension.extension import db
@@ -103,7 +102,7 @@ class AddEmployeeResource(Resource):
 
 
 class EmployeeDetailsResource(Resource):
-    @jwt_required()
+    @admin_required
     def get(self, employee_number):
         item = EmployeeInfo.query.filter_by(employee_number=employee_number).first()
         if not item:

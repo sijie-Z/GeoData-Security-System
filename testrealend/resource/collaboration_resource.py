@@ -543,7 +543,7 @@ class ChatSendResource(Resource):
 
 
 class BatchReviewFailedExportResource(Resource):
-    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json() or {}
         failed = data.get("failed") or []

@@ -12,7 +12,7 @@ from model.Adm_Info import AdmInfo
 from model.AdminApplication import AdminApplication
 from model.Employee_Account import EmployeeAccount
 from model.Employee_Info import EmployeeInfo
-from utils.required import is_admin_role
+from utils.required import admin_required, is_admin_role
 
 
 class AdminApplicationEligibilityResource(Resource):
@@ -172,7 +172,7 @@ class AdminApplicationListResource(Resource):
 class AdminApplicationDetailResource(Resource):
     """获取申请详情"""
 
-    @jwt_required()
+    @admin_required
     def get(self, application_id):
         application = db.session.get(AdminApplication, application_id)
         if not application:

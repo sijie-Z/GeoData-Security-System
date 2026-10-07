@@ -267,7 +267,7 @@ class ApprovedApplicationsResource(Resource):
 
 
 class Adm1GetApplicationsResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin1")
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
@@ -292,7 +292,7 @@ class Adm1GetApplicationsResource(Resource):
 
 
 class Adm2GetApprovedResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
@@ -501,7 +501,7 @@ class Adm3AdditionalReviewResource(Resource):
 
 
 class Adm1GetShpApplicationsResource(Resource):
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 100, type=int)
@@ -514,7 +514,7 @@ class Adm1GetShpApplicationsResource(Resource):
 
 
 class Adm1GetRasterApplicationsResource(Resource):
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 100, type=int)
@@ -625,7 +625,7 @@ class ApplicationDetailResource(Resource):
 class AllApplicationsResource(Resource):
     """获取所有申请列表（带筛选）"""
 
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 20, type=int)
