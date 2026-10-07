@@ -87,6 +87,34 @@ export const embedDispatch = (data) => axios.post('/api/admin/embed_dispatch', d
 export const previewWatermark = (data) => axios.post('/api/watermark/preview', data)
 
 // ──────────────────────────────────────
+//  Batch Embed Jobs (async, feat_batch_embed)
+// ──────────────────────────────────────
+
+/**
+ * Queue one async batch-embed job over application ids.
+ * Returns 202 with { uuid, total, algorithm }; 409 when a job is already
+ * active (the response body carries data.uuid of the active job); 400 for an
+ * empty/over-50/non-integer id list.
+ * @param {Object} data - { application_ids: number[], algorithm?: 'lsb'|'dwt'|'histogram'|'blind' }
+ * @returns {Promise<AxiosResponse>}
+ */
+export const startBatchEmbedJob = (data) => axios.post('/api/watermark/batch_embed_jobs', data)
+
+/**
+ * List recent batch-embed jobs (newest first).
+ * @param {Object} [params] - { page, per_page } (default per_page 20, max 50)
+ * @returns {Promise<AxiosResponse>} data: { status, jobs[], page, per_page, total_jobs }
+ */
+export const getBatchEmbedJobs = (params) => axios.get('/api/watermark/batch_embed_jobs', { params })
+
+/**
+ * One batch-embed job with real progress + per-item results.
+ * @param {string} uuid
+ * @returns {Promise<AxiosResponse>} data: { status, job: { uuid, status, total, done, ok, fail, items[] } }
+ */
+export const getBatchEmbedJob = (uuid) => axios.get(`/api/watermark/batch_embed_jobs/${uuid}`)
+
+// ──────────────────────────────────────
 //  Watermark Extraction
 // ──────────────────────────────────────
 

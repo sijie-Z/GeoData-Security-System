@@ -48,6 +48,7 @@ def _bootstrap_runtime_schema(app):
     from model.anchor_record import AnchorRecord
     from model.Announcement import Announcement
     from model.Application import Application
+    from model.batch_embed_job import BatchEmbedItem, BatchEmbedJob
     from model.benchmark_result import BenchmarkResult
     from model.ChatMessage import ChatMessage
     from model.download_delivery import DownloadDelivery
@@ -104,6 +105,8 @@ def _bootstrap_runtime_schema(app):
         AnchorRecord,
         BenchmarkResult,
         RobustnessResult,
+        BatchEmbedItem,
+        BatchEmbedJob,
     ]
 
     # ShpFile and MysqlShpFile use geoalchemy2/mysql-specific types — import gracefully
@@ -395,6 +398,7 @@ def create_app():
         SubmitApplicationResource,
         WithdrawApplicationResource,
     )
+    from resource.batch_embed_resource import BatchEmbedJobDetailResource, BatchEmbedJobsResource
     from resource.collaboration_resource import (
         AdminAnnouncementManageResource,
         AdminSendNotificationResource,
@@ -588,6 +592,9 @@ def create_app():
     api.add_resource(WatermarkPreviewResource, "/api/watermark/preview")
     api.add_resource(BatchGenerateWatermarkResource, "/api/watermark/batch_generate")
     api.add_resource(BatchEmbedWatermarkResource, "/api/watermark/batch_embed")
+    # 批量嵌入作业（异步 + 真实进度）：同一单条嵌入分派的后台作业化通道
+    api.add_resource(BatchEmbedJobsResource, "/api/watermark/batch_embed_jobs")
+    api.add_resource(BatchEmbedJobDetailResource, "/api/watermark/batch_embed_jobs/<string:job_uuid>")
 
     # Robustness（鲁棒性实验矩阵：legacy vs dqim1 × 标准攻击 → NC/BER 落库）
     api.add_resource(RobustnessRunResource, "/api/robustness/run")
