@@ -222,9 +222,12 @@ def _embed_raster(item, algorithm="lsb", action_prefix="", download=True):
         # 512x512 (4,095 embeddable bits) still fails with a genuine
         # capacity 400.
         if not item.qr_text:
+            # Algorithm-accurate wording; the blind message stays byte-identical
+            # (test_blind_compact pins the legacy-row contract).
+            algo_label = "IW-DCT" if algorithm == "iw_dct" else "盲水印"
             return {
                 "status": False,
-                "msg": "该申请未记录二维码文本，无法使用盲水印 / IW-DCT；请重新生成水印后再试",
+                "msg": f"该申请未记录二维码文本，无法使用{algo_label}；请重新生成水印后再试",
             }, 400
         qr_img = render_compact_qr(item.qr_text)
     else:
