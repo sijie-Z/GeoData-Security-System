@@ -688,6 +688,7 @@ class BatchGenerateWatermarkResource(Resource):
 
                 # Save all metadata to database
                 item.qrcode = img_str
+                item.qr_text = qr_content
                 item.watermark_generated = True
                 item.qr_version = qr_version
                 item.qr_signature = signature

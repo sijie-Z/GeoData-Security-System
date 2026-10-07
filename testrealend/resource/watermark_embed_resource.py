@@ -22,6 +22,7 @@ from extension.extension import db
 from model.Application import Application
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
+from resource.watermark_utils import render_compact_qr
 from utils.log_helper import log_action
 from utils.required import admin_role_required
 
@@ -172,7 +173,17 @@ class EmbeddingWatermarkResource(Resource):
             else:
                 return {"status": False, "msg": "数据文件在服务器上丢失"}, 404
 
-        qr_img = Image.open(io.BytesIO(base64.b64decode(item.qrcode))).convert("L")
+        if algorithm in ("blind", "blind_watermark"):
+            # The display QR bitmap (box_size=10) carries ~7 * 10^5 bits and can
+            # never fit the blind budget (~one bit per 8x8 host block); embed a
+            # compact box_size=1 re-render of the stored QR text instead. Honest
+            # boundary: ~81x81 px (6,561 bits) needs a >=1024x1024 host; 512x512
+            # (4,095 embeddable bits) still fails with a genuine capacity 400.
+            if not item.qr_text:
+                return {"status": False, "msg": "该申请未记录二维码文本，无法使用盲水印；请重新生成水印后再试"}, 400
+            qr_img = render_compact_qr(item.qr_text)
+        else:
+            qr_img = Image.open(io.BytesIO(base64.b64decode(item.qrcode))).convert("L")
         out_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "crmark", f"app_{item.id}")
         os.makedirs(out_dir, exist_ok=True)
 

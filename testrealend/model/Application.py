@@ -43,6 +43,10 @@ class Application(db.Model):
 
     # Watermark Data
     qrcode = db.Column("QRcode", db.Text, nullable=True)
+    # v1 QR text behind `qrcode` (the blind dispatch re-renders it box_size=1:
+    # the display bitmap is far too large for the blind bit budget). Nullable:
+    # legacy rows stay NULL and blind embed tells the admin to regenerate.
+    qr_text = db.Column(db.Text, nullable=True)
     watermark_path = db.Column(db.String(500), nullable=True)
     watermark_path_meta = db.Column(db.String(500), nullable=True)
     watermark_path_map = db.Column(db.String(500), nullable=True)

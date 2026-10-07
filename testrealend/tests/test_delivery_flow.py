@@ -170,7 +170,12 @@ class TestDeliveryFastPath:
 
     def test_personalize_failure_marks_failed_and_500(self, db, client, employee_headers, tmp_path, monkeypatch):
         monkeypatch.setitem(client.application.config, "DELIVERY_FOLDER", str(tmp_path / "deliveries"))
-        item = _seed_application(db, None, data_id=4, alias="nofile")
+        # data_id sentinel far beyond any autoincrement sequence: the delivery
+        # fallback resolves base files via a global Shp/RasterData id lookup
+        # (delivery/service.py::resolve_base_file), so a low id like 4 can
+        # accidentally match a live record another test created and turn this
+        # "missing base file" case into a successful passthrough (200).
+        item = _seed_application(db, None, data_id=987654, alias="nofile")
 
         resp = client.post("/api/request_download_token", json={"application_id": item.id}, headers=employee_headers)
         assert resp.status_code == 500
