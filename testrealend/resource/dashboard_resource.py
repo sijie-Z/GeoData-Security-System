@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from flask import request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 from flask_restful import Resource
-from sqlalchemy import Date, and_, case, cast, func, or_
+from sqlalchemy import and_, case, func, or_
 
 from extension.extension import db
 from model.Adm_Account import AdmAccount
@@ -33,7 +33,11 @@ def _batch_day_counts(model, timestamp_col, days=14, extra_filters=None):
     now = datetime.now(UTC)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
     start = today_start - timedelta(days=days - 1)
-    date_col = cast(timestamp_col, Date)
+    # func.date() renders DATE(col) on MySQL and date(col) on SQLite: both
+    # yield a calendar day. cast(col, Date) crashed SQLite (the CAST result is
+    # numeric for SQLite's NUMERIC affinity there, and SQLAlchemy's Date result
+    # processor then raised "fromisoformat: argument must be str").
+    date_col = func.date(timestamp_col)
     q = db.session.query(date_col, func.count()).filter(timestamp_col >= start).group_by(date_col)
     if extra_filters:
         q = q.filter(*extra_filters)
