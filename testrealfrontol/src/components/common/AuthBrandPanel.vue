@@ -52,7 +52,7 @@
           </div>
           <div class="qr-caption">
             <span class="qr-caption-text">{{ $t('login.brandQrCaption') }}</span>
-            <span class="qr-caption-meta">GEODATA · TRACE</span>
+            <span class="qr-caption-meta" aria-hidden="true">GEODATA · TRACE</span>
           </div>
         </div>
       </div>
@@ -107,9 +107,6 @@ onMounted(() => {
   if (!panel || !canvas) return;
   const ink = cssVar(panel, '--brand-qr-ink', '#0a1b3d');
   drawDecorativeQr(canvas, QR_PAYLOAD, { ink });
-  // qrcode 库会把内联尺寸写进 style；清掉以便 CSS 控制显示尺寸
-  canvas.style.width = '';
-  canvas.style.height = '';
 });
 </script>
 
@@ -404,8 +401,9 @@ html.dark .brand-panel {
 
 .qr-canvas {
   display: block;
-  width: 104px;
-  height: 104px;
+  /* 100px = 25 模块（21+静区2×2）× 4px/模块：dsf≥1 下均为整数像素步长，缩放 3.0x 精确 */
+  width: 100px;
+  height: 100px;
 }
 
 .qr-caption {
@@ -544,8 +542,9 @@ html.dark .brand-panel {
   }
 
   .qr-canvas {
-    width: 90px;
-    height: 90px;
+    /* 87.5px = 25 × 3.5px/模块：dsf2 下 7 设备像素/模块，仍为整数 */
+    width: 87.5px;
+    height: 87.5px;
   }
 }
 

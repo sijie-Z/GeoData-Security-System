@@ -343,6 +343,12 @@ const login = () => { router.push('/login'); };
   color: #0f172a;
 }
 
+/* 占位符同属浅色卡片体系：钉到 slate-500，两种主题下均 ≥4.5:1
+   （浅色默认 token #8f8f8f 在 #f8fafc 上仅 ≈3.1:1） */
+.auth-form :deep(.auth-input .el-input__inner::placeholder) {
+  color: #64748b;
+}
+
 /* 焦点反馈：统一用本页设计的蓝色双层环（双主题一致）。
    design-system 的 .el-input__wrapper:focus-within 带 !important 的双层 --ring
    在深色主题下会叠出 #18191b 深色重影，这里按本页设计值钉回 */
