@@ -5,7 +5,7 @@
 ![Version](https://img.shields.io/badge/version-v3.0-blue?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/sijie-Z/GeoData-Security-System/ci.yml?branch=main&style=flat-square&label=CI)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)
-![Flask](https://img.shields.io/badge/Flask-3.0-000000?style=flat-square&logo=flask)
+![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791?style=flat-square&logo=postgresql)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=flat-square&logo=redis)
@@ -26,11 +26,11 @@
 
 ## 项目简介
 
-系统当前版本为 **v3.0**（上一稳定版本：v2.4.0）。在地理空间数据的共享与分发场景中，数据泄露溯源和权限管控是核心难题。v3.0 将系统从"二维码水印 + 双级审批"升级为 **受控分发 → 个体指纹 → 泄露取证 → 可验证证据** 的完整闭环：
+系统当前处于 **v3.0** 开发主线（最近发布 tag：v2.4.0），交付/取证链路与鲁棒性实验室已合入 main。在地理空间数据的共享与分发场景中，数据泄露溯源和权限管控是核心难题。v3.0 将系统从"二维码水印 + 双级审批"升级为 **受控分发 → 个体指纹 → 泄露取证 → 可验证证据** 的完整闭环：
 
 - **受控分发**：用户提交数据申请 → 管理员双级审批 → **每次授权生成独立的个性化交付物**（同一数据集，不同领取者得到不同副本）
-- **个体指纹**：每份交付物携带 Ed25519 + COSE_Sign1 签名的 QR v2 短载荷（仅含 `fid / delivery_id / kid / issued_at`，不含任何个人信息）与产物哈希（artifact_root），指纹与交付记录一一绑定
-- **泄露取证**：上传泄露副本，系统提取指纹并在候选交付中精确指认交付者与交付编号
+- **个体指纹**：每份交付物携带 Ed25519 + COSE_Sign1 签名的 QR v2 短载荷（仅含 `v / kid / fid / delivery / issued_at`，不含任何个人信息）与产物哈希（artifact_root），指纹与交付记录一一绑定
+- **泄露取证**：上传泄露副本，系统提取指纹并锁定对应交付记录（交付编号），进而确认交付者
 - **可验证证据**：交付全流程事件写入 append-only 哈希链（canonical CBOR + Ed25519），批次 Merkle 根经 OpenTimestamps 锚定；EVM 第二锚定（AnchorRegistry 合约）测试就绪、待 Sepolia 部署
 - 支持矢量数据（SHP）与栅格数据（GeoTIFF）两种主流空间数据格式
 
@@ -48,9 +48,9 @@
 | **证据链** | 交付全流程事件按交付分链写入 append-only 哈希链（`stream + seq` 绑定、UTC 整秒规范化）；验证可检测篡改并定位断点（`broken_at`） |
 | **Merkle 批次锚定** | Merkle 叶节点绑定批次大小与位置，批量快照生成根哈希；锚定记录携带事件数与链头哈希，保证完整性 |
 | **OpenTimestamps 锚定** | 真实网络客户端（httpx 直连公共 OTS 日历）提交批次根；失败自动降级 `pending`，不阻塞业务 |
-| **EVM 第二锚定（演示）** | `contracts/AnchorRegistry.sol`（permissionless，重复锚定 revert）+ EVMAnchorProvider（web3 本地签名）；eth-tester 内存链全流程测试通过；**部署状态：待 Sepolia 部署** |
+| **EVM 第二锚定（演示）** | `contracts/AnchorRegistry.sol`（permissionless，重复锚定 revert）+ EVMAnchorProvider（web3 本地签名）；eth-tester 内存链全流程测试（CI 执行；缺 solc 时自动跳过）；**部署状态：待 Sepolia 部署** |
 | **CIDv1 内容标识** | 产物根哈希以 CIDv1（multiformats raw codec）写入个性化完成事件 |
-| **泄露取证** | 管理端上传泄露副本（SHP / ZIP / 图片，含 zip 炸弹与路径穿越防护）→ 解码 QR 并验签 → 与候选交付指纹比对 → 定位用户与交付编号；验证接口不返回 PII |
+| **泄露取证** | 管理端上传泄露副本（SHP / ZIP / 图片，含 zip 炸弹与路径穿越防护）→ 解码 QR 并验签 → 与候选交付指纹比对，锁定对应交付记录（uuid / 交付编号），交付者经溯源接口确认；验证接口不返回 PII |
 | **交付台账检索** | 按 用户 / 指纹（前缀）/ 交付编号 / 时间段 四维组合检索（另支持申请 ID）；员工仅见本人，管理员全量 |
 
 > **口径说明**：FID 用于唯一标识（并非保密载荷，安全来自签名与服务端绑定）；当前方案不承诺抗合谋攻击；OpenTimestamps 证明的是"该证据承诺在某时间之前已存在"。
@@ -60,9 +60,9 @@
 | 功能 | 说明 |
 |------|------|
 | **矢量方案对比** | D-QIM（差分域 QIM：载体为边坐标差分，抗平移）vs legacy（绝对坐标域 QIM）；同一攻击矩阵下实测对比 |
-| **栅格五算法** | LSB / DWT / 直方图平移（三者可逆）＋ blind_watermark（抗裁剪盲水印）＋ IW-DCT（invisible-watermark 风格 DCT 盲提取） |
-| **攻击矩阵** | 矢量：平移 / 缩放 / 删点 / 噪声 / 简化；栅格：JPEG / 缩放 / 裁剪 / 旋转 / 噪声 / 模糊 |
-| **多试验系统** | 固定种子可复现，1–10 轮重复试验，成功率与 NC 均值聚合 |
+| **栅格五算法** | LSB / DWT / 直方图平移（三者可逆）＋ blind_watermark（盲水印；裁剪后凭宿主模板重对齐恢复）＋ IW-DCT（invisible-watermark 风格 DCT 盲提取） |
+| **攻击矩阵** | 矢量：平移 / 缩放 / 删点 / 噪声 / 简化；栅格：JPEG / 缩放 / 裁剪 / 旋转 / 噪声 / 模糊（可选） |
+| **多试验系统** | 固定种子可复现；矩阵模式 1–10 轮、强度扫描 1–5 轮，成功率与 NC 均值聚合 |
 | **强度扫描** | 每类攻击 5 档强度阶梯，前端绘制检出率曲线 |
 | **攻击源码可查** | 后端 `inspect.getsource` 返回真实攻击实现，前端 highlight.js 高亮，行号锚点（`#L{n}`）可分享 |
 | **指标词典** | NC / BER / 解码成功率等指标的解释、阈值口径与文档抽屉 |
@@ -76,7 +76,7 @@
 | **多算法水印支持** | 矢量：D-QIM / legacy；栅格五种：LSB、DWT、直方图平移（可逆）、blind_watermark、IW-DCT，保留 GeoTIFF 坐标信息 |
 | **Ed25519 签名** | 密码学签名防止水印伪造与篡改（RFC 9052 COSE_Sign1；旧 v1 HMAC 兼容读取） |
 | **申请撤回** | 用户可在审批前撤回已提交的申请 |
-| **数据召回投票** | 民主化召回机制，管理员反对比例 ≥50% 即触发数据召回（提案人回避） |
+| **数据召回投票** | 民主化召回机制，管理员反对比例超过 50% 即触发数据召回（提案人回避） |
 | **管理员晋升** | 员工可申请成为管理员，需 66% 现有管理员投票通过 |
 
 ### 平台能力
@@ -85,11 +85,11 @@
 |------|------|
 | **角色权限控制** | 员工、管理员（adm1/adm2/adm3），分阶段审批权限 |
 | **JWT 认证** | Access + Refresh Token 双令牌，自动续期 |
-| **实时聊天** | Socket.IO 事件驱动（threading 模式）；Windows 下自动降级为 HTTP 轮询 |
+| **实时聊天** | 聊天与通知采用 HTTP 轮询准实时更新；后端保留 Socket.IO 实时通道（threading 模式；Windows 下不初始化） |
 | **通知系统** | 定向通知 + 全局公告 |
 | **操作审计日志** | 关键操作留痕，支持按用户/编号/动作/状态/时间段筛选，并可流式导出 CSV（5 万行上限，截断时响应头标记） |
 | **批量嵌入作业** | 管理端多选申请发起后台批量嵌入（≤50 项/作业，单一活动作业），真实进度轮询、失败项一键重跑、僵尸作业自动清扫 |
-| **下载统计看板** | 管理端仪表盘内置：7/14/30/90 天窗口、逐日趋势、Top10 用户 / 数据、周环比，支持 CSV 导出 |
+| **下载统计看板** | 管理端仪表盘内置：7/30/90 天窗口（API 亦接受 14）、逐日趋势、Top10 用户 / 数据、周环比，支持 CSV 导出 |
 | **数据看板** | 管理员/员工双视角仪表盘，ECharts 可视化 |
 | **中英双语** | 44 个路由页面、2600+ 翻译键，中英键集完全对齐，运行时一键切换 |
 | **Grafana 监控** | 自动配置 2 块仪表盘（业务概览 11 面板 + 日志 5 面板）与告警规则 |
@@ -99,18 +99,18 @@
 
 | 功能 | 说明 |
 |------|------|
-| **双主题** | 深色（Linear 风 · 靛蓝）＋ 浅色（Vercel 风极简）双模式，员工端 / 管理端 / 实验室页面全覆盖；登录、注册等品牌页保持固定品牌视觉 |
+| **双主题** | 深色（Linear 风 · 靛蓝）＋ 浅色（Vercel 风极简）双模式，员工端 / 管理端 / 实验室页面整体覆盖（个别历史页面深色样式仍在收敛）；登录、注册等品牌页保持固定品牌视觉 |
 | **设计令牌** | L1 色阶 + L2 语义映射的双值架构，一套 token 驱动两种模式；Element Plus 暗色变量品牌化覆写 |
 | **动效纪律** | 主题切换过渡窗口、逐组件 reduced-motion 降级（循环动画关闭、骨架屏降频） |
-| **辅助体系** | 指标词典（阈值口径解释 + 文档抽屉）、质量看板与鲁棒性实验室首访引导（ElTour）、哈希文本组件、水印图超采样预览 |
+| **辅助体系** | 指标词典（阈值口径解释 + 文档抽屉）、质量看板与鲁棒性实验室首访引导（ElTour）、哈希文本组件、水印图放大预览 |
 
 ### 技术亮点
 
 - **双数据库架构** — MySQL 存业务数据，PostgreSQL + PostGIS 存空间数据
 - **进程内缓存层** — 内置内存缓存（无外部依赖，Redis 仅作为可选限流存储）
-- **WebSocket 实时推送** — Socket.IO 驱动的申请状态变更通知（HTTP 轮询兜底）
+- **准实时消息** — 聊天与通知采用 HTTP 轮询更新；后端保留 Socket.IO 实时通道（threading 模式，Windows 下不初始化）
 - **Prometheus 指标** — 请求延迟、错误率、业务 KPI 暴露于 `/metrics`
-- **用户级限流** — 基于 JWT 身份的限流（非 IP 级），覆盖所有敏感接口
+- **分级限流** — 关键接口按 JWT 身份限流，通用入口按 IP 限流（Flask-Limiter）
 - **可验证证据链** — canonical CBOR + Ed25519 + Hash Chain + Merkle + OpenTimestamps 外部锚定
 - **请求拦截器** — Axios 拦截器自动注入 Token、401 自动刷新
 - **路由懒加载** — Dynamic Import 实现代码分割，优化首屏加载
@@ -128,11 +128,11 @@
                          │  │  (SFC)   │ │  (UI 组件库)  │ │ (状态管理) │       │
                          │  └──────────┘ └──────────────┘ └───────────┘       │
                          │  ┌──────────┐ ┌──────────────┐ ┌───────────┐       │
-                         │  │vue-router│ │ vue-i18n     │ │ Socket.IO │       │
-                         │  │ (懒加载)  │ │ (中/英文)    │ │ (实时通信) │       │
+                         │  │vue-router│ │ vue-i18n     │ │ HTTP 轮询  │       │
+                         │  │ (懒加载)  │ │ (中/英文)    │ │ (消息更新) │       │
                          │  └──────────┘ └──────────────┘ └───────────┘       │
                          └───────────────────────┬─────────────────────────────┘
-                                                 │ HTTP (JWT) + WebSocket
+                                                 │ HTTP (JWT)
                                                  ▼
                          ┌─────────────────────────────────────────────────────┐
                          │                   后端 (Flask)                      │
@@ -176,7 +176,7 @@ v3.0 交付与取证链路:
    证据链事件流 ─▶ Hash Chain ─▶ 批次 Merkle Root ─┬─▶ OpenTimestamps（Bitcoin）
                                                    └─▶ EVM AnchorRegistry（演示·待部署）
 
-   泄露副本 ─▶ 取证上传 ─▶ 指纹比对 ─▶ 定位：用户 / 交付编号 ─▶ 证据链核查
+   泄露副本 ─▶ 取证上传 ─▶ 指纹比对 ─▶ 锁定交付记录（编号）→ 确认交付者 ─▶ 证据链核查
 ```
 
 ---
@@ -191,13 +191,13 @@ v3.0 交付与取证链路:
 <tr><td>Vue Router</td><td>路由守卫 + 懒加载</td></tr>
 <tr><td>vue-i18n</td><td>中英文国际化</td></tr>
 <tr><td>Axios</td><td>HTTP 客户端 + 拦截器</td></tr>
-<tr><td>Socket.IO Client</td><td>WebSocket 实时通信</td></tr>
+<tr><td>Socket.IO Client</td><td>实时通道客户端（当前未启用，消息走轮询）</td></tr>
 <tr><td>Leaflet</td><td>地图渲染与瓦片加载</td></tr>
 <tr><td>ECharts (vue-echarts)</td><td>数据看板图表</td></tr>
 <tr><td>three.js + three-globe</td><td>3D 粒子首屏与数据流地球</td></tr>
 <tr><td rowspan="11"><b>后端</b></td><td>Flask + Flask-RESTful</td><td>REST API 框架</td></tr>
 <tr><td>Flask-JWT-Extended</td><td>JWT 认证</td></tr>
-<tr><td>Flask-SocketIO</td><td>WebSocket 实时事件（threading 模式）</td></tr>
+<tr><td>Flask-SocketIO</td><td>WebSocket 实时通道（threading 模式；Windows 下不启用）</td></tr>
 <tr><td>SQLAlchemy</td><td>ORM 双数据库绑定</td></tr>
 <tr><td>Flask-Limiter</td><td>API 限流</td></tr>
 <tr><td>rasterio / geopandas</td><td>空间数据处理</td></tr>
@@ -286,7 +286,7 @@ GeoData-Security-System/
 │   ├── resource/                       # API 资源（含 forensics / batch_embed / 日志与统计导出）
 │   ├── algorithm/                      # 水印算法（矢量 D-QIM/legacy；栅格 5 种；鲁棒性实验引擎）
 │   ├── utils/                          # 缓存 / 指标 / WebSocket / 限流 / 审计日志工具
-│   ├── tests/                          # Pytest 测试套件（51 个文件 / 460+ 测试函数）
+│   ├── tests/                          # Pytest 测试套件（43 个 test_*.py / 460+ 测试函数）
 │   └── Dockerfile
 │
 ├── testrealfrontol/                    # Vue 3 前端
@@ -358,7 +358,7 @@ GeoData-Security-System/
 | GET | `/api/forensics/deliveries/stats` | 交付统计（状态 / 算法 / 锚定桶 / 链健康度） |
 | POST | `/api/forensics/anchor/build` | 构建批次锚定（默认 OpenTimestamps，可选 EVM） |
 | GET | `/api/forensics/anchors` | 锚定批次列表 |
-| GET | `/api/forensics/keyinfo` | 公钥信息（kid → 公钥指纹，供独立验签） |
+| GET | `/api/forensics/keyinfo` | 公钥信息（kid → 公钥指纹与 public_key_hex，供独立验签） |
 
 ### 批量作业与统计导出
 
@@ -384,20 +384,20 @@ GeoData-Security-System/
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | `/api/health` | 健康检查（DB + 缓存） |
+| GET | `/api/health` | 健康检查（探测数据库连接） |
 | GET | `/metrics` | Prometheus 指标 |
 | GET | `/api/admin/dashboard` | 管理员数据看板 |
 | GET | `/api/admin/logs` | 操作审计日志 |
 | POST | `/api/recall/create` | 创建数据召回提案 |
 | POST | `/api/recall/{id}/vote` | 召回投票 |
 
-> 安装可选依赖 `flasgger` 后，可在 `/apidocs/` 查看交互式 Swagger API 文档。
+> 正常安装依赖后即可在 `/apidocs/` 查看交互式 Swagger API 文档（依赖缺失时自动跳过）。
 
 ---
 
 ## 质量保障
 
-- **后端测试**：`testrealend/tests/` 51 个测试文件、460+ 个测试函数（基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
+- **后端测试**：`testrealend/tests/` 460+ 个测试函数（43 个 `test_*.py`；pytest 合计 540+ 用例；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
 
   ```bash
   cd testrealend
@@ -416,7 +416,7 @@ GeoData-Security-System/
 
 - **后端**：容器镜像使用 Gunicorn 托管（完整命令见 `testrealend/Dockerfile`）；也可直接 `python app.py` 运行（内置线程化服务器，适合单机/演示环境）
 - **前端**：`npm run build` 后将 `dist/` 交给 Nginx 托管；仓库 Compose 中的前端容器已内置该配置（`/api` 反向代理到后端）
-- **扩展性说明**：Socket.IO 运行于 threading 模式，多进程/多副本横向扩展需外接消息队列（当前未内置）；Windows 环境下 Socket.IO 自动禁用，实时通知退化为 HTTP 轮询
+- **消息通道说明**：前端当前使用 HTTP 轮询（聊天/通知）；后端 Socket.IO 采用 threading 模式、Windows 下不初始化——如后续启用多进程实时通道，需外接消息队列（当前未内置）
 
 ### Docker 部署（可选）
 
