@@ -343,10 +343,11 @@ const login = () => { router.push('/login'); };
   color: #0f172a;
 }
 
-/* 占位符同属浅色卡片体系：钉到 slate-500，两种主题下均 ≥4.5:1
+/* 占位符同属浅色卡片体系：钉到 slate 深灰（#5b6b80），
+   最差（静止态 #f8fafc 底）对比 ≈5.3:1，两种主题下均稳定过 AA
    （浅色默认 token #8f8f8f 在 #f8fafc 上仅 ≈3.1:1） */
 .auth-form :deep(.auth-input .el-input__inner::placeholder) {
-  color: #64748b;
+  color: #5b6b80;
 }
 
 /* 焦点反馈：统一用本页设计的蓝色双层环（双主题一致）。

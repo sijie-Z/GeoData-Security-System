@@ -537,14 +537,14 @@ html.dark .brand-panel {
   }
 
   .qr-plate {
-    width: 108px;
-    height: 108px;
+    width: 105px;
+    height: 105px;
   }
 
   .qr-canvas {
-    /* 87.5px = 25 × 3.5px/模块：dsf2 下 7 设备像素/模块，仍为整数 */
-    width: 87.5px;
-    height: 87.5px;
+    /* 75px = 25 × 3px/模块：dsf1 3 / dsf2 6 设备像素，整数步长且画布原点落整数位 */
+    width: 75px;
+    height: 75px;
   }
 }
 
