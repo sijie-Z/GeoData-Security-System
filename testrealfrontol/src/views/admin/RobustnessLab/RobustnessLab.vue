@@ -558,8 +558,19 @@
       </div>
     </el-drawer>
 
-    <!-- 首入引导 ElTour（6 步，localStorage tour:v1:lab；遮罩色随浅/深模式） -->
+    <!-- 首入引导 ElTour（6 步，localStorage tour:v1:lab；遮罩=纯视觉聚焦层，不拦交互） -->
     <el-tour v-model="tourOpen" :mask="tourMask" @close="markTourSeen" @finish="markTourSeen">
+      <template #indicators="{ current, total }">
+        <span
+          v-for="i in total"
+          :key="i"
+          class="el-tour-indicator"
+          :class="{ 'is-active': i - 1 === current }"
+        />
+        <button type="button" class="el-tour-skip" @click="closeTour">
+          {{ $t('robustnessLab.tourSkip') }}
+        </button>
+      </template>
       <el-tour-step
         v-for="(step, i) in tourSteps"
         :key="i"
@@ -722,7 +733,10 @@ const kpiGlossaryAnchor = ref(null)
 
 // ── ElTour 状态 ──
 const tourOpen = ref(false)
-const tourMask = ref(true)
+// 遮罩与质量页同规格（纯视觉聚焦层：全局 CSS 已保证不拦截点击、不盖侧栏/顶栏）
+const tourMask = computed(() => (isDark.value
+  ? { color: 'rgba(10,10,12,0.55)' }
+  : { color: 'rgba(10,10,12,0.32)' }))
 
 // ──────────────────────────────────────
 //  数据获取
@@ -1696,8 +1710,15 @@ const setupItems = computed(() => {
 //  ElTour 首入引导（6 步；localStorage tour:v1:lab）
 // ──────────────────────────────────────
 
-const tourTarget = (selector, fallbackSelector) => () => {
-  return document.querySelector(selector) || document.querySelector(fallbackSelector) || document.body
+// 目标锚点：按序取第一个命中的选择器（末级兜底 body）。
+// 注意：优先锚定"小节标题"等小元素——整卡常是数百像素高的巨块，
+// ElTour 2.7.4 的 flip/shift 无法把高块旁弹窗摆进视口（会跑到屏幕外）。
+const tourTarget = (...selectors) => () => {
+  for (const sel of selectors) {
+    const el = document.querySelector(sel)
+    if (el) return el
+  }
+  return document.body
 }
 
 const tourSteps = computed(() => [
@@ -1707,27 +1728,27 @@ const tourSteps = computed(() => [
     description: t(uiKind.value === 'raster' ? 'robustnessLab.tour1DescRaster' : 'robustnessLab.tour1Desc'),
   },
   {
-    target: tourTarget('#lab-kpi'),
+    target: tourTarget('#lab-kpi', '.control-grid'),
     title: t('robustnessLab.tour2Title'),
     description: t(uiKind.value === 'raster' ? 'robustnessLab.tour2DescRaster' : 'robustnessLab.tour2Desc'),
   },
   {
-    target: tourTarget('#lab-run'),
+    target: tourTarget('#lab-run .card-title', '#lab-run'),
     title: t('robustnessLab.tour3Title'),
     description: t('robustnessLab.tour3Desc'),
   },
   {
-    target: tourTarget('#lab-history'),
+    target: tourTarget('#lab-history .card-title', '#lab-history'),
     title: t('robustnessLab.tour4Title'),
     description: t('robustnessLab.tour4Desc'),
   },
   {
-    target: tourTarget('#lab-matrix'),
+    target: tourTarget('#lab-matrix .card-title', '#lab-matrix'),
     title: t('robustnessLab.tour5Title'),
     description: t('robustnessLab.tour5Desc'),
   },
   {
-    target: tourTarget('#lab-verdict', '#lab-matrix'),
+    target: tourTarget('#lab-verdict', '#lab-matrix .card-title', '#lab-matrix'),
     title: t('robustnessLab.tour6Title'),
     description: t('robustnessLab.tour6Desc'),
   },
@@ -1742,15 +1763,12 @@ const markTourSeen = () => {
 }
 
 const openTour = () => {
-  // 遮罩色随浅/深模式：运行时读取 --el-mask-color（EP 在浅色为白霜、深色由
-  // design-system.css 覆写为深海军蓝），只消费变量名，不写死色值。
-  try {
-    const color = getComputedStyle(document.documentElement).getPropertyValue('--el-mask-color').trim()
-    tourMask.value = color ? { color } : true
-  } catch {
-    tourMask.value = true
-  }
   tourOpen.value = true
+}
+
+// 「跳过」：收起引导（watch 里统一记 tour:v1:lab 已看）
+const closeTour = () => {
+  tourOpen.value = false
 }
 
 watch(tourOpen, (open) => {

@@ -457,6 +457,7 @@ export default {
     tourStep5Desc: 'The Quality Metrics Explained card at the bottom defines every metric with threshold scales; the same details live in every ⓘ popover.',
     tourStep6Title: 'Refresh & filter',
     tourStep6Desc: 'Filter records by data type and time range; the top-right Refresh button reloads everything at once.',
+    tourSkip: 'Skip',
   },
   employee: {
     title: 'Employee Management',
@@ -2806,6 +2807,7 @@ export default {
     tour5Desc: 'Rows = schemes, columns = attacks; click the ⓘ by the caption for the metrics dictionary, hover a column for the attack’s mechanism and source.',
     tour6Title: 'Comparison verdict',
     tour6Desc: 'When the run completes, the verdict is generated automatically: which attacks turned into wins, which fail for both.',
+    tourSkip: 'Skip',
     // ── Attack-source drawer ──
     codeBtn: 'View code',
     codeDrawerTitle: 'Attack source · {name}',

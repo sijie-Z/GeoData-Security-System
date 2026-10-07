@@ -696,6 +696,83 @@ body {
   border-top: 1px solid var(--border-color-light);
 }
 
+/* -------- ElTour 引导层（水印质量 / 鲁棒性实验室首入讲解）--------
+   原则：引导层是"纯视觉聚焦层"，任何时刻不拦截交互——
+   ① 遮罩永不吞点击：侧栏 / 顶栏 / 内容全程可操作（曾经点侧栏无响应）；
+   ② admin 布局下遮罩裁剪到内容区：不盖全局顶栏（60px）与侧栏（200px / 折叠 64px）；
+   ③ 弹窗外观并入弹层体系 token（radius-lg / elevation-2 / 1px ring）。 */
+.el-tour__mask,
+.el-tour__mask svg,
+.el-tour__mask path {
+  pointer-events: none !important;
+}
+
+html:has(.admin-home-layout) .el-tour__mask svg {
+  clip-path: inset(60px 0 0 200px);
+}
+
+html:has(.admin-home-layout):has(.sidebar.collapsed) .el-tour__mask svg {
+  clip-path: inset(60px 0 0 64px);
+}
+
+.el-tour {
+  --el-tour-width: 420px;
+}
+
+.el-tour__content {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--elevation-2) !important;
+  padding: var(--spacing-md);
+}
+
+.el-tour__content .el-tour__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.el-tour__content .el-tour__body {
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.el-tour__content .el-tour__closebtn .el-tour__close {
+  color: var(--text-3);
+}
+
+.el-tour__content .el-tour__closebtn:focus .el-tour__close,
+.el-tour__content .el-tour__closebtn:hover .el-tour__close {
+  color: var(--text-1);
+}
+
+/* indicators 插槽内的「跳过」按钮（质量页 / 实验室共用，随模式换色） */
+.el-tour-skip {
+  margin-left: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1;
+  vertical-align: middle;
+  cursor: pointer;
+  transition: color var(--duration-150) var(--ease-out);
+}
+
+.el-tour-skip:hover {
+  color: var(--primary-600);
+}
+
+/* 深色下提一级对比度（12px 小字，正文级 --text-2 达 AA） */
+html.dark .el-tour-skip {
+  color: var(--text-2);
+}
+
+html.dark .el-tour-skip:hover {
+  color: var(--primary-400);
+}
+
 /* -------- 表格（§4.13）：表头 12px/大写/+0.5px 字距；单元格上下 5px；行 hover 120ms -------- */
 .el-table {
   border-radius: var(--radius-lg) !important;

@@ -35,9 +35,9 @@
     </el-row>
 
     <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="verifLoading" :ref="setTourEl('gallery')">
+    <el-card class="section-card" shadow="never" v-loading="verifLoading">
       <template #header>
-        <div class="card-header">
+        <div class="card-header" :ref="setTourEl('gallery')">
           <span class="section-title">{{ $t('watermarkQuality.analyticsGallery') }}</span>
         </div>
       </template>
@@ -143,9 +143,9 @@
     </el-card>
 
     <!-- ═══════════ 区三 · 算法能力矩阵（基准真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="benchLoading" :ref="setTourEl('matrix')">
+    <el-card class="section-card" shadow="never" v-loading="benchLoading">
       <template #header>
-        <div class="card-header">
+        <div class="card-header" :ref="setTourEl('matrix')">
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.capabilityMatrix') }}</span>
             <GlossaryHelp v-bind="glossary.matrix" />
@@ -344,9 +344,9 @@
     </el-card>
 
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
-    <el-card class="records-card" shadow="never" :ref="setTourEl('records')">
+    <el-card class="records-card" shadow="never">
       <template #header>
-        <div class="card-header">
+        <div class="card-header" :ref="setTourEl('records')">
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.records') }}</span>
             <el-radio-group v-model="dataTypeFilter" size="small">
@@ -418,8 +418,8 @@
     </el-card>
 
     <!-- ═══════════ 区五 · 质量指标说明（阈值可视化小卡） ═══════════ -->
-    <el-card class="section-card" shadow="never" :ref="setTourEl('metrics')">
-      <template #header><span class="section-title">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
+    <el-card class="section-card" shadow="never">
+      <template #header><span class="section-title" :ref="setTourEl('metrics')">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
       <el-row :gutter="16">
         <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">
           <div class="metric-item">
@@ -457,11 +457,22 @@
       @close="onTourClose"
       @finish="onTourClose"
     >
-      <el-tour-step :target="() => tourEls.header" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
+      <template #indicators="{ current, total }">
+        <span
+          v-for="i in total"
+          :key="i"
+          class="el-tour-indicator"
+          :class="{ 'is-active': i - 1 === current }"
+        />
+        <button type="button" class="el-tour-skip" @click="closeTour">
+          {{ $t('watermarkQuality.tourSkip') }}
+        </button>
+      </template>
+      <el-tour-step :target="() => tourEls.header" placement="bottom-start" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
       <el-tour-step :target="() => tourEls.hero" :title="$t('watermarkQuality.tourStep2Title')" :description="$t('watermarkQuality.tourStep2Desc')" />
       <el-tour-step :target="() => tourEls.gallery" :title="$t('watermarkQuality.tourStep3Title')" :description="$t('watermarkQuality.tourStep3Desc')" />
       <el-tour-step :target="() => tourEls.matrix" :title="$t('watermarkQuality.tourStep4Title')" :description="$t('watermarkQuality.tourStep4Desc')" />
-      <el-tour-step :target="() => tourEls.metrics" :title="$t('watermarkQuality.tourStep5Title')" :description="$t('watermarkQuality.tourStep5Desc')" />
+      <el-tour-step :target="() => tourEls.metrics" placement="bottom-start" :title="$t('watermarkQuality.tourStep5Title')" :description="$t('watermarkQuality.tourStep5Desc')" />
       <el-tour-step :target="() => tourEls.records" :title="$t('watermarkQuality.tourStep6Title')" :description="$t('watermarkQuality.tourStep6Desc')" />
     </el-tour>
   </div>
@@ -499,14 +510,19 @@ const tourVisible = ref(false)
 const tourEls = reactive({ header: null, hero: null, gallery: null, matrix: null, metrics: null, records: null })
 // 同时兼容 DOM 元素与组件（el-row / el-card）实例
 const setTourEl = (key) => (el) => { tourEls[key] = el?.$el ?? el }
-// 遮罩色随模式：深色 A 用 rgba(10,10,12,.65)，浅色 B 用中性黑 50%
+// 遮罩色随模式（纯视觉聚焦层：全局 CSS 已保证不拦截点击、不盖侧栏/顶栏）
 const tourMask = computed(() => (isDark.value
-  ? { color: 'rgba(10,10,12,0.65)' }
-  : { color: 'rgba(10,10,10,0.5)' }))
+  ? { color: 'rgba(10,10,12,0.55)' }
+  : { color: 'rgba(10,10,12,0.32)' }))
 let tourAutoTimer = null
 const startTour = () => { tourVisible.value = true }
 const onTourClose = () => {
   try { localStorage.setItem(TOUR_KEY, '1') } catch { /* 隐私模式等场景忽略 */ }
+}
+// 「跳过」：收起引导并记为已看（同关闭按钮语义）
+const closeTour = () => {
+  tourVisible.value = false
+  onTourClose()
 }
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
