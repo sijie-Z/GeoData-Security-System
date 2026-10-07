@@ -23,6 +23,10 @@ MYSQL_ALTERS = [
     # Fix TEXT truncation for QR code and vector data columns
     "ALTER TABLE application MODIFY COLUMN qrcode MEDIUMTEXT NULL",
     "ALTER TABLE application MODIFY COLUMN vr_data MEDIUMTEXT NULL",
+    # Blind watermark payload source: the v1 QR text behind `qrcode` (the blind
+    # dispatch re-renders it at box_size=1 for its ~one-bit-per-64-pixels
+    # budget). Nullable; legacy rows stay NULL and get a "重新生成水印" 400.
+    "ALTER TABLE application ADD COLUMN qr_text TEXT NULL",
     "ALTER TABLE download_record ADD COLUMN applicant_user_number VARCHAR(255) NULL",
     "ALTER TABLE download_record ADD COLUMN filename VARCHAR(255) NULL",
     "ALTER TABLE download_record ADD COLUMN timestamp DATETIME NULL",

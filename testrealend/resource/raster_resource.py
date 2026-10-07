@@ -116,6 +116,7 @@ class GenerateRasterWatermarkResource(Resource):
             img_str = base64.b64encode(buffered.getvalue()).decode()
 
             item.qrcode = img_str
+            item.qr_text = qr_content
             item.watermark_generated = True
             item.qr_version = qr_version
             item.qr_signature = signature
@@ -190,6 +191,7 @@ def _create_qrcode_base64(item):
     img_str = base64.b64encode(buffered.getvalue()).decode()
     item.qr_version = qr_version
     item.qr_signature = signature
+    item.qr_text = qr_content
     item.generation_timestamp = datetime.now()
     return img_str
 
