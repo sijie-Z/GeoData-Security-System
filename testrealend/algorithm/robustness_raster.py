@@ -32,6 +32,9 @@ Schemes (label -> implementation):
   * ``dwt``       -> ``raster_dwt_watermark.embed_dwt`` / ``extract_dwt``
   * ``histogram`` -> ``raster_histogram_watermark.embed_histogram`` / ``extract_histogram``
   * ``blind``     -> ``raster_blind_watermark.embed_blind`` / ``extract_blind``
+  * ``iw_dct``    -> ``raster_iw_dct.embed_iw_dct`` / ``extract_iw_dct`` (IW-DCT: DWT LL
+    subband, 4x4 block DCT, fixed mid-frequency coefficient-pair comparison; same
+    one-bit-per-8x8-host-pixel footprint as the blind scheme)
 
 Host: ``make_host_tif`` writes a deterministic 512x512 3-band uint8 GeoTIFF
 with CRS EPSG:4326 (same construction as ``tests/test_raster.py::_make_geotiff``,
@@ -52,6 +55,10 @@ Payload sizing (smoke-measured): the real ~191-char v2 payload renders as a
 = 4096 embeddable bits and the library requires ``wm_bits < block_num``, so
 57x57 = 3249 bits fits, while the delivery-default ``box_size=2`` QR (~130 px,
 ~16900 bits) and even ``box_size=1`` at ECC M (65x65 = 4225 bits) exceed it.
+The iw_dct scheme shares the blind scheme's one-bit-per-8x8-host-pixel
+footprint (``(H//8)*(W//8)`` = 4096 blocks on the 512 host) and also embeds
+the payload at its natural size, so the same 57x57 QR fits at ~79%
+utilization.
 The other three schemes resize the payload bitmap to their own working size
 anyway, so one small QR serves all four schemes identically.
 
@@ -79,8 +86,8 @@ from algorithm.robustness_sweep import RASTER_SWEEP_LADDERS, SWEEP_TIER_COUNT, s
 # Same fixture extent as tests/test_raster.py (a small box over Hangzhou, WGS84).
 HOST_BOUNDS = (119.9, 29.9, 120.1, 30.1)
 
-# The four raster schemes the raster matrix compares.
-RASTER_SCHEMES = ("lsb", "dwt", "histogram", "blind")
+# The five raster schemes the raster matrix compares.
+RASTER_SCHEMES = ("lsb", "dwt", "histogram", "blind", "iw_dct")
 
 # Standard attack set: the no-attack baseline first, then the image attacks.
 # "blur" is supported by the engine but not part of the default whitelist runs
@@ -416,6 +423,8 @@ def _embed_stego(scheme, host_tif, qr_png, work_dir):
         from algorithm.raster_histogram_watermark import embed_histogram as embed
     elif scheme == "blind":
         from algorithm.raster_blind_watermark import embed_blind as embed
+    elif scheme == "iw_dct":
+        from algorithm.raster_iw_dct import embed_iw_dct as embed
     else:
         raise ValueError(f"unknown raster scheme: {scheme!r}")
     with Image.open(qr_png) as wm_img:
@@ -433,6 +442,8 @@ def _extract_watermark(scheme, attacked_path, wm_meta_path, out_png):
         from algorithm.raster_histogram_watermark import extract_histogram as extract
     elif scheme == "blind":
         from algorithm.raster_blind_watermark import extract_blind as extract
+    elif scheme == "iw_dct":
+        from algorithm.raster_iw_dct import extract_iw_dct as extract
     else:
         raise ValueError(f"unknown raster scheme: {scheme!r}")
     return extract(attacked_path, wm_meta_path, out_png)

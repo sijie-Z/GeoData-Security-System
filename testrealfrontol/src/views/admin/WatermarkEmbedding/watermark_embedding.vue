@@ -10,6 +10,7 @@
             <el-option label="DWT (Frequency)" value="dwt" />
             <el-option label="Histogram Shift" value="histogram" />
             <el-option :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant, needs large image)'" value="blind" />
+            <el-option :label="$t('wmEmbed.algorithmIwDct') || 'IW-DCT (needs large image)'" value="iw_dct" />
           </el-select>
           <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
             <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
@@ -171,6 +172,7 @@
             <el-option label="DWT (Frequency)" value="dwt" />
             <el-option label="Histogram Shift" value="histogram" />
             <el-option :label="$t('wmEmbed.algorithmBlind')" value="blind" />
+            <el-option :label="$t('wmEmbed.algorithmIwDct')" value="iw_dct" />
           </el-select>
         </div>
       </div>

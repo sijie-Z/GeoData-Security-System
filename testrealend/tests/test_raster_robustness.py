@@ -1,8 +1,9 @@
 """Tests for the raster robustness matrix (feat_raster_robustness).
 
-Engine: ``algorithm/robustness_raster.py`` — four raster schemes (lsb / dwt /
-histogram / blind) x image attacks on a synthetic 512x512 GeoTIFF host, plus
-the ``kind="raster"`` extension of ``POST /api/robustness/run``.
+Engine: ``algorithm/robustness_raster.py`` — five raster schemes (lsb / dwt /
+histogram / blind / iw_dct, the last added by feat_lab_iw Track B) x image
+attacks on a synthetic 512x512 GeoTIFF host, plus the ``kind="raster"``
+extension of ``POST /api/robustness/run``.
 """
 
 import numpy as np
@@ -225,5 +226,5 @@ class TestRobustnessRasterApi:
         assert resp.status_code == 400
 
     def test_raster_scheme_and_attack_whitelists(self):
-        assert RASTER_SCHEMES == ("lsb", "dwt", "histogram", "blind")
+        assert RASTER_SCHEMES == ("lsb", "dwt", "histogram", "blind", "iw_dct")
         assert set(RASTER_ATTACKS) == {"none", "jpeg", "resize", "crop", "rotate", "noise", "blur"}

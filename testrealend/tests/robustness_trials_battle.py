@@ -212,7 +212,7 @@ def _run_raster_battle(args):
         "data_ref": "synthetic_512x512",
         "trials": args.raster_trials,
         "host_fill": args.raster_fill,
-        "schemes": ["lsb", "dwt", "histogram", "blind"],
+        "schemes": ["lsb", "dwt", "histogram", "blind", "iw_dct"],
         "attacks": list(RASTER_DEFAULT_ATTACKS),
         "elapsed_s": round(elapsed, 1),
         "rows": rows,
