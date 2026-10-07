@@ -418,7 +418,7 @@
     </el-card>
 
     <!-- ═══════════ 区五 · 质量指标说明（阈值可视化小卡） ═══════════ -->
-    <el-card class="section-card" shadow="never" :ref="setTourEl('metrics')">
+    <el-card class="section-card" shadow="never">
       <template #header><span class="section-title" :ref="setTourEl('metrics')">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
       <el-row :gutter="16">
         <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">

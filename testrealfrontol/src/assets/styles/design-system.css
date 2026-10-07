@@ -764,6 +764,15 @@ html:has(.admin-home-layout):has(.sidebar.collapsed) .el-tour__mask svg {
   color: var(--primary-600);
 }
 
+/* 深色下提一级对比度（12px 小字，正文级 --text-2 达 AA） */
+html.dark .el-tour-skip {
+  color: var(--text-2);
+}
+
+html.dark .el-tour-skip:hover {
+  color: var(--primary-400);
+}
+
 /* -------- 表格（§4.13）：表头 12px/大写/+0.5px 字距；单元格上下 5px；行 hover 120ms -------- */
 .el-table {
   border-radius: var(--radius-lg) !important;
