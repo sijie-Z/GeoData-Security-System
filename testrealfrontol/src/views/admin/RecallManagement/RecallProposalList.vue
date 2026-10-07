@@ -202,7 +202,8 @@ const createRules = {
   reason: [{ required: true, min: 20, message: () => t('recall.reasonMinLength'), trigger: 'blur' }]
 };
 
-const canCreate = computed(() => userStore.currentUser?.role === 'admin');
+// 口径与后端 is_admin_role（role 以 'admin' 开头即 admin 家族）及路由守卫一致
+const canCreate = computed(() => String(userStore.currentUser?.role || '').startsWith('admin'));
 
 const getStatusType = (status) => {
   const map = { voting: 'warning', approved: 'success', rejected: 'info', cancelled: 'danger' };
@@ -329,8 +330,8 @@ onMounted(() => {
 <style scoped>
 .recall-list-page { padding: 20px 24px; }
 .page-header { margin-bottom: 16px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: #1f2937; }
-.page-desc { margin: 0; color: #6b7280; }
+.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
+.page-desc { margin: 0; color: var(--text-2); }
 .filter-card { margin-bottom: 16px; border-radius: 12px; }
 .filter-row { display: flex; justify-content: space-between; align-items: center; }
 .table-card { border-radius: 12px; }
@@ -341,9 +342,9 @@ onMounted(() => {
 .vote-buttons { display: flex; justify-content: center; gap: 16px; }
 .vote-summary { display: flex; justify-content: center; gap: 32px; margin: 16px 0; }
 .vote-item { text-align: center; }
-.vote-label { font-size: 14px; color: #6b7280; }
+.vote-label { font-size: 14px; color: var(--text-2); }
 .vote-count { font-size: 24px; font-weight: 600; display: block; }
-.vote-count.success { color: #10b981; }
-.vote-count.danger { color: #ef4444; }
-.vote-count.info { color: #6b7280; }
+.vote-count.success { color: var(--tint-success-text); }
+.vote-count.danger { color: var(--tint-danger-text); }
+.vote-count.info { color: var(--text-2); }
 </style>
