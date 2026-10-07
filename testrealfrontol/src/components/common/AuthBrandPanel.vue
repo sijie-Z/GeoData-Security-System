@@ -235,7 +235,7 @@ onMounted(() => {
 .brand-title {
   margin: 0 0 14px;
   font-size: clamp(28px, 2.7vw, 38px);
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.5px;
   line-height: 1.25;
   color: #ffffff;
@@ -291,7 +291,7 @@ onMounted(() => {
 
 .feature-text {
   font-size: 14.5px;
-  font-weight: 500;
+  font-weight: 400;
   letter-spacing: 0.3px;
   color: rgba(226, 232, 240, 0.95);
 }

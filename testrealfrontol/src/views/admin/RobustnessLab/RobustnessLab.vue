@@ -1494,7 +1494,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-secondary);
 }
 
@@ -1853,7 +1853,7 @@ onMounted(async () => {
 
 .matrix-table :deep(th.el-table__cell) {
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-secondary);
   background: var(--bg-tertiary);
 }
@@ -1945,7 +1945,7 @@ onMounted(async () => {
   background: var(--tint-danger-bg);
   border: 1px solid var(--tint-danger-border);
   font-size: 12.5px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .cell-value.is-pending {

@@ -172,7 +172,7 @@ const resetForm = () => {
 .page-container { padding: 24px; background-color: #fff; height: 100%; }
 .page-title { font-size: 18px; font-weight: 600; }
 .form-wrapper { margin-top: 20px; }
-.form-section-title { font-size: 16px; font-weight: 500; color: #303133; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid #e4e7ed; }
+.form-section-title { font-size: 16px; font-weight: 400; color: #303133; margin: 0 0 20px 0; padding-bottom: 10px; border-bottom: 1px solid #e4e7ed; }
 .el-upload__tip { color: #909399; font-size: 12px; margin-top: 7px; }
 </style> -->
 
@@ -373,7 +373,7 @@ const resetForm = () => {
 }
 .form-section-title {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   color: #374151;
   margin: 0 0 24px 0;
   padding-bottom: 12px;

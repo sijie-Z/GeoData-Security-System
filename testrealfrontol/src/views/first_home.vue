@@ -229,7 +229,7 @@ const register_button = () => router.push('/register');
 
 .system-title {
   font-size: clamp(2.3rem, 5.5vw, 3.6rem);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
   color: #fff;
   text-shadow: 0 0 15px rgba(147, 197, 253, 0.3), 0 0 40px rgba(96, 165, 250, 0.4);
@@ -249,7 +249,7 @@ const register_button = () => router.push('/register');
   font-size: clamp(1rem, 2.3vw, 1.3rem);
   color: #a7c1e5;
   margin-top: 20px;
-  font-weight: 300;
+  font-weight: 400;
   letter-spacing: 0.5px;
 }
 
@@ -449,7 +449,7 @@ const register_button = () => router.push('/register');
   color: #93c5fd;
   text-align: center;
   margin-bottom: 28px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .workflow-steps {

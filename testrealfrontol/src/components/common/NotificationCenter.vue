@@ -319,7 +319,7 @@ onBeforeUnmount(() => {
 }
 
 .sender {
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary, #303133);
   font-size: 14px;
 }

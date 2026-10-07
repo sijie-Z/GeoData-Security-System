@@ -419,7 +419,7 @@ const handleUploadError = (err, file) => {
 
 .step-item.active .step-text {
   color: #409EFF;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .step-item.completed .step-text {
@@ -461,7 +461,7 @@ const handleUploadError = (err, file) => {
   gap: 8px;
   margin-bottom: 16px;
   font-size: 16px;
-  font-weight: 500;
+  font-weight: 400;
   color: #303133;
 }
 
@@ -505,7 +505,7 @@ const handleUploadError = (err, file) => {
 .main-text em {
   color: #409EFF;
   font-style: normal;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .sub-text {
@@ -552,7 +552,7 @@ const handleUploadError = (err, file) => {
   justify-content: center;
   gap: 8px;
   margin-bottom: 16px;
-  font-weight: 500;
+  font-weight: 400;
   color: #303133;
 }
 

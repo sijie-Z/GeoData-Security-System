@@ -231,7 +231,7 @@ const goToChat = () => router.push('/admin/system/chat')
   padding: 12px 16px;
   border-radius: 8px;
   background: #f0f2f5;
-  font-weight: 500;
+  font-weight: 400;
   white-space: nowrap;
 }
 

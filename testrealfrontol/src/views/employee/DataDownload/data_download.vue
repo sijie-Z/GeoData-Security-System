@@ -223,7 +223,7 @@ const download = async (row) => {
 
 .card-header span {
   font-size: 18px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--text-primary, #303133);
 }
 

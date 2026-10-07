@@ -261,7 +261,7 @@ const resetForm = () => {
 }
 .upload-form .el-form-item__label {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   color: #4e5969;
 }
 .upload-dragger-wrapper :deep(.el-upload-dragger) {

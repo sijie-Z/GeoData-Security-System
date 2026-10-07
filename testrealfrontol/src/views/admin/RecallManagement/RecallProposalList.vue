@@ -321,7 +321,7 @@ onMounted(() => {
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
 .vote-progress { display: flex; gap: 6px; flex-wrap: wrap; }
 .vote-content { padding: 16px 0; }
-.vote-question { font-size: 16px; font-weight: 500; text-align: center; margin: 20px 0; }
+.vote-question { font-size: 16px; font-weight: 400; text-align: center; margin: 20px 0; }
 .vote-buttons { display: flex; justify-content: center; gap: 16px; }
 .vote-summary { display: flex; justify-content: center; gap: 32px; margin: 16px 0; }
 .vote-item { text-align: center; }

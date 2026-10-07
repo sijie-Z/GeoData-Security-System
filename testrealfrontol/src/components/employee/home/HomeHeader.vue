@@ -336,7 +336,7 @@ const { isDark, toggleTheme } = useTheme();
    height: 60px;
    line-height: 60px;
    font-size: 15px;
-   font-weight: 500;
+   font-weight: 400;
    color: var(--text-secondary, #555);
    transition: color var(--transition-fast), background-color var(--transition-fast);
  }

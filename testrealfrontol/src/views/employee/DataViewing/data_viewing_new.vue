@@ -1246,7 +1246,7 @@ onMounted(() => {
 .stat-label {
   font-size: 14px;
   opacity: 0.8;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .stat-divider {
@@ -1826,7 +1826,7 @@ onMounted(() => {
 .metadata-value {
   font-size: 14px;
   color: #374151;
-  font-weight: 500;
+  font-weight: 400;
   word-break: break-word;
 }
 
@@ -2076,7 +2076,7 @@ onMounted(() => {
   backdrop-filter: blur(4px);
   color: #64748b;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .map-spinner {

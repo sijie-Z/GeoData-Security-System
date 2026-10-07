@@ -225,7 +225,7 @@ const resetForm = () => {
 .upload-main-card { border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 .upload-form { padding: 20px; }
 .upload-form .el-form-item { margin-bottom: 24px; }
-.upload-form .el-form-item__label { font-size: 14px; font-weight: 500; color: #4e5969; }
+.upload-form .el-form-item__label { font-size: 14px; font-weight: 400; color: #4e5969; }
 .upload-dragger-wrapper :deep(.el-upload-dragger) { padding: 40px; border-radius: 8px; border: 2px dashed #dcdfe6; transition: border-color 0.3s; }
 .upload-dragger-wrapper :deep(.el-upload-dragger:hover) { border-color: var(--el-color-primary); }
 .el-icon--upload { font-size: 50px; color: #c0c4cc; margin-bottom: 16px; }
