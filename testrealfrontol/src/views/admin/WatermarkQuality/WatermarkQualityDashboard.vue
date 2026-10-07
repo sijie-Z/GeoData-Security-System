@@ -164,7 +164,7 @@
           </template>
         </el-table-column>
         <el-table-column v-for="alg in matrixAlgos" :key="alg" :label="alg" align="center">
-          <el-table-column :label="$t('watermarkQuality.ncValue')" width="96" align="center">
+          <el-table-column :label="$t('watermarkQuality.ncValue')" width="96" align="right">
             <template #default="{ row }">
               <span class="nc-cell" :class="ncCellClass(cellOf(row, alg)?.nc)">
                 {{ cellOf(row, alg)?.nc != null ? cellOf(row, alg).nc.toFixed(4) : '—' }}
@@ -178,7 +178,7 @@
               <span v-else>—</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.recoveryPsnrCol')" width="110" align="center">
+          <el-table-column :label="$t('watermarkQuality.recoveryPsnrCol')" width="110" align="right">
             <template #default="{ row }">
               {{ cellOf(row, alg)?.recovery_psnr != null ? cellOf(row, alg).recovery_psnr.toFixed(1) : '—' }}
             </template>
@@ -189,24 +189,24 @@
       <!-- 嵌入质量总览（无攻击基线） -->
       <div class="sub-section">
         <h4 class="sub-title">{{ $t('watermarkQuality.stegoOverview') }}</h4>
-        <el-table :data="benchSummaries" stripe size="small" style="width: 100%" :empty-text="$t('common.noData')">
+        <el-table :data="benchSummaries" stripe size="small" style="width: 100%" :empty-text="$t('common.noData')" :row-class-name="benchRowClass">
           <el-table-column prop="algorithm" :label="$t('watermarkQuality.algoName')" width="110" />
-          <el-table-column :label="$t('watermarkQuality.wmBitCount')" width="110">
+          <el-table-column :label="$t('watermarkQuality.wmBitCount')" width="110" align="right">
             <template #default="{ row }">{{ row.wm_bit_count ?? '—' }}</template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120">
+          <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120" align="right">
             <template #default="{ row }">
               <span :style="{ color: psnrColor(row.stego_psnr), fontWeight: 700 }">
                 {{ row.stego_psnr != null ? row.stego_psnr + ' dB' : '—' }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="SSIM" width="110">
+          <el-table-column label="SSIM" width="110" align="right">
             <template #default="{ row }">
               {{ row.stego_ssim != null ? row.stego_ssim.toFixed(5) : '—' }}
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110">
+          <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110" align="right">
             <template #default="{ row }">
               <el-tag
                 :type="row.baseline_nc >= 0.95 ? 'success' : row.baseline_nc >= 0.8 ? 'warning' : 'danger'"
@@ -217,7 +217,7 @@
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.baselineBer')" width="110">
+          <el-table-column :label="$t('watermarkQuality.baselineBer')" width="110" align="right">
             <template #default="{ row }">
               {{ row.baseline_ber != null ? row.baseline_ber.toFixed(4) : '—' }}
             </template>
@@ -320,6 +320,7 @@
         style="width: 100%"
         class="clickable-table"
         :empty-text="$t('common.noData')"
+        :row-class-name="deliveryRowClass"
         @row-click="goForensics"
       >
         <el-table-column :label="$t('watermarkQuality.colDeliveryUuid')" min-width="140">
@@ -379,7 +380,7 @@
         style="width: 100%"
         :empty-text="$t('common.noData')"
       >
-        <el-table-column prop="id" label="ID" width="70" />
+        <el-table-column prop="id" label="ID" width="70" align="right" class-name="tnum-id" />
         <el-table-column :label="$t('watermarkQuality.dataType')" width="100">
           <template #default="{ row }">
             <el-tag v-if="row.data_type === 'vector'" type="primary" size="small" effect="plain">
@@ -391,7 +392,7 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="nc_value" :label="$t('watermarkQuality.ncValue')" width="110">
+        <el-table-column prop="nc_value" :label="$t('watermarkQuality.ncValue')" width="110" align="right">
           <template #default="{ row }">
             <el-tag :type="getNcTagType(row.nc_value)" effect="dark" round>
               {{ row.nc_value?.toFixed(4) || '-' }}
@@ -711,6 +712,7 @@ const ncHistogramOption = computed(() => {
       name: t('watermarkQuality.seriesCount'),
       type: 'bar',
       barWidth: '56%',
+      barMaxWidth: 56,
       data: hist.map((h) => {
         const low = parseFloat(h.bucket) || 0
         return {
@@ -759,7 +761,7 @@ const ncTrendOption = computed(() => {
     ],
     series: [
       {
-        name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%',
+        name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%', barMaxWidth: 56,
         data: daily.map((d) => d.count),
         itemStyle: { color: chartInk.value.accentSoft, borderRadius: [3, 3, 0, 0] },
       },
@@ -810,7 +812,7 @@ const algoBreakdownOption = computed(() => {
     ],
     series: [
       {
-        name: countLabel, type: 'bar', barWidth: '32%',
+        name: countLabel, type: 'bar', barWidth: '32%', barMaxWidth: 56,
         data: rows.map((r) => r.count),
         itemStyle: {
           borderRadius: [6, 6, 0, 0],
@@ -934,6 +936,12 @@ const chainRingStyle = computed(() => ({
 }))
 const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
 const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
+// §4.13 状态色带：行左 4px（仅状态类表格）
+const deliveryRowClass = ({ row }) => {
+  const t = { READY: 'success', FAILED: 'danger', PENDING: 'warning' }[row.status]
+  return t ? `row-band-${t}` : ''
+}
+const benchRowClass = ({ row }) => (row.embed_error ? 'row-band-danger' : 'row-band-success')
 const recentDeliveries = computed(() => dStats.value?.recent || [])
 const goForensics = () => router.push('/admin/forensics')
 
@@ -1212,7 +1220,6 @@ onMounted(() => {
 .page-header h2 {
   font-size: 24px;
   font-weight: 600;
-  letter-spacing: -0.01em;
   color: var(--text-primary, #0a0a0a);
   margin-bottom: 4px;
 }
@@ -1243,17 +1250,19 @@ onMounted(() => {
   height: 100%;
   padding: 20px;
   background: var(--bg-primary, #ffffff);
-  border: 1px solid var(--border-color, #eaeaea);
+  /* §4.11 ring 描边（1px 前景 alpha 10%，替代 border，避免双线） */
+  border: none;
+  box-shadow: var(--card-ring);
   border-radius: var(--radius-lg, 8px);
 }
 
 .hover-lift {
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: box-shadow var(--duration-200) var(--ease-out-soft);
 }
 
 .hover-lift:hover {
   transform: none;
-  border-color: var(--border-color-hover, #d4d4d4);
+  box-shadow: var(--card-ring-hover);
 }
 
 .kpi-icon {

@@ -317,6 +317,7 @@ const { isDark, toggleTheme } = useTheme();
  .theme-toggle-button {
    font-size: 18px;
    color: var(--text-secondary, #606266);
+   transition: color var(--transition-fast);
  }
 
  .theme-toggle-button:hover {
@@ -337,7 +338,7 @@ const { isDark, toggleTheme } = useTheme();
    font-size: 15px;
    font-weight: 500;
    color: var(--text-secondary, #555);
-   transition: all 0.3s ease;
+   transition: color var(--transition-fast), background-color var(--transition-fast);
  }
 
  .header-nav-menu .el-menu-item:hover {
@@ -358,7 +359,7 @@ const { isDark, toggleTheme } = useTheme();
    cursor: pointer;
    padding: 5px 10px;
    border-radius: 20px;
-   transition: all 0.3s ease;
+   transition: background-color var(--transition-fast);
  }
 
  .user-info-dropdown:hover {

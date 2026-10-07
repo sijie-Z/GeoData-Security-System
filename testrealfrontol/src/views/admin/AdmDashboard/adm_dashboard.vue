@@ -2,11 +2,11 @@
   <div class="admin-dashboard" v-loading="loading">
     <template v-if="loading">
       <div class="skeleton-hero">
-        <div class="sk-line long"></div>
-        <div class="sk-line medium"></div>
+        <div class="sk-line long motion-shimmer"></div>
+        <div class="sk-line medium motion-shimmer"></div>
       </div>
       <div class="stats-grid">
-        <div v-for="n in 4" :key="n" class="stat-card"><div class="sk-line short"></div><div class="sk-line medium"></div></div>
+        <div v-for="n in 4" :key="n" class="stat-card"><div class="sk-line short motion-shimmer"></div><div class="sk-line medium motion-shimmer"></div></div>
       </div>
     </template>
     <template v-else>
@@ -37,8 +37,8 @@
       />
     </section>
 
-    <!-- KPI卡片 -->
-    <section class="kpi-grid">
+    <!-- KPI卡片（§3.8 入场 stagger 40ms） -->
+    <section class="kpi-grid motion-stagger">
       <el-card class="kpi-card" shadow="hover">
         <div class="kpi-body">
           <div class="kpi-icon blue"><el-icon><User /></el-icon></div>
@@ -508,7 +508,7 @@ const trendOption = computed(() => {
         }
       },
       {
-        name: t('adminDashboard.chartDownloads'), type: 'bar', barMaxWidth: 14,
+        name: t('adminDashboard.chartDownloads'), type: 'bar', barMaxWidth: 56,
         data: dlData,
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
@@ -638,7 +638,7 @@ const hourlyOption = computed(() => {
       axisLabel: { color: chartColors.value.axisLabelMuted, fontSize: 11 }
     },
     series: [{
-      type: 'bar', barMaxWidth: 20,
+      type: 'bar', barMaxWidth: 56,
       data: hourlyActivity.value.map((i, idx) => ({
         value: i.count,
         itemStyle: {
@@ -775,7 +775,7 @@ const efficiencyOption = computed(() => {
     series: [
       {
         name: t('adminDashboard.approved'), type: 'bar', stack: 'total',
-        barMaxWidth: 24, data: approvedData,
+        barMaxWidth: 56, data: approvedData,
         label: {
           show: true, position: 'right',
           formatter: params => params.value || '',
@@ -790,7 +790,7 @@ const efficiencyOption = computed(() => {
       },
       {
         name: t('adminDashboard.rejected'), type: 'bar', stack: 'total',
-        barMaxWidth: 24, data: rejectedData,
+        barMaxWidth: 56, data: rejectedData,
         label: {
           show: true, position: 'right',
           formatter: params => params.value || '',
@@ -868,7 +868,7 @@ onBeforeUnmount(() => {
   margin-bottom: 24px;
   color: var(--text-primary, #0a0a0a);
 }
-.hero-content h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.hero-content h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; }
 .hero-content p { margin: 0; color: var(--text-secondary, #666666); font-size: 14px; }
 .hero-actions { display: flex; gap: 12px; }
 
@@ -891,7 +891,7 @@ onBeforeUnmount(() => {
 /* 快捷入口 */
 .quick-actions { margin-bottom: 24px; }
 .action-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
-.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: var(--radius-md, 8px); cursor: pointer; transition: background-color 0.15s ease; }
+.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: var(--radius-md, 8px); cursor: pointer; transition: background-color var(--transition-fast); }
 .action-item:hover { background: var(--bg-hover, #fafafa); }
 .action-item span { font-size: 13px; color: var(--text-secondary, #606266); }
 .action-item .el-icon { color: var(--primary-500, #409EFF); }

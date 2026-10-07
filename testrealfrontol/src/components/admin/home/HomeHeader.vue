@@ -133,6 +133,7 @@ const logout = async () => {
 .theme-toggle-button {
   font-size: 18px;
   color: var(--text-secondary);
+  transition: color var(--transition-fast);
 }
 
 .theme-toggle-button:hover {
@@ -148,7 +149,7 @@ const logout = async () => {
   font-size: 20px;
   color: var(--text-secondary);
   margin-right: 10px;
-  transition: all 0.3s ease;
+  transition: color var(--transition-fast), transform 220ms var(--ease-drawer);
 }
 
 .toggle-sidebar-button:hover {
@@ -160,7 +161,7 @@ const logout = async () => {
   display: flex;
   align-items: center;
   margin-right: 30px;
-  transition: margin-right 0.3s ease;
+  transition: margin-right var(--duration-300) var(--ease-out);
 }
 
 .wiki-logo {
@@ -176,14 +177,14 @@ const logout = async () => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  transition: opacity 0.3s ease;
+  transition: opacity var(--duration-300) var(--ease-out);
 }
 
 .return-home .return-link {
   color: var(--text-tertiary);
   text-decoration: none;
   font-size: 14px;
-  transition: color 0.3s ease;
+  transition: color var(--transition-fast);
 }
 
 .return-home .return-link:hover {
@@ -207,14 +208,16 @@ const logout = async () => {
   font-size: 18px;
 }
 
+/* §4.12 着色式危险按钮（登出）：bg-danger/10 → hover /20，替代实心红 */
 .el-button.el-button--danger.is-circle {
-  background-color: var(--tint-danger-text);
-  border-color: var(--tint-danger-text);
-  color: white;
-  transition: all 0.3s ease;
+  background-color: var(--btn-danger-bg);
+  border-color: transparent;
+  color: var(--btn-danger-text);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 
 .el-button.el-button--danger.is-circle:hover {
-  opacity: 0.85;
+  background-color: var(--btn-danger-bg-hover);
+  color: var(--btn-danger-text);
 }
 </style>

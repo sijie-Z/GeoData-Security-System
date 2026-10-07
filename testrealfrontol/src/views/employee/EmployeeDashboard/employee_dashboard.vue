@@ -2,12 +2,12 @@
   <div class="employee-dashboard" :class="{ 'theme-dark': isDark }" v-loading="loading">
     <template v-if="loading">
       <div class="skeleton-hero glass">
-        <div class="sk-line long"></div>
-        <div class="sk-line medium"></div>
-        <div class="sk-line short"></div>
+        <div class="sk-line long motion-shimmer"></div>
+        <div class="sk-line medium motion-shimmer"></div>
+        <div class="sk-line short motion-shimmer"></div>
       </div>
       <div class="kpi-grid">
-        <div v-for="n in 4" :key="n" class="kpi glass"><div class="sk-line short"></div><div class="sk-line medium"></div></div>
+        <div v-for="n in 4" :key="n" class="kpi glass"><div class="sk-line short motion-shimmer"></div><div class="sk-line medium motion-shimmer"></div></div>
       </div>
     </template>
     <template v-else>
@@ -23,7 +23,7 @@
       </div>
     </section>
 
-    <section class="kpi-grid">
+    <section class="kpi-grid motion-stagger">
       <div class="kpi glass">
         <span>{{ $t('empDashboard.totalApplications') }}</span>
         <h2>{{ metrics.totalApplications }}</h2>
@@ -210,7 +210,7 @@ const trendOption = computed(() => ({
   yAxis: { type: 'value', axisLabel: { color: ink.value.axisLabel }, splitLine: { lineStyle: { color: ink.value.splitLine, type: 'dashed' } } },
   series: [
     { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
-    { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 16, data: chartData.value.map(i => i.downloads || 0) }
+    { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 56, data: chartData.value.map(i => i.downloads || 0) }
   ]
 }));
 
@@ -284,7 +284,7 @@ onActivated(async () => {
 }
 .hero h1 { margin: 0; font-size: 24px; }
 .hero p { margin: 6px 0 0; color: var(--text-secondary, #475569); }
-.hero .meta { margin-top: 8px; color: var(--text-secondary, #64748b); }
+.hero .meta { margin-top: 8px; color: var(--text-secondary, #64748b); font-variant-numeric: tabular-nums; }
 .hero-actions { display: flex; gap: 10px; align-items: center; }
 
 .kpi-grid {
@@ -293,11 +293,11 @@ onActivated(async () => {
   gap: 12px;
   margin-bottom: 12px;
 }
-.kpi { padding: 14px; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
+.kpi { padding: 14px; transition: transform var(--duration-200) var(--ease-out-soft), box-shadow var(--duration-200) var(--ease-out-soft); }
 .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
 .kpi:first-child { border-left: 4px solid var(--accent-cyan, #0ea5e9); }
 .kpi span { color: var(--text-secondary, #64748b); font-size: 13px; }
-.kpi h2 { margin: 6px 0; font-size: 28px; }
+.kpi h2 { margin: 6px 0; font-size: 28px; font-variant-numeric: tabular-nums; }
 .warn { border-left: 4px solid #f59e0b; }
 .ok { border-left: 4px solid #22c55e; }
 .info { border-left: 4px solid #3b82f6; }
@@ -320,7 +320,7 @@ onActivated(async () => {
   background: linear-gradient(135deg, var(--bg-secondary, #f8fafc), var(--tint-info-bg, #eef2ff));
   border: 1px solid var(--border-color, #e2e8f0);
   cursor: pointer;
-  transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1));
+  transition: transform var(--duration-200) var(--ease-out-soft), box-shadow var(--duration-200) var(--ease-out-soft), border-color var(--duration-200) var(--ease-out-soft);
 }
 .action-card:hover {
   transform: translateY(-2px);

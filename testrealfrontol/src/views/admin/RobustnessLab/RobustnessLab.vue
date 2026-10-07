@@ -194,7 +194,7 @@
               <span class="mono-text">{{ formatTime(row.created_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colProgress')" width="90" align="center">
+          <el-table-column :label="$t('robustnessLab.colProgress')" width="90" align="right">
             <template #default="{ row }">
               <span class="mono-text">{{ row.done }}/{{ row.total }}</span>
             </template>
@@ -322,7 +322,7 @@
           <el-table-column
             v-for="(attack, idx) in matrixAttacks"
             :key="attack"
-            align="center"
+            align="right"
             min-width="118"
           >
             <!-- 攻击词典：列头 hover 卡（机制 + 参数 + 查看代码） -->
@@ -752,8 +752,13 @@ const runStatusClass = (row) => {
   return 'is-running'
 }
 
-const historyRowClass = ({ row }) =>
-  runMeta.value && row.run_id === runMeta.value.run_id ? 'is-active-row' : ''
+const historyRowClass = ({ row }) => {
+  const cls = runMeta.value && row.run_id === runMeta.value.run_id ? 'is-active-row' : ''
+  // §4.13 状态色带：行左 4px
+  const s = runStatusClass(row)
+  const band = s === 'is-done' ? 'row-band-success' : s === 'is-error' ? 'row-band-danger' : 'row-band-warning'
+  return `${cls} ${band}`.trim()
+}
 
 const refreshAll = async () => {
   await fetchRuns()
@@ -1472,13 +1477,15 @@ onMounted(async () => {
   gap: 6px;
   padding: 14px 16px;
   background: var(--bg-primary);
-  border: 1px solid var(--border-color);
+  /* §4.11 ring 描边（替代 border，避免双线） */
+  border: none;
+  box-shadow: var(--card-ring);
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast);
+  transition: box-shadow var(--transition-fast);
 }
 
 .kpi-card:hover {
-  border-color: var(--primary-300);
+  box-shadow: inset 0 0 0 1px var(--primary-300);
 }
 
 .kpi-label {
@@ -1493,8 +1500,8 @@ onMounted(async () => {
 .kpi-value {
   font-size: 20px;
   font-weight: 600;
-  letter-spacing: -0.01em;
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .kpi-card.is-win .kpi-value {
@@ -1619,7 +1626,7 @@ onMounted(async () => {
 }
 
 .mono-text {
-  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12.5px;
   color: var(--text-secondary);
 }

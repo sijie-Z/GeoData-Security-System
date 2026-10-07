@@ -69,6 +69,7 @@
         :data="anchors"
         stripe
         class="ledger-table"
+        :row-class-name="ledgerRowClass"
         @row-click="openDetail"
       >
         <el-table-column :label="$t('anchorCenter.colBatchId')" width="150">
@@ -93,7 +94,7 @@
             <HashText :value="row.root_hex" />
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colEventCount')" width="90" align="center">
+        <el-table-column :label="$t('anchorCenter.colEventCount')" width="90" align="right">
           <template #default="{ row }">
             <span class="mono">{{ row.event_count != null ? row.event_count : '—' }}</span>
           </template>
@@ -327,6 +328,12 @@ const statusTagType = (value) => {
   if (s === 'PENDING') return 'warning'
   if (s.includes('FAIL') || s.includes('ERROR')) return 'danger'
   return 'info'
+}
+
+// §4.13 状态色带：行左 4px（仅状态类表格）
+const ledgerRowClass = ({ row }) => {
+  const t = statusTagType(row.status)
+  return t && t !== 'info' ? `row-band-${t}` : ''
 }
 
 const fetchAnchors = async () => {

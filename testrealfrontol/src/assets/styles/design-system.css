@@ -1078,7 +1078,9 @@ html.theme-switching body,
 html.theme-switching .modern-sidebar,
 html.theme-switching .admin-home-layout,
 html.theme-switching .employee-home-layout,
-html.theme-switching .content-panel {
+html.theme-switching .content-panel,
+html.theme-switching .admin-header,
+html.theme-switching .header {
   transition: background-color var(--duration-150) var(--ease-out),
     color var(--duration-150) var(--ease-out),
     border-color var(--duration-150) var(--ease-out) !important;
