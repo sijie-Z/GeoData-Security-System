@@ -25,7 +25,7 @@
         <el-timeline-item
           :timestamp="formatTime(detail.application_submission_time)"
           placement="top"
-          :color="'#409eff'"
+          :color="'var(--accent-9)'"
           :icon="Document"
           :size="'large'"
         >
@@ -41,7 +41,7 @@
           v-if="detail.first_statu !== null"
           :timestamp="formatTime(detail.adm1_approval_time)"
           placement="top"
-          :color="detail.first_statu ? '#67c23a' : '#f56c6c'"
+          :color="detail.first_statu ? 'var(--tint-success-text)' : 'var(--tint-danger-text)'"
           :icon="detail.first_statu ? CircleCheck : CircleClose"
           :size="'large'"
         >
@@ -59,7 +59,7 @@
         <el-timeline-item
           v-if="detail.first_statu === null && status !== 'recalled'"
           placement="top"
-          color="#e4e7ed"
+          color="var(--border-strong)"
           :size="'normal'"
         >
           <el-card shadow="never" class="timeline-card pending-card">
@@ -75,7 +75,7 @@
           v-if="detail.second_statu !== null"
           :timestamp="formatTime(detail.adm2_approval_time)"
           placement="top"
-          :color="detail.second_statu ? '#67c23a' : '#f56c6c'"
+          :color="detail.second_statu ? 'var(--tint-success-text)' : 'var(--tint-danger-text)'"
           :icon="detail.second_statu ? CircleCheck : CircleClose"
           :size="'large'"
         >
@@ -93,7 +93,7 @@
         <el-timeline-item
           v-if="detail.first_statu === true && detail.second_statu === null && status !== 'recalled'"
           placement="top"
-          color="#e4e7ed"
+          color="var(--border-strong)"
           :size="'normal'"
         >
           <el-card shadow="never" class="timeline-card pending-card">
@@ -109,7 +109,7 @@
           v-if="detail.watermark_generated"
           :timestamp="formatTime(detail.generation_timestamp)"
           placement="top"
-          color="#909399"
+          color="var(--text-4)"
           :icon="Picture"
           :size="'normal'"
         >
@@ -125,7 +125,7 @@
         <el-timeline-item
           v-if="detail.watermark_embedded"
           placement="top"
-          color="#909399"
+          color="var(--text-4)"
           :icon="Stamp"
           :size="'normal'"
         >
@@ -141,7 +141,7 @@
           :key="'dl-' + idx"
           :timestamp="formatTime(dl.download_time)"
           placement="top"
-          color="#67c23a"
+          color="var(--tint-success-text)"
           :icon="Download"
           :size="'normal'"
         >
@@ -157,7 +157,7 @@
           v-if="detail.is_recalled"
           :timestamp="formatTime(detail.recalled_at)"
           placement="top"
-          color="#e6a23c"
+          color="var(--tint-warning-text)"
           :icon="WarningFilled"
           :size="'large'"
         >
@@ -294,7 +294,7 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 
 .timeline-card {
   border: none;
-  background: #f8fafc;
+  background: var(--bg-inset);
 }
 
 .timeline-card :deep(.el-card__body) {
@@ -318,17 +318,17 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 }
 
 .pending-card {
-  background: #fdf6ec;
-  border: 1px dashed #e6a23c;
+  background: var(--tint-warning-bg);
+  border: 1px dashed var(--tint-warning-border);
 }
 
 .recall-card {
-  background: #fef0f0;
-  border-left: 3px solid #e6a23c;
+  background: var(--tint-danger-bg);
+  border-left: 3px solid var(--tint-warning-border);
 }
 
 .signature-section {
-  color: #909399;
+  color: var(--text-4);
   font-size: 13px;
 }
 
