@@ -9,8 +9,8 @@
     ⑥ 对比结论卡（自动结论 + 标签 + 1/6 → 4/6）
     ⑦ 导出 JSON / 刷新（矩阵头保留）
   可理解层：指标词典（ⓘ 悬停一句话 → 点击 el-popover 详解卡，含 0.75/0.95 阈值色条）、
-  攻击词典（列头 hover 与单元格 tooltip 首行）、攻击源码抽屉（el-drawer + 等宽 pre，
-  source 来自 GET /api/robustness/attacks/meta，只含攻击函数本体）。
+  攻击词典（列头 hover 与单元格 tooltip 首行）、攻击源码抽屉（el-drawer + highlight.js
+  python 高亮 + 行号 + #L{n} 行锚点，source 来自 GET /api/robustness/attacks/meta）。
   动效（克制）：KPI 数字 count-up 160ms、矩阵行首次入场 stagger 30ms/行、进行中状态徽点
   pulse、卡片 hover 仅边框变色（尊重 prefers-reduced-motion）。
   数据源：GET /api/robustness/runs、GET /api/robustness/runs/<id>（进度轮询）、
@@ -535,7 +535,7 @@
       />
     </el-card>
 
-    <!-- 攻击源码抽屉（rtl，宽 640；等宽 pre，零新依赖） -->
+    <!-- 攻击源码抽屉（rtl，宽 640；highlight.js python 高亮 + 行号 + #L{n} 行锚点） -->
     <el-drawer
       v-model="codeDrawer.open"
       direction="rtl"
@@ -550,8 +550,9 @@
             <span class="code-params-label">{{ $t('robustnessLab.codeParamsLabel') }}</span>
             <span class="code-params mono-text">{{ formatMetaParams(drawerEntry.params_default) }}</span>
           </div>
-          <pre class="code-block">{{ drawerEntry.code }}</pre>
+          <AttackCodeViewer :code="drawerEntry.code" />
           <p class="code-note">{{ $t('robustnessLab.codeNote') }}</p>
+          <p class="code-note">{{ $t('robustnessLab.codeAnchorHint') }}</p>
         </template>
         <p v-else-if="codeDrawer.error" class="code-error">{{ $t('robustnessLab.codeLoadFailed') }}</p>
       </div>
@@ -598,6 +599,7 @@ import VChart from 'vue-echarts'
 import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { useTheme } from '@/composables/useTheme.js'
+import AttackCodeViewer from './AttackCodeViewer.vue'
 import MetricGlossary from './MetricGlossary.vue'
 import { getDataList } from '@/api/upload'
 import {
@@ -2645,7 +2647,7 @@ onMounted(async () => {
   font-style: italic;
 }
 
-/* ── 攻击源码抽屉（等宽 pre，零新依赖） ── */
+/* ── 攻击源码抽屉（highlight.js 高亮查看器自绘，此处只留元信息行） ── */
 .code-drawer-body {
   min-height: 120px;
 }
@@ -2666,20 +2668,6 @@ onMounted(async () => {
 .code-params {
   font-size: 12px;
   word-break: break-all;
-}
-
-.code-block {
-  margin: 0;
-  padding: 14px 16px;
-  font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--text-primary);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color-light);
-  border-radius: var(--radius-md);
-  overflow: auto;
-  white-space: pre;
 }
 
 .code-note {
