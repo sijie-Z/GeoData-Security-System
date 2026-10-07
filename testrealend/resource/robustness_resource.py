@@ -8,11 +8,23 @@ that the worker updates in place — so ``GET /api/robustness/runs/<run_id>``
 shows honest progress while the matrix is in flight, and ``GET
 /api/robustness/runs`` lists recent runs grouped by ``run_id``.
 
+``mode`` (feat_strength_sweep): ``"matrix"`` (default, byte-for-byte the
+historical behavior) or ``"sweep"`` — a WAVES-style strength sweep where every
+requested attack expands into the 5 fixed intensity tiers of
+``algorithm/robustness_sweep.py``, so the row set is (scheme x attack x tier x
+trial) and each row carries ``strength_index`` (0-4) with that tier's real
+``attack_params``. Sweep runs reject ``none`` (the no-attack baseline is not a
+strength tier), default to 3 trials clamped to 1-5 (row-count guard rail), and
+their detail response carries the ladder tables (``ladders``) the curves are
+drawn from. Matrix semantics — validation, sampling, row schema (strength_index
+NULL), response keys — are unchanged.
+
 ``trials`` (1-10, default 1) replicates every cell N times with fixed-seed
 parameter sampling (see the engines); the row set per cell is bounded by
-``MAX_MATRIX_ROWS`` (cells x trials <= 200, over-limit -> 400). The run detail
-additionally carries a per-cell ``summary`` block (successes / success_rate /
-mean_nc / std_nc over the non-null NCs).
+``MAX_MATRIX_ROWS`` (cells x trials <= 200, over-limit -> 400; sweep runs use
+``MAX_SWEEP_ROWS`` against cells x tiers x trials). The run detail additionally
+carries a per-cell ``summary`` block (successes / success_rate / mean_nc /
+std_nc over the non-null NCs).
 
 Discipline:
   * one run at a time — a module lock rejects concurrent POSTs with 409;
@@ -56,8 +68,11 @@ from algorithm.robustness import (
     render_raster_payload_qr,
     run_matrix,
     run_raster_matrix,
+    run_raster_sweep,
+    run_sweep,
 )
 from algorithm.robustness_raster import r_blur, r_crop, r_jpeg, r_noise, r_resize, r_rotate
+from algorithm.robustness_sweep import SWEEP_TIER_COUNT, sweep_ladders_payload, sweep_tier_params
 from crypto.keys import ensure_active_key
 from crypto.payload import build_qr_v2_text
 from delivery.service import _classify_base, _resolve_existing_path
@@ -78,6 +93,17 @@ RUNS_PER_PAGE_DEFAULT = 10
 MIN_TRIALS = 1
 MAX_TRIALS = 10
 MAX_MATRIX_ROWS = 200
+
+# Strength-sweep guard rails (feat_strength_sweep): sweep trials are clamped to
+# 1-5 (default 3) so row counts cannot explode; every attack expands into
+# SWEEP_TIER_COUNT tiers, so the matrix cap would be too tight and sweep runs
+# get their own — with these clamps and the per-kind whitelists the theoretical
+# maximum (raster: 4 schemes x 6 attacks x 5 tiers x 5 trials) is exactly this
+# bound.
+SWEEP_MIN_TRIALS = 1
+SWEEP_MAX_TRIALS = 5
+SWEEP_DEFAULT_TRIALS = 3
+MAX_SWEEP_ROWS = 600
 
 # Zombie sweep (Step 3b): a run whose worker died with the process (backend
 # restart) keeps every row pending forever; the sweep stamps this message so
@@ -144,10 +170,18 @@ def _build_payload_text(data_id):
 
 
 def _apply_rows(run_id, rows):
-    """UPDATE the pre-inserted (scheme, attack, trial) rows with measured metrics."""
-    existing = {(r.scheme, r.attack, r.trial): r for r in RobustnessResult.query.filter_by(run_id=run_id).all()}
+    """UPDATE the pre-inserted (scheme, attack, strength_index, trial) rows with measured metrics.
+
+    The match key includes ``strength_index``: sweep engine rows carry it
+    (0-4), matrix engine rows do not (``row.get`` -> None), so matrix rows keep
+    matching their pre-inserted NULL rows exactly as before.
+    """
+    existing = {
+        (r.scheme, r.attack, r.strength_index, r.trial): r
+        for r in RobustnessResult.query.filter_by(run_id=run_id).all()
+    }
     for row in rows:
-        record = existing.get((row["scheme"], row["attack"], row["trial"]))
+        record = existing.get((row["scheme"], row["attack"], row.get("strength_index"), row["trial"]))
         if record is None:
             continue
         record.attack_params = row["attack_params"]
@@ -243,10 +277,13 @@ def _mark_run_error(run_id, exc):
     db.session.commit()
 
 
-def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, trials, payload_text, work_dir):
-    """Background worker: run the pure matrix engine, then persist the rows."""
+def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, trials, payload_text, work_dir, mode="matrix"):
+    """Background worker: run the pure engine (matrix or sweep), then persist the rows."""
     try:
-        rows = run_matrix(base_shp, None, schemes, attacks, payload_text, work_dir, trials=trials)
+        if mode == "sweep":
+            rows = run_sweep(base_shp, None, schemes, attacks, payload_text, work_dir, trials=trials)
+        else:
+            rows = run_matrix(base_shp, None, schemes, attacks, payload_text, work_dir, trials=trials)
         with app.app_context():
             _apply_rows(run_id, rows)
     except Exception as e:
@@ -262,10 +299,13 @@ def _run_matrix_worker(app, run_id, base_shp, schemes, attacks, trials, payload_
         _RUN_LOCK.release()
 
 
-def _run_raster_matrix_worker(app, run_id, host_tif, schemes, attacks, trials, payload_qr_png, work_dir):
-    """Background worker for kind="raster": run the raster engine, persist rows."""
+def _run_raster_matrix_worker(app, run_id, host_tif, schemes, attacks, trials, payload_qr_png, work_dir, mode="matrix"):
+    """Background worker for kind="raster": run the raster engine (matrix or sweep), persist rows."""
     try:
-        rows = run_raster_matrix(host_tif, schemes, attacks, payload_qr_png, work_dir, trials=trials)
+        if mode == "sweep":
+            rows = run_raster_sweep(host_tif, schemes, attacks, payload_qr_png, work_dir, trials=trials)
+        else:
+            rows = run_raster_matrix(host_tif, schemes, attacks, payload_qr_png, work_dir, trials=trials)
         with app.app_context():
             _apply_rows(run_id, rows)
     except Exception as e:
@@ -293,18 +333,25 @@ def _kind_from_data_ref(data_ref):
 class RobustnessRunResource(Resource):
     """POST /api/robustness/run — queue one (scheme x attack x trial) matrix run.
 
-    body: ``{"kind": "vector"|"raster", "data_id": int, "schemes": [...],
-    "attacks": [...], "trials": int}``. ``kind`` defaults to "vector"
-    (backwards compatible): vector runs resolve the dataset's source shapefile;
-    raster runs ignore ``data_id`` and embed into a programmatically generated
-    512x512 GeoTIFF host (``data_ref="synthetic_512x512"``; with ``trials > 1``
-    one host per trial, seed 7 + trial). Schemes and attacks default to the
-    kind's whitelist. ``trials`` (1-10, default 1) replicates every cell N
-    times; cross-cell totals are bounded by ``MAX_MATRIX_ROWS``. Returns 202 +
-    run_id immediately; the matrix itself runs on a background thread. 409 when
-    a run is already in flight (vector and raster share one lock), 400 when the
-    dataset has no resolvable vector source, kind/schemes/attacks/trials are
-    invalid, or cells x trials exceeds the row cap.
+    body: ``{"kind": "vector"|"raster", "mode": "matrix"|"sweep", "data_id":
+    int, "schemes": [...], "attacks": [...], "trials": int}``. ``kind``
+    defaults to "vector" (backwards compatible): vector runs resolve the
+    dataset's source shapefile; raster runs ignore ``data_id`` and embed into a
+    programmatically generated 512x512 GeoTIFF host (``data_ref =
+    "synthetic_512x512"``; with ``trials > 1`` one host per trial, seed 7 +
+    trial). ``mode`` defaults to "matrix" (byte-for-byte the historical
+    behavior); ``"sweep"`` expands every attack into the 5 intensity tiers of
+    ``algorithm/robustness_sweep.py`` (rows = schemes x attacks x 5 x trials,
+    each row a ``strength_index`` tier with that tier's real params) and
+    rejects ``none`` — the no-attack baseline is not a strength tier; its
+    trials default to 3 and clamp to 1-5. Schemes and attacks default to the
+    kind's whitelist. Matrix ``trials`` (1-10, default 1) replicates every cell
+    N times; matrix cross-cell totals are bounded by ``MAX_MATRIX_ROWS``,
+    sweep totals by ``MAX_SWEEP_ROWS``. Returns 202 + run_id immediately; the
+    matrix itself runs on a background thread. 409 when a run is already in
+    flight (vector and raster share one lock), 400 when the dataset has no
+    resolvable vector source or kind/mode/schemes/attacks/trials are invalid
+    or the row cap is exceeded.
     """
 
     @admin_required
@@ -314,9 +361,25 @@ class RobustnessRunResource(Resource):
         if kind not in ("vector", "raster"):
             return {"status": False, "msg": "kind 仅支持 vector / raster"}, 400
 
-        trials = body.get("trials", 1)
-        if isinstance(trials, bool) or not isinstance(trials, int) or not (MIN_TRIALS <= trials <= MAX_TRIALS):
-            return {"status": False, "msg": f"trials 必须是 {MIN_TRIALS}-{MAX_TRIALS} 的整数"}, 400
+        mode = body.get("mode", "matrix")
+        if mode not in ("matrix", "sweep"):
+            return {"status": False, "msg": "mode 仅支持 matrix / sweep"}, 400
+        is_sweep = mode == "sweep"
+
+        raw_trials = body.get("trials")
+        if is_sweep:
+            # Sweep trials clamp into 1-5 (default 3) so the tier expansion
+            # cannot explode the row set; matrix validation below is untouched.
+            if raw_trials is None:
+                trials = SWEEP_DEFAULT_TRIALS
+            elif isinstance(raw_trials, bool) or not isinstance(raw_trials, int):
+                return {"status": False, "msg": f"trials 必须是 {SWEEP_MIN_TRIALS}-{SWEEP_MAX_TRIALS} 的整数"}, 400
+            else:
+                trials = min(SWEEP_MAX_TRIALS, max(SWEEP_MIN_TRIALS, raw_trials))
+        else:
+            trials = body.get("trials", 1)
+            if isinstance(trials, bool) or not isinstance(trials, int) or not (MIN_TRIALS <= trials <= MAX_TRIALS):
+                return {"status": False, "msg": f"trials 必须是 {MIN_TRIALS}-{MAX_TRIALS} 的整数"}, 400
 
         if kind == "vector":
             data_id = body.get("data_id")
@@ -331,17 +394,37 @@ class RobustnessRunResource(Resource):
             default_attacks = RASTER_DEFAULT_ATTACKS
             attack_defaults = RASTER_ATTACK_DEFAULTS
 
+        if is_sweep:
+            # "none" is not a strength tier: it is not a sweep default and an
+            # explicit request for it is rejected below with its own message.
+            allowed_attacks = tuple(a for a in allowed_attacks if a != "none")
+            default_attacks = [a for a in default_attacks if a != "none"]
+
         schemes = body.get("schemes") or list(allowed_schemes)
         attacks = body.get("attacks") or list(default_attacks)
         if not isinstance(schemes, list) or not schemes or not set(schemes) <= set(allowed_schemes):
             return {"status": False, "msg": f"schemes 仅支持 {list(allowed_schemes)}"}, 400
-        if not isinstance(attacks, list) or not attacks or not set(attacks) <= set(allowed_attacks):
+        if not isinstance(attacks, list) or not attacks:
+            return {"status": False, "msg": f"attacks 仅支持 {list(allowed_attacks)}"}, 400
+        if is_sweep and "none" in attacks:
+            return {"status": False, "msg": "sweep 模式不支持 none（无攻击基线不参与强度梯度）"}, 400
+        if not set(attacks) <= set(allowed_attacks):
             return {"status": False, "msg": f"attacks 仅支持 {list(allowed_attacks)}"}, 400
         schemes = list(dict.fromkeys(schemes))
         attacks = list(dict.fromkeys(attacks))
 
-        cells = len(schemes) * len(attacks)
-        if cells * trials > MAX_MATRIX_ROWS:
+        tiers = SWEEP_TIER_COUNT if is_sweep else 1
+        cells = len(schemes) * len(attacks) * tiers
+        if is_sweep:
+            if cells * trials > MAX_SWEEP_ROWS:
+                return {
+                    "status": False,
+                    "msg": (
+                        f"实验规模超限：方案 × 攻击 × {SWEEP_TIER_COUNT} 档 × trials 不得超过 {MAX_SWEEP_ROWS} 行"
+                        f"（当前 {cells} × {trials} = {cells * trials} 行）"
+                    ),
+                }, 400
+        elif cells * trials > MAX_MATRIX_ROWS:
             return {
                 "status": False,
                 "msg": f"实验规模超限：格子数 × trials 不得超过 {MAX_MATRIX_ROWS}（当前 {cells} × {trials}）",
@@ -380,26 +463,38 @@ class RobustnessRunResource(Resource):
             created = datetime.now(UTC)
             for scheme in schemes:
                 for attack in attacks:
-                    for trial in range(1, trials + 1):
-                        db.session.add(
-                            RobustnessResult(
-                                run_id=run_id,
-                                scheme=scheme,
-                                attack=attack,
-                                trial=trial,
-                                attack_params=dict(attack_defaults[attack]),
-                                data_ref=data_ref,
-                                created_at=created,
+                    # Sweep rows fan out over the 5 tiers (strength_index 0-4,
+                    # pending rows carry the tier's documented params; the
+                    # worker replaces them with the real ones incl. the noise
+                    # seed). Matrix rows keep strength_index NULL untouched.
+                    strength_indices = range(SWEEP_TIER_COUNT) if is_sweep else (None,)
+                    for strength_index in strength_indices:
+                        for trial in range(1, trials + 1):
+                            params = (
+                                sweep_tier_params(kind, attack, strength_index)
+                                if is_sweep
+                                else dict(attack_defaults[attack])
                             )
-                        )
+                            db.session.add(
+                                RobustnessResult(
+                                    run_id=run_id,
+                                    scheme=scheme,
+                                    attack=attack,
+                                    trial=trial,
+                                    strength_index=strength_index,
+                                    attack_params=params,
+                                    data_ref=data_ref,
+                                    created_at=created,
+                                )
+                            )
             db.session.commit()
 
             if kind == "vector":
                 worker_target = _run_matrix_worker
-                worker_args = (app, run_id, staged_shp, schemes, attacks, trials, payload_text, work_dir)
+                worker_args = (app, run_id, staged_shp, schemes, attacks, trials, payload_text, work_dir, mode)
             else:
                 worker_target = _run_raster_matrix_worker
-                worker_args = (app, run_id, host_tif, schemes, attacks, trials, payload_qr, work_dir)
+                worker_args = (app, run_id, host_tif, schemes, attacks, trials, payload_qr, work_dir, mode)
             worker = threading.Thread(target=worker_target, args=worker_args, daemon=True)
             _ACTIVE_RUNS[run_id] = worker
             worker.start()
@@ -425,7 +520,7 @@ class RobustnessRunResource(Resource):
         return {
             "status": True,
             "msg": "实验已开始",
-            "data": {"run_id": run_id, "total": cells * trials, "kind": kind, "trials": trials},
+            "data": {"run_id": run_id, "total": cells * trials, "kind": kind, "mode": mode, "trials": trials},
         }, 202
 
 
@@ -433,9 +528,11 @@ class RobustnessRunsResource(Resource):
     """GET /api/robustness/runs?page= — recent runs (grouped), newest first.
 
     Every run entry carries ``kind`` ("vector" | "raster"), inferred from the
-    ``data_ref`` prefix (raster runs always record ``synthetic...``), and
+    ``data_ref`` prefix (raster runs always record ``synthetic...``),
     ``trials`` (the run's per-cell trial count; derived from the rows —
-    legacy rows have NULL trial, so a pre-trials run reports 1).
+    legacy rows have NULL trial, so a pre-trials run reports 1) and ``mode``
+    ("sweep" when any row carries a non-NULL ``strength_index``, else
+    "matrix"; legacy rows are all NULL, so old runs read as matrix).
     """
 
     @admin_required
@@ -458,6 +555,7 @@ class RobustnessRunsResource(Resource):
                 func.min(RobustnessResult.created_at).label("created_at"),
                 func.max(RobustnessResult.data_ref).label("data_ref"),
                 func.max(RobustnessResult.trial).label("trials"),
+                func.max(RobustnessResult.strength_index).label("max_strength"),
                 func.count(RobustnessResult.id).label("total"),
                 func.sum(case((RobustnessResult.decode_success.isnot(None), 1), else_=0)).label("done"),
                 func.max(RobustnessResult.error).label("last_error"),
@@ -474,6 +572,7 @@ class RobustnessRunsResource(Resource):
                 "created_at": utc_iso_z(row.created_at),
                 "data_ref": row.data_ref,
                 "kind": _kind_from_data_ref(row.data_ref),
+                "mode": "sweep" if row.max_strength is not None else "matrix",
                 "trials": int(row.trials or 1),
                 "total": int(row.total or 0),
                 "done": int(row.done or 0),
@@ -487,10 +586,15 @@ class RobustnessRunsResource(Resource):
 class RobustnessRunDetailResource(Resource):
     """GET /api/robustness/runs/<run_id> — rows + progress + summary for one run.
 
-    Keys are only ever added: rows keep the shared (scheme, attack, trial)
-    schema, the run object carries ``kind`` ("vector" | "raster") derived from
-    its schemes, ``trials`` (max row trial; legacy NULL rows count as 1) and
-    the per-cell ``summary`` aggregation block (success rate + mean/std NC).
+    Keys are only ever added: rows carry the shared (scheme, attack, trial)
+    schema plus ``strength_index`` (NULL on matrix rows; feat_strength_sweep),
+    the run object carries ``kind`` ("vector" | "raster") derived from its
+    schemes, ``mode`` ("sweep" when any row has a non-NULL strength_index,
+    else "matrix" — legacy rows have no strength_index and read as matrix),
+    ``ladders`` (for sweep runs: ``{attack: [{index, label, params}]}`` from
+    ``SWEEP_LADDERS`` for the attacks this run used; empty object for matrix
+    runs), ``trials`` (max row trial; legacy NULL rows count as 1) and the
+    per-cell ``summary`` aggregation block (success rate + mean/std NC).
     """
 
     @admin_required
@@ -499,17 +603,25 @@ class RobustnessRunDetailResource(Resource):
         if not rows:
             return {"status": False, "msg": "实验不存在"}, 404
         done = sum(1 for row in rows if row.decode_success is not None)
+        kind = "raster" if rows[0].scheme in RASTER_SCHEMES else "vector"
+        mode = "sweep" if any(row.strength_index is not None for row in rows) else "matrix"
+        ladders = {}
+        if mode == "sweep":
+            seen_attacks = list(dict.fromkeys(row.attack for row in rows))
+            ladders = sweep_ladders_payload(kind, seen_attacks)
         return {
             "status": True,
             "run": {
                 "run_id": run_id,
                 "data_ref": rows[0].data_ref,
-                "kind": "raster" if rows[0].scheme in RASTER_SCHEMES else "vector",
+                "kind": kind,
+                "mode": mode,
                 "created_at": utc_iso_z(rows[0].created_at),
                 "trials": max((row.trial or 1) for row in rows),
                 "done": done,
                 "total": len(rows),
                 "summary": _build_summary(rows),
+                "ladders": ladders,
                 "rows": [row.to_dict() for row in rows],
             },
         }, 200

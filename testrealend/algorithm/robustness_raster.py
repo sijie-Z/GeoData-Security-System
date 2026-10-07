@@ -71,6 +71,11 @@ import time
 
 import numpy as np
 
+# Strength-tier policy (feat_strength_sweep): the sweep runner below expands
+# each attack into the ladder's fixed tiers; the constants module imports
+# nothing from here, so this stays a one-way dependency.
+from algorithm.robustness_sweep import RASTER_SWEEP_LADDERS, SWEEP_TIER_COUNT, sweep_params
+
 # Same fixture extent as tests/test_raster.py (a small box over Hangzhou, WGS84).
 HOST_BOUNDS = (119.9, 29.9, 120.1, 30.1)
 
@@ -583,6 +588,163 @@ def run_raster_matrix(
     for scheme in schemes:
         rows.extend(
             _run_scheme(
+                scheme, host_tif, host_profile, payload_qr_png, attacks, payload_text, work_dir, trials, host_fill
+            )
+        )
+    return rows
+
+
+# --------------------------------------------------------------------------- #
+# strength sweep (feat_strength_sweep)                                          #
+# --------------------------------------------------------------------------- #
+
+
+def _sweep_ordered_attacks(attacks):
+    """Requested sweep attacks in caller order; the ``none`` baseline is not a tier."""
+    if "none" in attacks:
+        raise ValueError("sweep runs do not include the 'none' baseline (not a strength tier)")
+    unknown = [a for a in attacks if a not in RASTER_SWEEP_LADDERS]
+    if unknown:
+        raise ValueError(f"unknown sweep attack(s): {unknown}")
+    return list(attacks)
+
+
+def _run_scheme_sweep(
+    scheme, host_tif, host_profile, qr_png, attacks, payload_text, work_dir, trials=1, host_fill=None
+):
+    """One scheme's sweep rows: per trial one embed, then every (attack, tier) cell.
+
+    Same embed/host discipline as ``_run_scheme`` (fresh host per trial when
+    ``trials > 1``), except every attack loops over the ladder's
+    ``SWEEP_TIER_COUNT`` tiers and each row carries ``strength_index`` plus the
+    tier's real ``attack_params``.
+    """
+    from algorithm.quality_metrics import compute_ber, compute_nc
+    from resource.watermark_utils import decode_qr_from_image
+
+    scheme_dir = os.path.join(work_dir, f"scheme_{scheme}")
+    os.makedirs(scheme_dir, exist_ok=True)
+
+    rows = []
+    for trial in range(1, trials + 1):
+        trial_dir = os.path.join(scheme_dir, f"trial_{trial}")
+        os.makedirs(trial_dir, exist_ok=True)
+        if trials == 1:
+            trial_host, trial_profile = host_tif, host_profile
+        else:
+            trial_host = make_host_tif(
+                os.path.join(work_dir, f"host_t{trial}.tif"), seed=RASTER_HOST_BASE_SEED + trial, fill=host_fill
+            )
+            _host_arr, trial_profile = _read_rgb_uint8(trial_host)
+        try:
+            stego_path, wm_meta_path = _embed_stego(scheme, trial_host, qr_png, trial_dir)
+            wm_w, wm_h = _watermark_dims(wm_meta_path)
+            gt_bits = _image_bits(qr_png, size=(wm_w, wm_h))
+        except Exception as e:
+            logging.exception("raster robustness sweep: embed failed for scheme %s trial %s", scheme, trial)
+            error = f"embed failed: {e}"[:255]
+            for attack in attacks:
+                for strength_index in range(SWEEP_TIER_COUNT):
+                    row = _row(
+                        scheme,
+                        attack,
+                        sweep_params("raster", attack, strength_index, trial),
+                        False,
+                        error=error,
+                        trial=trial,
+                    )
+                    row["strength_index"] = strength_index
+                    rows.append(row)
+            continue
+
+        for attack in attacks:
+            for strength_index in range(SWEEP_TIER_COUNT):
+                started = time.perf_counter()
+                params = sweep_params("raster", attack, strength_index, trial)
+                try:
+                    attacked_path = _ATTACK_FUNCTIONS[attack](
+                        stego_path,
+                        output_path=os.path.join(trial_dir, f"attacked_{scheme}_{attack}_t{strength_index}.tif"),
+                        base_profile=trial_profile,
+                        **params,
+                    )
+                    wm_png = _extract_watermark(
+                        scheme,
+                        attacked_path,
+                        wm_meta_path,
+                        os.path.join(trial_dir, f"extract_{scheme}_{attack}_t{strength_index}.png"),
+                    )
+                    text = decode_qr_from_image(wm_png)
+                    duration_ms = int((time.perf_counter() - started) * 1000)
+                    if text is None:
+                        row = _row(scheme, attack, params, False, duration_ms=duration_ms, trial=trial)
+                    else:
+                        ext_bits = _image_bits(wm_png)
+                        row = _row(
+                            scheme,
+                            attack,
+                            params,
+                            text == payload_text,
+                            nc=compute_nc(gt_bits, ext_bits),
+                            ber=compute_ber(gt_bits, ext_bits),
+                            duration_ms=duration_ms,
+                            trial=trial,
+                        )
+                except Exception as e:
+                    logging.exception(
+                        "raster robustness sweep: cell failed scheme=%s attack=%s tier=%s trial=%s",
+                        scheme,
+                        attack,
+                        strength_index,
+                        trial,
+                    )
+                    duration_ms = int((time.perf_counter() - started) * 1000)
+                    row = _row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255], trial=trial)
+                row["strength_index"] = strength_index
+                rows.append(row)
+    return rows
+
+
+def run_raster_sweep(
+    host_tif, schemes=None, attacks=None, payload_qr_png=None, work_dir=None, trials=1, host_fill=None
+):
+    """Run the attack-strength sweep (raster); returns row dicts.
+
+    Same contract as ``run_raster_matrix`` (per-trial host/embed discipline,
+    payload QR rendered by the caller or read back from ``payload_qr_png``)
+    with one difference: every attack expands into ``SWEEP_TIER_COUNT`` fixed
+    intensity tiers from ``RASTER_SWEEP_LADDERS``, so the row set is (scheme x
+    attack x tier x trial). ``none`` is rejected — the baseline is not a
+    strength tier. Each row carries ``strength_index`` (0..4) and the tier's
+    real ``attack_params`` (noise cells include their fixed ``sweep_seed``).
+    """
+    if not payload_qr_png:
+        raise ValueError("payload_qr_png is required")
+    if work_dir is None:
+        raise ValueError("work_dir is required")
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(f"trials must be a positive integer, got {trials!r}")
+    if trials == 1 and not host_tif:
+        raise ValueError("host_tif is required when trials == 1")
+    schemes = list(schemes or RASTER_SCHEMES)
+    attacks = _sweep_ordered_attacks(list(attacks or RASTER_SWEEP_LADDERS))
+
+    from resource.watermark_utils import decode_qr_from_image
+
+    payload_text = decode_qr_from_image(payload_qr_png)
+    if payload_text is None:
+        raise ValueError(f"payload QR is not decodable: {payload_qr_png}")
+
+    os.makedirs(work_dir, exist_ok=True)
+    if trials == 1:
+        _host_arr, host_profile = _read_rgb_uint8(host_tif)
+    else:
+        host_profile = None  # per-trial hosts are generated inside _run_scheme_sweep
+
+    rows = []
+    for scheme in schemes:
+        rows.extend(
+            _run_scheme_sweep(
                 scheme, host_tif, host_profile, payload_qr_png, attacks, payload_text, work_dir, trials, host_fill
             )
         )

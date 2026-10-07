@@ -17,11 +17,16 @@ class RobustnessResult(db.Model):
     that dies mid-flight (or one cell that raised) honestly visible instead of
     leaving NULL metrics that look like "still running" forever.
 
+    ``strength_index`` (feat_strength_sweep) is the 0..4 tier of a sweep row
+    and NULL on every matrix row — that NULL is what marks a run as "matrix"
+    when the API derives the run's ``mode``.
+
     Migration: the table itself is created by ``_bootstrap_runtime_schema()``
     (app.py) via ``create_all`` on fresh installs. ``trial`` (feat_experiment_trials)
     was added after the table had already shipped, so live installs get it via
     the idempotent ``ALTER TABLE robustness_result ADD COLUMN trial INT NULL``
     in ``migrate_add_columns.py``; legacy rows keep NULL (= single-trial run).
+    ``strength_index`` follows the same pattern (NULL = matrix row).
     """
 
     __bind_key__ = "mysql_db"
@@ -32,6 +37,7 @@ class RobustnessResult(db.Model):
     scheme = db.Column(db.String(16), nullable=False)
     attack = db.Column(db.String(32), nullable=False)
     trial = db.Column(db.Integer, nullable=True)  # 1-based; NULL = legacy single-trial row
+    strength_index = db.Column(db.Integer, nullable=True)  # 0..4 tier; NULL = matrix row
     attack_params = db.Column(db.JSON, nullable=True)
     nc = db.Column(db.Float, nullable=True)
     ber = db.Column(db.Float, nullable=True)
@@ -47,6 +53,7 @@ class RobustnessResult(db.Model):
             "scheme": self.scheme,
             "attack": self.attack,
             "trial": self.trial,
+            "strength_index": self.strength_index,
             "attack_params": self.attack_params,
             "nc": self.nc,
             "ber": self.ber,

@@ -66,6 +66,9 @@ MYSQL_ALTERS = [
     # feat_experiment_trials: per-trial rows for multi-trial robustness runs.
     # NULL on legacy rows = single-trial run (the API derives trials=1).
     "ALTER TABLE robustness_result ADD COLUMN trial INT NULL",
+    # feat_strength_sweep: 0-4 intensity tier of a sweep row; NULL = matrix row
+    # (the API derives the run mode from this NULL-ness).
+    "ALTER TABLE robustness_result ADD COLUMN strength_index INT NULL",
     # Indexes backing the quality-page aggregation endpoints; an existing index
     # name is skipped like a duplicate column (see run()).
     "CREATE INDEX idx_wmv_data_type_time ON watermark_verification (data_type, verified_at)",

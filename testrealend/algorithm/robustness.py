@@ -46,7 +46,12 @@ from algorithm.robustness_raster import (
     make_host_tif,
     render_raster_payload_qr,
     run_raster_matrix,
+    run_raster_sweep,
 )
+
+# Strength-tier policy (feat_strength_sweep) lives in its own constants module;
+# the sweep runners below only consume it.
+from algorithm.robustness_sweep import SWEEP_TIER_COUNT, VECTOR_SWEEP_LADDERS, sweep_params
 
 # The two vector schemes the matrix compares. "legacy" artifacts carry no
 # scheme marker; "dqim1" matches ``algorithm.vector_dqim.SCHEME``.
@@ -564,5 +569,155 @@ def run_matrix(base_shp, base_scheme_data=None, schemes=None, attacks=None, payl
     for scheme in schemes:
         rows.extend(
             _run_scheme(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir, trials)
+        )
+    return rows
+
+
+# --------------------------------------------------------------------------- #
+# strength sweep (feat_strength_sweep)                                          #
+# --------------------------------------------------------------------------- #
+
+
+def _sweep_ordered_attacks(attacks):
+    """Requested sweep attacks in caller order; the ``none`` baseline is not a tier.
+
+    Rejects ``none`` (sweep ladders only describe intensity gradients) and any
+    name without a ladder, so a typo fails loudly instead of producing five
+    error rows per scheme.
+    """
+    if "none" in attacks:
+        raise ValueError("sweep runs do not include the 'none' baseline (not a strength tier)")
+    unknown = [a for a in attacks if a not in VECTOR_SWEEP_LADDERS]
+    if unknown:
+        raise ValueError(f"unknown sweep attack(s): {unknown}")
+    return list(attacks)
+
+
+def _run_scheme_sweep(scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir, trials):
+    """One scheme's sweep rows: per trial one embed, then every (attack, tier) cell.
+
+    Same discipline as ``_run_scheme`` (embed failure yields one honest error
+    row per requested cell; a raising cell records its error), except every
+    attack loops over the ladder's ``SWEEP_TIER_COUNT`` tiers and each row
+    carries ``strength_index`` plus that tier's real ``attack_params``.
+    """
+    from algorithm.quality_metrics import compute_ber, compute_nc
+    from resource.watermark_utils import decode_qr_from_image
+
+    scheme_dir = os.path.join(work_dir, f"scheme_{scheme}")
+    os.makedirs(scheme_dir, exist_ok=True)
+
+    precomputed = (base_scheme_data or {}).get(scheme)
+    rows = []
+    for trial in range(1, trials + 1):
+        trial_dir = os.path.join(scheme_dir, f"trial_{trial}")
+        os.makedirs(trial_dir, exist_ok=True)
+        try:
+            if precomputed:
+                stego_shp = precomputed["stego_shp"]
+                vr = precomputed["vr"]
+                side_length = int(precomputed["side_length"])
+            else:
+                stego_shp, vr, side_length = _embed_stego(scheme, base_shp, qr_png, trial_dir)
+        except Exception as e:
+            logging.exception("robustness sweep: embed failed for scheme %s trial %s", scheme, trial)
+            error = f"embed failed: {e}"[:255]
+            for attack in attacks:
+                for strength_index in range(SWEEP_TIER_COUNT):
+                    row = _row(
+                        scheme,
+                        attack,
+                        sweep_params("vector", attack, strength_index, trial),
+                        False,
+                        error=error,
+                        trial=trial,
+                    )
+                    row["strength_index"] = strength_index
+                    rows.append(row)
+            continue
+
+        for attack in attacks:
+            for strength_index in range(SWEEP_TIER_COUNT):
+                started = time.perf_counter()
+                params = sweep_params("vector", attack, strength_index, trial)
+                try:
+                    attacked_shp = _ATTACK_FUNCTIONS[attack](
+                        stego_shp,
+                        output_path=os.path.join(trial_dir, f"attacked_{scheme}_{attack}_t{strength_index}.shp"),
+                        **params,
+                    )
+                    wm_png = _extract_watermark(
+                        scheme,
+                        attacked_shp,
+                        vr,
+                        side_length,
+                        os.path.join(trial_dir, f"extract_{attack}_t{strength_index}"),
+                    )
+                    text = decode_qr_from_image(wm_png)
+                    duration_ms = int((time.perf_counter() - started) * 1000)
+                    if text is None:
+                        row = _row(scheme, attack, params, False, duration_ms=duration_ms, trial=trial)
+                    else:
+                        ext_bits = _image_bits(wm_png)
+                        row = _row(
+                            scheme,
+                            attack,
+                            params,
+                            text == payload_text,
+                            nc=compute_nc(orig_bits, ext_bits),
+                            ber=compute_ber(orig_bits, ext_bits),
+                            duration_ms=duration_ms,
+                            trial=trial,
+                        )
+                except Exception as e:
+                    logging.exception(
+                        "robustness sweep: cell failed scheme=%s attack=%s tier=%s trial=%s",
+                        scheme,
+                        attack,
+                        strength_index,
+                        trial,
+                    )
+                    duration_ms = int((time.perf_counter() - started) * 1000)
+                    row = _row(scheme, attack, params, False, duration_ms=duration_ms, error=str(e)[:255], trial=trial)
+                row["strength_index"] = strength_index
+                rows.append(row)
+    return rows
+
+
+def run_sweep(base_shp, base_scheme_data=None, schemes=None, attacks=None, payload_text=None, work_dir=None, trials=1):
+    """Run the attack-strength sweep (vector); returns row dicts.
+
+    Same contract as ``run_matrix`` (one embed per trial, then every requested
+    cell on its own copy) with one difference: every attack expands into
+    ``SWEEP_TIER_COUNT`` fixed intensity tiers from ``VECTOR_SWEEP_LADDERS``
+    (mild -> severe, no sampling), so the row set is (scheme x attack x tier x
+    trial). ``none`` is rejected — the no-attack baseline is not a strength
+    tier. Each row carries ``strength_index`` (0..4) and ``attack_params`` =
+    the tier's real parameters (noise cells include their fixed
+    ``sweep_seed``), so the whole sweep is bit-reproducible from the request.
+    """
+    if not payload_text:
+        raise ValueError("payload_text is required")
+    if work_dir is None:
+        raise ValueError("work_dir is required")
+    if isinstance(trials, bool) or not isinstance(trials, int) or trials < 1:
+        raise ValueError(f"trials must be a positive integer, got {trials!r}")
+    schemes = list(schemes or SCHEMES)
+    attacks = _sweep_ordered_attacks(list(attacks or VECTOR_SWEEP_LADDERS))
+
+    from delivery.qr2 import render_v2_qr_png
+
+    os.makedirs(work_dir, exist_ok=True)
+    qr_png = os.path.join(work_dir, "payload_qr.png")
+    _png_path, side = render_v2_qr_png(payload_text, qr_png)
+    logging.info("robustness sweep: payload QR rendered (%dx%d px)", side, side)
+    orig_bits = _image_bits(qr_png)
+
+    rows = []
+    for scheme in schemes:
+        rows.extend(
+            _run_scheme_sweep(
+                scheme, base_shp, base_scheme_data, qr_png, attacks, payload_text, orig_bits, work_dir, trials
+            )
         )
     return rows
