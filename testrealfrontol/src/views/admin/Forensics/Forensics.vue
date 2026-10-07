@@ -19,6 +19,26 @@
               class="query-input"
               @keyup.enter="queryDeliveries"
             />
+            <el-input
+              v-model="queryUser"
+              :placeholder="$t('forensics.filterOperator')"
+              clearable
+              class="query-input"
+            />
+            <el-input
+              v-model="queryFid"
+              :placeholder="$t('forensics.filterFingerprint')"
+              clearable
+              class="query-input"
+            />
+            <el-date-picker
+              v-model="queryTimeRange"
+              type="datetimerange"
+              value-format="YYYY-MM-DDTHH:mm:ss"
+              :start-placeholder="$t('forensics.filterTimeStart')"
+              :end-placeholder="$t('forensics.filterTimeEnd')"
+              class="query-range"
+            />
             <el-button type="primary" :icon="Search" :loading="deliveriesLoading" @click="queryDeliveries">
               {{ $t('forensics.queryBtn') }}
             </el-button>
@@ -26,18 +46,19 @@
 
           <el-table
             v-loading="deliveriesLoading"
-            :data="deliveries"
+            :data="filteredDeliveries"
             stripe
             class="delivery-table"
             :empty-text="$t('forensics.emptyDeliveries')"
+            :row-class-name="deliveryRowClass"
             @row-click="openDeliveryDetail"
           >
             <el-table-column :label="$t('forensics.colUuidShort')" width="110">
-              <template #default="{ row }">{{ short(row.uuid, 8) }}</template>
+              <template #default="{ row }"><span class="font-mono">{{ short(row.uuid, 8) }}</span></template>
             </el-table-column>
             <el-table-column prop="user_number" :label="$t('forensics.colUser')" width="140" />
             <el-table-column :label="$t('forensics.colFidShort')" width="150">
-              <template #default="{ row }">{{ short(row.fid_short || row.fingerprint_id, 12) }}</template>
+              <template #default="{ row }"><span class="font-mono">{{ short(row.fid_short || row.fingerprint_id, 12) }}</span></template>
             </el-table-column>
             <el-table-column :label="$t('forensics.colStatus')" width="120">
               <template #default="{ row }">
@@ -46,7 +67,7 @@
               </template>
             </el-table-column>
             <el-table-column :label="$t('forensics.colArtifactRoot')" min-width="150">
-              <template #default="{ row }">{{ short(row.artifact_root, 12) }}</template>
+              <template #default="{ row }"><span class="font-mono">{{ short(row.artifact_root, 12) }}</span></template>
             </el-table-column>
             <el-table-column :label="$t('forensics.colChain')" width="90" align="center">
               <template #default="{ row }">
@@ -151,7 +172,7 @@
                     </div>
                   </el-timeline-item>
                 </el-timeline>
-                <el-empty v-else :description="$t('forensics.noRecords')" :image-size="40" />
+                <EmptyState v-else compact variant="never" :title="$t('forensics.noRecords')" />
 
                 <h4 class="locate-subtitle">{{ $t('forensics.downloadRecordsTitle') }}</h4>
                 <el-table
@@ -167,7 +188,7 @@
                     <template #default="{ row }">{{ short(row.delivery_uuid, 8) }}</template>
                   </el-table-column>
                 </el-table>
-                <el-empty v-else :description="$t('forensics.noRecords')" :image-size="40" />
+                <EmptyState v-else compact variant="never" :title="$t('forensics.noRecords')" />
               </div>
             </template>
 
@@ -244,6 +265,10 @@
             </div>
           </section>
 
+          <!-- ①.5 分发链水位图（§5.16）：左操作树 + 右时长条；缺失虚线断链；点击节点高亮分享 -->
+          <h4 class="detail-section-title">{{ $t('forensics.chainTitle') }}</h4>
+          <DeliveryChain :steps="chainSteps" :highlight="highlightKey" @select="onChainSelect" />
+
           <!-- ② 字段明细 -->
           <h4 class="detail-section-title">{{ $t('forensics.fieldDetailsTitle') }}</h4>
           <el-descriptions :column="2" border size="small">
@@ -285,7 +310,7 @@
               </div>
             </div>
           </div>
-          <el-empty v-else :description="$t('forensics.noEvents')" :image-size="40" />
+          <EmptyState v-else compact variant="never" :title="$t('forensics.noEvents')" />
 
           <!-- ④ 证据与锚定：链校验 + 锚定卡（provider 徽章 + Merkle 根 + 批次） -->
           <h4 class="detail-section-title">{{ $t('forensics.evidenceAnchorTitle') }}</h4>
@@ -333,11 +358,14 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Search, UploadFilled, Aim, CircleCheck, Link } from '@element-plus/icons-vue'
 import HashText from '@/components/common/HashText.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import DeliveryChain from '@/components/common/DeliveryChain.vue'
 import {
   verifyForensics,
   traceForensics,
@@ -347,13 +375,41 @@ import {
 } from '@/api/forensics'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const activeTab = ref('deliveries')
 
-// ── 交付台账 ──
+// ── 交付台账（§5.16 四维检索：操作人 / 指纹 / 编号 / 时间）──
 const queryAppId = ref(null)
+const queryUser = ref('')
+const queryFid = ref('')
+const queryTimeRange = ref(null)
 const deliveries = ref([])
 const deliveriesLoading = ref(false)
+
+const hasExtraFilters = computed(() =>
+  !!(queryUser.value || queryFid.value || (queryTimeRange.value && queryTimeRange.value.length === 2))
+)
+
+// 后端 deliveries 端点仅支持 application_id；四维过滤在前端做（带附加过滤时拉取 1000 条超集）
+const filteredDeliveries = computed(() => {
+  let rows = deliveries.value
+  const u = queryUser.value.trim().toLowerCase()
+  const f = queryFid.value.trim().toLowerCase()
+  const range = (queryTimeRange.value && queryTimeRange.value.length === 2) ? queryTimeRange.value : null
+  if (u) rows = rows.filter((r) => String(r.user_number || '').toLowerCase().includes(u))
+  if (f) rows = rows.filter((r) => `${r.fid_short || ''} ${r.fingerprint_id || ''}`.toLowerCase().includes(f))
+  if (range) {
+    const t0 = Date.parse(range[0])
+    const t1 = Date.parse(range[1])
+    rows = rows.filter((r) => {
+      const ts = Date.parse(r.created_at)
+      return !Number.isNaN(ts) && ts >= t0 && ts <= t1
+    })
+  }
+  return rows
+})
 
 // ── 泄漏取证 ──
 const selectedFile = ref(null)
@@ -383,6 +439,12 @@ const statusTagType = (value) => {
   if (s.includes('reject') || s.includes('fail') || s.includes('error') || s.includes('missing') || s.includes('invalid') || s.includes('disabled') || s.includes('broken')) return 'danger'
   if (s.includes('revoke') || s.includes('recall') || s.includes('pending') || s.includes('expire') || s.includes('build')) return 'warning'
   return 'info'
+}
+
+// §4.13 状态色带：行左 4px（仅状态类表格）
+const deliveryRowClass = ({ row }) => {
+  const t = statusTagType(row.status)
+  return t && t !== 'info' ? `row-band-${t}` : ''
 }
 
 // 事件类型色标映射（DFIR 时间线圆点 + tag 配色；未知类型走中性色）
@@ -435,6 +497,7 @@ const queryDeliveries = async () => {
     // application_id 为可选过滤条件：为空时列出全部交付
     const params = {}
     if (queryAppId.value) params.application_id = queryAppId.value
+    if (hasExtraFilters.value) params.limit = 1000 // 四维检索：拉取超集后前端过滤
     const res = await getDeliveries(params)
     const body = res?.data
     if (!body?.status) {
@@ -527,6 +590,8 @@ const openDeliveryDetail = async (row) => {
   if (!row?.uuid) return
   detailVisible.value = true
   detail.value = row
+  // §5.16 可分享高亮 URL：行点击写入 uuid（保留 hl）
+  router.replace({ query: { uuid: row.uuid, ...(route.query.hl ? { hl: route.query.hl } : {}) } })
   detailLoading.value = true
   try {
     const res = await getDeliveryDetail(row.uuid)
@@ -549,6 +614,36 @@ const openDeliveryDetail = async (row) => {
     detailLoading.value = false
   }
 }
+
+// ── §5.16 分发链水位图（事件 → 步骤；缺失事件以虚线断链呈现；点击节点高亮并写入可分享 URL）──
+const highlightKey = ref(String(route.query.hl || ''))
+
+const chainSteps = computed(() => {
+  const evs = detail.value?.events || []
+  const found = (type) => evs.find((e) => e.event_type === type)
+  const mk = (key, label, type, fallback = 'missing') => {
+    const ev = found(type)
+    return { key, label, ts: ev?.ts || null, status: ev?.ts ? 'done' : fallback }
+  }
+  return [
+    mk('created', t('forensics.chainSteps.created'), 'DeliveryCreated'),
+    mk('fingerprint', t('forensics.chainSteps.fingerprint'), 'FingerprintIssued'),
+    mk('personalization', t('forensics.chainSteps.personalization'), 'PersonalizationCompleted'),
+    mk('download', t('forensics.chainSteps.download'), 'DownloadCompleted', detail.value?.downloaded ? 'missing' : 'pending'),
+  ]
+})
+
+const onChainSelect = (key) => {
+  highlightKey.value = key
+  router.replace({ query: { ...route.query, hl: key, uuid: detail.value?.uuid || undefined } })
+}
+
+// 首屏：默认查询交付台账；URL 带 uuid 时自动打开详情（可分享链接直达）
+onMounted(() => {
+  queryDeliveries()
+  const uuid = route.query.uuid
+  if (uuid) openDeliveryDetail({ uuid: String(uuid) })
+})
 
 const buildAnchor = async () => {
   buildingAnchor.value = true
@@ -607,8 +702,13 @@ const buildAnchor = async () => {
 .query-bar {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.query-range {
+  width: 360px;
 }
 
 .query-label {

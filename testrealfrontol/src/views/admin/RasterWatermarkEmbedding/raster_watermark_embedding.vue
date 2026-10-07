@@ -135,6 +135,15 @@
         <el-form-item :label="$t('rasterWmEmbed.embeddedThumbnail')" v-if="crmarkResult.stego_preview_base64">
           <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" fit="contain" style="width: 100%;" />
         </el-form-item>
+        <el-form-item :label="$t('rasterWmEmbed.compareLabel')" v-if="crmarkResult.stego_preview_base64">
+          <ImageCompare
+            :before-src="crmarkResult.original_preview_base64 ? `data:image/png;base64,${crmarkResult.original_preview_base64}` : ''"
+            :after-src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`"
+            :before-label="$t('rasterWmEmbed.embedBefore')"
+            :after-label="$t('rasterWmEmbed.embedAfter')"
+            height="300px"
+          />
+        </el-form-item>
         <el-form-item>
           <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path) ? $t('common.disabledReason.needStegoFiles') : ''">
             <el-button type="success" @click="crmarkRecover" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path">{{ $t('rasterWmEmbed.recoverOriginal') }}</el-button>
@@ -150,6 +159,7 @@
   <script setup>
   import { reactive, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
   import TipWrap from '@/components/common/TipWrap.vue';
+  import ImageCompare from '@/components/common/ImageCompare.vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, ElMessageBox } from 'element-plus';
   import {
@@ -358,7 +368,7 @@
   // ------------------------ CRMark 嵌入/恢复/解码 ------------------------
   const crmarkDialogVisible = ref(false);
   const crmarkApplicationId = ref('');
-  const crmarkResult = reactive({ stego_path: '', wm_map_path: '', wm_meta_path: '', stego_preview_base64: '' });
+  const crmarkResult = reactive({ stego_path: '', wm_map_path: '', wm_meta_path: '', stego_preview_base64: '', original_preview_base64: '' });
 
   /**
    * 打开 CRMark 弹窗
@@ -401,6 +411,13 @@
       const resp = await previewRaster({ file_path: crmarkResult.stego_path });
       crmarkResult.stego_preview_base64 = resp.data?.base64 || resp.data?.png_base64 || '';
       if (crmarkResult.stego_preview_base64) ElMessage.success(t('rasterWmEmbed.thumbnailLoadSuccess')); else ElMessage.error(t('rasterWmEmbed.thumbnailNotObtained'));
+      // §5.17 卷帘对比：同步获取"嵌入前"原图预览（按申请编号）
+      try {
+        const orig = await previewRaster({ application_id: crmarkApplicationId.value });
+        crmarkResult.original_preview_base64 = orig.data?.base64 || orig.data?.png_base64 || '';
+      } catch (_) {
+        crmarkResult.original_preview_base64 = '';
+      }
     } catch (e) {
       console.error('CRMark缩略图预览失败:', e);
       ElMessage.error(e.response?.data?.message || t('rasterWmEmbed.thumbnailPreviewFailed'));

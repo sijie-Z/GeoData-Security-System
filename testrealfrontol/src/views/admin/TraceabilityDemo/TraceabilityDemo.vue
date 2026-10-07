@@ -58,10 +58,12 @@
           </el-row>
 
           <div class="action-bar">
-            <el-button type="primary" size="large" :loading="qrDecoding" :disabled="!qrText && !qrFile" @click="decodeQR">
-              <el-icon style="margin-right: 4px;"><Search /></el-icon>
-              {{ $t('decodePlatform.decodeQRBtn') }}
-            </el-button>
+            <TipWrap :reason="(!qrText && !qrFile) ? $t('common.disabledReason.qrInput') : ''">
+              <el-button type="primary" size="large" :loading="qrDecoding" :disabled="!qrText && !qrFile" @click="decodeQR">
+                <el-icon style="margin-right: 4px;"><Search /></el-icon>
+                {{ $t('decodePlatform.decodeQRBtn') }}
+              </el-button>
+            </TipWrap>
             <el-button size="large" @click="resetQR">
               {{ $t('decodePlatform.reset') }}
             </el-button>
@@ -101,9 +103,11 @@
                 @keyup.enter="goToStep2"
               />
               <div class="step-actions">
-                <el-button type="primary" size="large" :disabled="!applicationId" @click="goToStep2">
-                  {{ $t('decodePlatform.next') }}
-                </el-button>
+                <TipWrap :reason="!applicationId ? $t('common.disabledReason.enterApplicationId') : ''">
+                  <el-button type="primary" size="large" :disabled="!applicationId" @click="goToStep2">
+                    {{ $t('decodePlatform.next') }}
+                  </el-button>
+                </TipWrap>
               </div>
             </div>
           </el-card>
@@ -132,9 +136,11 @@
               </el-upload>
               <div class="step-actions">
                 <el-button size="large" @click="currentStep = 0">{{ $t('decodePlatform.prev') }}</el-button>
-                <el-button type="primary" size="large" :loading="extracting" :disabled="!selectedFile" @click="doExtract">
-                  {{ $t('decodePlatform.extractBtn') }}
-                </el-button>
+                <TipWrap :reason="!selectedFile ? $t('common.disabledReason.selectFile') : ''">
+                  <el-button type="primary" size="large" :loading="extracting" :disabled="!selectedFile" @click="doExtract">
+                    {{ $t('decodePlatform.extractBtn') }}
+                  </el-button>
+                </TipWrap>
               </div>
             </div>
           </el-card>
@@ -143,7 +149,7 @@
           <el-card v-show="currentStep === 2" class="step-card" shadow="hover">
             <div class="step-content results-content">
               <div v-if="extracting" class="extracting-overlay">
-                <el-icon class="spin-icon" :size="48"><Loading /></el-icon>
+                <el-icon class="spin-icon motion-loop" :size="48"><Loading /></el-icon>
                 <p>{{ $t('decodePlatform.extracting') }}</p>
               </div>
 
@@ -175,7 +181,7 @@
                         :src="`data:image/png;base64,${watermarkBase64}`"
                         fit="contain"
                       />
-                      <el-empty v-else :description="$t('decodePlatform.noWatermark')" />
+                      <EmptyState v-else compact variant="never" :title="$t('decodePlatform.noWatermark')" />
                     </div>
                     <template v-if="recoveredBase64">
                       <h4 style="margin-top: 16px;">{{ $t('decodePlatform.recoveredImage') }}</h4>
@@ -192,6 +198,12 @@
                     <QRProvenanceCard :decoded-info="decodedInfo" :verify-passed="verifyPassed" :signature-ok="signatureOk" :nc-value="ncValue" />
                   </div>
                 </div>
+
+                <!-- §5.16 分发链水位图：申请→审批→交付→下载（缺失虚线断链；点击节点高亮分享） -->
+                <div v-if="chainSteps.length" class="chain-panel">
+                  <h4>{{ $t('decodePlatform.chainTitle') }}</h4>
+                  <DeliveryChain :steps="chainSteps" :highlight="highlightKey" @select="onChainSelect" />
+                </div>
               </template>
 
               <div class="step-actions" style="margin-top: 24px;">
@@ -207,8 +219,9 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
   Search, UploadFilled, Loading,
@@ -216,8 +229,14 @@ import {
 } from '@element-plus/icons-vue'
 import QRProvenanceCard from './QRProvenanceCard.vue'
 import WatermarkImage from '@/components/common/WatermarkImage.vue'
+import DeliveryChain from '@/components/common/DeliveryChain.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
+import TipWrap from '@/components/common/TipWrap.vue'
+import { getApplicationDetail } from '@/api/employee'
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 const activeTab = ref('qr')
 
@@ -295,6 +314,54 @@ const resultData = ref(null)
 
 const uploadUrl = '/api/vector/extract'
 
+// ── §5.16 分发链（申请→审批→交付→下载；缺失时间戳以虚线断链呈现；点击节点高亮并写入可分享 URL）──
+const chainSteps = ref([])
+const highlightKey = ref(String(route.query.hl || ''))
+
+const buildChainSteps = (detail) => {
+  const mk = (key, label, ts, fallback = 'missing') => ({
+    key, label, ts: ts || null, status: ts ? 'done' : fallback,
+  })
+  const downloads = detail?.download_records || []
+  return [
+    mk('submit', t('decodePlatform.chainSteps.submit'), detail?.application_submission_time),
+    mk('review1', t('decodePlatform.chainSteps.review1'), detail?.adm1_approval_time),
+    mk('review2', t('decodePlatform.chainSteps.review2'), detail?.adm2_approval_time),
+    mk('deliver', t('decodePlatform.chainSteps.deliver'), detail?.generation_timestamp),
+    mk('download', t('decodePlatform.chainSteps.download'), downloads[0]?.download_time, downloads.length ? 'missing' : 'pending'),
+  ]
+}
+
+const fetchChain = async () => {
+  chainSteps.value = []
+  if (!applicationId.value) return
+  try {
+    const res = await getApplicationDetail(applicationId.value)
+    const detail = res?.data?.application || res?.data?.data || res?.data
+    if (detail && typeof detail === 'object') {
+      chainSteps.value = buildChainSteps(detail)
+    }
+  } catch (e) {
+    console.error('chain fetch failed', e)
+  }
+}
+
+const onChainSelect = (key) => {
+  highlightKey.value = key
+  router.replace({ query: { app: applicationId.value || undefined, hl: key } })
+}
+
+// 首屏：URL 带 app 时预填申请编号并直达文件溯源（可分享链接）
+onMounted(() => {
+  const app = route.query.app
+  if (app) {
+    applicationId.value = String(app)
+    activeTab.value = 'file'
+    currentStep.value = 1
+    fetchChain()
+  }
+})
+
 const watermarkBase64 = computed(() => resultData.value?.watermark_base64 || '')
 const recoveredBase64 = computed(() => resultData.value?.recovered_base64 || '')
 const decodedInfo = computed(() => resultData.value?.data?.decoded_info || null)
@@ -344,6 +411,7 @@ const doExtract = () => {
       }
       resultData.value = json
       ElMessage.success(t('decodePlatform.extractSuccess'))
+      fetchChain() // §5.16 同步拉取申请详情生成分发链（失败静默）
     })
     .catch((err) => {
       errorMsg.value = err.message || t('decodePlatform.extractFailed')
@@ -373,6 +441,20 @@ const resetAll = () => {
 .page-header {
   text-align: center;
   margin-bottom: 24px;
+}
+
+/* §5.16 分发链面板（水位图容器） */
+.chain-panel {
+  margin-top: 24px;
+  padding: 16px 20px;
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  box-shadow: var(--card-ring);
+}
+
+.chain-panel h4 {
+  margin: 0 0 12px;
+  color: var(--text-primary);
 }
 
 .page-header h2 {

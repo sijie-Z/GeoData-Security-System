@@ -100,19 +100,13 @@
       </template>
 
       <div class="watermark-comparison-area">
-        <div class="watermark-item">
-          <div class="watermark-header">
-            <el-icon><Document /></el-icon>
-            <span>{{ $t('rasterWmExtract.originalWatermark') }}</span>
-          </div>
-          <div class="watermark-content">
-            <WatermarkImage
-              :src="`data:image/png;base64,${originalWatermarkBase64}`"
-              fit="contain"
-              class="watermark-image"
-            />
-          </div>
-        </div>
+        <ImageCompare
+          :before-src="originalWatermarkBase64 ? `data:image/png;base64,${originalWatermarkBase64}` : ''"
+          :after-src="`data:image/png;base64,${extractedWatermarkBase64}`"
+          :before-label="$t('rasterWmExtract.originalWatermark')"
+          :after-label="$t('rasterWmExtract.extractedWatermark')"
+          height="300px"
+        />
 
         <div class="comparison-info">
           <div class="nc-value-display">
@@ -131,20 +125,6 @@
             <span class="similarity-text">{{ $t('rasterWmExtract.similarity') }}</span>
           </div>
         </div>
-
-        <div class="watermark-item">
-          <div class="watermark-header">
-            <el-icon><Search /></el-icon>
-            <span>{{ $t('rasterWmExtract.extractedWatermark') }}</span>
-          </div>
-          <div class="watermark-content">
-            <WatermarkImage
-              :src="`data:image/png;base64,${extractedWatermarkBase64}`"
-              fit="contain"
-              class="watermark-image"
-            />
-          </div>
-        </div>
       </div>
 
       <div class="result-message" :class="{ success: comparisonResult.isMatch, danger: !comparisonResult.isMatch }">
@@ -157,6 +137,16 @@
           <div class="result-desc">
             {{ comparisonResult.isMatch ? $t('rasterWmExtract.matchSuccess') : $t('rasterWmExtract.matchFail') }}
           </div>
+        </div>
+      </div>
+
+      <div v-if="recoveredBase64" class="recovered-pane">
+        <div class="watermark-header">
+          <el-icon><Document /></el-icon>
+          <span>{{ $t('rasterWmExtract.recoveredOriginal') }}</span>
+        </div>
+        <div class="watermark-content">
+          <WatermarkImage :src="`data:image/png;base64,${recoveredBase64}`" fit="contain" class="watermark-image" />
         </div>
       </div>
     </el-card>
@@ -232,6 +222,7 @@ import {
 } from '@element-plus/icons-vue';
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
 import TipWrap from '@/components/common/TipWrap.vue';
+import ImageCompare from '@/components/common/ImageCompare.vue';
 
 const { t } = useI18n();
 const userStore = useUserStore();
@@ -243,6 +234,7 @@ const uploadHeaders = computed(() => ({
 const dataIdInput = ref('');
 const extractedWatermarkBase64 = ref('');
 const originalWatermarkBase64 = ref('');
+const recoveredBase64 = ref('');
 const decodedInfo = ref(null);
 const comparisonResult = reactive({
   isReady: false,
@@ -303,7 +295,12 @@ const handleUploadSuccess = (response, file) => {
     extractedWatermarkBase64.value = extracted;
     // 若后端暂不返回原始水印与 NC 值，则只展示提取结果
     originalWatermarkBase64.value = response?.original_watermark_base64 || '';
-    comparisonResult.ncValue = typeof response?.nc_value === 'number' ? response.nc_value : null;
+    recoveredBase64.value = response?.recovered_base64 || '';
+    // 修复：nc_value 实际位于 data.decoded_info.verify.nc_value（兼容顶层读取）
+    const verifyInfo = response?.data?.decoded_info?.verify;
+    comparisonResult.ncValue = typeof response?.nc_value === 'number'
+      ? response.nc_value
+      : (typeof verifyInfo?.nc_value === 'number' ? verifyInfo.nc_value : null);
     comparisonResult.isReady = true;
     comparisonResult.isMatch = comparisonResult.ncValue ? comparisonResult.ncValue > 0.95 : true;
 
@@ -534,10 +531,15 @@ const handleUploadError = (err, file) => {
 
 .watermark-comparison-area {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 32px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
   align-items: center;
   padding: 24px 0;
+}
+
+.recovered-pane {
+  margin-top: 20px;
+  max-width: 420px;
 }
 
 .watermark-item {

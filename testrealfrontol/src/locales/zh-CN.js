@@ -29,6 +29,17 @@ export default {
       embedFirst: '请先完成水印嵌入操作',
       needStegoFiles: '请先生成载密图与映射文件',
     },
+    /** §5.17 图片对比（卷帘 / 透明度） */
+    imgCompare: {
+      side: '并排',
+      wipe: '卷帘',
+      opacity: '透明度',
+    },
+    /** §5.16 分发链水位图 */
+    deliveryChain: {
+      missing: '数据缺失（断链）',
+      startPoint: '起点',
+    },
     copy: '复制',
     copied: '已复制',
     copyFailed: '复制失败',
@@ -1877,6 +1888,9 @@ export default {
     generateFailed: '生成水印失败',
   },
   rasterWmEmbed: {
+    compareLabel: '嵌入前 / 后对比',
+    embedBefore: '嵌入前',
+    embedAfter: '嵌入后',
     roleAlert: '当前职责：管理员2（仅负责嵌入流程）',
     pageTitle: '栅格数据水印嵌入',
     pageDesc: '仅展示已二审通过的栅格数据申请。默认流程为"嵌入水印"；CRMark 为算法实验通道。',
@@ -1945,6 +1959,14 @@ export default {
   decodePlatform: {
     title: '解码平台',
     subtitle: '解码 QR 码查看完整溯源链，或上传文件提取水印并解码',
+    chainTitle: '分发链（水位图）',
+    chainSteps: {
+      submit: '申请提交',
+      review1: '一级审批',
+      review2: '二级审批',
+      deliver: '水印生成 / 交付',
+      download: '下载完成',
+    },
     qrDecodeTab: 'QR码解码',
     qrDecodeHint: '将从水印提取界面获得的 QR 码粘贴到下方，或上传 QR 码图片，即可解码查看完整溯源信息。',
     fileTraceTab: '文件溯源',
@@ -2075,6 +2097,7 @@ export default {
     reUpload: '重新上传',
   },
   rasterWmExtract: {
+    recoveredOriginal: '嵌入前 · 恢复原图',
     currentRole: '当前职责：管理员3（仅负责提取与解码流程）',
     pageTitle: '栅格数据水印提取与验证',
     pageDescription: '上传疑似泄露的栅格数据文件，系统将自动提取水印并与原始水印进行比对验证',
@@ -2281,6 +2304,17 @@ export default {
     subtitle: '交付台账查询、水印签名验证与泄漏溯源定位',
     tabDeliveries: '交付台账',
     tabForensics: '泄漏取证',
+    filterOperator: '操作人（工号）',
+    filterFingerprint: '指纹 / FID',
+    filterTimeStart: '开始时间',
+    filterTimeEnd: '结束时间',
+    chainTitle: '分发链（水位图）',
+    chainSteps: {
+      created: '交付创建',
+      fingerprint: '指纹签发',
+      personalization: '个性化完成',
+      download: '下载完成',
+    },
     applicationIdLabel: '申请 ID',
     applicationIdPlaceholder: '请输入申请 ID',
     queryBtn: '查询',

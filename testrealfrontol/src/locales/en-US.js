@@ -29,6 +29,17 @@ export default {
       embedFirst: 'Run watermark embedding first',
       needStegoFiles: 'Generate the stego and map files first',
     },
+    /** §5.17 image compare (wipe / opacity) */
+    imgCompare: {
+      side: 'Side by side',
+      wipe: 'Wipe',
+      opacity: 'Opacity',
+    },
+    /** §5.16 delivery chain waterfall */
+    deliveryChain: {
+      missing: 'Missing data (broken link)',
+      startPoint: 'start',
+    },
     copy: 'Copy',
     copied: 'Copied',
     copyFailed: 'Copy failed',
@@ -1877,6 +1888,9 @@ export default {
     generateFailed: 'Watermark generation failed',
   },
   rasterWmEmbed: {
+    compareLabel: 'Before / After Embedding',
+    embedBefore: 'Before embedding',
+    embedAfter: 'After embedding',
     roleAlert: 'Current Role: Admin 2 (embedding workflow only)',
     pageTitle: 'Raster Data Watermark Embedding',
     pageDesc: 'Shows only second-review approved raster data applications. Default flow is "Embed Watermark"; CRMark is for algorithm experiments.',
@@ -1945,6 +1959,14 @@ export default {
   decodePlatform: {
     title: 'Decoding Platform',
     subtitle: 'Decode QR codes to view the full provenance chain, or upload files to extract and decode watermarks',
+    chainTitle: 'Delivery chain (waterfall)',
+    chainSteps: {
+      submit: 'Application submitted',
+      review1: 'First review',
+      review2: 'Second review',
+      deliver: 'Watermark / delivery',
+      download: 'Download completed',
+    },
     qrDecodeTab: 'QR Decode',
     qrDecodeHint: 'Paste a QR code obtained from the extraction interface below, or upload a QR code image to decode and view the full provenance.',
     fileTraceTab: 'File Trace',
@@ -2075,6 +2097,7 @@ export default {
     reUpload: 'Re-upload',
   },
   rasterWmExtract: {
+    recoveredOriginal: 'Before embedding · Recovered original',
     currentRole: 'Current Role: Admin 3 (extraction & decode only)',
     pageTitle: 'Raster Watermark Extraction & Verification',
     pageDescription: 'Upload suspected leaked raster data file, system will automatically extract watermark and verify against original',
@@ -2281,6 +2304,17 @@ export default {
     subtitle: 'Delivery ledger, watermark signature verification and leak tracing',
     tabDeliveries: 'Delivery Ledger',
     tabForensics: 'Leak Forensics',
+    filterOperator: 'Operator (user no.)',
+    filterFingerprint: 'Fingerprint / FID',
+    filterTimeStart: 'Start time',
+    filterTimeEnd: 'End time',
+    chainTitle: 'Delivery chain (waterfall)',
+    chainSteps: {
+      created: 'Delivery created',
+      fingerprint: 'Fingerprint issued',
+      personalization: 'Personalization done',
+      download: 'Download completed',
+    },
     applicationIdLabel: 'Application ID',
     applicationIdPlaceholder: 'Enter application ID',
     queryBtn: 'Search',
