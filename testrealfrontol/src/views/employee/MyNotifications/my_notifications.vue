@@ -121,8 +121,8 @@ onMounted(fetchList);
 <style scoped>
 .notifications-page { padding: 24px; max-width: 1000px; margin: 0 auto; }
 .page-header { margin-bottom: 24px; }
-.page-title { font-size: 22px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
-.page-desc { font-size: 14px; color: #6b7280; margin: 0; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--text-1); margin: 0 0 8px 0; }
+.page-desc { font-size: 14px; color: var(--text-3); margin: 0; }
 .notify-card { border-radius: 12px; overflow: hidden; }
 .filter-bar { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }

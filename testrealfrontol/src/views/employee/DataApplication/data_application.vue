@@ -210,15 +210,10 @@ onMounted(() => {
 .card-header span {
   font-size: 18px;
   font-weight: 400;
-  color: #303133;
+  color: var(--text-1);
 }
 
 /* el-table 样式覆盖 */
-:deep(.el-table th.el-table__cell) {
-  background-color: #f5f7fa;
-  color: #606266;
-}
-
 :deep(.el-table td.el-table__cell) {
     padding: 12px 0;
 }

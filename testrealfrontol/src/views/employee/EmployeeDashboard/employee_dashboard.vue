@@ -1,5 +1,5 @@
 <template>
-  <div class="employee-dashboard" :class="{ 'theme-dark': isDark }" v-loading="loading">
+  <div class="employee-dashboard" v-loading="loading">
     <template v-if="loading">
       <div class="skeleton-hero glass">
         <div class="sk-line long motion-shimmer"></div>
@@ -181,16 +181,22 @@ const fetchDashboard = async () => {
   }
 };
 
-// ── 图表主题色（canvas 内无法用 CSS 变量，随 isDark 切换） ──
+// ── 图表主题色（canvas 内无法用 CSS 变量，随 isDark 切换；深色对齐 AdmDashboard 惯例） ──
 const ink = computed(() => (isDark.value
   ? {
-      tooltipBg: 'rgba(22,32,58,0.96)',
-      tooltipBorder: 'rgba(120,170,255,0.25)',
-      tooltipText: '#e6eaf2',
+      tooltipBg: 'rgba(17,17,20,0.96)',
+      tooltipBorder: 'rgba(94,106,210,0.35)',
+      tooltipText: '#ededf0',
       legendText: '#94a3b8',
       axisLine: 'rgba(255,255,255,0.14)',
       axisLabel: '#8fa0b8',
       splitLine: 'rgba(255,255,255,0.08)',
+      series: {
+        line: '#6e79de',
+        bar: '#5cc08f',
+        statusPie: ['#d6a75c', '#5cc08f', '#e06a6a'],
+        typePie: ['#6e79de', '#5cc08f'],
+      },
     }
   : {
       tooltipBg: 'rgba(255,255,255,0.95)',
@@ -209,8 +215,17 @@ const trendOption = computed(() => ({
   xAxis: { type: 'category', data: chartData.value.map(i => i.date), axisLine: { lineStyle: { color: ink.value.axisLine } }, axisLabel: { color: ink.value.axisLabel } },
   yAxis: { type: 'value', axisLabel: { color: ink.value.axisLabel }, splitLine: { lineStyle: { color: ink.value.splitLine, type: 'dashed' } } },
   series: [
-    { name: t('empDashboard.applicationCount'), type: 'line', smooth: true, data: chartData.value.map(i => i.applications || 0) },
-    { name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 56, data: chartData.value.map(i => i.downloads || 0) }
+    {
+      name: t('empDashboard.applicationCount'), type: 'line', smooth: true,
+      data: chartData.value.map(i => i.applications || 0),
+      lineStyle: { color: ink.value.series?.line },
+      itemStyle: { color: ink.value.series?.line }
+    },
+    {
+      name: t('empDashboard.downloadCount'), type: 'bar', barMaxWidth: 56,
+      data: chartData.value.map(i => i.downloads || 0),
+      itemStyle: { color: ink.value.series?.bar }
+    }
   ]
 }));
 
@@ -219,6 +234,7 @@ const statusOption = computed(() => ({
   series: [{
     type: 'pie',
     radius: ['40%', '70%'],
+    color: ink.value.series?.statusPie,
     label: { color: ink.value.axisLabel },
     data: [
       { value: applicationStatusDist.value.pending || 0, name: t('empDashboard.pending') },
@@ -233,6 +249,7 @@ const dataTypeOption = computed(() => ({
   series: [{
     type: 'pie',
     radius: ['40%', '70%'],
+    color: ink.value.series?.typePie,
     label: { color: ink.value.axisLabel },
     data: [
       { value: dataTypePreference.value.vector || 0, name: t('empDashboard.vector') },
@@ -256,24 +273,15 @@ onActivated(async () => {
 
 <style scoped>
 .employee-dashboard {
-  --dash-c1: #0f172a; --dash-c2: #f8fafc; --dash-c3: #e2e8f0;
   padding: 20px;
-  background: radial-gradient(1200px 600px at 0% 0%, var(--dash-c1) 0%, var(--dash-c2) 45%, var(--dash-c3) 100%);
+  background: radial-gradient(1200px 600px at 0% 0%, var(--bg-fill) 0%, var(--bg-canvas) 45%, var(--bg-canvas) 100%);
   min-height: calc(100vh - 80px);
 }
-/* 深色模式：由模板上的 theme-dark 类驱动（scoped 编译稳定，不在样式里用 :global 前缀） */
-.employee-dashboard.theme-dark {
-  --dash-c1: #1a2438; --dash-c2: #0b1220; --dash-c3: #0e1626;
-}
 .glass {
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--glass-bg);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--glass-border);
   border-radius: 16px;
-}
-.employee-dashboard.theme-dark .glass {
-  background: rgba(19, 28, 46, 0.75);
-  border-color: rgba(148, 163, 184, 0.18);
 }
 .hero {
   padding: 18px 20px;
@@ -295,12 +303,12 @@ onActivated(async () => {
 }
 .kpi { padding: 14px; transition: transform var(--duration-200) var(--ease-out-soft), box-shadow var(--duration-200) var(--ease-out-soft); }
 .kpi:hover { transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
-.kpi:first-child { border-left: 4px solid var(--accent-cyan, #0ea5e9); }
+.kpi:first-child { border-left: 4px solid var(--accent-9); }
 .kpi span { color: var(--text-secondary, #64748b); font-size: 13px; }
 .kpi h2 { margin: 6px 0; font-size: 28px; font-variant-numeric: tabular-nums; }
-.warn { border-left: 4px solid #f59e0b; }
-.ok { border-left: 4px solid #22c55e; }
-.info { border-left: 4px solid #3b82f6; }
+.warn { border-left: 4px solid var(--tint-warning-text); }
+.ok { border-left: 4px solid var(--tint-success-text); }
+.info { border-left: 4px solid var(--tint-info-text); }
 
 .grid {
   display: grid;
@@ -325,7 +333,7 @@ onActivated(async () => {
 .action-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
-  border-color: var(--accent-blue, #3b82f6);
+  border-color: var(--accent-9);
 }
 .action-card b { display:block; color: var(--text-primary, #1e293b); margin-bottom:4px; }
 .action-card span { color: var(--text-secondary, #475569); }

@@ -143,6 +143,16 @@ const initBg = () => {
   const ambient = new THREE.AmbientLight(0x3b82f6, 0.5);
   scene.add(ambient);
 
+  // 无障碍：prefers-reduced-motion 时仅渲染一帧静态画面，不启动动画循环（写法同 DataFlowGlobe.vue 先例）
+  const prefersReducedMotion =
+    typeof window !== 'undefined' && window.matchMedia
+      ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      : false;
+  if (prefersReducedMotion) {
+    renderer.render(scene, camera);
+    return;
+  }
+
   const animate = () => {
     particles.rotation.x += 0.0006;
     particles.rotation.y += 0.001;
@@ -396,6 +406,22 @@ const register_button = () => router.push('/register');
   top: 20px;
   right: 20px;
   z-index: 10;
+  border-radius: 999px;
+  padding: 2px 6px;
+  background: rgba(3, 7, 18, 0.5);
+  border: 1px solid rgba(147, 197, 253, 0.35);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 6px 18px -6px rgba(0, 0, 0, 0.4);
+}
+
+/* 恒深色页面上给 EP 按钮固定浅字与玻璃 hover，两种主题同貌 */
+.lang-switcher :deep(.el-button) {
+  color: #e0f2fe;
+}
+
+.lang-switcher :deep(.el-button:hover) {
+  background: rgba(96, 165, 250, 0.18);
 }
 
 /* Scroll indicator */

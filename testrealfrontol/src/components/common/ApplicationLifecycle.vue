@@ -278,7 +278,7 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 .header-left h3 {
   margin: 0;
   font-size: 16px;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .header-right {
@@ -289,7 +289,7 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 
 .data-name {
   font-size: 14px;
-  color: #606266;
+  color: var(--text-2);
 }
 
 .timeline-card {
@@ -304,7 +304,7 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 .timeline-card h4 {
   margin: 0 0 6px;
   font-size: 14px;
-  color: #303133;
+  color: var(--text-1);
   display: flex;
   align-items: center;
   gap: 8px;
@@ -313,7 +313,7 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 .timeline-desc {
   margin: 0;
   font-size: 13px;
-  color: #606266;
+  color: var(--text-2);
   line-height: 1.6;
 }
 
@@ -339,10 +339,10 @@ watch(() => props.detailData, (val) => { if (val) detail.value = val }, { immedi
 }
 
 .sig-row code {
-  background: #f5f7fa;
+  background: var(--bg-fill);
   padding: 2px 6px;
   border-radius: 4px;
   font-size: 12px;
-  color: #606266;
+  color: var(--text-2);
 }
 </style>

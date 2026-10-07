@@ -159,13 +159,13 @@ onMounted(() => {
 <style scoped>
 .admin-application-page { padding: 20px 24px; max-width: 900px; margin: 0 auto; }
 .page-header { margin-bottom: 20px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: #1f2937; }
-.page-desc { margin: 0; color: #6b7280; }
+.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
+.page-desc { margin: 0; color: var(--text-3); }
 .eligibility-card, .form-card, .history-card { border-radius: 12px; margin-bottom: 20px; }
 .eligibility-content { padding: 12px 0; }
 .eligible, .not-eligible { display: flex; align-items: center; gap: 16px; }
-.success-icon { font-size: 48px; color: #10b981; }
-.warning-icon { font-size: 48px; color: #f59e0b; }
+.success-icon { font-size: 48px; color: var(--tint-success-text); }
+.warning-icon { font-size: 48px; color: var(--tint-warning-text); }
 .eligibility-text h3 { margin: 0 0 8px; font-size: 18px; }
-.eligibility-text p { margin: 0; color: #6b7280; }
+.eligibility-text p { margin: 0; color: var(--text-3); }
 </style>
