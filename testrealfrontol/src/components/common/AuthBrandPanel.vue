@@ -1,6 +1,6 @@
 <template>
   <aside class="auth-aside">
-    <div class="brand-panel">
+    <div class="brand-panel" ref="panelRef">
       <!-- 程序化装饰：网格 / 光斑 / 轨道 / 漂浮粒子（纯 CSS，无外网资源） -->
       <div class="decor" aria-hidden="true">
         <div class="decor-grid"></div>
@@ -44,12 +44,16 @@
           </li>
         </ul>
 
-        <!-- 装饰性 QR：指向当前 origin（沿用旧登录页写法），白色模块 + 玻璃卡 -->
+        <!-- 装饰性数字印记（QR）：固定品牌串渲染，不含任何真实地址/信息；
+             深墨浅底 + 充分静区，纸面印记与铭文同栏排布 -->
         <div class="brand-qr">
-          <div class="qr-frame">
+          <div class="qr-plate" aria-hidden="true">
             <canvas ref="qrCanvasRef" class="qr-canvas"></canvas>
           </div>
-          <span class="qr-caption">{{ $t('login.brandQrCaption') }}</span>
+          <div class="qr-caption">
+            <span class="qr-caption-text">{{ $t('login.brandQrCaption') }}</span>
+            <span class="qr-caption-meta" aria-hidden="true">GEODATA · TRACE</span>
+          </div>
         </div>
       </div>
 
@@ -63,23 +67,46 @@ import { onMounted, ref } from 'vue';
 import QRCode from 'qrcode';
 import { MapLocation, Checked, Stamp, Aim, Link } from '@element-plus/icons-vue';
 
+// 装饰性 QR 载荷：固定品牌串，不携带任何真实地址或内部信息
+const QR_PAYLOAD = 'GEODATA-TRACKING';
+
+const panelRef = ref(null);
 const qrCanvasRef = ref(null);
 
-onMounted(() => {
-  // 装饰性 QR 码：编码当前 origin（与旧登录页生成写法一致，白色模块透明底）
-  if (qrCanvasRef.value) {
-    const canvasEl = qrCanvasRef.value;
-    QRCode.toCanvas(canvasEl, window.location.origin || 'http://localhost:5173', {
-      width: 240, margin: 1,
-      color: { dark: '#FFFFFF', light: '#00000000' }
-    }, (error) => {
-      if (error) console.error(error);
-      // qrcode 库会把 240px 写进内联 style，清掉以便 CSS 控制显示尺寸（含矮视口压缩档）；
-      // 渲染缓冲保持 240px，缩放显示相当于 2x 超采样，更清晰。
-      canvasEl.style.width = '';
-      canvasEl.style.height = '';
-    });
+function cssVar(el, name, fallback) {
+  const value = el ? getComputedStyle(el).getPropertyValue(name).trim() : '';
+  return value || fallback;
+}
+
+/**
+ * 轻量重绘：从 QR 矩阵出发自绘方形模块。
+ * - 内圈静区 quiet（模块数）+ plate 内边距，合计 ≥ 4 模块，符合 QR 静区惯例
+ * - 墨色由 CSS 令牌注入（--brand-qr-ink），不散落魔法色值
+ * - 高分辨率缓冲（module=12），显示时缩小，相当于 2x+ 超采样
+ */
+function drawDecorativeQr(canvas, text, { ink, module = 12, quiet = 2 }) {
+  const { modules } = QRCode.create(text, { errorCorrectionLevel: 'M' });
+  const n = modules.size;
+  const total = (n + quiet * 2) * module;
+  canvas.width = total;
+  canvas.height = total;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, total, total);
+  ctx.fillStyle = ink;
+  for (let r = 0; r < n; r += 1) {
+    for (let c = 0; c < n; c += 1) {
+      if (!modules.get(r, c)) continue;
+      ctx.fillRect((c + quiet) * module, (r + quiet) * module, module, module);
+    }
   }
+}
+
+onMounted(() => {
+  const panel = panelRef.value;
+  const canvas = qrCanvasRef.value;
+  if (!panel || !canvas) return;
+  const ink = cssVar(panel, '--brand-qr-ink', '#0a1b3d');
+  drawDecorativeQr(canvas, QR_PAYLOAD, { ink });
 });
 </script>
 
@@ -104,6 +131,23 @@ onMounted(() => {
     radial-gradient(90% 70% at 88% 8%, rgba(59, 130, 246, 0.35) 0%, transparent 55%),
     radial-gradient(80% 65% at 6% 94%, rgba(14, 165, 233, 0.26) 0%, transparent 60%),
     linear-gradient(158deg, #0b1e3f 0%, #10306b 45%, #050d1f 100%);
+
+  /* —— 组件级令牌：印记墨色 / 纸面 / 细线 / 铭文排印统一从此取值 —— */
+  --brand-hairline: rgba(255, 255, 255, 0.12);
+  --brand-qr-ink: #0a1b3d;                 /* 纸面墨色（深海军蓝） */
+  --brand-qr-paper-a: #f6f9ff;
+  --brand-qr-paper-b: #e9f0fd;
+  --brand-qr-glow: rgba(96, 165, 250, 0.16);
+  --brand-caption: rgba(232, 240, 255, 0.95);
+  --brand-caption-meta: rgba(163, 190, 255, 0.85);
+}
+
+/* 深色页面主题下品牌面板再压一档明度，与 Linear 风画布衔接 */
+html.dark .brand-panel {
+  background:
+    radial-gradient(90% 70% at 88% 8%, rgba(59, 130, 246, 0.28) 0%, transparent 55%),
+    radial-gradient(80% 65% at 6% 94%, rgba(14, 165, 233, 0.20) 0%, transparent 60%),
+    linear-gradient(158deg, #091733 0%, #0c2657 45%, #04081a 100%);
 }
 
 /* ---------- 装饰层 ---------- */
@@ -309,48 +353,84 @@ onMounted(() => {
   color: rgba(148, 163, 184, 0.55);
 }
 
-/* ---------- 装饰性 QR 展示 ---------- */
+/* ---------- 装饰性数字印记（QR） ----------
+   细线轨线将印记区与功能列表分离；左侧纸面印记 + 右侧两行铭文，
+   与内容栏同轴（取代此前的居中小方块）。 */
 .brand-qr {
   position: relative;
   z-index: 2;
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  margin-top: 28px;
+  gap: 20px;
+  margin-top: 30px;
+  padding-top: 28px;
+  border-top: 1px solid var(--brand-hairline);
+  animation: qr-rise var(--duration-500, 500ms) var(--ease-out, cubic-bezier(0.16, 1, 0.3, 1)) 140ms both;
 }
 
-.qr-frame {
-  padding: 8px;
+@keyframes qr-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+
+.qr-plate {
+  position: relative;
+  flex-shrink: 0;
+  width: 124px;
+  height: 124px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  box-shadow: 0 10px 30px -12px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  animation: qr-float 7s ease-in-out infinite;
+  background: linear-gradient(165deg, var(--brand-qr-paper-a) 0%, var(--brand-qr-paper-b) 100%);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 22px 44px -22px rgba(2, 6, 23, 0.85);
+}
+
+/* 极低透明度光晕：把纸面印记从深蓝底上轻轻托起 */
+.qr-plate::before {
+  content: '';
+  position: absolute;
+  inset: -30px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(50% 50% at 50% 50%, var(--brand-qr-glow) 0%, transparent 72%);
 }
 
 .qr-canvas {
   display: block;
-  width: 122px;
-  height: 122px;
-  border-radius: 10px;
+  /* 100px = 25 模块（21+静区2×2）× 4px/模块：dsf≥1 下均为整数像素步长，缩放 3.0x 精确 */
+  width: 100px;
+  height: 100px;
 }
 
 .qr-caption {
-  font-size: 12.5px;
-  letter-spacing: 0.4px;
-  color: rgba(203, 213, 225, 0.78);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-@keyframes qr-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+.qr-caption-text {
+  font-size: var(--font-size-sm, 13px);
+  font-weight: var(--font-weight-medium, 500);
+  letter-spacing: 0.4px;
+  color: var(--brand-caption);
+}
+
+.qr-caption-meta {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  color: var(--brand-caption-meta);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qr-frame,
+  .brand-qr {
+    animation: none;
+  }
+
   .decor-orbit {
     animation: none;
   }
@@ -452,13 +532,19 @@ onMounted(() => {
   }
 
   .brand-qr {
-    margin-top: 18px;
-    gap: 8px;
+    margin-top: 20px;
+    padding-top: 20px;
+  }
+
+  .qr-plate {
+    width: 105px;
+    height: 105px;
   }
 
   .qr-canvas {
-    width: 104px;
-    height: 104px;
+    /* 75px = 25 × 3px/模块：dsf1 3 / dsf2 6 设备像素，整数步长且画布原点落整数位 */
+    width: 75px;
+    height: 75px;
   }
 }
 

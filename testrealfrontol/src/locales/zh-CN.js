@@ -684,7 +684,7 @@ export default {
     brandFeatureTracing: '指纹级交付溯源',
     brandFeatureBlockchain: '区块链存证锚定',
     brandFooter: '© 2026 空间数据跟踪系统 · 安全 · 可信 · 可追溯',
-    brandQrCaption: '扫码访问本系统',
+    brandQrCaption: '数字溯源印记',
   },
   register: {
     title: '创建账户',

@@ -281,6 +281,30 @@ const capsuleStyle = computed(() => ({
   font-size: 17px;
 }
 
+/* 浅色卡片在两种页面主题下保持同一体系：钉住输入文字色，
+   避免深色主题继承 --el-text-color-regular（#a0a0ab 在浅底上仅 ≈2.5:1） */
+.auth-form :deep(.auth-input .el-input__inner) {
+  color: #0f172a;
+}
+
+/* 占位符同属浅色卡片体系：钉到 slate 深灰（#5b6b80），
+   最差（静止态 #f8fafc 底）对比 ≈5.3:1，两种主题下均稳定过 AA
+   （浅色默认 token #8f8f8f 在 #f8fafc 上仅 ≈3.1:1） */
+.auth-form :deep(.auth-input .el-input__inner::placeholder) {
+  color: #5b6b80;
+}
+
+/* 焦点反馈：统一用本页设计的蓝色双层环（双主题一致）。
+   design-system 的 .el-input__wrapper:focus-within 带 !important 的双层 --ring
+   在深色主题下会叠出 #18191b 深色重影，这里按本页设计值钉回 */
+.auth-form :deep(.auth-input .el-input__wrapper:focus-within) {
+  box-shadow: 0 0 0 1px #3b82f6 inset, 0 0 0 4px rgba(59, 130, 246, 0.14) !important;
+}
+
+.auth-form :deep(.auth-input .el-input__inner:focus-visible) {
+  box-shadow: none;
+}
+
 /* ---------- 角色胶囊分段控件 ---------- */
 .role-selector-item {
   margin: 26px 0 22px !important;
