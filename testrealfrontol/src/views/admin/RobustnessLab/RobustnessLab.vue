@@ -1,54 +1,101 @@
 <!--
-  RobustnessLab — 鲁棒性实验室（管理员）
-  把已落库的鲁棒性实验矩阵做成可见产品面：
-    区一 说明卡：攻击矩阵方法论（WAVES 式单失真攻击 + 判定指标）与文档化边界
-    区二 运行控制 + 历史：发起新实验（矢量数据 × 方案 × 攻击），历史 run 列表
-    区三 结果矩阵：行 = 方案，列 = 攻击；NC 色阶 / ✗ 解码失败；对比结论卡
-    区四 对比图：分组柱状图（两方案 NC 按攻击对比）
-  数据源：GET /api/robustness/runs（列表）、GET /api/robustness/runs/<id>（详情 + 进度轮询）
+  RobustnessLab — 鲁棒性实验室（管理员）· v2（样板 A 重排 + 可理解性全家桶）
+  页内分区（结构对齐已验收样板 A · Linear 风）：
+    ① 页头：标题/副题 +「重新讲解」(ElTour) + 刷新
+    ② Hero KPI 带：基线 NC ｜ 旧方案 n/6 ｜ D-QIM n/6 ｜ 转败为胜 +N（数据从当前 run rows 推导）
+    ③ 发起实验 + 历史运行（并排两卡）
+    ④ 实验是怎么做的（四步流程图解 + 实验设置 checklist，方法论透明）
+    ⑤ 结果矩阵（行=方案/列=攻击；单元格胶囊化；攻击列头 hover 卡 = 攻击词典 + 查看代码）
+    ⑥ 对比结论卡（自动结论 + 标签 + 1/6 → 4/6）
+    ⑦ 导出 JSON / 刷新（矩阵头保留）
+  可理解层：指标词典（ⓘ 悬停一句话 → 点击 el-popover 详解卡，含 0.75/0.95 阈值色条）、
+  攻击词典（列头 hover 与单元格 tooltip 首行）、攻击源码抽屉（el-drawer + 等宽 pre，
+  source 来自 GET /api/robustness/attacks/meta，只含攻击函数本体）。
+  动效（克制）：KPI 数字 count-up 160ms、矩阵行首次入场 stagger 30ms/行、进行中状态徽点
+  pulse、卡片 hover 仅边框变色（尊重 prefers-reduced-motion）。
+  数据源：GET /api/robustness/runs、GET /api/robustness/runs/<id>（进度轮询）、
+          GET /api/robustness/attacks/meta（源码抽屉）。
+  颜色只消费 design-system.css 的 CSS 变量名（另一条线在改 token 值，不写死新色值）。
 -->
 <template>
   <div class="robustness-lab fade-in">
-    <!-- 页头 -->
-    <div class="page-header">
+    <!-- ① 页头 -->
+    <div id="lab-head" class="page-header">
       <div class="page-header-text">
         <h2>{{ $t('robustnessLab.title') }}</h2>
         <p class="subtitle">{{ $t('robustnessLab.subtitle') }}</p>
       </div>
       <div class="page-header-actions">
+        <el-button :icon="ChatDotRound" @click="openTour">
+          {{ $t('robustnessLab.tourReplay') }}
+        </el-button>
         <el-button :icon="Refresh" :loading="runsLoading && detailLoading" @click="refreshAll">
           {{ $t('robustnessLab.refreshBtn') }}
         </el-button>
       </div>
     </div>
 
-    <!-- 区一 · 说明卡（方法论，诚实边界） -->
-    <el-card shadow="never" class="method-card">
-      <h4 class="card-title">{{ $t('robustnessLab.methodTitle') }}</h4>
-      <p class="method-desc">{{ $t('robustnessLab.methodDesc') }}</p>
-      <div class="method-grid">
-        <div class="method-item">
-          <span class="method-label">{{ $t('robustnessLab.methodSchemesLabel') }}</span>
-          <span class="method-text">{{ $t('robustnessLab.methodSchemes') }}</span>
-        </div>
-        <div class="method-item">
-          <span class="method-label">{{ $t('robustnessLab.methodAttacksLabel') }}</span>
-          <span class="method-text">{{ $t('robustnessLab.methodAttacks') }}</span>
-        </div>
-        <div class="method-item">
-          <span class="method-label">{{ $t('robustnessLab.methodMetricsLabel') }}</span>
-          <span class="method-text">{{ $t('robustnessLab.methodMetrics') }}</span>
-        </div>
+    <!-- ② Hero KPI 带（数据从当前 run rows 推导；无 run 时空态） -->
+    <section id="lab-kpi" class="kpi-band" :aria-label="$t('robustnessLab.kpiAria')">
+      <div class="kpi-card">
+        <span class="kpi-label">
+          {{ $t('robustnessLab.kpiBaselineLabel') }}
+          <el-tooltip :content="$t('robustnessLab.metricNcShort')" placement="top" :show-after="120">
+            <span
+              ref="kpiGlossaryAnchor"
+              class="info-dot kpi-dot"
+              role="button"
+              tabindex="0"
+              :aria-label="$t('robustnessLab.metricGlossaryTitle')"
+            >
+              <el-icon :size="13"><InfoFilled /></el-icon>
+            </span>
+          </el-tooltip>
+        </span>
+        <span class="kpi-value mono-num">{{ baselineText }}</span>
+        <span class="kpi-note">{{ baselineNoteText }}</span>
       </div>
-      <div class="boundary-note">
-        <el-icon class="boundary-icon"><InfoFilled /></el-icon>
-        <span>{{ $t('robustnessLab.methodBoundary') }}</span>
-      </div>
-    </el-card>
 
-    <!-- 区二 · 运行控制 + 历史 -->
+      <div class="kpi-card">
+        <span class="kpi-label">
+          {{ $t('robustnessLab.scheme.legacy') }}
+          <el-tooltip :content="$t('robustnessLab.schemeDesc.legacy')" placement="top" :show-after="120">
+            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
+          </el-tooltip>
+        </span>
+        <span class="kpi-value mono-num">{{ schemeValueText('legacy') }}</span>
+        <span class="kpi-note">{{ schemeNoteText('legacy') }}</span>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">
+          {{ $t('robustnessLab.scheme.dqim1') }}
+          <el-tooltip :content="$t('robustnessLab.schemeDesc.dqim1')" placement="top" :show-after="120">
+            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
+          </el-tooltip>
+        </span>
+        <span class="kpi-value mono-num">{{ schemeValueText('dqim1') }}</span>
+        <span class="kpi-note">{{ schemeNoteText('dqim1') }}</span>
+      </div>
+
+      <div class="kpi-card is-win">
+        <span class="kpi-label">
+          {{ $t('robustnessLab.kpiWinLabel') }}
+          <el-tooltip :content="$t('robustnessLab.kpiWinDesc')" placement="top" :show-after="120">
+            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
+          </el-tooltip>
+        </span>
+        <span class="kpi-value mono-num">{{ winValueText }}</span>
+        <span class="kpi-note">{{ winNoteText }}</span>
+      </div>
+    </section>
+    <p v-if="!kpi" class="kpi-empty">
+      {{ $t('robustnessLab.kpiEmpty') }} · {{ $t('robustnessLab.kpiEmptyHint') }}
+    </p>
+
+    <!-- ③ 发起实验 + 历史运行 -->
     <div class="control-grid">
-      <el-card shadow="never" class="run-card">
+      <el-card id="lab-run" shadow="never" class="lab-card run-card">
         <h4 class="card-title">{{ $t('robustnessLab.runTitle') }}</h4>
 
         <div class="form-row">
@@ -120,7 +167,7 @@
         </el-button>
       </el-card>
 
-      <el-card shadow="never" class="history-card">
+      <el-card id="lab-history" shadow="never" class="lab-card history-card">
         <h4 class="card-title">{{ $t('robustnessLab.historyTitle') }}</h4>
         <el-table
           v-loading="runsLoading"
@@ -152,17 +199,50 @@
               <span class="mono-text">{{ row.done }}/{{ row.total }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colStatus')" width="96" align="center">
+          <el-table-column :label="$t('robustnessLab.colStatus')" width="110" align="center">
             <template #default="{ row }">
-              <span class="status-badge" :class="runStatusClass(row)">{{ runStatusText(row) }}</span>
+              <span class="status-badge" :class="runStatusClass(row)">
+                <i v-if="runStatusClass(row) === 'is-running'" class="pulse-dot"></i>
+                {{ runStatusText(row) }}
+              </span>
             </template>
           </el-table-column>
         </el-table>
+        <p class="panel-foot">{{ $t('robustnessLab.trialsHint') }}</p>
       </el-card>
     </div>
 
-    <!-- 区三 · 结果矩阵 -->
-    <el-card v-loading="detailLoading" shadow="never" class="matrix-card">
+    <!-- ④ 实验是怎么做的（四步流程图解 + 实验设置 checklist） -->
+    <el-card id="lab-how" shadow="never" class="lab-card how-card">
+      <div class="panel-head">
+        <h4 class="card-title inline-title">{{ $t('robustnessLab.howTitle') }}</h4>
+        <span class="head-note">{{ $t('robustnessLab.howSubtitle') }}</span>
+      </div>
+      <div class="flow">
+        <template v-for="(node, i) in flowNodes" :key="node.name">
+          <el-icon v-if="i > 0" class="flow-arrow" :size="16"><Right /></el-icon>
+          <div class="flow-node">
+            <span class="flow-icon"><el-icon :size="17"><component :is="node.icon" /></el-icon></span>
+            <div class="flow-text">
+              <span class="flow-name">{{ node.name }}</span>
+              <p>{{ node.desc }}</p>
+            </div>
+          </div>
+        </template>
+      </div>
+      <div class="setup-grid">
+        <div v-for="item in setupItems" :key="item.label" class="setup-item">
+          <span class="setup-label">{{ item.label }}</span>
+          <span class="setup-text">
+            {{ item.text }}
+            <code v-if="item.code" class="setup-code">{{ item.code }}</code>
+          </span>
+        </div>
+      </div>
+    </el-card>
+
+    <!-- ⑤ 结果矩阵（+ ⑥ 对比结论卡 + ⑦ 导出/刷新） -->
+    <el-card id="lab-matrix" v-loading="detailLoading" shadow="never" class="lab-card matrix-card">
       <template v-if="runMeta">
         <div class="matrix-head">
           <div class="matrix-meta">
@@ -187,23 +267,99 @@
           </div>
         </div>
 
-        <p class="matrix-subtitle">{{ $t('robustnessLab.matrixSubtitle') }}</p>
+        <p class="matrix-subtitle">
+          <span>{{ $t('robustnessLab.matrixSubtitle') }}</span>
+          <el-tooltip :content="$t('robustnessLab.metricNcShort')" placement="top" :show-after="100">
+            <span
+              ref="glossaryAnchor"
+              class="info-dot glossary-dot"
+              role="button"
+              tabindex="0"
+              :aria-label="$t('robustnessLab.metricGlossaryTitle')"
+            >
+              <el-icon :size="13"><InfoFilled /></el-icon>
+            </span>
+          </el-tooltip>
+        </p>
+        <el-popover
+          :virtual-ref="glossaryAnchor"
+          virtual-triggering
+          trigger="click"
+          :width="420"
+          popper-class="glossary-popper"
+        >
+          <template #title>
+            <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
+          </template>
+          <MetricGlossary />
+        </el-popover>
+        <el-popover
+          :virtual-ref="kpiGlossaryAnchor"
+          virtual-triggering
+          trigger="click"
+          :width="420"
+          popper-class="glossary-popper"
+        >
+          <template #title>
+            <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
+          </template>
+          <MetricGlossary />
+        </el-popover>
 
-        <el-table :data="matrixRows" border class="matrix-table">
+        <el-table
+          :data="matrixRows"
+          class="matrix-table"
+          :row-class-name="matrixRowClass"
+          :row-style="matrixRowStyle"
+        >
           <el-table-column :label="$t('robustnessLab.colScheme')" width="190" fixed>
             <template #default="{ row }">
               <span class="scheme-name" :class="`is-${row.scheme}`">
-                {{ $t(`robustnessLab.scheme.${row.scheme}`) }}
+                {{ schemeLabel(row.scheme) }}
               </span>
             </template>
           </el-table-column>
           <el-table-column
             v-for="(attack, idx) in matrixAttacks"
             :key="attack"
-            :label="$t(`robustnessLab.attack.${attack}`)"
             align="center"
-            min-width="110"
+            min-width="118"
           >
+            <!-- 攻击词典：列头 hover 卡（机制 + 参数 + 查看代码） -->
+            <template #header>
+              <el-popover
+                placement="bottom"
+                trigger="hover"
+                :width="340"
+                :show-after="140"
+                :hide-after="120"
+                popper-class="attack-head-popper"
+              >
+                <template #reference>
+                  <span class="th-label">
+                    {{ attackLabel(attack) }}
+                    <el-icon class="th-info" :size="12"><InfoFilled /></el-icon>
+                  </span>
+                </template>
+                <div class="attack-head-card">
+                  <p class="ah-desc">{{ attackDescFor(attack) }}</p>
+                  <div class="ah-foot">
+                    <span v-if="metaParamsFor(attack)" class="ah-params mono-text">
+                      {{ formatMetaParams(metaParamsFor(attack)) }}
+                    </span>
+                    <el-button
+                      class="attack-code-link"
+                      size="small"
+                      text
+                      type="primary"
+                      @click="openAttackCode(attack)"
+                    >
+                      {{ $t('robustnessLab.codeBtn') }}
+                    </el-button>
+                  </div>
+                </div>
+              </el-popover>
+            </template>
             <template #default="{ row }">
               <el-tooltip
                 v-if="row.cells[idx] && cellHasResult(row.cells[idx])"
@@ -213,6 +369,7 @@
               >
                 <template #content>
                   <div class="cell-tip">
+                    <div class="tip-attack-desc">{{ attackDescFor(attack) }}</div>
                     <template v-if="cellMultiTrial(row.cells[idx])">
                       <div>{{ $t('robustnessLab.tipMeanNc') }}: {{ formatMeanNc(row.cells[idx]) }}</div>
                       <div>{{ $t('robustnessLab.tipStdNc') }}: {{ formatStdNc(row.cells[idx]) }}</div>
@@ -230,27 +387,52 @@
                       <div>BER: {{ formatBer(cellSingleRow(row.cells[idx]).ber) }}</div>
                       <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(cellSingleRow(row.cells[idx]).duration_ms) }}</div>
                     </template>
+                    <div class="tip-metric-hint">{{ $t('robustnessLab.metricNcShort') }}</div>
+                    <div class="tip-metric-hint">{{ $t('robustnessLab.metricBerShort') }}</div>
                   </div>
                 </template>
-                <span class="cell-value" :class="cellClass(row.cells[idx])">{{ cellText(row.cells[idx]) }}</span>
+                <span class="cell-value" :class="cellClass(row.cells[idx])">
+                  {{ cellText(row.cells[idx]) }}
+                  <i v-if="cellImproved(row.scheme, attack)" class="cell-up">↑</i>
+                </span>
               </el-tooltip>
               <span v-else class="cell-value is-pending">{{ $t('robustnessLab.cellPending') }}</span>
             </template>
           </el-table-column>
         </el-table>
 
-        <!-- 对比结论卡（自动生成，数字来自数据） -->
-        <div class="verdict-card" :class="{ 'is-ready': verdictReady }">
-          <div class="verdict-head">
-            <h4 class="verdict-title">{{ $t('robustnessLab.verdictTitle') }}</h4>
-            <span v-if="!verdictReady" class="mono-text verdict-progress">{{ runMeta.done }}/{{ runMeta.total }}</span>
+        <p class="footnote">
+          <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
+          <span>{{ $t('robustnessLab.methodBoundary') }}</span>
+        </p>
+        <p class="footnote">
+          <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
+          <span>{{ $t('robustnessLab.matrixFootnote') }}</span>
+        </p>
+
+        <!-- ⑥ 对比结论卡（自动生成，数字来自数据） -->
+        <div id="lab-verdict" class="verdict-card" :class="{ 'is-ready': verdictReady }">
+          <div class="verdict-main">
+            <span class="verdict-icon"><el-icon :size="18"><Medal /></el-icon></span>
+            <div class="verdict-text">
+              <h4 class="verdict-title">{{ $t('robustnessLab.verdictTitle') }}</h4>
+              <template v-if="verdictReady">
+                <p v-for="(sentence, i) in verdictSentences" :key="i" class="verdict-line">{{ sentence }}</p>
+              </template>
+              <p v-else-if="!verdictComparable" class="verdict-line is-muted">
+                {{ $t('robustnessLab.verdictNotComparable') }}
+              </p>
+              <p v-else class="verdict-line is-muted">
+                {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
+              </p>
+            </div>
           </div>
-          <template v-if="verdictReady">
-            <p v-for="(sentence, i) in verdictSentences" :key="i" class="verdict-line">{{ sentence }}</p>
-          </template>
-          <p v-else class="verdict-line is-muted">
-            {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
-          </p>
+          <div v-if="verdictComparable" class="verdict-stat">
+            <span class="verdict-stat-label">{{ $t('robustnessLab.verdictStatLabel') }}</span>
+            <span class="verdict-stat-value mono-num">
+              {{ verdictStatLegacy }} <i>→</i> {{ verdictStatDqim }}
+            </span>
+          </div>
           <div class="verdict-tags">
             <span
               v-for="item in verdictItems"
@@ -258,13 +440,10 @@
               class="verdict-tag"
               :class="`is-${item.kind}`"
             >
-              {{ $t(`robustnessLab.attack.${item.attack}`) }} · {{ tagText(item.kind) }}
+              {{ attackLabel(item.attack) }} · {{ tagText(item.kind) }}
             </span>
           </div>
         </div>
-
-        <!-- 页脚口径说明：多试验采样 + NC/SSIM 指标口径（Step 1b / Step 3 合并文案） -->
-        <p class="matrix-footnote">{{ $t('robustnessLab.matrixFootnote') }}</p>
       </template>
       <el-empty
         v-else
@@ -273,31 +452,68 @@
       />
     </el-card>
 
-    <!-- 区四 · 对比图 -->
-    <el-card v-if="runMeta" shadow="never" class="chart-card">
-      <h4 class="card-title">{{ $t('robustnessLab.chartTitle') }}</h4>
-      <v-chart class="chart-holder" :option="comparisonChartOption" autoresize />
-    </el-card>
+    <!-- 攻击源码抽屉（rtl，宽 640；等宽 pre，零新依赖） -->
+    <el-drawer
+      v-model="codeDrawer.open"
+      direction="rtl"
+      size="640px"
+      :title="drawerTitle"
+      class="code-drawer"
+      destroy-on-close
+    >
+      <div v-loading="codeDrawer.loading" class="code-drawer-body">
+        <template v-if="drawerEntry">
+          <div class="code-meta">
+            <span class="code-params-label">{{ $t('robustnessLab.codeParamsLabel') }}</span>
+            <span class="code-params mono-text">{{ formatMetaParams(drawerEntry.params_default) }}</span>
+          </div>
+          <pre class="code-block">{{ drawerEntry.code }}</pre>
+          <p class="code-note">{{ $t('robustnessLab.codeNote') }}</p>
+        </template>
+        <p v-else-if="codeDrawer.error" class="code-error">{{ $t('robustnessLab.codeLoadFailed') }}</p>
+      </div>
+    </el-drawer>
+
+    <!-- 首入引导 ElTour（6 步，localStorage tour:v1:lab；遮罩色随浅/深模式） -->
+    <el-tour v-model="tourOpen" :mask="tourMask" @close="markTourSeen" @finish="markTourSeen">
+      <el-tour-step
+        v-for="(step, i) in tourSteps"
+        :key="i"
+        :target="step.target"
+        :title="step.title"
+        :description="step.description"
+      />
+    </el-tour>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
-import { Download, InfoFilled, Refresh, VideoPlay } from '@element-plus/icons-vue'
-import { use } from 'echarts/core'
-import { CanvasRenderer } from 'echarts/renderers'
-import { BarChart } from 'echarts/charts'
-import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
-import VChart from 'vue-echarts'
+import {
+  Aim,
+  ChatDotRound,
+  CircleCheck,
+  Download,
+  InfoFilled,
+  Key,
+  MagicStick,
+  Medal,
+  Refresh,
+  Right,
+  VideoPlay,
+} from '@element-plus/icons-vue'
 
 import HashText from '@/components/common/HashText.vue'
+import MetricGlossary from './MetricGlossary.vue'
 import { getDataList } from '@/api/upload'
-import { getRobustnessRun, getRobustnessRuns, startRobustnessRun } from '@/api/robustness'
-
-// ── ECharts 按需注册：本页只用到柱状图 ──
-use([CanvasRenderer, BarChart, TooltipComponent, LegendComponent, GridComponent])
+import {
+  getRobustnessAttacksMeta,
+  getRobustnessRun,
+  getRobustnessRuns,
+  startRobustnessRun,
+} from '@/api/robustness'
 
 const { t } = useI18n()
 
@@ -305,10 +521,18 @@ const { t } = useI18n()
 const SCHEMES = ['legacy', 'dqim1']
 const ATTACKS = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify']
 
+// 矩阵行/列顺序（含栅格 kind 的白名单，历史里点到栅格运行也能如实成表）
+const SCHEME_ORDER = ['legacy', 'dqim1', 'lsb', 'dwt', 'histogram', 'blind']
+const ATTACK_ORDER = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify', 'jpeg', 'resize', 'crop', 'rotate', 'blur']
+const RASTER_ONLY_ATTACKS = new Set(['jpeg', 'resize', 'crop', 'rotate', 'blur'])
+
 // 试验次数选项（1 = 文档化默认参数；>1 = 每格 N 次参数抖动试验，seed 固定可复现）
 const TRIAL_OPTIONS = [1, 3, 5, 10]
 
 const POLL_INTERVAL_MS = 5000
+const TOUR_KEY = 'tour:v1:lab'
+const COUNT_UP_MS = 160
+const STAGGER_STEP_MS = 30
 
 // ── 运行控制状态 ──
 const vectorDataList = ref([])
@@ -324,12 +548,22 @@ const startLoading = ref(false)
 const runs = ref([])
 const runsLoading = ref(false)
 
-// ── 当前 run（矩阵 + 结论 + 图表）状态 ──
+// ── 当前 run（矩阵 + 结论 + KPI）状态 ──
 const runMeta = ref(null)
 const runRows = ref([])
 const runSummary = ref([])
 const detailLoading = ref(false)
 let pollTimer = null
+
+// ── 可理解层状态 ──
+const attacksMeta = ref(null)
+const codeDrawer = reactive({ open: false, attack: null, kind: 'vector', loading: false, error: false })
+const glossaryAnchor = ref(null)
+const kpiGlossaryAnchor = ref(null)
+
+// ── ElTour 状态 ──
+const tourOpen = ref(false)
+const tourMask = ref(true)
 
 // ──────────────────────────────────────
 //  数据获取
@@ -365,11 +599,22 @@ const fetchRuns = async () => {
   }
 }
 
+// 攻击源码元数据：静默预取（列头 hover 卡与源码抽屉共用；失败不打扰，抽屉里会报错）
+const fetchAttacksMeta = async () => {
+  try {
+    const res = await getRobustnessAttacksMeta()
+    if (res.data?.status) attacksMeta.value = res.data
+  } catch {
+    // 静默：抽屉打开时会给出可见的失败提示
+  }
+}
+
 const applyRunPayload = (run) => {
   runMeta.value = {
     run_id: run.run_id,
     data_ref: run.data_ref,
     created_at: run.created_at,
+    kind: run.kind ?? 'vector',
     trials: run.trials ?? 1,
     done: run.done,
     total: run.total,
@@ -431,7 +676,10 @@ const pollTick = async () => {
   }
 }
 
-onBeforeUnmount(stopPolling)
+onBeforeUnmount(() => {
+  stopPolling()
+  if (staggerTimer) clearTimeout(staggerTimer)
+})
 
 // ──────────────────────────────────────
 //  发起实验
@@ -513,13 +761,21 @@ const refreshAll = async () => {
 }
 
 // ──────────────────────────────────────
-//  结果矩阵
+//  结果矩阵（行/列从 run rows 推导，未知方案/攻击也能如实成表）
 // ──────────────────────────────────────
 
-// 该 run 实际包含的列（按白名单顺序）；行固定按 scheme 顺序
+const matrixSchemes = computed(() => {
+  const present = new Set(runRows.value.map((r) => r.scheme))
+  const known = SCHEME_ORDER.filter((s) => present.has(s))
+  const unknown = [...present].filter((s) => !SCHEME_ORDER.includes(s)).sort()
+  return [...known, ...unknown]
+})
+
 const matrixAttacks = computed(() => {
   const present = new Set(runRows.value.map((r) => r.attack))
-  return ATTACKS.filter((a) => present.has(a))
+  const known = ATTACK_ORDER.filter((a) => present.has(a))
+  const unknown = [...present].filter((a) => !ATTACK_ORDER.includes(a)).sort()
+  return [...known, ...unknown]
 })
 
 // (scheme|attack) -> 行数组（按 trial 升序）；试验次数 > 1 时每格多行
@@ -545,9 +801,8 @@ const summaryByCell = computed(() => {
   return map
 })
 
-const matrixRows = computed(() => {
-  const presentSchemes = SCHEMES.filter((s) => runRows.value.some((r) => r.scheme === s))
-  return presentSchemes.map((scheme) => ({
+const matrixRows = computed(() =>
+  matrixSchemes.value.map((scheme) => ({
     scheme,
     cells: matrixAttacks.value.map((a) => {
       const rows = rowsByCell.value[`${scheme}|${a}`]
@@ -555,11 +810,10 @@ const matrixRows = computed(() => {
       return { rows, summary: summaryByCell.value[`${scheme}|${a}`] || null }
     }),
   }))
-})
+)
 
 // 单元格显示：trials=1 维持原样（完成 → NC 四位小数；失败 ✗）；
 // trials>1 显示「成功率 · NC 均值」，色阶按成功率（100% 绿 / ≥60% 黄 / <60% 红）。
-// `null` 单元格 = 该组合没有行（理论不出现）；存在未完成行 = 等待中
 const cellMultiTrial = (cell) => !!cell && cell.rows.length > 1
 
 const isCellPending = (cell) => !cell || cell.rows.some((r) => r.decode_success === null)
@@ -569,6 +823,8 @@ const cellHasResult = (cell) => !!cell && cell.rows.some((r) => r.decode_success
 const cellSingleRow = (cell) => cell.rows[0]
 
 const cellSuccesses = (cell) => cell.rows.filter((r) => r.decode_success === true).length
+
+const isCellAllPass = (cell) => !!cell && cell.rows.length > 0 && cell.rows.every((r) => r.decode_success === true)
 
 const cellClass = (cell) => {
   if (isCellPending(cell)) return 'is-pending'
@@ -597,6 +853,37 @@ const cellText = (cell) => {
   return Number(row.nc).toFixed(4)
 }
 
+// D-QIM 单元格「转败为胜」小箭头（旧方案失败、D-QIM 全部试验成功）
+const cellImproved = (scheme, attack) => {
+  if (scheme !== 'dqim1') return false
+  const legacy = rowsByCell.value[`legacy|${attack}`]
+  const dqim = rowsByCell.value[`dqim1|${attack}`]
+  if (!legacy || !legacy.length) return false
+  return !isCellAllPass({ rows: legacy }) && isCellAllPass({ rows: dqim || [] })
+}
+
+// ── 矩阵行入场 stagger（仅首次渲染；150ms 后自动失效，不干预后续切换） ──
+const staggerOn = ref(false)
+let staggerTimer = null
+let staggerConsumed = false
+
+watch(
+  () => runRows.value.length,
+  (len) => {
+    if (staggerConsumed || !len) return
+    staggerConsumed = true
+    staggerOn.value = true
+    staggerTimer = setTimeout(() => {
+      staggerOn.value = false
+    }, len * STAGGER_STEP_MS + 400)
+  }
+)
+
+const matrixRowClass = () => (staggerOn.value ? 'matrix-enter' : '')
+
+const matrixRowStyle = ({ rowIndex }) =>
+  staggerOn.value ? { '--row-delay': `${rowIndex * STAGGER_STEP_MS}ms` } : {}
+
 const matrixDone = computed(() => !!runMeta.value && runMeta.value.done >= runMeta.value.total)
 
 const progressPct = computed(() => {
@@ -604,7 +891,258 @@ const progressPct = computed(() => {
   return Math.min(100, Math.round((runMeta.value.done / runMeta.value.total) * 100))
 })
 
-// ── 对比结论（全部来自数据） ──
+// ──────────────────────────────────────
+//  攻击词典 / 源码抽屉
+// ──────────────────────────────────────
+
+const attackKind = (attack) => {
+  if (RASTER_ONLY_ATTACKS.has(attack)) return 'raster'
+  if (attack === 'noise') return runMeta.value?.kind === 'raster' ? 'raster' : 'vector'
+  return 'vector'
+}
+
+const attackLabel = (attack) =>
+  attackKind(attack) === 'raster'
+    ? t(`robustnessLab.attackRaster.${attack}`)
+    : t(`robustnessLab.attack.${attack}`)
+
+const attackDescFor = (attack) =>
+  attackKind(attack) === 'raster'
+    ? t(`robustnessLab.attackRasterDesc.${attack}`)
+    : t(`robustnessLab.attackDesc.${attack}`)
+
+// meta 里对应攻击的默认参数（预取未完成时返回 null，hover 卡省略参数行）
+const metaParamsFor = (attack) => {
+  const meta = attacksMeta.value
+  if (!meta) return null
+  const list = attackKind(attack) === 'raster' ? meta.raster : meta.vector
+  const entry = (list || []).find((e) => e.name === attack)
+  return entry ? entry.params_default : null
+}
+
+const formatMetaParams = (params) => {
+  if (!params || typeof params !== 'object') return '—'
+  const entries = Object.entries(params)
+  if (!entries.length) return '—'
+  return entries.map(([k, v]) => `${k}=${v === null ? 'auto' : v}`).join(', ')
+}
+
+const drawerEntry = computed(() => {
+  const meta = attacksMeta.value
+  if (!meta || !codeDrawer.attack) return null
+  const list = codeDrawer.kind === 'raster' ? meta.raster : meta.vector
+  return (list || []).find((e) => e.name === codeDrawer.attack) || null
+})
+
+const drawerTitle = computed(() =>
+  codeDrawer.attack
+    ? t('robustnessLab.codeDrawerTitle', { name: attackLabel(codeDrawer.attack) })
+    : t('robustnessLab.codeBtn')
+)
+
+const openAttackCode = async (attack) => {
+  codeDrawer.attack = attack
+  codeDrawer.kind = attackKind(attack)
+  codeDrawer.error = false
+  codeDrawer.open = true
+  if (!attacksMeta.value) {
+    codeDrawer.loading = true
+    try {
+      const res = await getRobustnessAttacksMeta()
+      if (res.data?.status) {
+        attacksMeta.value = res.data
+      } else {
+        codeDrawer.error = true
+      }
+    } catch {
+      codeDrawer.error = true
+    } finally {
+      codeDrawer.loading = false
+    }
+  }
+}
+
+// ──────────────────────────────────────
+//  Hero KPI 带（全部数字从 run rows 推导；无 run → 空态）
+// ──────────────────────────────────────
+
+const cellMeanNc = (scheme, attack) => {
+  const rows = rowsByCell.value[`${scheme}|${attack}`]
+  if (!rows || !rows.length) return null
+  const vals = rows
+    .map((r) => r.nc)
+    .filter((v) => v !== null && v !== undefined)
+    .map(Number)
+  return vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : null
+}
+
+const kpi = computed(() => {
+  if (!runMeta.value || !runRows.value.length) return null
+  const attacks = matrixAttacks.value
+  const attacksCount = attacks.length
+  if (!attacksCount) return null
+
+  const noneRows = runRows.value.filter((r) => r.attack === 'none' && r.nc !== null && r.nc !== undefined)
+  const baseline = noneRows.length
+    ? noneRows.reduce((s, r) => s + Number(r.nc), 0) / noneRows.length
+    : null
+
+  const legacyPresent = runRows.value.some((r) => r.scheme === 'legacy')
+  const dqimPresent = runRows.value.some((r) => r.scheme === 'dqim1')
+
+  const schemeSuccess = (scheme) => {
+    if (!runRows.value.some((r) => r.scheme === scheme)) return null
+    return attacks.filter((a) => isCellAllPass({ rows: rowsByCell.value[`${scheme}|${a}`] || [] })).length
+  }
+  const schemeFailNames = (scheme) => {
+    if (!runRows.value.some((r) => r.scheme === scheme)) return []
+    return attacks.filter((a) => {
+      const rows = rowsByCell.value[`${scheme}|${a}`]
+      return rows && rows.length && !rows.every((r) => r.decode_success === true)
+    })
+  }
+
+  const improved = attacks.filter((a) => {
+    const legacy = rowsByCell.value[`legacy|${a}`]
+    const dqim = rowsByCell.value[`dqim1|${a}`]
+    return (
+      legacy &&
+      legacy.length &&
+      dqim &&
+      dqim.length &&
+      !legacy.every((r) => r.decode_success === true) &&
+      dqim.every((r) => r.decode_success === true)
+    )
+  })
+
+  // 基线注记：两方案一致 / 不一致取均值 / 仅单一方案
+  let baselineNoteKind = null
+  let baselineNoteScheme = null
+  const legacyBase = legacyPresent ? cellMeanNc('legacy', 'none') : null
+  const dqimBase = dqimPresent ? cellMeanNc('dqim1', 'none') : null
+  if (legacyBase !== null && dqimBase !== null) {
+    baselineNoteKind = Math.abs(legacyBase - dqimBase) < 1e-9 ? 'same' : 'avg'
+  } else if (legacyBase !== null || dqimBase !== null) {
+    baselineNoteKind = 'scheme'
+    baselineNoteScheme = legacyBase !== null ? 'legacy' : 'dqim1'
+  }
+
+  return {
+    baseline,
+    baselineNoteKind,
+    baselineNoteScheme,
+    attacksCount,
+    legacy: schemeSuccess('legacy'),
+    dqim: schemeSuccess('dqim1'),
+    legacyFailNames: schemeFailNames('legacy'),
+    dqimFailNames: schemeFailNames('dqim1'),
+    improved: improved.map((a) => attackLabel(a)),
+  }
+})
+
+// KPI 数字 count-up（160ms，rAF；尊重 prefers-reduced-motion）
+const kpiAnim = reactive({ baseline: null, legacy: null, dqim: null, win: null })
+const animTokens = { baseline: 0, legacy: 0, dqim: 0, win: 0 }
+
+const prefersReducedMotion = () => {
+  try {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  } catch {
+    return false
+  }
+}
+
+const animateTo = (key, target) => {
+  const token = ++animTokens[key]
+  if (target === null || target === undefined) {
+    kpiAnim[key] = null
+    return
+  }
+  if (prefersReducedMotion()) {
+    kpiAnim[key] = target
+    return
+  }
+  const from = kpiAnim[key] === null || Number.isNaN(kpiAnim[key]) ? 0 : Number(kpiAnim[key])
+  const start = performance.now()
+  const step = (now) => {
+    if (token !== animTokens[key]) return
+    const p = Math.min(1, (now - start) / COUNT_UP_MS)
+    kpiAnim[key] = from + (target - from) * p
+    if (p < 1) requestAnimationFrame(step)
+    else kpiAnim[key] = target
+  }
+  requestAnimationFrame(step)
+}
+
+watch(
+  kpi,
+  (val) => {
+    animateTo('baseline', val ? val.baseline : null)
+    animateTo('legacy', val ? val.legacy : null)
+    animateTo('dqim', val ? val.dqim : null)
+    animateTo('win', val ? val.improved.length : null)
+  },
+  { immediate: true }
+)
+
+const baselineText = computed(() =>
+  kpiAnim.baseline === null ? '—' : Number(kpiAnim.baseline).toFixed(4)
+)
+
+const schemeValueText = (scheme) => {
+  const val = kpi.value
+  if (!val) return '—'
+  const n = scheme === 'legacy' ? kpiAnim.legacy : kpiAnim.dqim
+  if (n === null) return '—'
+  return `${Math.round(n)}/${val.attacksCount}`
+}
+
+const winValueText = computed(() =>
+  kpiAnim.win === null ? '—' : t('robustnessLab.kpiWinValue', { n: Math.round(kpiAnim.win) })
+)
+
+const baselineNoteText = computed(() => {
+  const val = kpi.value
+  if (!val || !val.baselineNoteKind) return ''
+  if (val.baselineNoteKind === 'same') return t('robustnessLab.kpiBaselineNoteSame')
+  if (val.baselineNoteKind === 'avg') return t('robustnessLab.kpiBaselineNoteAvg')
+  return t('robustnessLab.kpiBaselineNoteScheme', {
+    scheme:
+      val.baselineNoteScheme === 'legacy'
+        ? t('robustnessLab.scheme.legacy')
+        : t('robustnessLab.scheme.dqim1'),
+  })
+})
+
+const schemeNoteText = (scheme) => {
+  const val = kpi.value
+  if (!val) return ''
+  const success = scheme === 'legacy' ? val.legacy : val.dqim
+  if (success === null) return ''
+  const fails = scheme === 'legacy' ? val.legacyFailNames : val.dqimFailNames
+  if (!fails.length) return t('robustnessLab.kpiNoteAllPass')
+  if (fails.length >= val.attacksCount) return t('robustnessLab.kpiNoteAllFail')
+  if (fails.length <= 3) {
+    return t('robustnessLab.kpiNoteFailList', { list: fails.map((a) => attackLabel(a)).join(' · ') })
+  }
+  return t('robustnessLab.kpiNoteFail', { n: fails.length })
+}
+
+const winNoteText = computed(() => {
+  const val = kpi.value
+  if (!val) return ''
+  if (!val.improved.length) return t('robustnessLab.kpiWinNoteNone')
+  return t('robustnessLab.kpiWinNote', { list: val.improved.join(' · ') })
+})
+
+// ──────────────────────────────────────
+//  对比结论（全部来自数据）
+// ──────────────────────────────────────
+
+const verdictComparable = computed(() => {
+  const present = new Set(runRows.value.map((r) => r.scheme))
+  return present.has('legacy') && present.has('dqim1')
+})
 
 const verdictItems = computed(() => {
   const incomplete = (rows) => !rows || !rows.length || rows.some((r) => r.decode_success === null)
@@ -625,7 +1163,11 @@ const verdictItems = computed(() => {
 })
 
 const verdictReady = computed(
-  () => matrixDone.value && verdictItems.value.length > 0 && verdictItems.value.every((i) => i.kind !== 'pending')
+  () =>
+    matrixDone.value &&
+    verdictComparable.value &&
+    verdictItems.value.length > 0 &&
+    verdictItems.value.every((i) => i.kind !== 'pending')
 )
 
 const verdictSentences = computed(() => {
@@ -643,62 +1185,119 @@ const verdictSentences = computed(() => {
   return sentences
 })
 
+const verdictStatLegacy = computed(() => {
+  const val = kpi.value
+  if (!val || val.legacy === null) return '—'
+  return `${val.legacy}/${val.attacksCount}`
+})
+
+const verdictStatDqim = computed(() => {
+  const val = kpi.value
+  if (!val || val.dqim === null) return '—'
+  return `${val.dqim}/${val.attacksCount}`
+})
+
 const tagText = (kind) => t(`robustnessLab.tag.${kind}`)
 
 // ──────────────────────────────────────
-//  对比图（分组柱状图：失败为 0 且柱顶标 ✗）
+//  实验流程图解
 // ──────────────────────────────────────
 
-const comparisonChartOption = computed(() => {
-  const attacks = matrixAttacks.value
-  const buildSeries = (scheme, color) => {
-    const failFlags = []
-    const values = attacks.map((a) => {
-      const rows = rowsByCell.value[`${scheme}|${a}`] || []
-      const entry = summaryByCell.value[`${scheme}|${a}`]
-      const complete = rows.length > 0 && rows.every((r) => r.decode_success !== null)
-      const successes = entry ? entry.successes : rows.filter((r) => r.decode_success === true).length
-      const mean = entry ? entry.mean_nc : null
-      failFlags.push(complete && successes === 0)
-      return successes > 0 && mean !== null && mean !== undefined ? Number(mean) : 0
-    })
-    return {
-      name: t(`robustnessLab.scheme.${scheme}`),
-      type: 'bar',
-      barMaxWidth: 34,
-      data: values,
-      itemStyle: { color, borderRadius: [4, 4, 0, 0] },
-      label: {
-        show: true,
-        position: 'top',
-        fontSize: 11,
-        color: '#64748b',
-        rich: { fail: { fontSize: 14, fontWeight: 'bold', color: '#ef4444' } },
-        formatter: (p) => (failFlags[p.dataIndex] ? '{fail|✗}' : p.value > 0 ? Number(p.value).toFixed(3) : ''),
-      },
-    }
+const flowNodes = computed(() => [
+  { name: t('robustnessLab.stepEmbed'), desc: t('robustnessLab.stepEmbedDesc'), icon: MagicStick },
+  { name: t('robustnessLab.stepAttack'), desc: t('robustnessLab.stepAttackDesc'), icon: Aim },
+  { name: t('robustnessLab.stepExtract'), desc: t('robustnessLab.stepExtractDesc'), icon: Key },
+  { name: t('robustnessLab.stepJudge'), desc: t('robustnessLab.stepJudgeDesc'), icon: CircleCheck },
+])
+
+const setupItems = computed(() => [
+  {
+    label: t('robustnessLab.setupHostLabel'),
+    text: runMeta.value
+      ? t('robustnessLab.setupHostValue', { ref: runMeta.value.data_ref })
+      : t('robustnessLab.setupHostIdle'),
+    code: null,
+  },
+  { label: t('robustnessLab.setupPayloadLabel'), text: t('robustnessLab.setupPayloadValue'), code: null },
+  { label: t('robustnessLab.setupParamsLabel'), text: t('robustnessLab.setupParamsValue'), code: null },
+  {
+    label: t('robustnessLab.setupRepeatLabel'),
+    text: runMeta.value
+      ? t('robustnessLab.setupRepeatValue', { trials: runMeta.value.trials })
+      : t('robustnessLab.setupRepeatIdle'),
+    code: null,
+  },
+  { label: t('robustnessLab.setupMetricsLabel'), text: t('robustnessLab.setupMetricsValue'), code: null },
+  {
+    label: t('robustnessLab.setupReproLabel'),
+    text: t('robustnessLab.setupReproValue'),
+    code: 'python tests/robustness_trials_battle.py',
+  },
+])
+
+// ──────────────────────────────────────
+//  ElTour 首入引导（6 步；localStorage tour:v1:lab）
+// ──────────────────────────────────────
+
+const tourTarget = (selector, fallbackSelector) => () => {
+  return document.querySelector(selector) || document.querySelector(fallbackSelector) || document.body
+}
+
+const tourSteps = computed(() => [
+  {
+    target: tourTarget('#lab-head'),
+    title: t('robustnessLab.tour1Title'),
+    description: t('robustnessLab.tour1Desc'),
+  },
+  {
+    target: tourTarget('#lab-kpi'),
+    title: t('robustnessLab.tour2Title'),
+    description: t('robustnessLab.tour2Desc'),
+  },
+  {
+    target: tourTarget('#lab-run'),
+    title: t('robustnessLab.tour3Title'),
+    description: t('robustnessLab.tour3Desc'),
+  },
+  {
+    target: tourTarget('#lab-history'),
+    title: t('robustnessLab.tour4Title'),
+    description: t('robustnessLab.tour4Desc'),
+  },
+  {
+    target: tourTarget('#lab-matrix'),
+    title: t('robustnessLab.tour5Title'),
+    description: t('robustnessLab.tour5Desc'),
+  },
+  {
+    target: tourTarget('#lab-verdict', '#lab-matrix'),
+    title: t('robustnessLab.tour6Title'),
+    description: t('robustnessLab.tour6Desc'),
+  },
+])
+
+const markTourSeen = () => {
+  try {
+    localStorage.setItem(TOUR_KEY, '1')
+  } catch {
+    // localStorage 不可用时仅本次会话生效
   }
-  return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
-    legend: { bottom: 0, icon: 'roundRect', itemWidth: 14, itemHeight: 8 },
-    grid: { left: 12, right: 16, top: 28, bottom: 44, containLabel: true },
-    xAxis: {
-      type: 'category',
-      data: attacks.map((a) => t(`robustnessLab.attack.${a}`)),
-      axisLabel: { interval: 0, color: '#64748b' },
-      axisTick: { alignWithLabel: true },
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      max: 1,
-      name: 'NC',
-      nameTextStyle: { color: '#94a3b8' },
-      axisLabel: { color: '#64748b' },
-      splitLine: { lineStyle: { color: '#f1f5f9' } },
-    },
-    series: [buildSeries('legacy', '#1e40af'), buildSeries('dqim1', '#60a5fa')],
+}
+
+const openTour = () => {
+  // 遮罩色随浅/深模式：运行时读取 --el-mask-color（EP 在浅色为白霜、深色由
+  // design-system.css 覆写为深海军蓝），只消费变量名，不写死色值。
+  try {
+    const color = getComputedStyle(document.documentElement).getPropertyValue('--el-mask-color').trim()
+    tourMask.value = color ? { color } : true
+  } catch {
+    tourMask.value = true
   }
+  tourOpen.value = true
+}
+
+watch(tourOpen, (open) => {
+  if (!open) markTourSeen()
 })
 
 // ──────────────────────────────────────
@@ -713,6 +1312,8 @@ const formatTime = (iso) => {
 }
 
 const dataOptionLabel = (d) => `${d.data_alias || d.name || 'dataset'} · #${d.data_id}`
+
+const schemeLabel = (scheme) => t(`robustnessLab.scheme.${scheme}`)
 
 const formatParams = (params) => {
   if (!params || typeof params !== 'object') return '—'
@@ -768,9 +1369,15 @@ const exportJson = () => {
   ElMessage.success(t('robustnessLab.exportOk'))
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchRuns()
   fetchVectorData()
+  fetchAttacksMeta()
+  try {
+    if (!localStorage.getItem(TOUR_KEY)) openTour()
+  } catch {
+    // localStorage 不可用（隐私模式等）：不自动弹出，可从「重新讲解」手动打开
+  }
 })
 </script>
 
@@ -786,34 +1393,38 @@ onMounted(() => {
   justify-content: space-between;
   gap: 16px;
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .page-header h2 {
-  font-size: 24px;
+  font-size: 22px;
   color: var(--text-primary);
-  margin: 0 0 8px;
+  margin: 0 0 6px;
 }
 
 .subtitle {
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: 13.5px;
+  line-height: 1.65;
   margin: 0;
+  max-width: 860px;
 }
 
 .page-header-actions {
   display: flex;
   gap: 10px;
+  flex: 0 0 auto;
 }
 
-/* ── 通用卡片 ── */
-.method-card,
-.run-card,
-.history-card,
-.matrix-card,
-.chart-card {
+/* ── 通用卡片（hover 仅边框变色，不做位移） ── */
+.lab-card {
   border-radius: var(--radius-lg);
   margin-bottom: 16px;
+  transition: border-color var(--transition-fast);
+}
+
+.lab-card:hover {
+  border-color: var(--primary-300);
 }
 
 .card-title {
@@ -827,66 +1438,113 @@ onMounted(() => {
   display: inline-block;
 }
 
-/* ── 区一 · 说明卡 ── */
-.method-desc {
-  margin: 0 0 12px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--text-secondary);
-}
-
-.method-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 10px;
+.panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 12px;
+  flex-wrap: wrap;
 }
 
-.method-item {
+.head-note {
+  font-size: 12.5px;
+  color: var(--text-tertiary);
+}
+
+/* ── ② Hero KPI 带 ── */
+.kpi-band {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+@media (max-width: 1000px) {
+  .kpi-band {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.kpi-card {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding: 10px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color-light);
+  gap: 6px;
+  padding: 14px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast);
 }
 
-.method-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--primary-700);
+.kpi-card:hover {
+  border-color: var(--primary-300);
 }
 
-.method-text {
+.kpi-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12.5px;
+  font-weight: 500;
   color: var(--text-secondary);
-  line-height: 1.6;
 }
 
-.boundary-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  padding: 10px 12px;
+.kpi-value {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+}
+
+.kpi-card.is-win .kpi-value {
+  color: var(--tint-success-text);
+}
+
+.kpi-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-tertiary);
+}
+
+.kpi-empty {
+  margin: 0 0 16px;
   font-size: 12.5px;
-  line-height: 1.6;
-  color: var(--warning-600);
-  background: var(--warning-50);
-  border: 1px solid rgba(245, 158, 11, 0.28);
-  border-radius: var(--radius-md);
+  color: var(--text-tertiary);
 }
 
-.boundary-icon {
-  margin-top: 2px;
-  flex: 0 0 auto;
+/* 通用 ⓘ（悬停提示 + 点击词典） */
+.info-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition: color var(--transition-fast), background var(--transition-fast);
 }
 
-/* ── 区二 · 控制 + 历史 ── */
+.info-dot:hover,
+.info-dot:focus-visible {
+  color: var(--primary-600);
+  background: var(--primary-50);
+}
+
+.mono-num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── ③ 控制 + 历史 ── */
 .control-grid {
   display: grid;
-  grid-template-columns: minmax(320px, 430px) 1fr;
+  grid-template-columns: minmax(340px, 430px) 1fr;
   gap: 16px;
+  align-items: stretch;
+}
+
+.control-grid .lab-card {
   margin-bottom: 16px;
 }
 
@@ -952,8 +1610,12 @@ onMounted(() => {
   cursor: pointer;
 }
 
-.history-table :deep(.is-active-row) {
+.history-table :deep(.is-active-row td.el-table__cell) {
   background: var(--primary-50);
+}
+
+.history-table :deep(.is-active-row td.el-table__cell:first-child) {
+  box-shadow: inset 2px 0 0 var(--primary-600);
 }
 
 .mono-text {
@@ -963,7 +1625,8 @@ onMounted(() => {
 }
 
 .status-badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
   padding: 1px 10px;
   font-size: 12px;
   border-radius: var(--radius-full);
@@ -971,21 +1634,149 @@ onMounted(() => {
 }
 
 .status-badge.is-done {
-  color: var(--success-600);
-  background: var(--success-50);
+  color: var(--tint-success-text);
+  background: var(--tint-success-bg);
 }
 
 .status-badge.is-running {
-  color: var(--warning-600);
-  background: var(--warning-50);
+  color: var(--tint-warning-text);
+  background: var(--tint-warning-bg);
 }
 
 .status-badge.is-error {
-  color: var(--danger-600);
-  background: var(--danger-50);
+  color: var(--tint-danger-text);
+  background: var(--tint-danger-bg);
 }
 
-/* ── 区三 · 结果矩阵 ── */
+/* 进行中状态徽点 pulse（克制：仅透明度呼吸） */
+.pulse-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: var(--radius-full);
+  background: var(--warning-500);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot {
+    animation: labPulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes labPulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.panel-foot {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+/* ── ④ 实验流程图解 ── */
+.flow {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.flow-arrow {
+  align-self: center;
+  color: var(--text-tertiary);
+  flex: 0 0 auto;
+}
+
+.flow-node {
+  flex: 1 1 190px;
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-md);
+}
+
+.flow-icon {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--primary-50);
+  color: var(--primary-600);
+}
+
+.flow-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.flow-text p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+  .flow-arrow {
+    display: none;
+  }
+}
+
+.setup-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 20px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--border-color-light);
+}
+
+.setup-item {
+  display: flex;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.setup-label {
+  flex: 0 0 58px;
+  color: var(--text-tertiary);
+}
+
+.setup-text {
+  color: var(--text-secondary);
+}
+
+.setup-code {
+  font-family: 'JetBrains Mono', Consolas, monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+@media (max-width: 900px) {
+  .setup-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── ⑤ 结果矩阵 ── */
 .matrix-head {
   display: flex;
   align-items: center;
@@ -1027,29 +1818,96 @@ onMounted(() => {
 }
 
 .matrix-subtitle {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   margin: 0 0 12px;
   font-size: 12.5px;
+  line-height: 1.6;
   color: var(--text-tertiary);
+}
+
+.glossary-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .matrix-table {
   width: 100%;
 }
 
+/* 单元格胶囊 + 44px 行高 + 等宽数字（对齐样板 A） */
+.matrix-table :deep(.el-table__cell) {
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.matrix-table :deep(th.el-table__cell) {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+}
+
+.th-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: default;
+}
+
+.th-info {
+  color: var(--text-tertiary);
+}
+
+.attack-head-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ah-desc {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+
+.ah-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ah-params {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+  word-break: break-all;
+}
+
 .scheme-name {
   font-weight: 600;
   font-size: 13px;
   color: var(--text-primary);
+  white-space: nowrap;
 }
 
-.scheme-name.is-dqim1 {
-  color: var(--primary-700);
+.scheme-name.is-dqim1,
+.scheme-name.is-blind {
+  color: var(--primary-600);
 }
 
+/* 单元格胶囊化：颜色与阈值一致（≥0.95 绿 / ≥0.75 黄 / <0.75 红） */
 .cell-value {
-  display: inline-block;
-  min-width: 78px;
-  padding: 3px 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 104px;
+  height: 30px;
+  padding: 0 10px;
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
@@ -1057,82 +1915,146 @@ onMounted(() => {
 }
 
 .cell-value.is-high {
-  color: var(--success-600);
-  background: var(--success-50);
+  color: var(--tint-success-text);
+  background: var(--tint-success-bg);
+  border: 1px solid var(--tint-success-border);
 }
 
 .cell-value.is-mid {
-  color: var(--warning-600);
-  background: var(--warning-50);
+  color: var(--tint-warning-text);
+  background: var(--tint-warning-bg);
+  border: 1px solid var(--tint-warning-border);
 }
 
 .cell-value.is-low {
-  color: var(--danger-600);
-  background: var(--danger-50);
+  color: var(--tint-danger-text);
+  background: var(--tint-danger-bg);
+  border: 1px solid var(--tint-danger-border);
 }
 
 .cell-value.is-fail {
-  color: var(--danger-500);
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border-color);
+  color: var(--tint-danger-text);
+  background: var(--tint-danger-bg);
+  border: 1px solid var(--tint-danger-border);
+  font-size: 12.5px;
   font-weight: 500;
 }
 
 .cell-value.is-pending {
   color: var(--text-tertiary);
-  background: var(--bg-tertiary);
+  background: var(--tint-neutral-bg);
+  border: 1px dashed var(--border-color);
   font-weight: 400;
-  font-style: italic;
+}
+
+.cell-up {
+  font-style: normal;
+  font-size: 11px;
+  transform: translateY(-2px);
+}
+
+/* 行入场 stagger（仅首次渲染；30ms/行） */
+@media (prefers-reduced-motion: no-preference) {
+  .matrix-table :deep(.matrix-enter .cell) {
+    animation: labRowIn 0.24s ease both;
+    animation-delay: var(--row-delay, 0ms);
+  }
+}
+
+@keyframes labRowIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 .cell-tip {
   font-size: 12px;
   line-height: 1.7;
+  max-width: 340px;
+}
+
+.cell-tip .tip-attack-desc {
+  color: inherit;
+  opacity: 0.72;
+  margin-bottom: 4px;
+}
+
+.cell-tip .tip-metric-hint {
+  color: inherit;
+  opacity: 0.72;
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.55;
 }
 
 .cell-tip .tip-trial-line {
   font-variant-numeric: tabular-nums;
 }
 
-.matrix-footnote {
-  margin: 12px 0 0;
+.footnote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 10px 0 0;
   font-size: 12px;
-  line-height: 1.7;
+  line-height: 1.65;
   color: var(--text-tertiary);
 }
 
-/* ── 对比结论卡 ── */
+.footnote-icon {
+  margin-top: 2px;
+  flex: 0 0 auto;
+}
+
+/* ── ⑥ 对比结论卡（样板 A 排版：左图标+文本，右大数字，下标签行） ── */
 .verdict-card {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px 24px;
+  align-items: start;
   margin-top: 16px;
-  padding: 14px 16px;
+  padding: 16px 18px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-lg);
+  transition: border-color var(--transition-fast);
 }
 
 .verdict-card.is-ready {
-  border-color: rgba(37, 99, 235, 0.25);
-  background: linear-gradient(135deg, var(--bg-secondary), var(--primary-50));
+  border-color: var(--primary-200);
 }
 
-.verdict-head {
+.verdict-main {
+  display: flex;
+  gap: 12px;
+}
+
+.verdict-icon {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  border: 1px solid var(--primary-100);
+  color: var(--primary-600);
 }
 
 .verdict-title {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-primary);
 }
 
-.verdict-progress {
-  font-size: 12px;
-}
-
 .verdict-line {
-  margin: 8px 0 0;
+  margin: 6px 0 0;
   font-size: 13.5px;
   line-height: 1.7;
   color: var(--text-primary);
@@ -1142,48 +2064,121 @@ onMounted(() => {
   color: var(--text-tertiary);
 }
 
+.verdict-stat {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.verdict-stat-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.verdict-stat-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.verdict-stat-value i {
+  font-style: normal;
+  color: var(--tint-success-text);
+  padding: 0 5px;
+}
+
 .verdict-tags {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 10px;
 }
 
 .verdict-tag {
-  padding: 2px 10px;
+  padding: 3px 12px;
   font-size: 12px;
   border-radius: var(--radius-full);
+  border: 1px solid transparent;
 }
 
 .verdict-tag.is-improved {
-  color: var(--success-600);
-  background: var(--success-50);
+  color: var(--tint-success-text);
+  background: var(--tint-success-bg);
+  border-color: var(--tint-success-border);
 }
 
 .verdict-tag.is-regressed {
-  color: var(--danger-600);
-  background: var(--danger-50);
+  color: var(--tint-danger-text);
+  background: var(--tint-danger-bg);
+  border-color: var(--tint-danger-border);
 }
 
 .verdict-tag.is-same-pass {
   color: var(--primary-700);
   background: var(--primary-50);
+  border-color: var(--primary-100);
 }
 
 .verdict-tag.is-same-fail {
   color: var(--text-secondary);
-  background: var(--bg-tertiary);
+  background: var(--tint-neutral-bg);
+  border-color: var(--border-color);
 }
 
 .verdict-tag.is-pending {
   color: var(--text-tertiary);
-  background: var(--bg-tertiary);
+  background: var(--tint-neutral-bg);
   font-style: italic;
 }
 
-/* ── 区四 · 对比图 ── */
-.chart-holder {
-  width: 100%;
-  height: 330px;
+/* ── 攻击源码抽屉（等宽 pre，零新依赖） ── */
+.code-drawer-body {
+  min-height: 120px;
+}
+
+.code-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.code-params-label {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  flex: 0 0 auto;
+}
+
+.code-params {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.code-block {
+  margin: 0;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color-light);
+  border-radius: var(--radius-md);
+  overflow: auto;
+  white-space: pre;
+}
+
+.code-note {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+}
+
+.code-error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--tint-danger-text);
 }
 </style>

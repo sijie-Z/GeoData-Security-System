@@ -31,3 +31,12 @@ export const getRobustnessRun = (runId) => axios.get(`/api/robustness/runs/${run
  * @returns {Promise<AxiosResponse>}
  */
 export const startRobustnessRun = (data) => axios.post('/api/robustness/run', data, START_CONFIG)
+
+/**
+ * Attack metadata for the "view attack code" drawer.
+ * Read-only: per kind, every attack's documented default params and the real
+ * source of the attack function the experiment executes (attack functions
+ * only — never embedding/key logic).
+ * @returns {Promise<AxiosResponse>} data: { status, vector: [{name, params_default, description, code}], raster: [...] }
+ */
+export const getRobustnessAttacksMeta = () => axios.get('/api/robustness/attacks/meta')
