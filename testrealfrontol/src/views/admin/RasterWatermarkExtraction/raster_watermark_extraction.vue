@@ -61,27 +61,29 @@
           <el-icon><Upload /></el-icon>
           <span>{{ $t('rasterWmExtract.uploadRasterFile') }}</span>
         </div>
-        <el-upload
-          class="upload-area"
-          drag
-          :action="uploadUrl"
-          :headers="uploadHeaders"
-          :multiple="false"
-          accept=".zip,.tif,.tiff"
-          :on-success="handleUploadSuccess"
-          :on-error="handleUploadError"
-          :before-upload="beforeUpload"
-          :data="uploadData"
-          :disabled="!dataIdInput"
-        >
-          <div class="upload-content">
-            <el-icon class="upload-icon" size="48"><UploadFilled /></el-icon>
-            <div class="upload-text">
-              <div class="main-text">{{ $t('rasterWmExtract.dragOrClick') }} <em>{{ $t('rasterWmExtract.clickToUpload') }}</em></div>
-              <div class="sub-text">{{ $t('rasterWmExtract.supportedFormats') }}</div>
+        <TipWrap block :reason="!dataIdInput ? $t('common.disabledReason.enterDataId') : ''">
+          <el-upload
+            class="upload-area"
+            drag
+            :action="uploadUrl"
+            :headers="uploadHeaders"
+            :multiple="false"
+            accept=".zip,.tif,.tiff"
+            :on-success="handleUploadSuccess"
+            :on-error="handleUploadError"
+            :before-upload="beforeUpload"
+            :data="uploadData"
+            :disabled="!dataIdInput"
+          >
+            <div class="upload-content">
+              <el-icon class="upload-icon" size="48"><UploadFilled /></el-icon>
+              <div class="upload-text">
+                <div class="main-text">{{ $t('rasterWmExtract.dragOrClick') }} <em>{{ $t('rasterWmExtract.clickToUpload') }}</em></div>
+                <div class="sub-text">{{ $t('rasterWmExtract.supportedFormats') }}</div>
+              </div>
             </div>
-          </div>
-        </el-upload>
+          </el-upload>
+        </TipWrap>
       </div>
     </div>
 
@@ -229,6 +231,7 @@ import {
   Search
 } from '@element-plus/icons-vue';
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
+import TipWrap from '@/components/common/TipWrap.vue';
 
 const { t } = useI18n();
 const userStore = useUserStore();

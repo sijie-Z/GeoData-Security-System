@@ -121,7 +121,9 @@
         </el-form-item>
         <el-form-item>
           <el-button type="primary" @click="crmarkEmbed">{{ $t('rasterWmEmbed.executeCrmarkEmbed') }}</el-button>
-          <el-button @click="crmarkPreviewStego" :disabled="!crmarkResult.stego_path">{{ $t('rasterWmEmbed.previewStegoThumbnail') }}</el-button>
+          <TipWrap :reason="!crmarkResult.stego_path ? $t('common.disabledReason.embedFirst') : ''">
+            <el-button @click="crmarkPreviewStego" :disabled="!crmarkResult.stego_path">{{ $t('rasterWmEmbed.previewStegoThumbnail') }}</el-button>
+          </TipWrap>
         </el-form-item>
         <el-form-item :label="$t('rasterWmEmbed.returnPaths')">
           <div>
@@ -134,8 +136,12 @@
           <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" fit="contain" style="width: 100%;" />
         </el-form-item>
         <el-form-item>
-          <el-button type="success" @click="crmarkRecover" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path">{{ $t('rasterWmEmbed.recoverOriginal') }}</el-button>
-          <el-button type="warning" @click="crmarkDecode" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path">{{ $t('rasterWmEmbed.decodeWatermark') }}</el-button>
+          <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path) ? $t('common.disabledReason.needStegoFiles') : ''">
+            <el-button type="success" @click="crmarkRecover" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path">{{ $t('rasterWmEmbed.recoverOriginal') }}</el-button>
+          </TipWrap>
+          <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path) ? $t('common.disabledReason.needStegoFiles') : ''">
+            <el-button type="warning" @click="crmarkDecode" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path">{{ $t('rasterWmEmbed.decodeWatermark') }}</el-button>
+          </TipWrap>
         </el-form-item>
       </el-form>
     </el-dialog>
@@ -143,6 +149,7 @@
 
   <script setup>
   import { reactive, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
+  import TipWrap from '@/components/common/TipWrap.vue';
   import { useI18n } from 'vue-i18n';
   import { ElMessage, ElMessageBox } from 'element-plus';
   import {

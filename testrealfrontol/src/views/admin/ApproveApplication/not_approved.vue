@@ -7,8 +7,12 @@
 
     <el-card class="table-card" shadow="hover">
       <div class="batch-toolbar" v-if="isAdm1">
-        <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
-        <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
+        <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
+          <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
+        </TipWrap>
+        <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
+          <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
+        </TipWrap>
         <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
       </div>
       <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" :empty-text="$t('approval.noPendingApproval')" @selection-change="onSelectionChange">
@@ -58,6 +62,7 @@ import {
 import {useUserStore} from "@/stores/userStore.js";
 
 import { ChatDotSquare } from '@element-plus/icons-vue'
+import TipWrap from '@/components/common/TipWrap.vue'
 
 const { t } = useI18n();
 

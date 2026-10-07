@@ -56,7 +56,7 @@
               </div>
             </div>
             <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" autoresize />
-            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+            <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
           </div>
         </el-col>
         <el-col :xs="24" :lg="12">
@@ -76,7 +76,7 @@
               </el-radio-group>
             </div>
             <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" autoresize />
-            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+            <EmptyState v-else compact :variant="trendDataType ? 'filtered' : 'never'" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
           </div>
         </el-col>
       </el-row>
@@ -93,7 +93,7 @@
           </div>
         </div>
         <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" autoresize />
-        <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+        <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
       </div>
 
       <!-- Row 3 · 验证数据构成 + 交付健康度 -->
@@ -110,7 +110,7 @@
               </div>
             </div>
             <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" autoresize />
-            <el-empty v-else :description="$t('common.noData')" :image-size="72" />
+            <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
           </div>
         </el-col>
         <el-col :xs="24" :lg="12">
@@ -135,7 +135,7 @@
                   {{ $t('watermarkQuality.centerDownloaded') }} {{ dStats?.downloaded_count ?? '—' }}
                 </span>
               </div>
-              <el-empty v-if="!hasDelivery && !dLoading" :description="$t('common.noData')" :image-size="72" />
+              <EmptyState v-if="!hasDelivery && !dLoading" compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
             </div>
           </div>
         </el-col>
@@ -484,6 +484,7 @@ import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/compon
 import VChart from 'vue-echarts'
 import { useTheme } from '@/composables/useTheme.js'
 import GlossaryHelp from './GlossaryHelp.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 // ── ECharts 按需注册：本页用到的渲染器 / 图表 / 组件 ──
 use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])

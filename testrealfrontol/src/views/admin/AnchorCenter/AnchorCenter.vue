@@ -131,7 +131,13 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty :description="$t('anchorCenter.empty')" :image-size="60" />
+          <EmptyState
+            variant="never"
+            :title="$t('anchorCenter.empty')"
+            :description="$t('common.noDataDesc')"
+            :cta-text="$t('anchorCenter.buildBtn')"
+            @cta="buildVisible = true"
+          />
         </template>
       </el-table>
 
@@ -263,6 +269,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus, Download, Refresh, Link } from '@element-plus/icons-vue'
 import HashText from '@/components/common/HashText.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { getAnchors, getAnchorDetail, buildAnchorBatch, downloadAnchorProof } from '@/api/forensics'
 
 const { t } = useI18n()

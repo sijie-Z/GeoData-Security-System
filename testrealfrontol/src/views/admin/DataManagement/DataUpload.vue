@@ -91,16 +91,18 @@
 
           <!-- 3. 操作按钮区 -->
           <el-form-item class="form-actions">
-            <el-button
-              type="primary"
-              size="large"
-              :icon="Upload"
-              @click="submitUpload"
-              :loading="isUploading"
-              :disabled="!form.file"
-            >
-              {{ isUploading ? $t('adminDataUpload.uploading') : $t('adminDataUpload.uploadNow') }}
-            </el-button>
+            <TipWrap :reason="!form.file ? $t('common.disabledReason.uploadFile') : ''">
+              <el-button
+                type="primary"
+                size="large"
+                :icon="Upload"
+                @click="submitUpload"
+                :loading="isUploading"
+                :disabled="!form.file"
+              >
+                {{ isUploading ? $t('adminDataUpload.uploading') : $t('adminDataUpload.uploadNow') }}
+              </el-button>
+            </TipWrap>
             <el-button size="large" @click="resetForm">{{ $t('adminDataUpload.resetAll') }}</el-button>
           </el-form-item>
         </el-form>
@@ -114,6 +116,7 @@ import { useI18n } from 'vue-i18n';
 import { Upload, UploadFilled } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { uploadShpData } from '@/api/upload';
+import TipWrap from '@/components/common/TipWrap.vue';
 
 const { t } = useI18n()
 

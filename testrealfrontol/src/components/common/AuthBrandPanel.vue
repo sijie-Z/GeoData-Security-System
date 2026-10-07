@@ -350,7 +350,9 @@ onMounted(() => {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .qr-frame {
+  .qr-frame,
+  .decor-orbit,
+  .decor-dot {
     animation: none;
   }
 }

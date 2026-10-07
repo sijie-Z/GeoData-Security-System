@@ -103,10 +103,11 @@ const copy = async () => {
 }
 
 .hash-text__code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   line-height: 1.7;
-  letter-spacing: 0.2px;
+  /* §2.4 哈希/指纹：等宽 + tabular-nums slashed-zero（去掉正向字距） */
+  font-variant-numeric: tabular-nums slashed-zero;
   color: var(--text-primary);
   background: var(--bg-tertiary);
   border: 1px solid var(--border-color);

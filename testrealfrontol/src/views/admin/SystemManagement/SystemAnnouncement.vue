@@ -3,6 +3,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue'
+import TipWrap from '@/components/common/TipWrap.vue'
 import {
   getAnnouncements,
   createAnnouncement,
@@ -147,9 +148,13 @@ onMounted(fetchAnnouncements)
       </el-table>
 
       <div class="pagination">
-        <el-button :disabled="pages.page<=1" @click="prevPage">{{ $t('adminAnnounce.prevPage') }}</el-button>
+        <TipWrap :reason="pages.page<=1 ? $t('common.disabledReason.firstPage') : ''">
+          <el-button :disabled="pages.page<=1" @click="prevPage">{{ $t('adminAnnounce.prevPage') }}</el-button>
+        </TipWrap>
         <span>{{ $t('adminAnnounce.pageInfo', { page: pages.page, pages: pages.pages, total: pages.total }) }}</span>
-        <el-button :disabled="pages.page>=pages.pages" @click="nextPage">{{ $t('adminAnnounce.nextPage') }}</el-button>
+        <TipWrap :reason="pages.page>=pages.pages ? $t('common.disabledReason.lastPage') : ''">
+          <el-button :disabled="pages.page>=pages.pages" @click="nextPage">{{ $t('adminAnnounce.nextPage') }}</el-button>
+        </TipWrap>
       </div>
     </el-card>
 

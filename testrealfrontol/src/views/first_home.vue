@@ -68,9 +68,9 @@
     </div>
 
     <!-- Scroll indicator -->
-    <div class="scroll-indicator">
+    <div class="scroll-indicator motion-rise">
       <div class="scroll-mouse">
-        <div class="scroll-wheel"></div>
+        <div class="scroll-wheel motion-loop"></div>
       </div>
     </div>
 

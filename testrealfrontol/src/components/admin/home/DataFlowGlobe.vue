@@ -14,7 +14,7 @@
 
     <div class="dfg-stage">
       <div v-if="loading" class="dfg-state">
-        <el-icon class="dfg-spin" :size="26"><Loading /></el-icon>
+        <el-icon class="dfg-spin motion-loop" :size="26"><Loading /></el-icon>
         <span>{{ t('common.loading') }}</span>
       </div>
       <el-empty v-else-if="arcs.length === 0" class="dfg-state" :description="t('dataFlow.empty')" :image-size="72" />

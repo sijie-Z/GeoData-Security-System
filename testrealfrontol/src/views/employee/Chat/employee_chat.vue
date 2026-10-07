@@ -70,7 +70,7 @@
               <div class="bubble" :class="{ 'ai-bubble': msg.role === 'assistant' }">
                 <div style="font-size:12px;color:#999;margin-bottom:2px">{{ msg.role === 'assistant' ? '🤖 AI' : '👤 我' }}</div>
                 <div v-if="msg.loading" class="ai-typing">
-                  <span></span><span></span><span></span>
+                  <span class="motion-loop"></span><span class="motion-loop"></span><span class="motion-loop"></span>
                 </div>
                 <template v-else>{{ msg.content }}</template>
               </div>
@@ -661,6 +661,10 @@ onBeforeUnmount(() => {
 .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
 .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
+/* §3.10 reduced-motion：AI 输入三点循环动画关闭 */
+@media (prefers-reduced-motion: reduce) {
+  .ai-typing span { animation: none !important; }
+}
 .conversation-list { border: 1px solid #ebeef5; border-radius: 10px; padding: 8px; overflow-y: auto; }
 .tool-row { margin-bottom: 10px; }
 .search-result { border: 1px dashed #dcdfe6; border-radius: 8px; padding: 8px; margin-bottom: 10px; }
@@ -679,8 +683,12 @@ onBeforeUnmount(() => {
 .peer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ebeef5; }
 .sub { color: #909399; margin-left: 4px; font-size: 12px; }
 .message-list { flex: 1; overflow-y: auto; padding: 12px 0; min-height: 420px; }
-.msg-row { display: flex; flex-direction: column; margin-bottom: 12px; align-items: flex-start; }
+/* §3.8 AI 消息 200ms 入场（流式追加不重放：CSS animation 只在挂载触发） */
+.msg-row { display: flex; flex-direction: column; margin-bottom: 12px; align-items: flex-start; animation: motion-rise var(--duration-200) var(--ease-out) both; }
 .msg-row.me { align-items: flex-end; }
+@media (prefers-reduced-motion: reduce) {
+  .msg-row { animation: motion-fade var(--duration-150) linear both; }
+}
 .bubble { max-width: 70%; padding: 10px 12px; border-radius: 8px; background: #f2f6fc; color: #303133; white-space: pre-wrap; word-break: break-word; }
 .msg-row.me .bubble { background: #409eff; color: #fff; }
 .meta { margin-top: 4px; font-size: 12px; color: #909399; }

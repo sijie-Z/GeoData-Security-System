@@ -131,7 +131,7 @@
           autoresize
         />
         <div v-else class="chart-empty">
-          <el-empty :description="$t('adminDashboard.noDownloadData')" :image-size="80" />
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
         </div>
       </el-card>
       <el-card shadow="hover">
@@ -143,7 +143,7 @@
           autoresize
         />
         <div v-else class="chart-empty">
-          <el-empty :description="$t('adminDashboard.noDownloadData')" :image-size="80" />
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
         </div>
       </el-card>
     </section>
@@ -159,7 +159,7 @@
           autoresize
         />
         <div v-else class="chart-empty">
-          <el-empty :description="$t('adminDashboard.noActivityData')" :image-size="80" />
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noActivityData')" />
         </div>
       </el-card>
       <el-card shadow="hover">
@@ -171,7 +171,7 @@
           autoresize
         />
         <div v-else class="chart-empty">
-          <el-empty :description="$t('adminDashboard.noData')" :image-size="80" />
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noData')" />
         </div>
       </el-card>
     </section>
@@ -187,7 +187,7 @@
           autoresize
         />
         <div v-else class="chart-empty">
-          <el-empty :description="$t('adminDashboard.noReviewData')" :image-size="80" />
+          <EmptyState compact variant="never" :title="$t('adminDashboard.noReviewData')" />
         </div>
       </el-card>
     </section>
@@ -271,6 +271,7 @@ import {
 } from 'echarts/components';
 import VChart from 'vue-echarts';
 import DataFlowGlobe from '@/components/admin/home/DataFlowGlobe.vue';
+import EmptyState from '@/components/common/EmptyState.vue';
 
 // ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
 use([

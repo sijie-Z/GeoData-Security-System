@@ -445,10 +445,10 @@
           </div>
         </div>
       </template>
-      <el-empty
+      <EmptyState
         v-else
-        :description="$t('robustnessLab.noRun')"
-        :image-size="90"
+        variant="never"
+        :title="$t('robustnessLab.noRun')"
       />
     </el-card>
 
@@ -506,6 +506,7 @@ import {
 } from '@element-plus/icons-vue'
 
 import HashText from '@/components/common/HashText.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import MetricGlossary from './MetricGlossary.vue'
 import { getDataList } from '@/api/upload'
 import {

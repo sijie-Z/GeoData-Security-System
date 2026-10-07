@@ -1,6 +1,18 @@
 /* ============================================
    Spatial Data Tracking System - Design System
+   v2.1：令牌体系「同一语言、两种明度」+ 排印/动效纪律
    ============================================ */
+
+/* §2.6 自托管字体：Noto Sans SC 可变字重子集（OFL，361KB ≤ 2MB 预算）
+   真 100–900 字重（解决系统雅黑 400/700 之外字重退化问题）；
+   缺字（如个别符号/emoji）自动回退系统字体栈 */
+@font-face {
+  font-family: 'Noto Sans SC VF';
+  src: url('/fonts/noto-sans-sc-vf.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   /* ============================================================
@@ -211,7 +223,7 @@
   --spacing-2xl: 48px;
 
   /* Typography（系统字体栈；正文 14/22；字号梯队 12/13/14/16/20 + 24/28） */
-  --font-family: 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
+  --font-family: 'Noto Sans SC VF', 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', system-ui, -apple-system, sans-serif;
   --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', 'Courier New', monospace;
   --font-size-xs: 12px;
   --font-size-sm: 13px;

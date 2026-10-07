@@ -435,7 +435,7 @@
                 v-if="mapLoading"
                 class="map-loading-overlay"
               >
-                <div class="map-spinner" />
+                <div class="map-spinner motion-loop" />
                 <span>{{ $t('empDataViewNew.loadingMap') || '加载地图中...' }}</span>
               </div>
             </transition>

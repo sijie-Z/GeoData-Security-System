@@ -76,9 +76,11 @@
                 @keydown.ctrl.enter="sendMessage"
               />
               <div class="input-actions">
-                <el-button type="primary" @click="sendMessage" :loading="sending" :disabled="!messageText.trim()">
-                  {{ $t('adminChat.send') }}
-                </el-button>
+                <TipWrap :reason="!messageText.trim() ? $t('common.disabledReason.enterMessage') : ''">
+                  <el-button type="primary" @click="sendMessage" :loading="sending" :disabled="!messageText.trim()">
+                    {{ $t('adminChat.send') }}
+                  </el-button>
+                </TipWrap>
               </div>
             </div>
           </template>
@@ -130,6 +132,7 @@ import {
   markRead as httpMarkRead
 } from '@/api/chat'
 import { getAdminUsers, getEmployeeList } from '@/api/admin'
+import TipWrap from '@/components/common/TipWrap.vue'
 import { useUserStore } from '@/stores/userStore'
 
 const { t } = useI18n()
