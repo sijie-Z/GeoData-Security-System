@@ -23,7 +23,7 @@
     <div id="lab-head" class="page-header">
       <div class="page-header-text">
         <h2>{{ $t('robustnessLab.title') }}</h2>
-        <p class="subtitle">{{ $t('robustnessLab.subtitle') }}</p>
+        <p class="subtitle">{{ subtitleText }}</p>
       </div>
       <div class="page-header-actions">
         <el-button :icon="ChatDotRound" @click="openTour">
@@ -489,7 +489,7 @@
         </p>
         <p class="footnote">
           <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
-          <span>{{ $t('robustnessLab.matrixFootnote') }}</span>
+          <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.matrixFootnoteRaster') : $t('robustnessLab.matrixFootnote') }}</span>
         </p>
 
         <!-- ⑥ 对比结论卡（自动生成，数字来自数据） -->
@@ -679,6 +679,14 @@ watch(runMode, (nv) => {
     reconcileSweep()
   }
 })
+
+// ── 文案按 kind 自适应：运行态 kind 优先，否则跟随发起卡所选 kind ──
+// 矢量文案讲 QIM / 绝对坐标的机制边界，栅格文案讲各栅格算法的边界——
+// 现文案默认在讲矢量（QIM 平移 / 缩放边界），栅格模式下语义不符。
+const uiKind = computed(() => ((runMeta.value?.kind ?? runKind.value) === 'raster' ? 'raster' : 'vector'))
+const subtitleText = computed(() =>
+  t(uiKind.value === 'raster' ? 'robustnessLab.subtitleRaster' : 'robustnessLab.subtitle')
+)
 
 // 发起卡的方案/攻击/试验数选项随"数据类型"与"模式"切换
 const trialOptions = computed(() => (runMode.value === 'sweep' ? SWEEP_TRIAL_OPTIONS : TRIAL_OPTIONS))
@@ -1641,7 +1649,11 @@ const tagText = (kind) => t(`robustnessLab.tag.${kind}`)
 // ──────────────────────────────────────
 
 const flowNodes = computed(() => [
-  { name: t('robustnessLab.stepEmbed'), desc: t('robustnessLab.stepEmbedDesc'), icon: MagicStick },
+  {
+    name: t('robustnessLab.stepEmbed'),
+    desc: t(uiKind.value === 'raster' ? 'robustnessLab.stepEmbedDescRaster' : 'robustnessLab.stepEmbedDesc'),
+    icon: MagicStick,
+  },
   { name: t('robustnessLab.stepAttack'), desc: t('robustnessLab.stepAttackDesc'), icon: Aim },
   { name: t('robustnessLab.stepExtract'), desc: t('robustnessLab.stepExtractDesc'), icon: Key },
   { name: t('robustnessLab.stepJudge'), desc: t('robustnessLab.stepJudgeDesc'), icon: CircleCheck },
@@ -1690,12 +1702,12 @@ const tourSteps = computed(() => [
   {
     target: tourTarget('#lab-head'),
     title: t('robustnessLab.tour1Title'),
-    description: t('robustnessLab.tour1Desc'),
+    description: t(uiKind.value === 'raster' ? 'robustnessLab.tour1DescRaster' : 'robustnessLab.tour1Desc'),
   },
   {
     target: tourTarget('#lab-kpi'),
     title: t('robustnessLab.tour2Title'),
-    description: t('robustnessLab.tour2Desc'),
+    description: t(uiKind.value === 'raster' ? 'robustnessLab.tour2DescRaster' : 'robustnessLab.tour2Desc'),
   },
   {
     target: tourTarget('#lab-run'),
