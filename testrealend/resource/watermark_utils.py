@@ -6,6 +6,7 @@ import logging
 import os
 from datetime import UTC, datetime
 
+import qrcode
 from PIL import Image
 
 
@@ -234,3 +235,25 @@ def get_qr_version(content_length):
         if content_length <= capacity:
             return i + 1
     return 40
+
+
+def render_compact_qr(qr_text):
+    """Render *qr_text* as a compact 1-bit QR bitmap for the blind algorithm.
+
+    The generated display QR (box_size=10, ECC M) measures ~850-890 px on a
+    side for a typical v1 text (~450 bytes) — 7-8 * 10^5 bits. The blind
+    algorithm embeds one bit per 8x8 host pixel block (H*W/64 bits total), so
+    that bitmap can never fit a realistic raster. Re-rendering the same text
+    at box_size=1 / ECC L shrinks it to ~81x81 px (6,561 bits measured), which
+    fits a 1024x1024 host (16,384 blocks) but NOT a 512x512 one (4,096
+    blocks). That overflow is the algorithm's honest capacity boundary and
+    keeps surfacing as the "Insufficient blind watermark capacity" 400.
+
+    Note: ~40% block utilization forfeits the blind scheme's template-based
+    crop recovery (that needs utilization well below ~10%); uncropped and
+    width-preserving extraction are unaffected.
+    """
+    qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=1, border=4)
+    qr.add_data(qr_text)
+    qr.make(fit=True)
+    return qr.make_image(fill_color="black", back_color="white")

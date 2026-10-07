@@ -260,12 +260,25 @@ class TestBlindCapacity:
     def test_endpoint_maps_capacity_error_to_400(self, client, db, adm2_headers, tmp_path):
         from PIL import Image
 
+        from resource.watermark_utils import build_qr_text
+
         host = _make_geotiff(tmp_path / "host_cap_api.tif", 512)
         item, _ = _seed_raster_app(db, host, alias="blind-cap-host")
 
         buf = io.BytesIO()
         Image.new("L", (128, 128), 255).save(buf, format="PNG")
         item.qrcode = base64.b64encode(buf.getvalue()).decode()
+        # Since the compact-QR fix the blind branch embeds a box_size=1
+        # re-render of qr_text instead of this bitmap; the real generated text
+        # is 81x81 px (6,561 bits) and still overflows the 512x512 host's
+        # 4,095-bit budget, which keeps this capacity-mapping test meaningful.
+        qr_text, _signature = build_qr_text(item, {"reason": item.reason})
+        qr = qrcode.QRCode(error_correction=qrcode.constants.ERROR_CORRECT_L, box_size=1, border=4)
+        qr.add_data(qr_text)
+        qr.make(fit=True)
+        side = qr.make_image().size[0]
+        assert side * side > 4096, "test text must overflow the 512x512 host"
+        item.qr_text = qr_text
         item.watermark_generated = True
         db.session.commit()
 
@@ -285,7 +298,11 @@ class TestBlindEndpoints:
 
         host = _make_geotiff(tmp_path / "host_api.tif", 512)
         item, _ = _seed_raster_app(db, host, alias="blind-api-host")
-        item.qrcode, side = _build_qr_png_b64(_signed_qr_text(item.id, "blind-api-host"))
+        qr_text = _signed_qr_text(item.id, "blind-api-host")
+        item.qrcode, side = _build_qr_png_b64(qr_text)
+        # The blind branch now embeds the compact box_size=1 re-render of
+        # qr_text (ECC L: 49x49 px / 2,401 bits here), not this bitmap.
+        item.qr_text = qr_text
         item.watermark_generated = True
         db.session.commit()
         assert side * side < 4096, "test QR must fit the 512x512 host"

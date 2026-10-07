@@ -16,6 +16,15 @@ used at its natural size — nothing is resized — so an oversized QR surfaces
 as ``Insufficient blind watermark capacity`` (mapped to HTTP 400 by the
 raster endpoints, same prefix convention as the other algorithms).
 
+Payload source (dispatch contract): callers must not hand over the production
+display QR — box_size=10 measures ~850x850 px = ~7.2 * 10^5 bits for a typical
+v1 text (measured), hopeless at one bit per 64 host pixels. The raster
+dispatches re-render ``application.qr_text`` compactly (box_size=1, ECC L:
+~81x81 px = 6,561 bits measured). A 1024x1024 host (16,384 blocks) carries
+that at ~40% utilization; a 512x512 host (4,095 embeddable bits) still fails
+with a genuine capacity error — the algorithm's honest boundary, not a
+dispatch artifact.
+
 Robustness, measured on blind_watermark 0.4.4 (honest numbers, see the
 project report):
 - Uncropped roundtrip is exact (NC 1.0, PSNR ~37.7 dB at defaults).
@@ -182,6 +191,7 @@ def embed_blind(
             f"Insufficient blind watermark capacity: need {bit_count} bits but "
             f"the host image ({w}x{h}) provides only {block_num - 1} embeddable bits "
             f"(one per 8x8 pixel block). Capacity report: {cap}"
+            "（盲水印需要大尺寸宿主：约 H×W/64 个可嵌入位；建议 ≥1024×1024 的栅格使用）"
         )
 
     # The library expects cv2-order (BGR) arrays; feed arrays directly so no
