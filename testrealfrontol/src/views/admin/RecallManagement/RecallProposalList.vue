@@ -202,7 +202,8 @@ const createRules = {
   reason: [{ required: true, min: 20, message: () => t('recall.reasonMinLength'), trigger: 'blur' }]
 };
 
-const canCreate = computed(() => userStore.currentUser?.role === 'admin');
+// 口径与后端 is_admin_role（role 以 'admin' 开头即 admin 家族）及路由守卫一致
+const canCreate = computed(() => String(userStore.currentUser?.role || '').startsWith('admin'));
 
 const getStatusType = (status) => {
   const map = { voting: 'warning', approved: 'success', rejected: 'info', cancelled: 'danger' };
