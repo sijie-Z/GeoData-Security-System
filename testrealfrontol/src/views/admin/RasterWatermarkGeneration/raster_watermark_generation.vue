@@ -311,15 +311,15 @@
     justify-content: center;
     width: 72px;
     height: 72px;
-    background: #f5f7fa;
+    background: var(--bg-inset);
     border-radius: 4px;
-    color: #c0c4cc;
+    color: var(--text-4);
     font-size: 24px;
   }
 
   .qr-empty-text {
     font-size: 12px;
-    color: #c0c4cc;
+    color: var(--text-4);
   }
 
   .view-pagination{
@@ -327,7 +327,7 @@
   }
 
   .custom-watermark-dialog .el-dialog__header {
-    background-image: linear-gradient(to bottom, #2A6EB3, #58A9FF);
+    background-image: linear-gradient(to bottom, var(--accent-10), var(--accent-9));
     padding: 8px 15px;
     border-top-left-radius: 4px;
     border-top-right-radius: 4px;
@@ -349,17 +349,17 @@
     width: auto;
   }
   .custom-watermark-dialog .el-dialog__headerbtn .el-dialog__close {
-    color: red !important;
+    color: var(--tint-danger-text) !important;
     font-size: 16px;
   }
   .custom-watermark-dialog .el-dialog__headerbtn .el-dialog__close:hover {
-    color: darkred !important;
+    color: var(--danger-600) !important;
   }
 
   .custom-watermark-dialog .section-divider .el-divider__text {
     font-size: 14px;
     font-weight: bold;
-    color: #303133;
+    color: var(--text-1);
     padding: 0 10px;
   }
   .custom-watermark-dialog .el-divider--horizontal{
@@ -368,7 +368,7 @@
 
   .custom-watermark-dialog .el-form-item__label {
     font-size: 13px;
-    color: #606266;
+    color: var(--text-2);
     padding-right: 8px;
     line-height: 32px;
     height: 32px;
@@ -385,7 +385,7 @@
   }
 
   .custom-watermark-dialog .el-dialog {
-    border: 2px solid #2A6EB3;
+    border: 2px solid var(--accent-9);
     border-radius: 6px;
     overflow: hidden;
   }
@@ -417,7 +417,7 @@
     right: 40px;
     font-size: 12px;
     line-height: 1;
-    color: #F56C6C;
+    color: var(--tint-danger-text);
     z-index: 1;
     background-color: transparent;
     padding: 0 2px;
@@ -430,7 +430,7 @@
 
   .custom-watermark-dialog .el-input__inner,
   .custom-watermark-dialog .el-select .el-input__inner {
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    box-shadow: var(--elevation-1);
     font-size: 13px;
     height: 32px;
     line-height: 32px;

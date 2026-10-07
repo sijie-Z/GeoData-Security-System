@@ -218,23 +218,23 @@ const resetForm = () => {
 </script>
 
 <style scoped>
-.data-upload-container { padding: 24px 40px; background-color: #f7f8fa; min-height: calc(100vh - 50px); }
+.data-upload-container { padding: 24px 40px; background-color: var(--bg-canvas); min-height: calc(100vh - 50px); }
 .page-header { margin-bottom: 24px; }
-.page-title { font-size: 24px; font-weight: 600; color: #1d2129; margin: 0 0 8px 0; }
-.page-description { font-size: 14px; color: #86909c; margin: 0; }
-.upload-main-card { border-radius: 8px; border: none; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+.page-title { font-size: 24px; font-weight: 600; color: var(--text-1); margin: 0 0 8px 0; }
+.page-description { font-size: 14px; color: var(--text-3); margin: 0; }
+.upload-main-card { border-radius: 8px; border: none; box-shadow: var(--elevation-2); }
 .upload-form { padding: 20px; }
 .upload-form .el-form-item { margin-bottom: 24px; }
-.upload-form .el-form-item__label { font-size: 14px; font-weight: 400; color: #4e5969; }
-.upload-dragger-wrapper :deep(.el-upload-dragger) { padding: 40px; border-radius: 8px; border: 2px dashed #dcdfe6; transition: border-color 0.3s; }
-.upload-dragger-wrapper :deep(.el-upload-dragger:hover) { border-color: var(--el-color-primary); }
-.el-icon--upload { font-size: 50px; color: #c0c4cc; margin-bottom: 16px; }
-.el-upload__text { color: #606266; font-size: 14px; }
-.el-upload__text em { color: var(--el-color-primary); font-style: normal; }
-.el-upload__tip { color: #909399; font-size: 13px; margin-top: 10px; text-align: center; }
+.upload-form .el-form-item__label { font-size: 14px; font-weight: 400; color: var(--text-2); }
+.upload-dragger-wrapper :deep(.el-upload-dragger) { padding: 40px; border-radius: 8px; border: 2px dashed var(--border-strong); transition: border-color 0.3s; }
+.upload-dragger-wrapper :deep(.el-upload-dragger:hover) { border-color: var(--accent-9); }
+.el-icon--upload { font-size: 50px; color: var(--text-4); margin-bottom: 16px; }
+.el-upload__text { color: var(--text-2); font-size: 14px; }
+.el-upload__text em { color: var(--accent-9); font-style: normal; }
+.el-upload__tip { color: var(--text-3); font-size: 13px; margin-top: 10px; text-align: center; }
 .upload-progress { margin-top: -10px; margin-bottom: 20px; }
 .form-actions { margin-top: 32px; margin-bottom: 0 !important; display: flex; justify-content: flex-start; }
 .el-select { width: 100%; }
 .ai-hint { margin-top: 4px; }
-.ai-hint .el-button { color: #909399; font-size: 12px; }
+.ai-hint .el-button { color: var(--text-3); font-size: 12px; }
 </style>

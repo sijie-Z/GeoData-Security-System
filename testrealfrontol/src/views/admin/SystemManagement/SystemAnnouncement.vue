@@ -199,8 +199,8 @@ onMounted(fetchAnnouncements)
 .header-actions { display: flex; gap: 8px }
 .notify-card { margin-bottom: 16px }
 .card-label { font-weight: 600 }
-.card-desc { color: #6b7280; font-size: 13px; margin: 0 0 12px 0 }
-.form-tip { font-size: 12px; color: #9ca3af; margin-top: 4px }
+.card-desc { color: var(--text-3); font-size: 13px; margin: 0 0 12px 0 }
+.form-tip { font-size: 12px; color: var(--text-4); margin-top: 4px }
 .mb-3 { margin-bottom: 12px }
 .pagination { display: flex; gap: 12px; align-items: center; padding: 12px }
 .rounded-dialog { border-radius: 14px; overflow: hidden; }

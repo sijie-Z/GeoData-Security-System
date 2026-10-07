@@ -477,7 +477,7 @@
     padding: 16px 20px;
     max-width: 1200px;
     margin: 0 auto;
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    background: var(--bg-canvas);
     border-radius: 12px;
     min-height: 400px;
   }
@@ -487,12 +487,12 @@
   .page-title {
     font-size: 18px;
     font-weight: 600;
-    color: #334155;
+    color: var(--text-1);
     margin: 0 0 4px 0;
   }
   .page-desc {
     font-size: 13px;
-    color: #64748b;
+    color: var(--text-3);
     margin: 0;
   }
   .embed-table-compact {
@@ -507,7 +507,7 @@
     font-weight: 600;
   }
   .embed-table-compact :deep(.el-table__row:hover > td) {
-    background: #ecfdf5 !important;
+    background: var(--bg-hover) !important;
   }
 
 .action-wrap {
@@ -535,15 +535,15 @@
     justify-content: center;
     width: 72px;
     height: 72px;
-    background: #f5f7fa;
+    background: var(--bg-inset);
     border-radius: 4px;
-    color: #c0c4cc;
+    color: var(--text-4);
     font-size: 24px;
   }
 
   .qr-empty-text {
     font-size: 12px;
-    color: #c0c4cc;
+    color: var(--text-4);
   }
 
   .view-pagination{
@@ -566,7 +566,7 @@
     height: 320px;
     border-radius: 12px;
     overflow: hidden;
-    background: #f1f5f9;
+    background: var(--bg-inset);
   }
 
   .raster-preview-layout .raster-actions {
@@ -582,13 +582,13 @@
   .info-title {
     font-size: 15px;
     font-weight: 600;
-    color: #1e293b;
+    color: var(--text-1);
     margin: 0 0 12px 0;
   }
 
   .path-text {
     font-size: 12px;
-    color: #64748b;
+    color: var(--text-3);
     word-break: break-all;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -600,7 +600,7 @@
     width: 100%;
     border-radius: 12px;
     overflow: hidden;
-    background: #f1f5f9;
+    background: var(--bg-inset);
   }
 
   .dialog-container {
@@ -611,12 +611,12 @@
     flex: 3;
     height: 400px;
     width: 70%;
-    border: 1px dashed #ccc;
+    border: 1px dashed var(--border-strong);
     display: flex;
     justify-content: center;
     align-items: center;
     text-align: center;
-    color: #909399;
+    color: var(--text-3);
   }
 
   .info-container {

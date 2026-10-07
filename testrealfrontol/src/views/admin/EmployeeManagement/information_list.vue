@@ -136,9 +136,9 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.page-container { padding: 24px; background-color: #fff; height: 100%; display: flex; flex-direction: column; }
+.page-container { padding: 24px; background-color: var(--bg-canvas); height: 100%; display: flex; flex-direction: column; }
 .page-header { display: flex; justify-content: space-between; align-items: center; }
-.page-title { font-size: 22px; font-weight: 600; color: #303133; margin: 0; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--text-1); margin: 0; }
 .action-bar { display: flex; gap: 10px; }
 .el-table { flex-grow: 1; }
 </style>

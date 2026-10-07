@@ -146,9 +146,9 @@ onMounted(() => {
 
 <style scoped>
 /* 样式可以复用 information_add.vue 的样式 */
-.page-container { padding: 24px; background-color: #f9fafb; height: 100%; box-sizing: border-box; }
-.page-title { font-size: 20px; font-weight: 600; color: #1f2937; }
-.form-wrapper { margin-top: 20px; background-color: #fff; padding: 30px; border-radius: 8px; border: 1px solid #e5e7eb; }
-.form-section-title { font-size: 16px; font-weight: 400; color: #374151; margin: 0 0 24px 0; padding-bottom: 12px; border-bottom: 1px solid #f3f4f6; }
-.el-upload__tip { color: #9ca3af; font-size: 12px; margin-top: 8px; line-height: 1.5; }
+.page-container { padding: 24px; background-color: var(--bg-canvas); height: 100%; box-sizing: border-box; }
+.page-title { font-size: 20px; font-weight: 600; color: var(--text-1); }
+.form-wrapper { margin-top: 20px; background-color: var(--bg-surface); padding: 30px; border-radius: 8px; border: 1px solid var(--border-default); }
+.form-section-title { font-size: 16px; font-weight: 400; color: var(--text-2); margin: 0 0 24px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); }
+.el-upload__tip { color: var(--text-4); font-size: 12px; margin-top: 8px; line-height: 1.5; }
 </style>

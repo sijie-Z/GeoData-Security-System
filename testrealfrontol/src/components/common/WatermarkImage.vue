@@ -105,8 +105,8 @@ watch(() => props.src, (val) => {
   height: 100%;
   min-width: 24px;
   min-height: 24px;
-  background: #f5f7fa;
-  color: #c0c4cc;
+  background: var(--bg-inset);
+  color: var(--text-4);
   font-size: 20px;
   border-radius: 4px;
 }

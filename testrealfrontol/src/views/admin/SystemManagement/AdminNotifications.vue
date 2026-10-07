@@ -138,8 +138,8 @@ onMounted(loadEmployees)
 <style scoped>
 .admin-notify-page { padding: 24px; max-width: 980px; margin: 0 auto; }
 .page-header { margin-bottom: 20px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: #1f2937; }
-.page-desc { margin: 0; color: #6b7280; }
+.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
+.page-desc { margin: 0; color: var(--text-3); }
 .notify-card { border-radius: 12px; }
 .notify-form { max-width: 860px; }
 </style>

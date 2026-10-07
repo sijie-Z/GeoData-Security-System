@@ -364,10 +364,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chat-page { padding: 20px; background: #f5f7fa; min-height: calc(100vh - 60px); }
+.chat-page { padding: 20px; background: var(--bg-canvas); min-height: calc(100vh - 60px); }
 .chat-card { border-radius: 12px; }
 .chat-header { display: flex; justify-content: space-between; align-items: center; }
-.chat-header h2 { margin: 0; font-size: 18px; color: #303133; }
+.chat-header h2 { margin: 0; font-size: 18px; color: var(--text-1); }
 
 .chat-layout {
   display: grid;
@@ -378,16 +378,16 @@ onBeforeUnmount(() => {
 
 /* 会话列表 */
 .conversation-list {
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-default);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
 }
 .list-header {
   padding: 14px 16px;
   font-weight: 600;
-  color: #303133;
-  background: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  color: var(--text-1);
+  background: var(--bg-inset);
+  border-bottom: 1px solid var(--border-default);
   border-radius: 10px 10px 0 0;
 }
 .conversations { height: 500px; overflow-y: auto; padding: 8px; }
@@ -400,27 +400,27 @@ onBeforeUnmount(() => {
   border-radius: 8px;
   transition: background 0.2s;
 }
-.conversation-item:hover { background: #f5f7fa; }
-.conversation-item.active { background: #ecf5ff; border-left: 3px solid #409eff; }
+.conversation-item:hover { background: var(--bg-hover); }
+.conversation-item.active { background: var(--tint-info-bg); border-left: 3px solid var(--accent-9); }
 .avatar {
   width: 40px; height: 40px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #409eff, #67c23a);
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
   color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 16px; font-weight: 600;
 }
 .info { flex: 1; min-width: 0; }
-.info .name { font-weight: 600; color: #303133; font-size: 14px; }
-.info .preview { color: #909399; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.no-session { text-align: center; padding: 40px 20px; color: #909399; }
+.info .name { font-weight: 600; color: var(--text-1); font-size: 14px; }
+.info .preview { color: var(--text-3); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.no-session { text-align: center; padding: 40px 20px; color: var(--text-3); }
 .no-session p { margin-bottom: 12px; }
 
 /* 聊天区域 */
 .chat-area {
-  border: 1px solid #e4e7ed;
+  border: 1px solid var(--border-default);
   border-radius: 10px;
-  background: #fff;
+  background: var(--bg-surface);
   display: flex;
   flex-direction: column;
 }
@@ -430,19 +430,19 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   align-items: center;
   padding: 14px 16px;
-  border-bottom: 1px solid #e4e7ed;
-  background: #fafafa;
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-inset);
   border-radius: 10px 10px 0 0;
 }
 .peer-info { display: flex; align-items: center; gap: 10px; }
-.peer-name { font-size: 16px; font-weight: 600; color: #303133; }
+.peer-name { font-size: 16px; font-weight: 600; color: var(--text-1); }
 
 .messages {
   flex: 1;
   padding: 16px;
   overflow-y: auto;
   min-height: 380px;
-  background: #f9f9f9;
+  background: var(--bg-inset);
 }
 .msg-item { margin-bottom: 14px; }
 .msg-item.me { text-align: right; }
@@ -451,20 +451,20 @@ onBeforeUnmount(() => {
   max-width: 70%;
   padding: 10px 14px;
   border-radius: 10px;
-  background: #fff;
-  color: #303133;
+  background: var(--bg-raised);
+  color: var(--text-1);
   text-align: left;
   word-break: break-word;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  box-shadow: var(--elevation-1);
 }
-.msg-item.me .bubble { background: #409eff; color: #fff; }
-.msg-item .time { font-size: 11px; color: #909399; margin-top: 4px; }
-.no-msg { text-align: center; color: #909399; padding: 40px; }
+.msg-item.me .bubble { background: var(--accent-9); color: #fff; }
+.msg-item .time { font-size: 11px; color: var(--text-3); margin-top: 4px; }
+.no-msg { text-align: center; color: var(--text-3); padding: 40px; }
 
 .input-area {
-  border-top: 1px solid #e4e7ed;
+  border-top: 1px solid var(--border-default);
   padding: 12px 16px;
-  background: #fff;
+  background: var(--bg-surface);
   border-radius: 0 0 10px 10px;
 }
 .input-actions { margin-top: 10px; text-align: right; }
