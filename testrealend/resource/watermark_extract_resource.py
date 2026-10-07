@@ -19,6 +19,7 @@ from algorithm.quality_metrics import compute_nc
 from algorithm.raster_blind_watermark import extract_blind
 from algorithm.raster_dwt_watermark import extract_dwt, recover_dwt
 from algorithm.raster_histogram_watermark import extract_histogram, recover_histogram
+from algorithm.raster_iw_dct import extract_iw_dct
 from algorithm.raster_reversible_watermark import decode_reversible
 from extension.extension import db
 from model.Application import Application
@@ -171,6 +172,8 @@ class VectorExtractResource(Resource):
             extract_histogram(file_path, wm_meta_path, output_path)
         elif algo == "blind_watermark":
             extract_blind(file_path, wm_meta_path, output_path)
+        elif algo == "iw_dct":
+            extract_iw_dct(file_path, wm_meta_path, output_path)
         else:
             decode_reversible(file_path, wm_meta_path, output_path)
 

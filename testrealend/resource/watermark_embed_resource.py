@@ -17,6 +17,7 @@ from algorithm.quality_metrics import compute_psnr
 from algorithm.raster_blind_watermark import embed_blind
 from algorithm.raster_dwt_watermark import embed_dwt
 from algorithm.raster_histogram_watermark import embed_histogram
+from algorithm.raster_iw_dct import embed_iw_dct
 from algorithm.raster_reversible_watermark import embed_reversible
 from extension.extension import db
 from model.Application import Application
@@ -213,14 +214,18 @@ def _embed_raster(item, algorithm="lsb", action_prefix="", download=True):
         else:
             return {"status": False, "msg": "数据文件在服务器上丢失"}, 404
 
-    if algorithm in ("blind", "blind_watermark"):
+    if algorithm in ("blind", "blind_watermark", "iw_dct"):
         # The display QR bitmap (box_size=10) carries ~7 * 10^5 bits and can
-        # never fit the blind budget (~one bit per 8x8 host block); embed a
-        # compact box_size=1 re-render of the stored QR text instead. Honest
-        # boundary: ~81x81 px (6,561 bits) needs a >=1024x1024 host; 512x512
-        # (4,095 embeddable bits) still fails with a genuine capacity 400.
+        # never fit the blind/IW-DCT budget (~one bit per 8x8 host block);
+        # embed a compact box_size=1 re-render of the stored QR text instead.
+        # Honest boundary: ~81x81 px (6,561 bits) needs a >=1024x1024 host;
+        # 512x512 (4,095 embeddable bits) still fails with a genuine
+        # capacity 400.
         if not item.qr_text:
-            return {"status": False, "msg": "该申请未记录二维码文本，无法使用盲水印；请重新生成水印后再试"}, 400
+            return {
+                "status": False,
+                "msg": "该申请未记录二维码文本，无法使用盲水印 / IW-DCT；请重新生成水印后再试",
+            }, 400
         qr_img = render_compact_qr(item.qr_text)
     else:
         qr_img = Image.open(io.BytesIO(base64.b64decode(item.qrcode))).convert("L")
@@ -231,6 +236,8 @@ def _embed_raster(item, algorithm="lsb", action_prefix="", download=True):
         result = embed_dwt(host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}")
     elif algorithm == "histogram":
         result = embed_histogram(host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}")
+    elif algorithm == "iw_dct":
+        result = embed_iw_dct(host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}")
     elif algorithm in ("blind", "blind_watermark"):
         result = embed_blind(host_path=host_path, watermark_img=qr_img, output_dir=out_dir, prefix=f"app_{item.id}")
     else:
