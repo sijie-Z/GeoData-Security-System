@@ -725,7 +725,7 @@ export default {
     brandFeatureTracing: 'Fingerprint-level delivery tracing',
     brandFeatureBlockchain: 'Blockchain-backed attestation',
     brandFooter: '© 2026 GeoData Tracking System · Secure · Trusted · Traceable',
-    brandQrCaption: 'Scan to open this system',
+    brandQrCaption: 'Digital traceability seal',
   },
   register: {
     title: 'Create Account',
