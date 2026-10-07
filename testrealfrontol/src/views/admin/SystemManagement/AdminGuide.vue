@@ -201,7 +201,7 @@ const goToChat = () => router.push('/admin/system/chat')
 
 .section-content h4 {
   margin: 16px 0 8px;
-  color: #303133;
+  color: var(--text-1);
 }
 
 .section-content ol {
@@ -230,18 +230,18 @@ const goToChat = () => router.push('/admin/system/chat')
 .flow-box {
   padding: 12px 16px;
   border-radius: 8px;
-  background: #f0f2f5;
+  background: var(--bg-fill);
   font-weight: 400;
   white-space: nowrap;
 }
 
-.flow-box.primary { background: #ecf5ff; color: #409EFF; }
-.flow-box.success { background: #f0f9eb; color: #67C23A; }
-.flow-box.warning { background: #fdf6ec; color: #E6A23C; }
-.flow-box.info { background: #f4f4f5; color: #909399; }
+.flow-box.primary { background: var(--tint-info-bg); color: var(--tint-info-text); }
+.flow-box.success { background: var(--tint-success-bg); color: var(--tint-success-text); }
+.flow-box.warning { background: var(--tint-warning-bg); color: var(--tint-warning-text); }
+.flow-box.info { background: var(--bg-fill); color: var(--text-3); }
 
 .hint {
-  color: #909399;
+  color: var(--text-3);
   font-size: 13px;
 }
 
