@@ -71,7 +71,7 @@ const reloadPage = () => {
   height: 100vh;
   overflow: hidden;
   background-color: var(--bg-secondary, #f0f2f5);
-  font-family: 'Inter', sans-serif, "Helvetica Neue", Helvetica, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+  font-family: var(--font-family);
   color: var(--text-primary, #333);
 }
 
@@ -87,9 +87,9 @@ const reloadPage = () => {
   min-height: 0;
   padding: 16px;
   background-color: var(--bg-primary, #ffffff);
-  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
   margin: 12px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   overflow-y: auto;
   overflow-x: hidden;
 }

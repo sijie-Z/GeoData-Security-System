@@ -370,45 +370,62 @@ const fetchDashboard = async () => {
   }
 };
 
-// ── 颜色常量 ──
-const C = {
-  blue: ['#2196F3', '#1565C0'],
-  cyan: ['#0EA5E9', '#0369A1'],
-  green: ['#66BB6A', '#2E7D32'],
-  orange: ['#FFA726', '#E65100'],
-  red: ['#EF5350', '#C62828'],
-  teal: ['#26A69A', '#00695C'],
-  pink: ['#EC407A', '#AD1457'],
-  indigo: ['#5C6BC0', '#283593'],
-};
-
-// 图表主题色：随浅/深主题切换（深色下换深底提示框与浅色轴文字）
-const chartColors = computed(() => (isDark.value
+// ── 颜色常量：随浅/深主题切换，对齐 A/B 设计体系（blue = 品牌强调色） ──
+const C = computed(() => (isDark.value
   ? {
-      tooltipBg: 'rgba(22,32,58,0.96)',
-      tooltipBorder: 'rgba(120,170,255,0.25)',
-      tooltipText: '#e6eaf2',
-      divider: '1px solid rgba(255,255,255,0.12)',
-      legendText: '#94a3b8',
-      axisLine: 'rgba(255,255,255,0.14)',
-      axisLabelMuted: '#8fa0b8',
-      axisLabelStrong: '#cbd5e1',
-      splitLine: 'rgba(255,255,255,0.08)',
-      centerLabel: '#e6eaf2',
-      centerSubLabel: '#94a3b8',
+      blue: ['#6e79de', '#5e6ad2'],
+      cyan: ['#5aa9c9', '#3e7fa6'],
+      green: ['#5cc08f', '#3e8f6a'],
+      orange: ['#d6a75c', '#b4894a'],
+      red: ['#e06a6a', '#b45454'],
+      teal: ['#52b8a8', '#3a8f83'],
+      pink: ['#c97fad', '#a05c86'],
+      indigo: ['#8e97dc', '#6e79de'],
     }
   : {
-      tooltipBg: 'rgba(255,255,255,0.95)',
-      tooltipBorder: '#e0e0e0',
-      tooltipText: '#1a1a2e',
-      divider: '1px solid #eee',
-      legendText: '#666',
-      axisLine: '#e8e8e8',
-      axisLabelMuted: '#999',
-      axisLabelStrong: '#444',
-      splitLine: '#f5f5f5',
-      centerLabel: '#1a1a2e',
-      centerSubLabel: '#999',
+      blue: ['#0070f3', '#0052b3'],
+      cyan: ['#0e8fa8', '#0b6e84'],
+      green: ['#0e7a4e', '#0b6842'],
+      orange: ['#d08a2e', '#9a6b15'],
+      red: ['#b42318', '#97190f'],
+      teal: ['#0f766e', '#115e59'],
+      pink: ['#b0528a', '#8a3f6c'],
+      indigo: ['#5966b8', '#424c8f'],
+    }));
+
+// 十六进制 → rgba（面积/渐变填充用）
+const hexA = (hex, a) => {
+  const n = parseInt(hex.replace('#', ''), 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+};
+
+// 图表主题色：随浅/深主题切换（对齐 A/B 设计体系：A 近黑面板 / B 白底细线）
+const chartColors = computed(() => (isDark.value
+  ? {
+      tooltipBg: 'rgba(17,17,20,0.96)',
+      tooltipBorder: 'rgba(94,106,210,0.35)',
+      tooltipText: '#ededf0',
+      divider: '1px solid rgba(255,255,255,0.08)',
+      legendText: '#a0a0ab',
+      axisLine: 'rgba(255,255,255,0.10)',
+      axisLabelMuted: '#6e6e7a',
+      axisLabelStrong: '#a0a0ab',
+      splitLine: 'rgba(255,255,255,0.06)',
+      centerLabel: '#ededf0',
+      centerSubLabel: '#6e6e7a',
+    }
+  : {
+      tooltipBg: 'rgba(255,255,255,0.98)',
+      tooltipBorder: '#eaeaea',
+      tooltipText: '#0a0a0a',
+      divider: '1px solid #f0f0f0',
+      legendText: '#666666',
+      axisLine: '#eaeaea',
+      axisLabelMuted: '#8f8f8f',
+      axisLabelStrong: '#333333',
+      splitLine: '#f0f0f0',
+      centerLabel: '#0a0a0a',
+      centerSubLabel: '#8f8f8f',
     }));
 
 // ── 图表 option（vue-echarts 响应式渲染，替代手写实例生命周期管理） ──
@@ -430,8 +447,8 @@ const trendOption = computed(() => {
       formatter: params => {
         let html = `<div style="font-weight:600;font-size:14px;margin-bottom:6px;border-bottom:${chartColors.value.divider};padding-bottom:4px">${params[0].axisValue}</div>`;
         params.forEach(p => {
-          const dot = p.seriesName === t('adminDashboard.chartApplications') ? '#2196F3'
-                   : p.seriesName === t('adminDashboard.chartLogins') ? '#0EA5E9' : '#66BB6A';
+          const dot = p.seriesName === t('adminDashboard.chartApplications') ? C.value.blue[0]
+                   : p.seriesName === t('adminDashboard.chartLogins') ? C.value.cyan[0] : C.value.green[0];
           html += `<div style="display:flex;align-items:center;gap:8px;padding:2px 0">
             <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${dot}"></span>
             <span style="flex:1">${p.seriesName}</span>
@@ -463,30 +480,30 @@ const trendOption = computed(() => {
       {
         name: t('adminDashboard.chartApplications'), type: 'line', smooth: true,
         data: appData, symbol: 'circle', symbolSize: 6,
-        lineStyle: { width: 2.5, color: C.blue[0] },
-        itemStyle: { color: C.blue[0] },
+        lineStyle: { width: 2.5, color: C.value.blue[0] },
+        itemStyle: { color: C.value.blue[0] },
         areaStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(33,150,243,0.35)' },
-            { offset: 1, color: 'rgba(33,150,243,0.02)' }
+            { offset: 0, color: hexA(C.value.blue[0], 0.32) },
+            { offset: 1, color: hexA(C.value.blue[0], 0.02) }
           ])
         },
         markPoint: {
           data: appData.map((v, i) => v === Math.max(...appData) ? { coord: [dates[i], v], symbol: 'pin', symbolSize: 40, label: { formatter: v, fontSize: 10 } } : null).filter(Boolean).slice(0, 1),
           symbol: 'pin', symbolSize: 40,
-          itemStyle: { color: C.blue[0] },
+          itemStyle: { color: C.value.blue[0] },
           label: { color: '#fff', fontSize: 10 }
         }
       },
       {
         name: t('adminDashboard.chartLogins'), type: 'line', smooth: true,
         data: loginData, symbol: 'diamond', symbolSize: 6,
-        lineStyle: { width: 2, color: C.cyan[0], type: 'dotted' },
-        itemStyle: { color: C.cyan[0] },
+        lineStyle: { width: 2, color: C.value.cyan[0], type: 'dotted' },
+        itemStyle: { color: C.value.cyan[0] },
         areaStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(14,165,233,0.2)' },
-            { offset: 1, color: 'rgba(14,165,233,0.01)' }
+            { offset: 0, color: hexA(C.value.cyan[0], 0.18) },
+            { offset: 1, color: hexA(C.value.cyan[0], 0.01) }
           ])
         }
       },
@@ -495,8 +512,8 @@ const trendOption = computed(() => {
         data: dlData,
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: 'rgba(102,187,106,0.9)' },
-            { offset: 1, color: 'rgba(102,187,106,0.3)' }
+            { offset: 0, color: hexA(C.value.green[0], 0.9) },
+            { offset: 1, color: hexA(C.value.green[0], 0.3) }
           ]),
           borderRadius: [3, 3, 0, 0]
         }
@@ -526,7 +543,7 @@ const statusOption = computed(() => {
       type: 'text', left: 'center', top: '42%',
       style: {
         text: `${total}`, fill: chartColors.value.centerLabel,
-        font: 'bold 32px Inter, -apple-system, sans-serif',
+        font: 'bold 32px system-ui, sans-serif',
         textAlign: 'center'
       },
       z: 100
@@ -534,7 +551,7 @@ const statusOption = computed(() => {
       type: 'text', left: 'center', top: '56%',
       style: {
         text: '总计', fill: chartColors.value.centerSubLabel,
-        font: '13px Inter, -apple-system, sans-serif',
+        font: '13px system-ui, sans-serif',
         textAlign: 'center'
       },
       z: 100
@@ -559,7 +576,7 @@ const statusOption = computed(() => {
           value: statusDistribution.value.pending, name: t('adminDashboard.pendingApproval'),
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 1, 1, [
-              { offset: 0, color: '#FFD54F' }, { offset: 1, color: '#FF8F00' }
+              { offset: 0, color: C.value.orange[0] }, { offset: 1, color: C.value.orange[1] }
             ])
           }
         },
@@ -567,7 +584,7 @@ const statusOption = computed(() => {
           value: statusDistribution.value.approved, name: t('adminDashboard.approved'),
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 1, 1, [
-              { offset: 0, color: '#81C784' }, { offset: 1, color: '#2E7D32' }
+              { offset: 0, color: C.value.green[0] }, { offset: 1, color: C.value.green[1] }
             ])
           }
         },
@@ -575,7 +592,7 @@ const statusOption = computed(() => {
           value: statusDistribution.value.rejected, name: t('adminDashboard.rejected'),
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 1, 1, [
-              { offset: 0, color: '#EF9A9A' }, { offset: 1, color: '#C62828' }
+              { offset: 0, color: C.value.red[0] }, { offset: 1, color: C.value.red[1] }
             ])
           }
         }
@@ -603,7 +620,7 @@ const hourlyOption = computed(() => {
           <div style="display:flex;align-items:center;gap:6px">
             <span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${p.color}"></span>
             <span>${t('adminDashboard.activityCount')}: <b>${p.value}</b></span>
-            ${isPeak ? '<span style="background:#FF6F00;color:#fff;font-size:11px;padding:0 6px;border-radius:4px">峰值</span>' : ''}
+            ${isPeak ? `<span style="background:${C.value.orange[1]};color:#fff;font-size:11px;padding:0 6px;border-radius:4px">峰值</span>` : ''}
           </div>
         `;
       }
@@ -626,8 +643,8 @@ const hourlyOption = computed(() => {
         value: i.count,
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: idx === peakIdx ? '#FF6F00' : '#42A5F5' },
-            { offset: 1, color: idx === peakIdx ? '#FFB74D' : '#90CAF9' }
+            { offset: 0, color: idx === peakIdx ? C.value.orange[1] : C.value.blue[0] },
+            { offset: 1, color: idx === peakIdx ? hexA(C.value.orange[0], 0.6) : hexA(C.value.blue[0], 0.35) }
           ]),
           borderRadius: [4, 4, 0, 0]
         }
@@ -635,8 +652,8 @@ const hourlyOption = computed(() => {
       markLine: {
         silent: true,
         symbol: 'none',
-        lineStyle: { color: '#FF6F00', type: 'dashed', width: 1.5 },
-        label: { formatter: `峰值 ${maxVal}`, color: '#FF6F00', fontSize: 11 },
+        lineStyle: { color: C.value.orange[1], type: 'dashed', width: 1.5 },
+        label: { formatter: `峰值 ${maxVal}`, color: C.value.orange[1], fontSize: 11 },
         data: [{ yAxis: maxVal }]
       },
       animationDelay: idx => idx * 60
@@ -666,7 +683,7 @@ const dataTypeOption = computed(() => {
       type: 'text', left: 'center', top: '40%',
       style: {
         text: `${dtTotal}`, fill: chartColors.value.centerLabel,
-        font: 'bold 30px Inter, -apple-system, sans-serif',
+        font: 'bold 30px system-ui, sans-serif',
         textAlign: 'center'
       },
       z: 100
@@ -674,7 +691,7 @@ const dataTypeOption = computed(() => {
       type: 'text', left: 'center', top: '54%',
       style: {
         text: '数据总量', fill: chartColors.value.centerSubLabel,
-        font: '13px Inter, -apple-system, sans-serif',
+        font: '13px system-ui, sans-serif',
         textAlign: 'center'
       },
       z: 100
@@ -696,7 +713,7 @@ const dataTypeOption = computed(() => {
           value: dataTypeStats.value.vector || 0, name: t('adminDashboard.vector'),
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 1, 1, [
-              { offset: 0, color: '#42A5F5' }, { offset: 1, color: '#1565C0' }
+              { offset: 0, color: C.value.blue[0] }, { offset: 1, color: C.value.blue[1] }
             ])
           }
         },
@@ -704,7 +721,7 @@ const dataTypeOption = computed(() => {
           value: dataTypeStats.value.raster || 0, name: t('adminDashboard.raster'),
           itemStyle: {
             color: new graphic.LinearGradient(0, 0, 1, 1, [
-              { offset: 0, color: '#66BB6A' }, { offset: 1, color: '#2E7D32' }
+              { offset: 0, color: C.value.green[0] }, { offset: 1, color: C.value.green[1] }
             ])
           }
         }
@@ -762,11 +779,11 @@ const efficiencyOption = computed(() => {
         label: {
           show: true, position: 'right',
           formatter: params => params.value || '',
-          color: '#2E7D32', fontSize: 12, fontWeight: 600
+          color: C.value.green[1], fontSize: 12, fontWeight: 600
         },
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#81C784' }, { offset: 1, color: '#388E3C' }
+            { offset: 0, color: C.value.green[0] }, { offset: 1, color: C.value.green[1] }
           ]),
           borderRadius: [0, 4, 4, 0]
         }
@@ -777,11 +794,11 @@ const efficiencyOption = computed(() => {
         label: {
           show: true, position: 'right',
           formatter: params => params.value || '',
-          color: '#C62828', fontSize: 12, fontWeight: 600
+          color: C.value.red[1], fontSize: 12, fontWeight: 600
         },
         itemStyle: {
           color: new graphic.LinearGradient(0, 0, 1, 0, [
-            { offset: 0, color: '#EF9A9A' }, { offset: 1, color: '#E53935' }
+            { offset: 0, color: C.value.red[0] }, { offset: 1, color: C.value.red[1] }
           ]),
           borderRadius: [0, 4, 4, 0]
         }
@@ -834,63 +851,64 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .admin-dashboard {
-  padding: 20px;
+  padding: 24px;
   background: var(--bg-secondary, #f5f7fa);
   min-height: calc(100vh - 60px);
 }
 
 /* Hero */
 .hero-section {
-  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 100%));
-  border-radius: 12px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #eaeaea);
+  border-radius: var(--radius-lg, 12px);
   padding: 24px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
-  color: #fff;
+  margin-bottom: 24px;
+  color: var(--text-primary, #0a0a0a);
 }
-.hero-content h1 { margin: 0 0 8px; font-size: 22px; }
-.hero-content p { margin: 0; opacity: 0.85; font-size: 14px; }
+.hero-content h1 { margin: 0 0 8px; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; }
+.hero-content p { margin: 0; color: var(--text-secondary, #666666); font-size: 14px; }
 .hero-actions { display: flex; gap: 12px; }
 
 /* 告警 */
 .alert-section { margin-bottom: 16px; display: flex; flex-direction: column; gap: 8px; }
 
 /* KPI卡片 */
-.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 20px; }
-.kpi-card { border-radius: 10px; }
+.kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+.kpi-card { border-radius: var(--radius-lg, 8px); }
 .kpi-body { display: flex; align-items: center; gap: 16px; padding: 8px; }
-.kpi-icon { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; }
-.kpi-icon.blue { background: linear-gradient(135deg, #409EFF, #3a8ee6); }
-.kpi-icon.orange { background: linear-gradient(135deg, #E6A23C, #d9a028); }
-.kpi-icon.green { background: linear-gradient(135deg, #67C23A, #5cb530); }
-.kpi-icon.cyan { background: linear-gradient(135deg, #00d2d3, #01b8b8); }
+.kpi-icon { width: 48px; height: 48px; border-radius: var(--radius-md, 8px); display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.kpi-icon.blue { background: var(--tint-info-bg, rgba(0, 112, 243, 0.08)); color: var(--tint-info-text, #0070f3); }
+.kpi-icon.orange { background: var(--tint-warning-bg, rgba(154, 107, 21, 0.08)); color: var(--tint-warning-text, #9a6b15); }
+.kpi-icon.green { background: var(--tint-success-bg, rgba(14, 122, 78, 0.08)); color: var(--tint-success-text, #0e7a4e); }
+.kpi-icon.cyan { background: var(--tint-info-bg, rgba(0, 112, 243, 0.08)); color: var(--tint-info-text, #0070f3); }
 .kpi-info span.kpi-label { color: var(--text-tertiary, #909399); font-size: 13px; }
-.kpi-info h2.kpi-value { margin: 4px 0; font-size: 28px; color: var(--text-primary, #303133); }
+.kpi-info h2.kpi-value { margin: 4px 0; font-size: 28px; color: var(--text-primary, #303133); font-variant-numeric: tabular-nums; }
 .kpi-info small { color: var(--text-tertiary, #909399); font-size: 12px; }
 
 /* 快捷入口 */
-.quick-actions { margin-bottom: 20px; }
+.quick-actions { margin-bottom: 24px; }
 .action-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 16px; }
-.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: 8px; cursor: pointer; transition: all var(--transition-base, 250ms cubic-bezier(0.4, 0, 0.2, 1)); }
-.action-item:hover { background: var(--bg-tertiary, #f0f2f5); transform: translateY(-2px); box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1)); }
+.action-item { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px; border-radius: var(--radius-md, 8px); cursor: pointer; transition: background-color 0.15s ease; }
+.action-item:hover { background: var(--bg-hover, #fafafa); }
 .action-item span { font-size: 13px; color: var(--text-secondary, #606266); }
 .action-item .el-icon { color: var(--primary-500, #409EFF); }
 
 /* 图表 */
-.charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+.charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
 .chart-container { height: 320px; }
 .chart-container-wide { height: 360px; }
 .chart-empty { height: 320px; display: flex; align-items: center; justify-content: center; }
-.full-chart-section { margin-bottom: 20px; }
+.full-chart-section { margin-bottom: 24px; }
 
 /* 底部统计 */
 .bottom-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
 .stats-row { display: flex; gap: 40px; padding: 12px 0; }
 .stat-item { display: flex; flex-direction: column; gap: 8px; }
 .stat-label { font-size: 13px; color: var(--text-tertiary, #909399); }
-.stat-value { font-size: 32px; font-weight: 600; color: var(--text-primary, #303133); }
+.stat-value { font-size: 32px; font-weight: 600; color: var(--text-primary, #303133); font-variant-numeric: tabular-nums; }
 
 /* 热门列表 */
 .hot-list { max-height: 200px; overflow-y: auto; }
