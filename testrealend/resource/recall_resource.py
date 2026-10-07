@@ -13,7 +13,7 @@ from model.Application import Application
 from model.EmployeeNotification import EmployeeNotification
 from model.RecallProposal import RecallProposal
 from utils.log_helper import log_action
-from utils.required import is_admin_role
+from utils.required import admin_required, is_admin_role
 
 
 class RecallListResource(Resource):
@@ -39,7 +39,7 @@ class RecallListResource(Resource):
       200: {description: Recall proposals list}
     """
 
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = request.args.get("pageSize", 10, type=int)
@@ -239,7 +239,7 @@ class RecallVoteResource(Resource):
 class RecallDetailResource(Resource):
     """获取回收提议详情"""
 
-    @jwt_required()
+    @admin_required
     def get(self, proposal_id):
         proposal = db.session.get(RecallProposal, proposal_id)
         if not proposal:
@@ -388,7 +388,7 @@ class RecallRestoreResource(Resource):
 class RecallHistoryResource(Resource):
     """获取某个申请的回收历史"""
 
-    @jwt_required()
+    @admin_required
     def get(self, application_id):
         proposals = (
             RecallProposal.query.filter_by(application_id=application_id)
