@@ -146,6 +146,7 @@ def embed_histogram(host_path: str, watermark_img: Image.Image, output_dir: str,
         raise ValueError(
             f"Insufficient histogram capacity: need {bit_count} bits but "
             f"peak bin has only {peak_count} pixels. Capacity report: {cap}"
+            "（直方图算法要求图像直方图存在覆盖多像素的峰值；真实遥感影像通常不适用，建议 LSB/DWT/盲水印）"
         )
 
     # ── shift + embed ───────────────────────────────────────────────────
