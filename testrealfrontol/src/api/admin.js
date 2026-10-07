@@ -114,6 +114,17 @@ export const batchReview = (data) => axios.post('/api/admin/batch_review', data)
 export const getApprovedApplications = (params) => axios.get('/api/adm2_get_approved', { params })
 
 /**
+ * Get all applications with filters (admin family).
+ * `status: 'approved'` returns fully approved applications (adm2 passed).
+ * @param {Object} [params]
+ * @param {number} [params.page]
+ * @param {number} [params.pageSize]
+ * @param {string} [params.status] - 'pending' | 'approved' | 'rejected'
+ * @returns {Promise<AxiosResponse>}
+ */
+export const getAllApplications = (params) => axios.get('/api/applications', { params })
+
+/**
  * Re-review a previously approved application.
  * @param {Object} data
  * @returns {Promise<AxiosResponse>}

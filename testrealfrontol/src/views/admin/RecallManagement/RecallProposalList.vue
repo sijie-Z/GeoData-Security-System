@@ -7,7 +7,7 @@
 
     <el-card class="filter-card" shadow="hover">
       <div class="filter-row">
-        <el-select v-model="statusFilter" :placeholder="$t('recall.statusFilter')" clearable style="width: 150px" @change="getProposals">
+        <el-select v-model="statusFilter" :placeholder="$t('recall.statusFilter')" clearable style="width: 150px" @change="onStatusFilterChange">
           <el-option :label="$t('recall.voting')" value="voting" />
           <el-option :label="$t('recall.approved')" value="approved" />
           <el-option :label="$t('recall.rejected')" value="rejected" />
@@ -171,7 +171,7 @@ import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 import { Plus } from '@element-plus/icons-vue';
 import { getRecallProposals, createRecall, voteRecall, getRecallDetail } from '@/api/recall';
-import { getApprovedApplications } from '@/api/admin';
+import { getAllApplications } from '@/api/admin';
 import { useUserStore } from '@/stores/userStore';
 
 const { t } = useI18n();
@@ -230,14 +230,30 @@ const openCreateDialog = async () => {
   createForm.application_id = null;
   createForm.reason = '';
   try {
-    const resp = await getApprovedApplications({ pageSize: 100 });
-    if (resp.data?.status) {
-      approvedApps.value = resp.data.approved_application_data || [];
-    }
+    // 缺陷修复：原实现把 /api/adm2_get_approved（adm2 二审待办队列）当作“可回收申请”数据源。
+    // 该接口返回的是“一审通过、二审未审”的申请，选任何一项提交都会被后端
+    // 以“只能回收已批准的申请”拒绝；接口收紧为 admin2 角色后其他管理员还会 403 导致下拉为空。
+    // 正确数据源：全部已批准申请（/api/applications?status=approved），再剔除
+    // 已回收（is_recalled）与已有投票中提议的申请。
+    const [appsResp, votingResp] = await Promise.all([
+      getAllApplications({ status: 'approved', pageSize: 500 }),
+      getRecallProposals({ status: 'voting', pageSize: 500 })
+    ]);
+    const votingAppIds = new Set(
+      (votingResp.data?.data?.list || []).map((p) => p.application_id)
+    );
+    approvedApps.value = (appsResp.data?.data?.list || []).filter(
+      (app) => !app.is_recalled && !votingAppIds.has(app.id)
+    );
   } catch (err) {
     ElMessage.error(t('recall.fetchAppListFailed'));
   }
   createDialogVisible.value = true;
+};
+
+const onStatusFilterChange = () => {
+  page.value = 1;
+  getProposals();
 };
 
 const submitCreate = async () => {
