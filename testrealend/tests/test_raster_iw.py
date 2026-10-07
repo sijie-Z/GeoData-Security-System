@@ -243,3 +243,20 @@ class TestIwDctEngineRegistration:
         assert row["ber"] == 0.0, f"iw_dct baseline not bit-exact: {row}"
         assert row["nc"] is not None and row["nc"] > 1.0 - 1e-9, f"iw_dct baseline NC too low: {row}"
         assert row["duration_ms"] is not None and row["duration_ms"] >= 0
+
+    def test_sweep_smoke_rows_for_iw_dct(self, db, tmp_path):
+        """Strength-sweep mode covers the new scheme automatically — the sweep
+        runner expands every requested attack into the 5 ladder tiers and pulls
+        embed/extract from the same scheme dispatch as the matrix."""
+        from algorithm.robustness_raster import run_raster_sweep
+        from algorithm.robustness_sweep import SWEEP_TIER_COUNT
+
+        text = _build_matrix_payload()
+        qr_path, _side = render_raster_payload_qr(text, str(tmp_path / "payload_qr.png"))
+        host = make_host_tif(str(tmp_path / "host.tif"))
+
+        rows = run_raster_sweep(host, ["iw_dct"], ["jpeg"], qr_path, str(tmp_path / "work_sweep"), trials=1)
+        assert len(rows) == SWEEP_TIER_COUNT
+        assert {r["strength_index"] for r in rows} == set(range(SWEEP_TIER_COUNT))
+        assert all(r["scheme"] == "iw_dct" and r["attack"] == "jpeg" for r in rows)
+        assert all(r["decode_success"] is not None for r in rows)
