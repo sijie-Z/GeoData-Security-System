@@ -35,8 +35,8 @@
       </div>
     </div>
 
-    <!-- ② Hero KPI 带（数据从当前 run rows 推导；无 run 时空态） -->
-    <section id="lab-kpi" class="kpi-band" :aria-label="$t('robustnessLab.kpiAria')">
+    <!-- ② Hero KPI 带（数据从当前 run rows 推导；无 run 时空态；扫描 run 用曲线视图代替） -->
+    <section v-if="!isSweepRun" id="lab-kpi" class="kpi-band" :aria-label="$t('robustnessLab.kpiAria')">
       <div class="kpi-card">
         <span class="kpi-label">
           {{ $t('robustnessLab.kpiBaselineLabel') }}
@@ -78,7 +78,7 @@
         <span class="kpi-note">{{ winNoteText }}</span>
       </div>
     </section>
-    <p v-if="!kpi" class="kpi-empty">
+    <p v-if="!isSweepRun && !kpi" class="kpi-empty">
       {{ $t('robustnessLab.kpiEmpty') }} · {{ $t('robustnessLab.kpiEmptyHint') }}
     </p>
 
@@ -94,6 +94,19 @@
             <el-radio-button value="raster">{{ $t('robustnessLab.kind.raster') }}</el-radio-button>
           </el-radio-group>
         </div>
+
+        <!-- 实验模式：单点矩阵（现行为）/ 强度扫描（WAVES 式梯度 → 检出率曲线） -->
+        <div class="form-row">
+          <label class="form-label">{{ $t('robustnessLab.modeLabel') }}</label>
+          <el-radio-group v-model="runMode" class="kind-segment">
+            <el-radio-button value="matrix">{{ $t('robustnessLab.mode.matrix') }}</el-radio-button>
+            <el-radio-button value="sweep">{{ $t('robustnessLab.mode.sweep') }}</el-radio-button>
+          </el-radio-group>
+        </div>
+        <template v-if="runMode === 'sweep'">
+          <p class="form-hint">{{ $t('robustnessLab.sweepHint') }}</p>
+          <p class="form-hint">{{ $t('robustnessLab.sweepYHint') }}</p>
+        </template>
 
         <template v-if="runKind === 'vector'">
           <div class="form-row">
@@ -151,7 +164,7 @@
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.trialsLabel') }}</label>
           <el-select v-model="selectedTrials" class="trials-select">
-            <el-option v-for="n in TRIAL_OPTIONS" :key="n" :label="String(n)" :value="n" />
+            <el-option v-for="n in trialOptions" :key="n" :label="String(n)" :value="n" />
           </el-select>
         </div>
         <p class="form-hint">{{ $t('robustnessLab.trialsHint') }}</p>
@@ -188,6 +201,13 @@
             <template #default="{ row }">
               <span class="kind-badge" :class="`is-${historyKind(row)}`">
                 {{ $t(`robustnessLab.kind.${historyKind(row)}`) }}
+              </span>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('robustnessLab.colMode')" width="76" align="center">
+            <template #default="{ row }">
+              <span class="mode-badge" :class="`is-${historyMode(row)}`">
+                {{ $t(`robustnessLab.modeBadge.${historyMode(row)}`) }}
               </span>
             </template>
           </el-table-column>
@@ -253,7 +273,9 @@
       <template v-if="runMeta">
         <div class="matrix-head">
           <div class="matrix-meta">
-            <h4 class="card-title inline-title">{{ $t('robustnessLab.matrixTitle') }}</h4>
+            <h4 class="card-title inline-title">
+              {{ isSweepRun ? $t('robustnessLab.sweepTitle') : $t('robustnessLab.matrixTitle') }}
+            </h4>
             <HashText :value="runMeta.run_id" :head="8" :tail="4" />
             <span class="meta-sep">·</span>
             <span class="mono-text">{{ runMeta.data_ref }}</span>
@@ -274,6 +296,57 @@
           </div>
         </div>
 
+        <!-- 强度扫描 run：每攻击一张「强度档 → 检出成功率」小图（2 列网格，
+             x=档位 label、y=成功率 0-100%，每方案一条线；悬停看档位参数与 n/N） -->
+        <template v-if="isSweepRun">
+          <p class="matrix-subtitle">
+            <span>{{ $t('robustnessLab.sweepSubtitle') }}</span>
+          </p>
+          <div class="sweep-grid">
+            <div v-for="attack in sweepAttacks" :key="attack" class="sweep-card">
+              <div class="sweep-card-head">
+                <span class="sweep-attack-name">{{ attackLabel(attack) }}</span>
+                <span class="sweep-card-note mono-num">
+                  {{ $t('robustnessLab.sweepCardMeta', { trials: runMeta.trials }) }}
+                </span>
+              </div>
+              <v-chart class="sweep-chart" :option="sweepOption(attack)" autoresize />
+              <p v-if="sweepErrorCount(attack)" class="sweep-anomaly mono-num">
+                {{ $t('robustnessLab.sweepCardAnomalies', { n: sweepErrorCount(attack) }) }}
+              </p>
+            </div>
+          </div>
+
+          <!-- 扫描结论卡：崩塌点摘要 = 首个档内成功率 < 0.5 的档位（无则全档存活），每方案一行 -->
+          <div id="lab-collapse" class="verdict-card" :class="{ 'is-ready': matrixDone }">
+            <div class="verdict-main">
+              <span class="verdict-icon"><el-icon :size="18"><TrendCharts /></el-icon></span>
+              <div class="verdict-text">
+                <h4 class="verdict-title">{{ $t('robustnessLab.collapseTitle') }}</h4>
+                <template v-if="matrixDone">
+                  <div v-for="line in collapseLines" :key="line.scheme" class="collapse-line">
+                    <p class="verdict-line">
+                      <span class="collapse-scheme" :class="`is-${line.scheme}`">{{ line.name }}</span>
+                      <span v-if="line.tierIndex === null" class="collapse-alive">
+                        {{ $t('robustnessLab.collapseAllAlive') }}
+                      </span>
+                      <span v-else class="collapse-hit">
+                        {{ $t('robustnessLab.collapseAt', { tier: line.tierIndex + 1, rate: line.rateText }) }}
+                      </span>
+                    </p>
+                    <p v-if="line.detail" class="collapse-detail">{{ line.detail }}</p>
+                  </div>
+                </template>
+                <p v-else class="verdict-line is-muted">
+                  {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 单点矩阵 run：行=方案 列=攻击 的结果矩阵（原视图） -->
+        <template v-else>
         <p class="matrix-subtitle">
           <span>{{ $t('robustnessLab.matrixSubtitle') }}</span>
           <el-tooltip :content="$t('robustnessLab.metricNcShort')" placement="top" :show-after="100">
@@ -453,6 +526,7 @@
             </span>
           </div>
         </div>
+        </template>
       </template>
       <EmptyState
         v-else
@@ -511,11 +585,19 @@ import {
   Medal,
   Refresh,
   Right,
+  TrendCharts,
   VideoPlay,
 } from '@element-plus/icons-vue'
+// 强度扫描曲线：ECharts 按需注册（折线 + 提示/图例/网格），颜色走 chartInk
+import { use } from 'echarts/core'
+import { CanvasRenderer } from 'echarts/renderers'
+import { LineChart } from 'echarts/charts'
+import { GridComponent, LegendComponent, TooltipComponent } from 'echarts/components'
+import VChart from 'vue-echarts'
 
 import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { useTheme } from '@/composables/useTheme.js'
 import MetricGlossary from './MetricGlossary.vue'
 import { getDataList } from '@/api/upload'
 import {
@@ -525,7 +607,10 @@ import {
   startRobustnessRun,
 } from '@/api/robustness'
 
+use([CanvasRenderer, LineChart, TooltipComponent, LegendComponent, GridComponent])
+
 const { t } = useI18n()
+const { isDark } = useTheme()
 
 // 与后端白名单同名同序（schemes 决定矩阵行、attacks 决定矩阵列）
 const SCHEMES = ['legacy', 'dqim1']
@@ -540,6 +625,12 @@ const MAX_MATRIX_ROWS = 200
 
 // 试验次数选项（1 = 文档化默认参数；>1 = 每格 N 次参数抖动试验，seed 固定可复现）
 const TRIAL_OPTIONS = [1, 3, 5, 10]
+// 强度扫描的试验次数选项/上限（与后端 SWEEP_MAX_TRIALS=5 一致）：每攻击 ×5 档，防行数爆炸
+const SWEEP_TRIAL_OPTIONS = [1, 3, 5]
+// 强度扫描：每攻击 5 档（与后端 SWEEP_TIER_COUNT 一致）
+const SWEEP_TIERS = 5
+// 扫描行数上限（与后端 MAX_SWEEP_ROWS=600 一致）
+const MAX_SWEEP_ROWS = 600
 
 const POLL_INTERVAL_MS = 5000
 const TOUR_KEY = 'tour:v1:lab'
@@ -548,6 +639,7 @@ const STAGGER_STEP_MS = 30
 
 // ── 运行控制状态 ──
 const runKind = ref('vector')
+const runMode = ref('matrix')
 const vectorDataList = ref([])
 const dataLoading = ref(false)
 const selectedDataId = ref(null)
@@ -556,6 +648,16 @@ const selectedSchemes = ref([...SCHEMES])
 const selectedAttacks = ref([...ATTACKS])
 const selectedTrials = ref(1)
 const startLoading = ref(false)
+
+// 强度扫描态的选择器不变量：攻击不含 none（基线不参与梯度）、试验数钳制 ≤ 5
+const sweepableAttacks = () => (runKind.value === 'raster' ? RASTER_ATTACKS : ATTACKS).filter((a) => a !== 'none')
+const reconcileSweep = () => {
+  if (runMode.value !== 'sweep') return
+  const options = sweepableAttacks()
+  const filtered = selectedAttacks.value.filter((a) => options.includes(a))
+  selectedAttacks.value = filtered.length ? filtered : [options[0]]
+  if (selectedTrials.value > 5) selectedTrials.value = 3
+}
 
 // 各 kind 分开记住勾选；切换"数据类型"时恢复对应 kind 的选择
 const kindSelections = {
@@ -567,11 +669,24 @@ watch(runKind, (nv, ov) => {
   kindSelections[ov].attacks = [...selectedAttacks.value]
   selectedSchemes.value = [...kindSelections[nv].schemes]
   selectedAttacks.value = [...kindSelections[nv].attacks]
+  reconcileSweep()
 })
 
-// 发起卡的方案/攻击选项随"数据类型"切换
+// 切模式：进入强度扫描默认单算法（矢量 dqim1 / 栅格 lsb），并收敛扫描态选择
+watch(runMode, (nv) => {
+  if (nv === 'sweep') {
+    selectedSchemes.value = [runKind.value === 'raster' ? 'lsb' : 'dqim1']
+    reconcileSweep()
+  }
+})
+
+// 发起卡的方案/攻击/试验数选项随"数据类型"与"模式"切换
+const trialOptions = computed(() => (runMode.value === 'sweep' ? SWEEP_TRIAL_OPTIONS : TRIAL_OPTIONS))
 const kindSchemeOptions = computed(() => (runKind.value === 'raster' ? RASTER_SCHEMES : SCHEMES))
-const kindAttackOptions = computed(() => (runKind.value === 'raster' ? RASTER_ATTACKS : ATTACKS))
+const kindAttackOptions = computed(() => {
+  const base = runKind.value === 'raster' ? RASTER_ATTACKS : ATTACKS
+  return runMode.value === 'sweep' ? base.filter((a) => a !== 'none') : base
+})
 
 // ── 历史列表状态 ──
 const runs = ref([])
@@ -581,8 +696,13 @@ const runsLoading = ref(false)
 const runMeta = ref(null)
 const runRows = ref([])
 const runSummary = ref([])
+// 扫描 run 的档位表（后端 ladders：attack -> [{index,label,params}]）
+const runLadders = ref({})
 const detailLoading = ref(false)
 let pollTimer = null
+
+// 当前 run 是否为强度扫描（后端按「行有 strength_index」推导；旧数据缺省矩阵）
+const isSweepRun = computed(() => runMeta.value?.mode === 'sweep')
 
 // ── 可理解层状态 ──
 const attacksMeta = ref(null)
@@ -644,12 +764,14 @@ const applyRunPayload = (run) => {
     data_ref: run.data_ref,
     created_at: run.created_at,
     kind: run.kind ?? 'vector',
+    mode: run.mode === 'sweep' ? 'sweep' : 'matrix',
     trials: run.trials ?? 1,
     done: run.done,
     total: run.total,
   }
   runRows.value = Array.isArray(run.rows) ? run.rows : []
   runSummary.value = Array.isArray(run.summary) ? run.summary : []
+  runLadders.value = run.ladders && typeof run.ladders === 'object' ? run.ladders : {}
 }
 
 const loadRun = async (runId) => {
@@ -726,6 +848,7 @@ const resolvedDataId = computed(() => {
 
 const startRun = async () => {
   const isRaster = runKind.value === 'raster'
+  const isSweep = runMode.value === 'sweep'
   let dataId = null
   if (!isRaster) {
     dataId = resolvedDataId.value
@@ -738,12 +861,26 @@ const startRun = async () => {
       return
     }
   }
-  if (!selectedSchemes.value.length || !selectedAttacks.value.length) {
+  // 扫描态的攻击集不含 none（基线不参与梯度；选择器已收敛，这里防御性过滤）
+  const attacks = isSweep ? selectedAttacks.value.filter((a) => a !== 'none') : [...selectedAttacks.value]
+  if (!selectedSchemes.value.length || !attacks.length) {
     ElMessage.warning(t('robustnessLab.comboRequired'))
     return
   }
-  const cells = selectedSchemes.value.length * selectedAttacks.value.length
-  if (cells * selectedTrials.value > MAX_MATRIX_ROWS) {
+  const tiers = isSweep ? SWEEP_TIERS : 1
+  const cells = selectedSchemes.value.length * attacks.length * tiers
+  if (isSweep) {
+    if (cells * selectedTrials.value > MAX_SWEEP_ROWS) {
+      ElMessage.warning(
+        t('robustnessLab.sweepScaleLimit', {
+          cells,
+          trials: selectedTrials.value,
+          total: cells * selectedTrials.value,
+        })
+      )
+      return
+    }
+  } else if (cells * selectedTrials.value > MAX_MATRIX_ROWS) {
     ElMessage.warning(t('robustnessLab.scaleLimit', { cells, trials: selectedTrials.value }))
     return
   }
@@ -752,8 +889,9 @@ const startRun = async () => {
   try {
     const payload = {
       kind: runKind.value,
+      mode: runMode.value,
       schemes: [...selectedSchemes.value],
-      attacks: [...selectedAttacks.value],
+      attacks,
       trials: selectedTrials.value,
     }
     // data_id 仅矢量必填；栅格宿主由后端程序化生成（data_id 忽略）
@@ -788,6 +926,9 @@ const onRunRowClick = (row) => {
 
 // 历史行 kind 徽章（后端列表已带 kind 字段；缺省按矢量）
 const historyKind = (row) => (row.kind === 'raster' ? 'raster' : 'vector')
+
+// 历史行 mode 徽章（后端按行有无 strength_index 推导；缺省按矩阵）
+const historyMode = (row) => (row.mode === 'sweep' ? 'sweep' : 'matrix')
 
 const runStatusText = (row) => {
   if (row.error && row.done < row.total) return t('robustnessLab.statusError')
@@ -942,6 +1083,207 @@ const matrixDone = computed(() => !!runMeta.value && runMeta.value.done >= runMe
 const progressPct = computed(() => {
   if (!runMeta.value || !runMeta.value.total) return 0
   return Math.min(100, Math.round((runMeta.value.done / runMeta.value.total) * 100))
+})
+
+// ──────────────────────────────────────
+//  强度扫描：曲线视图 + 崩塌点摘要
+// ──────────────────────────────────────
+
+// 扫描 run 的攻击列（按 rows 首现顺序；强度档行由后端 strength_index 标记）
+const sweepAttacks = computed(() => firstSeenValues('attack'))
+
+const sweepLadderFor = (attack) => {
+  const ladder = runLadders.value[attack]
+  return Array.isArray(ladder) && ladder.length ? ladder : null
+}
+
+// (attack|tier|scheme) -> { ok 成功数, done 已完成数, pending 待完成, error 异常, ncs : NC 列表 }
+const sweepStats = computed(() => {
+  const map = {}
+  for (const r of runRows.value) {
+    if (r.strength_index === null || r.strength_index === undefined) continue
+    const key = `${r.attack}|${r.strength_index}|${r.scheme}`
+    if (!map[key]) map[key] = { ok: 0, done: 0, pending: 0, error: 0, ncs: [] }
+    const stat = map[key]
+    if (r.decode_success === null) {
+      stat.pending += 1
+    } else {
+      stat.done += 1
+      if (r.decode_success) stat.ok += 1
+      if (r.nc !== null && r.nc !== undefined) stat.ncs.push(Number(r.nc))
+    }
+    if (r.error) stat.error += 1
+  }
+  return map
+})
+
+const sweepStat = (attack, tierIndex, scheme) => sweepStats.value[`${attack}|${tierIndex}|${scheme}`] || null
+
+// 档位成功率（0-100 整数；无已完成行 -> null，曲线留断点、tooltip 如实标注）
+const sweepRate = (attack, tierIndex, scheme) => {
+  const stat = sweepStat(attack, tierIndex, scheme)
+  if (!stat || !stat.done) return null
+  return Math.round((stat.ok / stat.done) * 100)
+}
+
+const sweepMeanNc = (attack, tierIndex, scheme) => {
+  const stat = sweepStat(attack, tierIndex, scheme)
+  if (!stat || !stat.ncs.length) return null
+  return stat.ncs.reduce((a, b) => a + b, 0) / stat.ncs.length
+}
+
+// 异常格数（该攻击下有 error 的行；卡片脚注的诚实标注）
+const sweepErrorCount = (attack) => runRows.value.filter((r) => r.attack === attack && r.error).length
+
+// 图表配色（canvas 内无法用 CSS 变量，随 isDark 切换；对齐质量页 chartInk 体系）
+const chartInk = computed(() =>
+  isDark.value
+    ? {
+        axisLabel: '#a0a0ab',
+        chartLabel: '#a0a0ab',
+        tooltipBg: 'rgba(17,17,20,0.96)',
+        tooltipBorder: 'rgba(94,106,210,0.35)',
+        tooltipText: '#ededf0',
+        chainTrack: 'rgba(255,255,255,0.08)',
+        accent: '#5e6ad2',
+        green: '#5cc08f',
+        amber: '#d6a75c',
+        neutral: '#6e6e7a',
+      }
+    : {
+        axisLabel: '#666666',
+        chartLabel: '#666666',
+        tooltipBg: 'rgba(255,255,255,0.98)',
+        tooltipBorder: '#eaeaea',
+        tooltipText: '#0a0a0a',
+        chainTrack: '#eaeaea',
+        accent: '#0070f3',
+        green: '#0e7a4e',
+        amber: '#9a6b15',
+        neutral: '#8f8f8f',
+      }
+)
+
+const sweepPalette = computed(() => [
+  chartInk.value.accent,
+  chartInk.value.green,
+  chartInk.value.amber,
+  chartInk.value.neutral,
+])
+
+// 「强度档 -> 检出成功率」折线图：x=档位 label、y=成功率 0-100%，每方案一条线；
+// tooltip 含档位实际参数、成功数/N 与 NC 均值；未完成/异常档如实标注
+const sweepOption = (attack) => {
+  const ink = chartInk.value
+  const palette = sweepPalette.value
+  const ladder =
+    sweepLadderFor(attack) ||
+    Array.from({ length: SWEEP_TIERS }, (_, i) => ({ index: i, label: `#${i + 1}`, params: {} }))
+  const schemes = matrixSchemes.value
+  return {
+    grid: { left: 6, right: 16, top: 30, bottom: 24, containLabel: true },
+    legend: { bottom: 0, itemWidth: 12, itemHeight: 8, textStyle: { fontSize: 11, color: ink.chartLabel } },
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: ink.tooltipBg,
+      borderColor: ink.tooltipBorder,
+      textStyle: { color: ink.tooltipText, fontSize: 12 },
+      formatter: (items) => {
+        if (!items || !items.length) return ''
+        const tierIndex = items[0].dataIndex
+        const tier = ladder[tierIndex] || {}
+        const lines = [`<div style="font-weight:600">${tier.label || `#${tierIndex + 1}`}</div>`]
+        lines.push(`<div style="opacity:.75">${attackLabel(attack)} · ${formatParams(tier.params)}</div>`)
+        schemes.forEach((scheme, idx) => {
+          const stat = sweepStat(attack, tierIndex, scheme)
+          const color = palette[idx % palette.length]
+          const dot = `<span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:${color};margin-right:6px;"></span>`
+          if (!stat || (!stat.done && !stat.pending)) {
+            lines.push(`<div>${dot}${schemeLabel(scheme)}: ${t('robustnessLab.sweepNoData')}</div>`)
+            return
+          }
+          const mean = sweepMeanNc(attack, tierIndex, scheme)
+          const meanText = mean === null ? '' : ` · ${t('robustnessLab.sweepMeanNc', { nc: mean.toFixed(3) })}`
+          lines.push(
+            `<div>${dot}${schemeLabel(scheme)}: ${t('robustnessLab.sweepSuccess', { ok: stat.ok, n: stat.done })}${meanText}</div>`
+          )
+          if (stat.pending) {
+            lines.push(
+              `<div style="opacity:.7;margin-left:14px">${t('robustnessLab.sweepPending', { n: stat.pending })}</div>`
+            )
+          }
+          if (stat.error) {
+            lines.push(`<div style="margin-left:14px">${t('robustnessLab.sweepErr', { n: stat.error })}</div>`)
+          }
+        })
+        return lines.join('')
+      },
+    },
+    xAxis: {
+      type: 'category',
+      data: ladder.map((tier) => tier.label),
+      axisLabel: { fontSize: 10, color: ink.axisLabel, interval: 0, width: 96, overflow: 'truncate' },
+      axisTick: { alignWithLabel: true },
+    },
+    yAxis: {
+      type: 'value',
+      min: 0,
+      max: 100,
+      interval: 25,
+      axisLabel: { fontSize: 10, color: ink.axisLabel, formatter: '{value}%' },
+      splitLine: { lineStyle: { color: ink.chainTrack } },
+    },
+    series: schemes.map((scheme, idx) => ({
+      name: schemeLabel(scheme),
+      type: 'line',
+      symbol: 'circle',
+      symbolSize: 8,
+      connectNulls: false,
+      lineStyle: { width: 2.5, color: palette[idx % palette.length] },
+      itemStyle: { color: palette[idx % palette.length] },
+      data: ladder.map((_tier, tierIndex) => sweepRate(attack, tierIndex, scheme)),
+    })),
+  }
+}
+
+// 崩塌点摘要：每方案一行 = 首个「档内成功率 < 0.5」的档位（跨该 run 的攻击按档聚合；
+// 无则全档存活），附每攻击各自的崩点 label 明细
+const collapseLines = computed(() => {
+  if (!isSweepRun.value) return []
+  return matrixSchemes.value.map((scheme) => {
+    let tierIndex = null
+    let rateText = ''
+    for (let i = 0; i < SWEEP_TIERS; i += 1) {
+      const tierRows = runRows.value.filter(
+        (r) => r.scheme === scheme && r.strength_index === i && r.decode_success !== null
+      )
+      if (!tierRows.length) continue
+      const ok = tierRows.filter((r) => r.decode_success === true).length
+      if (ok / tierRows.length < 0.5) {
+        tierIndex = i
+        rateText = `${ok}/${tierRows.length}`
+        break
+      }
+    }
+    const details = matrixAttacks.value.map((attack) => {
+      const ladder = sweepLadderFor(attack) || []
+      let hit = null
+      for (let i = 0; i < SWEEP_TIERS; i += 1) {
+        const rows = runRows.value.filter(
+          (r) => r.scheme === scheme && r.attack === attack && r.strength_index === i && r.decode_success !== null
+        )
+        if (!rows.length) continue
+        const ok = rows.filter((r) => r.decode_success === true).length
+        if (ok / rows.length < 0.5) {
+          hit = ladder[i]?.label || `#${i + 1}`
+          break
+        }
+      }
+      const text = hit ? t('robustnessLab.collapseAtLabel', { label: hit }) : t('robustnessLab.collapseAllAliveShort')
+      return `${attackLabel(attack)} · ${text}`
+    })
+    return { scheme, name: schemeLabel(scheme), tierIndex, rateText, detail: details.join(' · ') }
+  })
 })
 
 // ──────────────────────────────────────
@@ -1451,12 +1793,14 @@ const exportJson = () => {
   const payload = {
     run_id: runMeta.value.run_id,
     kind: runMeta.value.kind,
+    mode: runMeta.value.mode,
     data_ref: runMeta.value.data_ref,
     created_at: runMeta.value.created_at,
     trials: runMeta.value.trials,
     done: runMeta.value.done,
     total: runMeta.value.total,
     summary: runSummary.value,
+    ladders: runLadders.value,
     rows: runRows.value,
   }
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
@@ -1773,6 +2117,26 @@ onMounted(async () => {
 }
 
 .kind-badge.is-raster {
+  color: var(--primary-700);
+  background: var(--primary-50);
+}
+
+/* 历史行 mode 徽章（单点矩阵 / 强度扫描） */
+.mode-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 9px;
+  font-size: 12px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.mode-badge.is-matrix {
+  color: var(--text-secondary);
+  background: var(--tint-neutral-bg);
+}
+
+.mode-badge.is-sweep {
   color: var(--primary-700);
   background: var(--primary-50);
 }
@@ -2317,5 +2681,83 @@ onMounted(async () => {
   margin: 0;
   font-size: 13px;
   color: var(--tint-danger-text);
+}
+
+/* ── 强度扫描：曲线网格 + 崩塌点摘要 ── */
+.sweep-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin: 4px 0 16px;
+}
+
+@media (max-width: 1100px) {
+  .sweep-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sweep-card {
+  padding: 12px 14px 8px;
+  background: var(--bg-primary);
+  /* §4.11 ring 描边（与 KPI 卡一致） */
+  box-shadow: var(--card-ring);
+  border-radius: var(--radius-md);
+}
+
+.sweep-card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.sweep-attack-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.sweep-card-note {
+  font-size: 11.5px;
+  color: var(--text-tertiary);
+}
+
+.sweep-chart {
+  width: 100%;
+  height: 230px;
+}
+
+.sweep-anomaly {
+  margin: 2px 0 6px;
+  font-size: 12px;
+  color: var(--tint-warning-text);
+}
+
+.collapse-line {
+  margin: 2px 0 8px;
+}
+
+.collapse-scheme {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.collapse-alive {
+  margin-left: 8px;
+  color: var(--tint-success-text);
+}
+
+.collapse-hit {
+  margin-left: 8px;
+  color: var(--text-secondary);
+}
+
+.collapse-detail {
+  margin: 2px 0 0 14px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
 }
 </style>
