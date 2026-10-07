@@ -227,12 +227,12 @@ onMounted(() => {
 <style scoped>
 .admin-app-voting-page { padding: 20px 24px; }
 .page-header { margin-bottom: 16px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: #1f2937; }
-.page-desc { margin: 0; color: #6b7280; }
+.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
+.page-desc { margin: 0; color: var(--text-3); }
 .table-card { border-radius: 12px; }
 .pagination-wrap { margin-top: 16px; display: flex; justify-content: flex-end; }
 .vote-progress { display: flex; flex-direction: column; gap: 4px; }
-.progress-text { font-size: 12px; color: #6b7280; }
+.progress-text { font-size: 12px; color: var(--text-3); }
 .vote-content { padding: 8px 0; }
 .employee-extra { margin-top: 16px; }
 </style>

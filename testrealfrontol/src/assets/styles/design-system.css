@@ -119,6 +119,9 @@
   --tint-info-text: #0070f3;
   --tint-neutral-bg: #f4f4f5;
 
+  /* Hero 头部渐变（双值：深值在 html.dark 同名覆写） */
+  --gradient-hero: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+
   /* Skeleton */
   --skeleton-base: var(--slate-4);
   --skeleton-highlight: var(--plane-fill);
@@ -381,6 +384,9 @@ html.dark {
   --tint-info-border: rgba(94, 106, 210, 0.30);
   --tint-info-text: #8e97dc;
   --tint-neutral-bg: rgba(255, 255, 255, 0.06);
+
+  /* Hero 头部渐变（暗值：深靛蓝，蓝阶 3→5，白字可读） */
+  --gradient-hero: linear-gradient(135deg, #202243 0%, #2f346e 100%);
 
   /* Skeleton（暗值） */
   --skeleton-base: var(--slate-3);

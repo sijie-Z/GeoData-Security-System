@@ -692,14 +692,14 @@ onMounted(() => {
 <style scoped>
 .dual-channel-approval {
   padding: 20px;
-  background: #f5f7fa;
+  background: var(--bg-canvas);
   min-height: calc(100vh - 84px);
 }
 
 /* 头部卡片 - 使用普通div而非el-card */
 .header-card {
   margin-bottom: 20px;
-  background: var(--gradient-hero, linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)) !important;
+  background: var(--gradient-hero) !important;
   border: none !important;
   border-radius: 12px;
   color: white !important;
@@ -725,7 +725,7 @@ onMounted(() => {
 
 .title-section .page-subtitle {
   font-size: 14px;
-  color: #e0e7ff !important;
+  color: rgba(255, 255, 255, 0.75) !important;
   margin: 8px 0 0 0;
 }
 
@@ -747,7 +747,7 @@ onMounted(() => {
 
 .stat-label {
   font-size: 14px;
-  color: #e0e7ff !important;
+  color: rgba(255, 255, 255, 0.75) !important;
 }
 
 /* 筛选卡片 */
@@ -774,9 +774,9 @@ onMounted(() => {
 
 /* 数据列表卡片 */
 .data-list-card {
-  background: white;
+  background: var(--bg-surface);
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--elevation-2);
 }
 
 .card-header {
@@ -791,7 +791,7 @@ onMounted(() => {
   gap: 8px;
   font-size: 18px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-1);
   margin: 0;
 }
 
@@ -803,7 +803,7 @@ onMounted(() => {
 /* 申请详情 */
 .application-detail {
   padding: 20px;
-  background: #f8f9fa;
+  background: var(--bg-inset);
   border-radius: 8px;
 }
 
@@ -821,29 +821,29 @@ onMounted(() => {
 }
 
 .review-status.pending {
-  background: #fdf6ec;
-  color: #e6a23c;
+  background: var(--tint-warning-bg);
+  color: var(--tint-warning-text);
 }
 
 .review-status.approved {
-  background: #f0f9ff;
-  color: #67c23a;
+  background: var(--tint-success-bg);
+  color: var(--tint-success-text);
 }
 
 .review-status.rejected {
-  background: #fef0f0;
-  color: #f56c6c;
+  background: var(--tint-danger-bg);
+  color: var(--tint-danger-text);
 }
 
 .review-time {
   font-size: 11px;
-  color: #999;
+  color: var(--text-4);
   margin-bottom: 2px;
 }
 
 .reviewer {
   font-size: 11px;
-  color: #666;
+  color: var(--text-3);
 }
 
 /* 操作按钮 */

@@ -157,8 +157,8 @@ onMounted(() => {
 <style scoped>
 .approval-page { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
 .page-header { margin-bottom: 20px; }
-.page-title { font-size: 22px; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
-.page-desc { font-size: 14px; color: #6b7280; margin: 0; }
+.page-title { font-size: 22px; font-weight: 600; color: var(--text-1); margin: 0 0 8px 0; }
+.page-desc { font-size: 14px; color: var(--text-3); margin: 0; }
 .table-card { border-radius: 12px; }
 .toolbar { display: flex; margin-bottom: 12px; }
 .approval-table { width: 100%; }

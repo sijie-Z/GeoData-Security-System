@@ -76,7 +76,6 @@
         v-loading="loading"
         class="log-table"
         style="width: 100%"
-        :header-cell-style="{ background: '#f5f7fa' }"
       >
         <el-table-column type="index" label="#" width="56" align="center" />
         <el-table-column prop="timestamp" :label="$t('adminLogViewer.timestamp')" width="172" sortable />
@@ -238,12 +237,12 @@ onMounted(() => fetchLogs());
 .page-title {
   font-size: 22px;
   font-weight: 600;
-  color: #1f2937;
+  color: var(--text-1);
   margin: 0 0 8px 0;
 }
 .page-desc {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-3);
   margin: 0;
 }
 .log-card {
@@ -263,7 +262,7 @@ onMounted(() => fetchLogs());
 .card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-1);
 }
 .filter-bar {
   display: flex;
@@ -280,11 +279,11 @@ onMounted(() => fetchLogs());
   word-break: break-word;
   margin: 0;
   padding: 8px 10px;
-  background: #f8fafc;
+  background: var(--bg-inset);
   border-radius: 6px;
   font-family: 'Consolas', 'Monaco', monospace;
   font-size: 12px;
-  color: #475569;
+  color: var(--text-2);
   max-height: 160px;
   overflow-y: auto;
 }
