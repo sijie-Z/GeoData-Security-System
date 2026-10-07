@@ -5,7 +5,7 @@
       <el-input v-model="GetIdInput" style="width: 200px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
       <el-button size="default" type="primary" @click="click_extract">{{ $t('wmExtract.selectAndExtract') }}</el-button>
       <el-tooltip :content="$t('wmExtract.idHint')" placement="top">
-        <el-icon style="color: #909399; cursor: help; font-size: 16px;"><QuestionFilled /></el-icon>
+        <el-icon style="color: var(--text-3); cursor: help; font-size: 16px;"><QuestionFilled /></el-icon>
       </el-tooltip>
     </div>
 
@@ -234,7 +234,7 @@ const resetForm = () => {
 /* Main layout container with padding and flexbox for alignment */
 .watermark-extraction-container {
   padding: 20px;
-  background-color: #f5f7fa;
+  background-color: var(--bg-canvas);
   border-radius: 8px;
 }
 
@@ -249,14 +249,14 @@ const resetForm = () => {
 .input-label {
   font-size: 14px;
   font-weight: 600;
-  color: #303133;
+  color: var(--text-1);
   white-space: nowrap;
 }
 
 /* Card for the watermark display */
 .watermark-card {
   border-radius: 8px;
-  background-color: #fff;
+  background-color: var(--bg-surface);
 }
 
 /* Custom header style for the cards */
@@ -265,7 +265,7 @@ const resetForm = () => {
   justify-content: center;
   font-size: 16px;
   font-weight: bold;
-  color: #303133;
+  color: var(--text-1);
 }
 
 /* Styles for the watermark image and its container */
@@ -289,7 +289,7 @@ const resetForm = () => {
   justify-content: center;
   align-items: center;
   min-height: 200px;
-  color: #909399;
+  color: var(--text-3);
   text-align: center;
 }
 
@@ -313,6 +313,6 @@ const resetForm = () => {
   font-family: 'Courier New', Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
-  background: #fafafa;
+  background: var(--bg-inset);
 }
 </style>
