@@ -457,6 +457,7 @@ export default {
     tourStep5Desc: '页面底部的质量指标说明给出每个指标的定义与阈值色条；所有 ⓘ 弹层中也有同样详解。',
     tourStep6Title: '刷新与筛选',
     tourStep6Desc: '记录卡支持按数据类型与时间范围筛选；右上角刷新可一次性重新拉取全部数据。',
+    tourSkip: '跳过',
   },
   employee: {
     title: '员工管理',
@@ -2806,6 +2807,7 @@ export default {
     tour5Desc: '行 = 方案、列 = 攻击；点说明行的 ⓘ 打开指标词典，悬停列头查看攻击机制与源码。',
     tour6Title: '对比结论',
     tour6Desc: '实验完成后自动生成结论：哪些攻击转败为胜、哪些双方都失败。',
+    tourSkip: '跳过',
     // ── 攻击源码抽屉 ──
     codeBtn: '查看代码',
     codeDrawerTitle: '攻击源码 · {name}',
