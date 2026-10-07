@@ -50,7 +50,7 @@ const { t } = useI18n();
 <style scoped>
 .employee-help-page {
   padding: 24px;
-  background-color: #f7f8fa;
+  background-color: var(--bg-canvas);
   min-height: calc(100vh - 60px - 40px);
   display: flex;
   justify-content: center;
@@ -67,17 +67,17 @@ const { t } = useI18n();
 .card-header {
   font-size: 20px;
   font-weight: 600;
-  color: #333;
+  color: var(--text-1);
 }
 
 .help-content {
   padding: 20px;
   line-height: 1.8;
-  color: #4b5563;
+  color: var(--text-2);
 }
 
 .help-content h2, .help-content h3 {
-  color: #1d2129;
+  color: var(--text-1);
   margin-top: 25px;
   margin-bottom: 15px;
 }
@@ -90,7 +90,7 @@ const { t } = useI18n();
 .help-content h3 {
   font-size: 18px;
   font-weight: 600;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: 5px;
   margin-bottom: 15px;
 }

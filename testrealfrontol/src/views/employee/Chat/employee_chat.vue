@@ -68,7 +68,7 @@
 
             <div v-for="(msg, idx) in aiMessages" :key="idx" class="msg-row" :class="{ me: msg.role === 'user' }">
               <div class="bubble" :class="{ 'ai-bubble': msg.role === 'assistant' }">
-                <div style="font-size:12px;color:#999;margin-bottom:2px">{{ msg.role === 'assistant' ? '🤖 AI' : '👤 我' }}</div>
+                <div class="bubble-role" style="font-size:12px;margin-bottom:2px">{{ msg.role === 'assistant' ? '🤖 AI' : '👤 我' }}</div>
                 <div v-if="msg.loading" class="ai-typing">
                   <span class="motion-loop"></span><span class="motion-loop"></span><span class="motion-loop"></span>
                 </div>
@@ -636,28 +636,28 @@ onBeforeUnmount(() => {
 .ai-messages { flex: 1; overflow-y: auto; padding: 16px 0; min-height: 480px; }
 
 /* AI 对话侧边栏 */
-.ai-conv-list { border: 1px solid #ebeef5; border-radius: 10px; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+.ai-conv-list { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
 .ai-conv-toolbar { margin-bottom: 4px; }
 .ai-conv-items { flex: 1; overflow-y: auto; min-height: 200px; }
 .ai-conv-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 8px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; transition: all 0.2s; }
-.ai-conv-item:hover { background: #f5f7fa; }
-.ai-conv-item.active { border-color: #409eff; background: #ecf5ff; }
+.ai-conv-item:hover { background: var(--bg-hover); }
+.ai-conv-item.active { border-color: var(--accent-9); background: var(--tint-info-bg); }
 .ai-conv-title { display: flex; align-items: center; overflow: hidden; flex: 1; }
-.ai-conv-text { font-size: 13px; color: #303133; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ai-conv-text { font-size: 13px; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ai-conv-meta { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
-.ai-conv-msg-count { font-size: 11px; color: #909399; }
+.ai-conv-msg-count { font-size: 11px; color: var(--text-3); }
 .ai-conv-del { opacity: 0; transition: opacity 0.2s; }
 .ai-conv-item:hover .ai-conv-del { opacity: 1; }
 .ai-welcome { text-align: center; padding: 60px 20px; }
 .ai-welcome-icon { font-size: 48px; margin-bottom: 16px; }
-.ai-welcome h3 { margin: 0 0 8px; font-size: 20px; color: #303133; }
-.ai-welcome p { margin: 0 0 24px; color: #606266; font-size: 14px; }
+.ai-welcome h3 { margin: 0 0 8px; font-size: 20px; color: var(--text-1); }
+.ai-welcome p { margin: 0 0 24px; color: var(--text-2); font-size: 14px; }
 .ai-suggestions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
-.suggestion-btn { border: 1px solid #dcdfe6; border-radius: 16px; font-size: 13px; }
-.suggestion-btn:hover { border-color: #409eff; color: #409eff; }
-.ai-bubble { background: #f0f9eb !important; color: #303133 !important; }
+.suggestion-btn { border: 1px solid var(--border-default); border-radius: 16px; font-size: 13px; }
+.suggestion-btn:hover { border-color: var(--accent-9); color: var(--accent-9); }
+.ai-bubble { background: var(--tint-success-bg) !important; color: var(--text-1) !important; }
 .ai-typing { display: flex; gap: 4px; padding: 4px 0; }
-.ai-typing span { width: 8px; height: 8px; border-radius: 50%; background: #909399; animation: blink 1.4s infinite both; }
+.ai-typing span { width: 8px; height: 8px; border-radius: 50%; background: var(--text-3); animation: blink 1.4s infinite both; }
 .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
 .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
 @keyframes blink { 0%,80%,100% { opacity: 0.3; } 40% { opacity: 1; } }
@@ -665,23 +665,23 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .ai-typing span { animation: none !important; }
 }
-.conversation-list { border: 1px solid #ebeef5; border-radius: 10px; padding: 8px; overflow-y: auto; }
+.conversation-list { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px; overflow-y: auto; }
 .tool-row { margin-bottom: 10px; }
-.search-result { border: 1px dashed #dcdfe6; border-radius: 8px; padding: 8px; margin-bottom: 10px; }
-.result-title { font-size: 12px; color: #909399; margin-bottom: 6px; }
+.search-result { border: 1px dashed var(--border-default); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
+.result-title { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
 .result-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px; }
 .conversation-item { padding: 10px; border-radius: 8px; cursor: pointer; margin-bottom: 8px; border: 1px solid transparent; }
-.conversation-item:hover { background: #f5f7fa; }
-.conversation-item.active { border-color: #409eff; background: #ecf5ff; }
+.conversation-item:hover { background: var(--bg-hover); }
+.conversation-item.active { border-color: var(--accent-9); background: var(--tint-info-bg); }
 .top-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
-.name { font-weight: 600; color: #303133; }
-.time { color: #909399; font-size: 12px; }
+.name { font-weight: 600; color: var(--text-1); }
+.time { color: var(--text-3); font-size: 12px; }
 .bottom-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-.last { color: #606266; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
-.message-panel { border: 1px solid #ebeef5; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
+.last { color: var(--text-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.message-panel { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
 .empty-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
-.peer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid #ebeef5; }
-.sub { color: #909399; margin-left: 4px; font-size: 12px; }
+.peer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle); }
+.sub { color: var(--text-3); margin-left: 4px; font-size: 12px; }
 .message-list { flex: 1; overflow-y: auto; padding: 12px 0; min-height: 420px; }
 /* §3.8 AI 消息 200ms 入场（流式追加不重放：CSS animation 只在挂载触发） */
 .msg-row { display: flex; flex-direction: column; margin-bottom: 12px; align-items: flex-start; animation: motion-rise var(--duration-200) var(--ease-out) both; }
@@ -689,10 +689,11 @@ onBeforeUnmount(() => {
 @media (prefers-reduced-motion: reduce) {
   .msg-row { animation: motion-fade var(--duration-150) linear both; }
 }
-.bubble { max-width: 70%; padding: 10px 12px; border-radius: 8px; background: #f2f6fc; color: #303133; white-space: pre-wrap; word-break: break-word; }
-.msg-row.me .bubble { background: #409eff; color: #fff; }
-.meta { margin-top: 4px; font-size: 12px; color: #909399; }
-.composer { border-top: 1px solid #ebeef5; padding-top: 10px; }
+.bubble { max-width: 70%; padding: 10px 12px; border-radius: 8px; background: var(--bg-fill); color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+.bubble-role { color: var(--text-3); }
+.msg-row.me .bubble { background: var(--accent-9); color: #fff; }
+.meta { margin-top: 4px; font-size: 12px; color: var(--text-3); }
+.composer { border-top: 1px solid var(--border-subtle); padding-top: 10px; }
 .composer-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
 @media (max-width: 1100px) {

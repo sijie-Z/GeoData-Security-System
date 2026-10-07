@@ -13,7 +13,7 @@
       <el-card class="box-card profile-info-card" v-loading="loading">
         <template #header>
           <div class="card-header">
-            <el-icon size="20" color="#409eff"><User /></el-icon>
+            <el-icon size="20" color="var(--accent-9)"><User /></el-icon>
             <span>{{ $t('empProfile.basicInfo') }}</span>
           </div>
         </template>
@@ -75,14 +75,14 @@
       <el-card class="stats-card">
         <template #header>
           <div class="card-header">
-            <el-icon size="20" color="#67c23a"><DataAnalysis /></el-icon>
+            <el-icon size="20" color="var(--tint-success-text)"><DataAnalysis /></el-icon>
             <span>{{ $t('empProfile.accountStats') }}</span>
           </div>
         </template>
         <div class="stats-content">
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="#409eff"><Calendar /></el-icon>
+              <el-icon size="24" color="var(--accent-9)"><Calendar /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ profileData.hireDate ? calculateDaysSinceHire() : '—' }}</div>
@@ -91,7 +91,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="#67c23a"><Clock /></el-icon>
+              <el-icon size="24" color="var(--tint-success-text)"><Clock /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ lastLoginTime || $t('empProfile.firstLogin') }}</div>
@@ -100,7 +100,7 @@
           </div>
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="#e6a23c"><Document /></el-icon>
+              <el-icon size="24" color="var(--tint-warning-text)"><Document /></el-icon>
             </div>
             <div class="stat-info">
               <div class="stat-value">{{ dataCount || '0' }}</div>
@@ -130,7 +130,7 @@
             <div class="avatar-preview" @click="triggerFileInput">
               <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" :alt="$t('empProfile.avatarPreview')" class="avatar-image" />
               <div v-else class="avatar-placeholder">
-                <el-icon size="32" color="#909399"><User /></el-icon>
+                <el-icon size="32" color="var(--text-4)"><User /></el-icon>
                 <span class="avatar-text">{{ $t('empProfile.clickToUpload') }}</span>
               </div>
               <div class="avatar-overlay">
@@ -478,7 +478,7 @@ const handlePasswordClose = (done) => {
 <style scoped>
 .employee-profile-page {
   padding: 0;
-  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  background: var(--bg-canvas);
   min-height: calc(100vh - 60px);
   position: relative;
   overflow: hidden;
@@ -552,12 +552,12 @@ const handlePasswordClose = (done) => {
 .card-header {
   font-size: 18px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-1);
   padding: 20px 24px;
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .profile-content {
@@ -571,15 +571,15 @@ const handlePasswordClose = (done) => {
   gap: 24px;
   margin-bottom: 32px;
   padding: 20px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #e8f2ff 100%);
+  background: var(--tint-info-bg);
   border-radius: 12px;
-  border: 1px solid rgba(64, 158, 255, 0.1);
+  border: 1px solid var(--tint-info-border);
 }
 
 .profile-avatar {
-  background: white;
-  border: 3px solid #e6f0ff;
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+  background: var(--bg-raised);
+  border: 3px solid var(--border-default);
+  box-shadow: var(--shadow-sm);
 }
 
 .avatar-info {
@@ -589,13 +589,13 @@ const handlePasswordClose = (done) => {
 .user-name {
   font-size: 24px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-1);
   margin: 0 0 8px 0;
 }
 
 .user-number {
   font-size: 14px;
-  color: #7f8c8d;
+  color: var(--text-3);
   margin: 0 0 8px 0;
 }
 
@@ -604,12 +604,12 @@ const handlePasswordClose = (done) => {
 }
 
 .default-avatar-icon {
-  color: #bdc3c7;
+  color: var(--text-4);
 }
 
 .profile-descriptions {
   margin-bottom: 32px;
-  background: white;
+  background: var(--bg-surface);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -632,7 +632,7 @@ const handlePasswordClose = (done) => {
 
 .action-buttons .el-button:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--shadow-md);
 }
 
 /* 统计卡片 */
@@ -650,15 +650,15 @@ const handlePasswordClose = (done) => {
   gap: 16px;
   padding: 20px;
   margin-bottom: 16px;
-  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  background: var(--bg-inset);
   border-radius: 12px;
-  border: 1px solid rgba(64, 158, 255, 0.1);
+  border: 1px solid var(--border-subtle);
   transition: all 0.3s ease;
 }
 
 .stat-item:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
 .stat-item:last-child {
@@ -667,11 +667,11 @@ const handlePasswordClose = (done) => {
 
 .quick-links {
   padding: 12px 0 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--border-subtle);
   font-size: 14px;
 }
 .quick-link {
-  color: #409eff;
+  color: var(--accent-9);
   text-decoration: none;
 }
 .quick-link:hover {
@@ -679,18 +679,18 @@ const handlePasswordClose = (done) => {
 }
 .quick-divider {
   margin: 0 10px;
-  color: #ccc;
+  color: var(--text-4);
 }
 
 .stat-icon {
   width: 48px;
   height: 48px;
-  background: white;
+  background: var(--bg-raised);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-info {
@@ -700,13 +700,13 @@ const handlePasswordClose = (done) => {
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #2c3e50;
+  color: var(--text-1);
   margin-bottom: 4px;
 }
 
 .stat-label {
   font-size: 12px;
-  color: #7f8c8d;
+  color: var(--text-3);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -730,19 +730,19 @@ const handlePasswordClose = (done) => {
   width: 100px;
   height: 100px;
   border-radius: 50%;
-  border: 2px dashed #d9d9d9;
+  border: 2px dashed var(--border-strong);
   cursor: pointer;
   overflow: hidden;
   transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #fafafa;
+  background: var(--bg-inset);
 }
 
 .avatar-preview:hover {
-  border-color: #409eff;
-  background: #f0f7ff;
+  border-color: var(--accent-9);
+  background: var(--tint-info-bg);
 }
 
 .avatar-image {
@@ -757,12 +757,12 @@ const handlePasswordClose = (done) => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  color: #909399;
+  color: var(--text-4);
 }
 
 .avatar-text {
   font-size: 12px;
-  color: #909399;
+  color: var(--text-4);
 }
 
 .avatar-overlay {
