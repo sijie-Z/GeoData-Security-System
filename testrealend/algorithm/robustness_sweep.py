@@ -16,10 +16,13 @@ see ``algorithm/robustness.py`` / ``algorithm/robustness_raster.py``):
   * vector vertex_drop — fraction of vertices deleted (``pct``; the attack maps
     it to every ``round(1/pct)``-th vertex);
   * vector noise — coordinate sigma in degrees. The QIM cell of both schemes is
-    ``R = 1e-7`` (``algorithm/embed.py`` / ``algorithm/vector_dqim.py``) and the
-    documented matrix default is ``sigma = 1e-9``, so the informative band spans
-    ``1e-9 -> 1e-5``: tiers below the grid cell survive, tiers far above it
-    collapse (tier values measured on the matrix fixture, see the comments);
+    ``R = 1e-7`` (``algorithm/embed.py`` / ``algorithm/vector_dqim.py``); the
+    documented matrix default is ``sigma = 1e-9`` and the multi-trial interval
+    is ``(5e-10, 2e-9)``, so the ladder anchors its lower half on that
+    documented interval and extends two decades beyond it (measured on the
+    413k-vertex E2E vector: survives 1e-9, loses decoding at 1e-8; a small
+    60x300 fixture fails already at 1e-9 — the noise tolerance grows with the
+    vote count per symbol, i.e. with dataset size; see the ladder comment);
   * vector simplify — Douglas-Peucker tolerance in degrees;
   * raster jpeg — PIL quality, lower = harsher;
   * raster resize — bilinear downsample factor, lower = harsher;
@@ -80,17 +83,18 @@ VECTOR_TRANSLATE_LADDER = (
     {"label": "平移 δ=0.008°", "params": {"dx": 0.008, "dy": 0.008}},
 )
 
-# scale: near-1 shrinkage factors. Both schemes' seeds anchor on the R = 1e-7
-# grid of coordinate differences (~1e-3° for the matrix fixture), so a factor
-# within 1e-4 of 1.0 keeps most difference cells and the collapse — where it
-# exists — happens in the last two tiers (measured; see the calibration note
-# in the task report). Factor 1.0 itself would be the identity, not a tier.
+# scale: near-1 shrinkage factors, 0.1% -> 5% (the documented matrix default is
+# factor 2.0, far beyond this ladder). Measured on the matrix fixture: both
+# schemes lose decoding at every non-identity factor probed (even 0.99999), so
+# the whole ladder reads "dead" — the honest, documented boundary of
+# coordinate-domain schemes under scaling ("归一化坐标假设被破坏"), with the
+# labels still spanning mild -> clearly visible shrink.
 VECTOR_SCALE_LADDER = (
-    {"label": "缩放 ×0.9999", "params": {"factor": 0.9999}},
-    {"label": "缩放 ×0.9995", "params": {"factor": 0.9995}},
     {"label": "缩放 ×0.999", "params": {"factor": 0.999}},
     {"label": "缩放 ×0.995", "params": {"factor": 0.995}},
     {"label": "缩放 ×0.99", "params": {"factor": 0.99}},
+    {"label": "缩放 ×0.98", "params": {"factor": 0.98}},
+    {"label": "缩放 ×0.95", "params": {"factor": 0.95}},
 )
 
 # vertex_drop: 1% ⇔ every 100th vertex, 20% ⇔ every 5th (the attack's keep_mod

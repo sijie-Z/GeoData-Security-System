@@ -30,7 +30,14 @@ def _build_matrix_payload():
     from crypto.payload import build_qr_v2_text
 
     kid, _private_key = ensure_active_key()
-    return build_qr_v2_text("gh" * 16, 4242, kid, int(datetime.now(UTC).timestamp()))
+    return build_qr_v2_text("ab" * 16, 4242, kid, int(datetime.now(UTC).timestamp()))
+
+
+def _fresh_admin_headers(client):
+    """A brand-new admin token (the test config caps JWT lifetime at 60s, so
+    long-running sweep tests must not reuse one token across worker joins)."""
+    resp = client.post("/api/login", json={"username": "admin1", "password": "admin123", "role": "admin"})
+    return {"Authorization": f"Bearer {resp.get_json()['access_token']}"}
 
 
 def _join_worker(run_id, timeout=300):
@@ -260,8 +267,12 @@ class TestVectorSweepEngine:
             run_sweep(shp, None, ["dqim1"], ["banana"], payload, str(tmp_path / "w2"))
 
 
-def _make_sweep_shp(path, n_lines=40, n_pts=200, x0=116.0, y0=39.0, seed=7):
-    """Smaller sibling of test_robustness._make_matrix_shp (same recipe)."""
+def _make_sweep_shp(path, n_lines=60, n_pts=300, x0=116.0, y0=39.0, seed=7):
+    """Same recipe (and size) as test_robustness._make_matrix_shp — a smaller
+    fixture cannot carry the full delivery-size payload: measured, a 40x200
+    variant fails dqim1 decoding even with no attack (too few votes per QR
+    symbol), while 60x300 decodes at baseline and under the whole translate
+    ladder."""
     import geopandas as gpd
     import numpy as np
     from shapely.geometry import LineString
@@ -295,7 +306,7 @@ class TestSweepApi:
         run_id = data["run_id"]
         _join_worker(run_id)
 
-        detail = client.get(f"/api/robustness/runs/{run_id}", headers=auth_headers)
+        detail = client.get(f"/api/robustness/runs/{run_id}", headers=_fresh_admin_headers(client))
         assert detail.status_code == 200
         run = detail.get_json()["run"]
         assert run["mode"] == "sweep"
@@ -319,7 +330,7 @@ class TestSweepApi:
             assert isinstance(row["decode_success"], bool)
             assert row["attack_params"] == RASTER_SWEEP_LADDERS[row["attack"]][row["strength_index"]]["params"]
 
-        listing = client.get("/api/robustness/runs", headers=auth_headers)
+        listing = client.get("/api/robustness/runs", headers=_fresh_admin_headers(client))
         entry = next(e for e in listing.get_json()["runs"] if e["run_id"] == run_id)
         assert entry["mode"] == "sweep"
 
@@ -337,7 +348,7 @@ class TestSweepApi:
         run_id = data["run_id"]
         _join_worker(run_id)
 
-        run = client.get(f"/api/robustness/runs/{run_id}", headers=auth_headers).get_json()["run"]
+        run = client.get(f"/api/robustness/runs/{run_id}", headers=_fresh_admin_headers(client)).get_json()["run"]
         assert run["mode"] == "matrix"
         assert run["ladders"] == {}
         assert len(run["rows"]) == 2
@@ -347,17 +358,18 @@ class TestSweepApi:
 
         entry = next(
             e
-            for e in client.get("/api/robustness/runs", headers=auth_headers).get_json()["runs"]
+            for e in client.get("/api/robustness/runs", headers=_fresh_admin_headers(client)).get_json()["runs"]
             if e["run_id"] == run_id
         )
         assert entry["mode"] == "matrix"
 
-    def test_sweep_trials_default_and_clamp(self, client, db, auth_headers):
+    def test_sweep_trials_default_and_clamp(self, client, db):
         """trials absent -> 3; trials=7 -> clamped to 5; rows scale with trials."""
+        headers = _fresh_admin_headers(client)
         resp = client.post(
             "/api/robustness/run",
             json={"kind": "raster", "mode": "sweep", "schemes": ["lsb"], "attacks": ["jpeg"], "trials": 7},
-            headers=auth_headers,
+            headers=headers,
         )
         assert resp.status_code == 202, resp.get_json()
         data = resp.get_json()["data"]
@@ -365,14 +377,14 @@ class TestSweepApi:
         assert data["total"] == SWEEP_TIER_COUNT * 5
         run_id = data["run_id"]
         _join_worker(run_id)
-        run = client.get(f"/api/robustness/runs/{run_id}", headers=auth_headers).get_json()["run"]
+        run = client.get(f"/api/robustness/runs/{run_id}", headers=_fresh_admin_headers(client)).get_json()["run"]
         assert run["trials"] == 5
         assert len(run["rows"]) == SWEEP_TIER_COUNT * 5
 
         resp2 = client.post(
             "/api/robustness/run",
             json={"kind": "raster", "mode": "sweep", "schemes": ["lsb"], "attacks": ["jpeg"]},
-            headers=auth_headers,
+            headers=_fresh_admin_headers(client),
         )
         assert resp2.status_code == 202, resp2.get_json()
         data2 = resp2.get_json()["data"]
