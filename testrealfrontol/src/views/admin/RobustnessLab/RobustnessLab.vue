@@ -660,8 +660,13 @@ const loadRun = async (runId) => {
     const body = res.data
     if (body?.status && body.run) {
       applyRunPayload(body.run)
-      if (body.run.done < body.run.total) startPolling()
-      else stopPolling()
+      if (body.run.done < body.run.total) {
+        startPolling()
+      } else {
+        stopPolling()
+        // 已完成 run：同步一次历史列表，避免行内"运行中 0/N"进度残留
+        fetchRuns()
+      }
     } else {
       ElMessage.error(body?.msg || t('robustnessLab.matrixLoadFailed'))
     }
