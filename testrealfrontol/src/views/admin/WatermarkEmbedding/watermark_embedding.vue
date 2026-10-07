@@ -13,7 +13,7 @@
             <el-option :label="$t('wmEmbed.algorithmIwDct') || 'IW-DCT (needs large image)'" value="iw_dct" />
           </el-select>
           <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
-            <el-icon style="color: #94a3b8; cursor: help;"><QuestionFilled /></el-icon>
+            <el-icon style="color: var(--text-3); cursor: help;"><QuestionFilled /></el-icon>
           </el-tooltip>
         </div>
         <p class="algo-host-hint">{{ $t('wmEmbed.algorithmHostHint') }}</p>
@@ -140,7 +140,7 @@
       <el-descriptions-item :label="$t('wmEmbed.previewUtilization') || 'Capacity Utilization'">
         <el-progress
           :percentage="Math.min(100, previewData.estimated_utilization)"
-          :color="previewData.estimated_utilization > 80 ? '#f56c6c' : previewData.estimated_utilization > 50 ? '#e6a23c' : '#67c23a'"
+          :color="previewData.estimated_utilization > 80 ? 'var(--tint-danger-text)' : previewData.estimated_utilization > 50 ? 'var(--tint-warning-text)' : 'var(--tint-success-text)'"
           :stroke-width="18"
           :text-inside="true"
         />
