@@ -622,7 +622,12 @@ body {
   box-shadow: var(--elevation-3);
 }
 
-.el-popper {
+.el-popper,
+.el-popper.is-dark,
+.el-popover.el-popper,
+.el-select__popper.el-popper,
+.el-dropdown__popper.el-popper,
+.el-tooltip__popper.el-popper {
   box-shadow: var(--elevation-2);
 }
 
@@ -704,7 +709,7 @@ body {
 }
 
 .el-table td.el-table__cell {
-  transition: background-color 120ms var(--ease-out-soft);
+  transition: background-color 120ms var(--ease-out-soft) !important;
 }
 
 .el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {

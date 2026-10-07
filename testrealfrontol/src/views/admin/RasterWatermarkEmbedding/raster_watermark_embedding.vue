@@ -497,12 +497,13 @@
   }
   .embed-table-compact {
     width: 100%;
-    --el-table-border-color: #e2e8f0;
-    --el-table-header-bg-color: #f1f5f9;
+    /* 令牌收敛：替代硬编码浅色（深色模式下不再失真） */
+    --el-table-border-color: var(--border-color);
+    --el-table-header-bg-color: var(--bg-tertiary);
   }
   .embed-table-compact :deep(.el-table__header th) {
-    background: #e8f4f8 !important;
-    color: #475569;
+    background: var(--bg-tertiary) !important;
+    color: var(--text-secondary);
     font-weight: 600;
   }
   .embed-table-compact :deep(.el-table__row:hover > td) {

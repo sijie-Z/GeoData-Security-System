@@ -5,7 +5,7 @@
       <p class="page-desc">{{ $t('adminLogViewer.description') }}</p>
     </div>
 
-    <el-card class="log-card" shadow="hover">
+    <el-card class="log-card density-compact" shadow="hover">
       <template #header>
         <div class="card-header">
           <span class="card-title">{{ $t('adminLogViewer.logList') }}</span>

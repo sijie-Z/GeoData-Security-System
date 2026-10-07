@@ -34,7 +34,7 @@
           <div v-else-if="row.status === 'missing'" class="dc-bar is-missing" :style="{ left: row.left + '%' }" />
           <div v-else-if="row.status === 'pending'" class="dc-bar is-pending" :style="{ left: row.left + '%' }" />
         </div>
-        <div v-if="row.status === 'missing'" class="dc-missing">{{ $t('deliveryChain.missing') }}</div>
+        <div v-if="row.status === 'missing'" class="dc-missing">{{ $t('common.deliveryChain.missing') }}</div>
       </div>
     </div>
   </div>
@@ -121,7 +121,7 @@ const rows = computed(() => {
       label: item.label,
       status: item.status,
       tsLabel: item.ms != null ? fmtTs(item.ts) : '—',
-      durationLabel: item.status === 'done' ? (durationLabel || t('deliveryChain.startPoint')) : '',
+      durationLabel: item.status === 'done' ? (durationLabel || t('common.deliveryChain.startPoint')) : '',
       left: Math.round(left * 10) / 10,
       width: Math.round(width * 10) / 10,
     }
