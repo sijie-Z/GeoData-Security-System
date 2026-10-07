@@ -1790,8 +1790,9 @@ export default {
     confirmClose: 'Confirm close?',
     algorithm: 'Algorithm',
     algorithmBlind: 'Blind (crop-resistant, needs large image)',
-    algorithmHostHint: 'Histogram and blind watermarks strongly constrain the host: histogram needs a near-constant image; blind needs a ≥1024-pixel image',
-    algorithmTip: 'LSB: reversible but fragile. DWT: frequency-domain, robust to attacks. Histogram: high capacity for concentrated images.',
+    algorithmIwDct: 'IW-DCT (robust to compression/noise, needs large image)',
+    algorithmHostHint: 'Histogram and blind / IW-DCT watermarks strongly constrain the host: histogram needs a near-constant image; blind and IW-DCT need a ≥1024-pixel image (capacity grows with host area)',
+    algorithmTip: 'LSB: reversible but fragile. DWT: frequency-domain, robust to attacks. Histogram: high capacity for concentrated images. IW-DCT: block DCT over the DWT LL subband, robust to compression / noise.',
     preview: 'Preview',
     previewTitle: 'Watermark Embedding Preview',
     previewDataType: 'Data Type',
@@ -2542,7 +2543,7 @@ export default {
   robustnessLab: {
     title: 'Robustness Lab',
     subtitle: 'Attack-matrix experiments: two vector schemes (Legacy · absolute domain / D-QIM · difference domain) x six attacks, measured by NC / BER / decode success',
-    subtitleRaster: 'Attack-matrix experiments: four raster schemes (LSB · reversible / DWT / Histogram / Blind) x six image attacks, measured by NC / BER / decode success',
+    subtitleRaster: 'Attack-matrix experiments: five raster schemes (LSB · reversible / DWT / Histogram / Blind / IW-DCT) x six image attacks, measured by NC / BER / decode success',
     refreshBtn: 'Refresh',
     methodTitle: 'Methodology',
     methodDesc: 'The attack matrix follows the academic WAVES-style single-distortion benchmark and its decision metrics: the same vector dataset is watermarked by each coordinate-domain scheme, attacked one at a time, then decoded and compared. Currently covers vector data: two schemes x six attacks.',
@@ -2553,7 +2554,7 @@ export default {
     methodMetricsLabel: 'Metrics',
     methodMetrics: 'NC (normalized correlation, 1 = identical), BER, decode success',
     methodBoundary: 'Documented boundary: the normalized-coordinate assumption of coordinate-domain schemes breaks under scale / simplify attacks — these attacks are unsupported and honestly recorded as decode failures.',
-    methodBoundaryRaster: 'Documented boundary (per scheme, never prettified): LSB · reversible — exactly restored with no attack, but any pixel change (compression / resize / noise) breaks it immediately; DWT — tolerates compression and noise, but not geometric transforms (resize / crop / rotate); Histogram shift — has capacity only on near-constant (highly concentrated) images, and on the default random host it honestly reports insufficient capacity at embed time; Blind — crop-resistant but needs a large host, capacity grows with host area; resize attacks are not scaled back up, and every scheme’s failures are recorded as decode failures as-is.',
+    methodBoundaryRaster: 'Documented boundary (per scheme, never prettified): LSB · reversible — exactly restored with no attack, but any pixel change (compression / resize / noise) breaks it immediately; DWT — tolerates compression and noise, but not geometric transforms (resize / crop / rotate); Histogram shift — has capacity only on near-constant (highly concentrated) images, and on the default random host it honestly reports insufficient capacity at embed time; Blind — crop-resistant but needs a large host, capacity grows with host area; IW-DCT — block-DCT mid-frequency pair comparison, tolerates compression and noise but not geometric transforms (extraction honestly errors on size mismatch); resize attacks are not scaled back up, and every scheme’s failures are recorded as decode failures as-is.',
     runTitle: 'Start an experiment',
     kindLabel: 'Data Type',
     kind: {
@@ -2656,6 +2657,7 @@ export default {
       dwt: 'DWT',
       histogram: 'Histogram',
       blind: 'Blind (crop-resistant)',
+      iw_dct: 'IW-DCT',
     },
     attack: {
       none: 'None (baseline)',
@@ -2746,6 +2748,7 @@ export default {
       dwt: 'DWT: wavelet frequency-domain embedding — frequency information tolerates compression and noise better.',
       histogram: 'Histogram shift: capacity comes from moving the pixel-value histogram peak — only viable on near-constant (highly concentrated) images.',
       blind: 'Blind: block-statistics embedding, crop-resistant; capacity grows with host size — larger hosts are more robust.',
+      iw_dct: 'IW-DCT: block DCT over the DWT LL subband, fixed mid-frequency coefficient-pair comparison with cyclic repetition + majority voting; survives compression and noise, but not geometric transforms (resize / crop / rotate).',
     },
     // ── How-the-experiment-runs explainer ──
     howTitle: 'How the experiment runs',

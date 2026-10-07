@@ -619,7 +619,7 @@ const SCHEMES = ['legacy', 'dqim1']
 const ATTACKS = ['none', 'translate', 'scale', 'vertex_drop', 'noise', 'simplify']
 // 栅格 kind：宿主由后端程序化生成（512×512 GeoTIFF，data_id 忽略）；
 // 攻击默认勾选含 blur（后端白名单支持，已实测 202 接受）
-const RASTER_SCHEMES = ['lsb', 'dwt', 'histogram', 'blind']
+const RASTER_SCHEMES = ['lsb', 'dwt', 'histogram', 'blind', 'iw_dct']
 const RASTER_ATTACKS = ['none', 'jpeg', 'resize', 'crop', 'rotate', 'noise', 'blur']
 const RASTER_ONLY_ATTACKS = new Set(['jpeg', 'resize', 'crop', 'rotate', 'blur'])
 // 实验规模上限（与后端 MAX_MATRIX_ROWS 一致）：格子数 × 试验次数 ≤ 200
@@ -2402,7 +2402,8 @@ onMounted(async () => {
 }
 
 .scheme-name.is-dqim1,
-.scheme-name.is-blind {
+.scheme-name.is-blind,
+.scheme-name.is-iw_dct {
   color: var(--primary-600);
 }
 

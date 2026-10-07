@@ -1790,8 +1790,9 @@ export default {
     confirmClose: '确认关闭？',
     algorithm: '算法',
     algorithmBlind: '盲水印（抗裁剪·需大图）',
-    algorithmHostHint: '直方图与盲水印对宿主有强约束：直方图需近常量图；盲水印需 ≥1024 大图',
-    algorithmTip: 'LSB: 可逆但脆弱。DWT: 频域嵌入，抗攻击。Histogram: 集中分布图像高容量。',
+    algorithmIwDct: 'IW-DCT（抗压缩噪声·需大图）',
+    algorithmHostHint: '直方图与盲水印 / IW-DCT 对宿主有强约束：直方图需近常量图；盲水印与 IW-DCT 需 ≥1024 大图（容量随宿主面积增长）',
+    algorithmTip: 'LSB: 可逆但脆弱。DWT: 频域嵌入，抗攻击。Histogram: 集中分布图像高容量。IW-DCT: DWT-LL 块 DCT 中频比较，抗压缩 / 噪声。',
     preview: '预览',
     previewTitle: '水印嵌入预览',
     previewDataType: '数据类型',
@@ -2542,7 +2543,7 @@ export default {
   robustnessLab: {
     title: '鲁棒性实验室',
     subtitle: '攻击矩阵实验：矢量两方案（旧方案·绝对坐标 / D-QIM·差分域）× 六种攻击，指标 NC / BER / 解码成败',
-    subtitleRaster: '攻击矩阵实验：栅格四方案（LSB 可逆 / DWT / 直方图 / 盲水印）× 六种图像攻击，指标 NC / BER / 解码成败',
+    subtitleRaster: '攻击矩阵实验：栅格五方案（LSB 可逆 / DWT / 直方图 / 盲水印 / IW-DCT）× 六种图像攻击，指标 NC / BER / 解码成败',
     refreshBtn: '刷新',
     methodTitle: '方法论',
     methodDesc: '攻击矩阵参考学术基准的 WAVES 式单失真攻击与判定指标：同一份矢量数据分别经两个坐标域方案嵌入水印，逐一对含水印数据施加攻击后再解码比对。当前覆盖矢量数据，两方案 × 六种攻击。',
@@ -2553,7 +2554,7 @@ export default {
     methodMetricsLabel: '指标',
     methodMetrics: 'NC 归一化相关（1 = 完全一致）、BER 误码率、解码成败',
     methodBoundary: '文档化边界：坐标域方案的归一化坐标假设在缩放 / 简化攻击下被破坏，这两类攻击不受支持，实验将如实记为解码失败。',
-    methodBoundaryRaster: '文档化边界（逐算法，不粉饰）：LSB 可逆——无攻击时精确还原，任意像素级改动（压缩 / 缩放 / 噪声）立即失效；DWT——对压缩与噪声更耐受，但几何变换（缩放 / 裁剪 / 旋转）即失效；直方图平移——仅近常量（高集中）图像容量充足，默认随机宿主会在嵌入阶段如实报容量不足；盲水印——抗裁剪、需大宿主，容量随宿主面积增长；缩放攻击不放大回原尺寸，各算法失败一律如实记为解码失败。',
+    methodBoundaryRaster: '文档化边界（逐算法，不粉饰）：LSB 可逆——无攻击时精确还原，任意像素级改动（压缩 / 缩放 / 噪声）立即失效；DWT——对压缩与噪声更耐受，但几何变换（缩放 / 裁剪 / 旋转）即失效；直方图平移——仅近常量（高集中）图像容量充足，默认随机宿主会在嵌入阶段如实报容量不足；盲水印——抗裁剪、需大宿主，容量随宿主面积增长；IW-DCT——DWT-LL 块 DCT 中频系数比较，抗压缩与噪声，但几何变换即失效（提取端对尺寸失配如实报错）；缩放攻击不放大回原尺寸，各算法失败一律如实记为解码失败。',
     runTitle: '发起实验',
     kindLabel: '数据类型',
     kind: {
@@ -2656,6 +2657,7 @@ export default {
       dwt: 'DWT',
       histogram: '直方图',
       blind: '盲水印（抗裁剪）',
+      iw_dct: 'IW-DCT',
     },
     attack: {
       none: '无攻击（基准）',
@@ -2746,6 +2748,7 @@ export default {
       dwt: 'DWT：小波频域嵌入，频域信息对压缩与噪声更耐受。',
       histogram: '直方图平移：靠像素直方图峰值腾挪容量，仅近常量（高集中）图像可用。',
       blind: '盲水印：块级统计嵌入，抗裁剪；容量随宿主尺寸增长，大宿主更稳。',
+      iw_dct: 'IW-DCT：DWT-LL 子带块 DCT，固定中频系数对比较嵌入 + 循环重复多数投票；抗压缩与噪声，几何变换（缩放 / 裁剪 / 旋转）即失效。',
     },
     // ── 实验流程图解 ──
     howTitle: '实验是怎么做的',
