@@ -672,6 +672,7 @@ const chartInk = computed(() => (isDark.value
       greenHi: '#6fce9f',
       red: '#e06a6a',
       amber: '#d6a75c',
+      amberHi: '#e0b97a',
       neutral: '#6e6e7a',
     }
   : {
@@ -690,6 +691,7 @@ const chartInk = computed(() => (isDark.value
       greenHi: '#3e9c74',
       red: '#b42318',
       amber: '#9a6b15',
+      amberHi: '#d6a75c',
       neutral: '#8f8f8f',
     }))
 // ── NC 直方图（服务端 10 桶，低于 0.8 冷暖双色渐变） ──
