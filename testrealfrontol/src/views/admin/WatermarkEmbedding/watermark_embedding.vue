@@ -17,6 +17,9 @@
         </div>
         <p class="algo-host-hint">{{ $t('wmEmbed.algorithmHostHint') }}</p>
       </div>
+      <el-button type="primary" class="batch-open-btn" @click="openBatchDialog">
+        {{ $t('wmEmbed.batchEmbed') }}
+      </el-button>
     </div>
     <el-table :data="data.list" border style="width: 100%" v-loading="loading">
       <el-table-column prop="id" :label="$t('wmEmbed.colApplicationId')" width="82.5" />
@@ -149,6 +152,148 @@
     </el-descriptions>
   </el-dialog>
 
+  <!-- Batch Embed Job Dialog：选申请 → 真实进度 → 逐项结果 → 重试失败项 / 历史作业 -->
+  <el-dialog
+    v-model="batchVisible"
+    :title="$t('wmEmbed.batchDialogTitle')"
+    width="880px"
+    class="batch-dialog"
+  >
+    <!-- ① 发起视图：可选申请（已审批·已生成水印·未嵌入）+ 历史作业 -->
+    <div v-if="!batchJob" class="batch-create">
+      <div class="batch-toolbar">
+        <span class="batch-select-title">{{ $t('wmEmbed.batchSelectTitle') }}</span>
+        <span class="batch-selected-hint">{{ $t('wmEmbed.batchSelected', { n: batchSelected.length }) }}</span>
+        <div class="batch-algo-row">
+          <span class="algo-label">{{ $t('wmEmbed.batchAlgorithmLabel') }}</span>
+          <el-select v-model="batchAlgorithm" size="small" style="width: 200px;">
+            <el-option label="LSB (Reversible)" value="lsb" />
+            <el-option label="DWT (Frequency)" value="dwt" />
+            <el-option label="Histogram Shift" value="histogram" />
+            <el-option :label="$t('wmEmbed.algorithmBlind')" value="blind" />
+          </el-select>
+        </div>
+      </div>
+      <el-table
+        :data="batchEligible"
+        border
+        size="small"
+        v-loading="batchEligibleLoading"
+        max-height="260"
+        @selection-change="onBatchSelectionChange"
+      >
+        <el-table-column type="selection" width="42" />
+        <el-table-column prop="id" :label="$t('wmEmbed.colApplicationId')" width="88" />
+        <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" min-width="130" show-overflow-tooltip />
+        <el-table-column prop="data_id" :label="$t('wmEmbed.colVectorDataId')" width="105" />
+        <el-table-column :label="$t('wmEmbed.previewDataType')" width="88">
+          <template #default="scope">
+            <el-tag size="small" effect="plain" :type="(scope.row.data_type || '').toLowerCase() === 'raster' ? 'warning' : 'primary'">
+              {{ scope.row.data_type || 'vector' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="applicant_name" :label="$t('wmEmbed.colApplicantName')" width="105" />
+        <template #empty>
+          <el-empty :description="$t('wmEmbed.batchNoEligible')" :image-size="60" />
+        </template>
+      </el-table>
+      <div class="batch-actions">
+        <span class="batch-limit-hint">{{ $t('wmEmbed.batchLimit') }}</span>
+        <el-button
+          type="primary"
+          :loading="batchSubmitting"
+          :disabled="!batchSelected.length"
+          @click="submitBatchSelected"
+        >
+          {{ $t('wmEmbed.batchSubmit') }}
+        </el-button>
+      </div>
+
+      <div class="batch-history">
+        <div class="batch-section-title">{{ $t('wmEmbed.batchHistoryTitle') }}</div>
+        <el-table :data="batchHistory" size="small" border v-loading="batchHistoryLoading" max-height="200">
+          <el-table-column prop="created_at" :label="$t('wmEmbed.batchCreatedAt')" width="165" />
+          <el-table-column :label="$t('wmEmbed.batchColStatus')" width="88">
+            <template #default="scope">
+              <el-tag size="small" :type="batchJobStatusType(scope.row.status)">{{ batchJobStatusText(scope.row.status) }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('wmEmbed.batchJobCount')" width="90">
+            <template #default="scope">{{ scope.row.done }} / {{ scope.row.total }}</template>
+          </el-table-column>
+          <el-table-column prop="ok" :label="$t('wmEmbed.batchOkCount')" width="72" />
+          <el-table-column prop="fail" :label="$t('wmEmbed.batchFailCount')" width="72" />
+          <el-table-column prop="algorithm" :label="$t('wmEmbed.algorithm')" width="92" />
+          <el-table-column prop="uuid" label="UUID" min-width="130" show-overflow-tooltip />
+          <el-table-column :label="$t('wmEmbed.colAction')" width="96">
+            <template #default="scope">
+              <el-button size="small" link type="primary" @click="loadBatchJob(scope.row.uuid)">
+                {{ $t('wmEmbed.batchViewDetail') }}
+              </el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <el-empty :description="$t('wmEmbed.batchHistoryEmpty')" :image-size="48" />
+          </template>
+        </el-table>
+      </div>
+    </div>
+
+    <!-- ② 作业详情视图：真实进度条 + 逐项结果 + 重试失败项 -->
+    <div v-else class="batch-detail" v-loading="batchDetailLoading">
+      <div class="batch-detail-head">
+        <el-button size="small" @click="backToBatchSelect">{{ $t('wmEmbed.batchBack') }}</el-button>
+        <el-tag size="small" :type="batchJobStatusType(batchJob.status)">{{ batchJobStatusText(batchJob.status) }}</el-tag>
+        <span class="batch-detail-uuid">{{ batchJob.uuid }}</span>
+        <span class="batch-detail-counts">
+          {{ $t('wmEmbed.batchOkCount') }} {{ batchJob.ok }} ·
+          {{ $t('wmEmbed.batchFailCount') }} {{ batchJob.fail }} ·
+          {{ batchJob.done }}/{{ batchJob.total }}
+        </span>
+      </div>
+      <div class="batch-progress-block">
+        <div class="batch-section-title">{{ $t('wmEmbed.batchProgress') }}</div>
+        <el-progress
+          :percentage="batchProgressPercent"
+          :status="batchProgressStatus"
+          :stroke-width="18"
+          :text-inside="true"
+          :duration="2"
+          :striped="batchJob.status === 'running'"
+          :striped-flow="batchJob.status === 'running'"
+        />
+      </div>
+      <div class="batch-section-title">{{ $t('wmEmbed.batchResultTitle') }}</div>
+      <el-table :data="batchJob.items" size="small" border max-height="280">
+        <el-table-column prop="application_id" :label="$t('wmEmbed.colApplicationId')" width="88" />
+        <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" min-width="120" show-overflow-tooltip />
+        <el-table-column prop="data_type" :label="$t('wmEmbed.previewDataType')" width="90" />
+        <el-table-column :label="$t('wmEmbed.batchColStatus')" width="92">
+          <template #default="scope">
+            <el-tag size="small" :type="batchItemStatusType(scope.row.status)">{{ batchItemStatusText(scope.row.status) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column :label="$t('wmEmbed.batchColError')" min-width="230">
+          <template #default="scope">
+            <span v-if="scope.row.error" class="batch-item-error" :title="scope.row.error">{{ scope.row.error }}</span>
+            <span v-else class="batch-item-empty">—</span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="batch-actions">
+        <el-button
+          v-if="batchJob.status === 'done' && batchJob.fail > 0"
+          type="warning"
+          :loading="batchSubmitting"
+          @click="retryFailedBatch"
+        >
+          {{ $t('wmEmbed.batchRetryFailed') }}
+        </el-button>
+      </div>
+    </div>
+  </el-dialog>
+
 </template>
 
 <script setup>
@@ -161,7 +306,10 @@ import {
   getEmbeddingApplications,
   embedWatermark as embedWatermarkApi,
   embedDispatch,
-  previewWatermark as previewWatermarkApi
+  previewWatermark as previewWatermarkApi,
+  startBatchEmbedJob,
+  getBatchEmbedJobs,
+  getBatchEmbedJob
 } from '@/api/watermark';
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
 import L from 'leaflet';
@@ -385,6 +533,212 @@ const selectedData = reactive({
   applicant_user_number: ''
 });
 
+// ──────────────────────────────────────
+//  批量嵌入作业（feat_batch_embed）
+//  真实进度：1.5s 轮询作业详情（done/total），无任何假进度
+// ──────────────────────────────────────
+const BATCH_POLL_MS = 1500;
+const MAX_BATCH_ITEMS = 50;
+
+const batchVisible = ref(false);
+const batchEligible = ref([]);
+const batchEligibleLoading = ref(false);
+const batchSelected = ref([]);
+const batchAlgorithm = ref('lsb');
+const batchSubmitting = ref(false);
+const batchJob = ref(null); // 作业详情（null = 发起视图）
+const batchDetailLoading = ref(false);
+const batchHistory = ref([]);
+const batchHistoryLoading = ref(false);
+let batchPollTimer = null;
+
+const openBatchDialog = () => {
+  batchVisible.value = true;
+  batchJob.value = null;
+  batchSelected.value = [];
+  fetchBatchEligible();
+  fetchBatchHistory();
+};
+
+const fetchBatchEligible = async () => {
+  batchEligibleLoading.value = true;
+  try {
+    // data_type='' 关闭既有 data_type 过滤（同时列出矢量与栅格）；
+    // embedded=false 只列未嵌入的申请（页面既有接口的轻量扩展参数）
+    const res = await getEmbeddingApplications({ page: 1, pageSize: 100, data_type: '', embedded: 'false' });
+    if (res.data?.status) {
+      batchEligible.value = res.data.application_data || [];
+    } else {
+      batchEligible.value = [];
+      ElMessage.error(res.data?.msg || t('wmEmbed.fetchFailed'));
+    }
+  } catch (err) {
+    console.error('Error fetching batch-eligible applications:', err);
+    batchEligible.value = [];
+    ElMessage.error(t('wmEmbed.fetchFailed'));
+  } finally {
+    batchEligibleLoading.value = false;
+  }
+};
+
+const fetchBatchHistory = async () => {
+  batchHistoryLoading.value = true;
+  try {
+    const res = await getBatchEmbedJobs({ page: 1, per_page: 20 });
+    if (res.data?.status) {
+      batchHistory.value = res.data.jobs || [];
+    }
+  } catch (err) {
+    console.error('Error fetching batch jobs:', err);
+    ElMessage.error(t('wmEmbed.batchLoadFailed'));
+  } finally {
+    batchHistoryLoading.value = false;
+  }
+};
+
+const onBatchSelectionChange = (rows) => {
+  batchSelected.value = rows;
+};
+
+const stopBatchPolling = () => {
+  if (batchPollTimer) {
+    clearInterval(batchPollTimer);
+    batchPollTimer = null;
+  }
+};
+
+const startBatchPolling = () => {
+  stopBatchPolling();
+  batchPollTimer = setInterval(batchPollTick, BATCH_POLL_MS);
+};
+
+const batchPollTick = async () => {
+  const jobUuid = batchJob.value?.uuid;
+  if (!jobUuid) {
+    stopBatchPolling();
+    return;
+  }
+  try {
+    const res = await getBatchEmbedJob(jobUuid);
+    const job = res.data?.job;
+    if (!job) return;
+    batchJob.value = job;
+    if (job.status === 'done') {
+      stopBatchPolling();
+      fetchBatchHistory();
+    }
+  } catch {
+    // 单次轮询失败静默，下一周期重试
+  }
+};
+
+const loadBatchJob = async (jobUuid) => {
+  if (!jobUuid) return;
+  batchDetailLoading.value = true;
+  try {
+    const res = await getBatchEmbedJob(jobUuid);
+    if (res.data?.status && res.data.job) {
+      batchJob.value = res.data.job;
+      if (res.data.job.status === 'done') {
+        stopBatchPolling();
+      } else {
+        startBatchPolling();
+      }
+    } else {
+      ElMessage.error(res.data?.msg || t('wmEmbed.batchLoadFailed'));
+    }
+  } catch (err) {
+    ElMessage.error(err.response?.data?.msg || t('wmEmbed.batchLoadFailed'));
+  } finally {
+    batchDetailLoading.value = false;
+  }
+};
+
+const submitBatch = async (ids) => {
+  if (!ids || !ids.length) {
+    ElMessage.warning(t('wmEmbed.batchNoSelection'));
+    return;
+  }
+  if (ids.length > MAX_BATCH_ITEMS) {
+    ElMessage.warning(t('wmEmbed.batchLimit'));
+    return;
+  }
+  batchSubmitting.value = true;
+  try {
+    const res = await startBatchEmbedJob({ application_ids: ids, algorithm: batchAlgorithm.value });
+    if (res.data?.status) {
+      ElMessage.success(t('wmEmbed.batchStarted'));
+      await loadBatchJob(res.data.data.uuid);
+      fetchBatchHistory();
+    } else {
+      ElMessage.error(res.data?.msg || t('wmEmbed.batchStartFailed'));
+    }
+  } catch (error) {
+    const body = error.response?.data;
+    if (error.response?.status === 409 && body?.data?.uuid) {
+      // 单活动作业锁：提示并直接跳转当前作业详情
+      ElMessage.warning(body.msg || t('wmEmbed.batchActiveExists'));
+      await loadBatchJob(body.data.uuid);
+    } else {
+      ElMessage.error(body?.msg || t('wmEmbed.batchStartFailed'));
+    }
+  } finally {
+    batchSubmitting.value = false;
+  }
+};
+
+const submitBatchSelected = () => submitBatch(batchSelected.value.map((row) => row.id));
+
+const retryFailedBatch = () =>
+  submitBatch((batchJob.value?.items || []).filter((item) => item.status === 'fail').map((item) => item.application_id));
+
+const backToBatchSelect = () => {
+  stopBatchPolling();
+  batchJob.value = null;
+  fetchBatchEligible();
+  fetchBatchHistory();
+};
+
+const batchProgressPercent = computed(() => {
+  const job = batchJob.value;
+  if (!job || !job.total) return 0;
+  return Math.min(100, Math.round((job.done / job.total) * 100));
+});
+
+const batchProgressStatus = computed(() => {
+  const job = batchJob.value;
+  if (!job || job.status !== 'done') return undefined;
+  return job.fail > 0 ? 'exception' : 'success';
+});
+
+const batchJobStatusText = (status) => {
+  if (status === 'done') return t('wmEmbed.batchStatusDone');
+  if (status === 'running') return t('wmEmbed.batchStatusRunning');
+  return t('wmEmbed.batchStatusQueued');
+};
+
+const batchJobStatusType = (status) => {
+  if (status === 'done') return 'success';
+  if (status === 'running') return 'primary';
+  return 'info';
+};
+
+const batchItemStatusText = (status) => {
+  if (status === 'ok') return t('wmEmbed.batchItemOk');
+  if (status === 'fail') return t('wmEmbed.batchItemFail');
+  return t('wmEmbed.batchItemPending');
+};
+
+const batchItemStatusType = (status) => {
+  if (status === 'ok') return 'success';
+  if (status === 'fail') return 'danger';
+  return 'info';
+};
+
+watch(batchVisible, (visible) => {
+  if (!visible) stopBatchPolling();
+});
+
 const openMapDialog = async (row) => {
   destroyMapView();
   selectedData.data_alias = row.data_alias ?? '';
@@ -458,6 +812,7 @@ const destroyMapView = () => {
 // Clean up ArcGIS resources when leaving the page
 onBeforeUnmount(() => {
   destroyMapView();
+  stopBatchPolling();
 });
 
 const handleClose = (dialogType, done) => {
@@ -594,6 +949,97 @@ const handleClose = (dialogType, done) => {
 
 .preview-dialog .el-descriptions {
   margin-top: 8px;
+}
+
+/* ── 批量嵌入（feat_batch_embed）：入口按钮贴右 + 作业对话框 ── */
+.batch-open-btn {
+  margin-left: auto;
+}
+
+.batch-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.batch-select-title {
+  font-size: 13px;
+  color: var(--text-1, #1e293b);
+}
+
+.batch-selected-hint {
+  font-size: 12px;
+  color: var(--text-3, #94a3b8);
+}
+
+.batch-algo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.batch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.batch-limit-hint {
+  font-size: 12px;
+  color: var(--text-3, #94a3b8);
+}
+
+.batch-history {
+  margin-top: 18px;
+}
+
+.batch-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2, #475569);
+  margin: 0 0 8px 0;
+}
+
+.batch-detail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.batch-detail-uuid {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text-3, #94a3b8);
+  word-break: break-all;
+}
+
+.batch-detail-counts {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-1, #1e293b);
+}
+
+.batch-progress-block {
+  margin-bottom: 16px;
+}
+
+.batch-item-error {
+  display: inline-block;
+  font-size: 12px;
+  color: var(--el-color-danger, #d93025);
+  word-break: break-all;
+  line-height: 1.4;
+}
+
+.batch-item-empty {
+  color: var(--text-4, #c0c4cc);
 }
 
 </style>
