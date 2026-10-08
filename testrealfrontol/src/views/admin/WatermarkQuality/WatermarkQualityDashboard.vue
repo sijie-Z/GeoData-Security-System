@@ -142,9 +142,9 @@
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.capabilityMatrix') }}</span>
             <GlossaryHelp v-bind="glossary.matrix" />
-            <el-tag v-if="benchSnapshotTime" type="info" size="small">
+            <span v-if="benchSnapshotTime" class="state-chip state-chip--neutral">
               {{ $t('watermarkQuality.benchSnapshot') }} · {{ benchSnapshotTime }}
-            </el-tag>
+            </span>
           </div>
         </div>
       </template>
@@ -189,7 +189,7 @@
           </el-table-column>
           <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120" align="right">
             <template #default="{ row }">
-              <span :style="{ color: psnrColor(row.stego_psnr), fontWeight: 700 }">
+              <span :style="{ color: psnrColor(row.stego_psnr), fontWeight: 'var(--font-weight-semibold)' }">
                 {{ row.stego_psnr != null ? row.stego_psnr + ' dB' : '—' }}
               </span>
             </template>
@@ -240,7 +240,7 @@
             <span class="dqim-title">{{ $t('watermarkQuality.dqimTitle') }}</span>
             <span class="dqim-subtitle">{{ $t('watermarkQuality.dqimSubtitle') }}</span>
           </div>
-          <el-tag type="warning" effect="plain" size="small">{{ $t('watermarkQuality.dqimBadge') }}</el-tag>
+          <span class="state-chip state-chip--warning">{{ $t('watermarkQuality.dqimBadge') }}</span>
         </div>
         <p class="dqim-desc">{{ $t('watermarkQuality.dqimDesc') }}</p>
         <div class="dqim-stats">
@@ -262,7 +262,7 @@
         <div class="card-header">
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.chainHealth') }}</span>
-            <el-tag type="info" size="small" effect="plain">{{ $t('watermarkQuality.chainClickHint') }}</el-tag>
+            <span class="state-chip state-chip--neutral">{{ $t('watermarkQuality.chainClickHint') }}</span>
           </div>
         </div>
       </template>
@@ -314,7 +314,10 @@
         @row-click="goForensics"
       >
         <el-table-column :label="$t('watermarkQuality.colDeliveryUuid')" min-width="140">
-          <template #default="{ row }"><span class="mono">{{ shortUuid(row.uuid) }}</span></template>
+          <template #default="{ row }">
+            <!-- 行内可聚焦链接：保留整行点击的同时提供键盘可达路径（Enter/Space → 取证页） -->
+            <button type="button" class="row-link mono" :title="row.uuid" @click.stop="goForensics">{{ shortUuid(row.uuid) }}</button>
+          </template>
         </el-table-column>
         <el-table-column :label="$t('watermarkQuality.colFid')" min-width="150">
           <template #default="{ row }"><span class="mono">{{ row.fid_short || '—' }}</span></template>
@@ -334,7 +337,7 @@
     </el-card>
 
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
-    <el-card class="records-card" shadow="never">
+    <el-card class="section-card records-card" shadow="never">
       <template #header>
         <div class="card-header" :ref="setTourEl('records')">
           <div class="card-header-left">
@@ -373,12 +376,12 @@
         <el-table-column prop="id" label="ID" width="70" align="right" class-name="tnum-id" />
         <el-table-column :label="$t('watermarkQuality.dataType')" width="100">
           <template #default="{ row }">
-            <el-tag v-if="row.data_type === 'vector'" type="primary" size="small" effect="plain">
-              <el-icon style="margin-right: 4px;"><MapLocation /></el-icon>{{ $t('watermarkQuality.vectorLabel') }}
-            </el-tag>
-            <el-tag v-else-if="row.data_type === 'raster'" type="success" size="small" effect="plain">
-              <el-icon style="margin-right: 4px;"><Picture /></el-icon>{{ $t('watermarkQuality.rasterLabel') }}
-            </el-tag>
+            <span v-if="row.data_type === 'vector'" class="state-chip state-chip--info">
+              <el-icon class="state-chip__icon"><MapLocation /></el-icon>{{ $t('watermarkQuality.vectorLabel') }}
+            </span>
+            <span v-else-if="row.data_type === 'raster'" class="state-chip state-chip--success">
+              <el-icon class="state-chip__icon"><Picture /></el-icon>{{ $t('watermarkQuality.rasterLabel') }}
+            </span>
             <span v-else>-</span>
           </template>
         </el-table-column>
@@ -692,9 +695,10 @@ const hexToRgba = (color, alpha) => {
 const chartInk = computed(() => {
   void isDark.value // 主题切换即重取
   const accent = cssVar('--accent-9', '#0070f3')
+  const dark = isDark.value
   return {
     axisLabel: cssVar('--text-2', '#333333'),     // 轴刻度：两模式都保持 AA 对比度
-    label: cssVar('--text-3', '#666666'),         // 次级说明（图例/轴名）
+    label: cssVar('--text-2', '#333333'),         // 图例/轴名：深色三级文字不达 AA，统一提一档
     grid: cssVar('--border-default', '#eaeaea'),  // 仅横向网格线，低强度
     pieBorder: cssVar('--bg-surface', '#ffffff'), // 环形扇区间隙 = 卡面底色
     tooltipBg: cssVar('--bg-raised', '#ffffff'),
@@ -702,13 +706,16 @@ const chartInk = computed(() => {
     tooltipText: cssVar('--text-1', '#0a0a0a'),
     chainTrack: cssVar('--border-default', '#eaeaea'),
     accent,
-    accentSoft: hexToRgba(accent, 0.14),
+    // 计数柱/面积用 accent 低透明度：深色卡面上 0.14 几乎不可见，按底色明度取 alpha
+    accentSoft: hexToRgba(accent, dark ? 0.32 : 0.16),
     success: cssVar('--tint-success-text', '#0e7a4e'),
     danger: cssVar('--tint-danger-text', '#b42318'),
     warning: cssVar('--tint-warning-text', '#9a6b15'),
     neutral: cssVar('--text-4', '#8f8f8f'),
   }
 })
+// prefers-reduced-motion：图表不做入场动画（§3.10）
+const motionOk = () => !(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches)
 // 通用 tooltip（ECharts tooltip 是 HTML 层，可直接吃 CSS 变量：阴影/圆角对齐 el-popper 体系）
 const tooltipBase = () => ({
   backgroundColor: chartInk.value.tooltipBg,
@@ -743,7 +750,7 @@ const NC_THRESHOLD = 0.8
 const thresholdMarkLine = () => ({
   silent: true,
   symbol: 'none',
-  label: { show: true, position: 'insideEndTop', formatter: '0.8', fontSize: 10, color: chartInk.value.warning },
+  label: { show: true, position: 'insideEndTop', formatter: String(NC_THRESHOLD), fontSize: 10, color: chartInk.value.warning },
   lineStyle: { type: 'dashed', width: 1, color: chartInk.value.warning },
   data: [{ yAxis: NC_THRESHOLD }],
 })
@@ -752,6 +759,7 @@ const hasHistogram = computed(() => (vStats.value?.total || 0) > 0)
 const ncHistogramOption = computed(() => {
   const hist = vStats.value?.nc_histogram || []
   return {
+    animation: motionOk(),
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow', shadowStyle: { color: hexToRgba(chartInk.value.accent, 0.06) } },
@@ -795,6 +803,7 @@ const ncTrendOption = computed(() => {
   const countLabel = t('watermarkQuality.seriesCount')
   const ncLabel = t('watermarkQuality.seriesAvgNc')
   return {
+    animation: motionOk(),
     tooltip: { trigger: 'axis', ...tooltipBase() },
     legend: legendBase([ncLabel, countLabel]),
     grid: { left: '2%', right: '2%', bottom: 34, top: 30, containLabel: true },
@@ -841,6 +850,7 @@ const algoBreakdownOption = computed(() => {
   const countLabel = t('watermarkQuality.seriesCount')
   const ncLabel = t('watermarkQuality.seriesAvgNc')
   return {
+    animation: motionOk(),
     tooltip: {
       trigger: 'axis',
       ...tooltipBase(),
@@ -900,6 +910,7 @@ const dataTypeLabel = (dt) => {
 const hasShare = computed(() =>
   (vStats.value?.total || 0) > 0 && (vStats.value?.by_data_type || []).length > 0)
 const verificationShareOption = computed(() => ({
+  animation: motionOk(),
   tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', ...tooltipBase() },
   legend: legendBase(),
   series: [{
@@ -927,6 +938,7 @@ const deliveryHealthOption = computed(() => {
   const anchor = d.anchor || {}
   const ink = chartInk.value
   return {
+    animation: motionOk(),
     tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)', ...tooltipBase() },
     legend: legendBase(),
     series: [
@@ -981,7 +993,7 @@ const ncCellClass = (nc) => {
 }
 const benchSummaries = computed(() =>
   benchResults.value.filter((r) => 'stego_psnr' in r || r.embed_error))
-const psnrColor = (v) => (v == null ? 'var(--text-tertiary)'
+const psnrColor = (v) => (v == null ? 'var(--text-3)'
   : v >= 50 ? 'var(--tint-success-text)'
   : v >= 40 ? 'var(--tint-warning-text)'
   : 'var(--tint-danger-text)')
@@ -1341,7 +1353,7 @@ onMounted(() => {
 }
 
 @media (max-width: 767px) {
-  .kpi-grid { grid-template-columns: 1fr; }
+  .kpi-grid { grid-template-columns: minmax(0, 1fr); } /* 防 min-content 撑破极窄容器 */
 }
 
 .kpi-card {
@@ -1526,11 +1538,6 @@ onMounted(() => {
 }
 
 /* ── 验证记录表 ── */
-.records-card {
-  border-radius: var(--radius-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
 .pagination-wrapper {
   display: flex;
   justify-content: center;
@@ -1559,7 +1566,7 @@ onMounted(() => {
   left: 0;
   right: 0;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   opacity: 0.9;
 }
 
@@ -1622,18 +1629,31 @@ onMounted(() => {
 .nc-cell {
   display: inline-block;
   min-width: 64px;
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: var(--font-weight-semibold);
+  padding: 1px 8px;
+  border-radius: var(--radius-full); /* 与 state-chip 同一族几何 */
+  font-weight: var(--font-weight-medium);
   font-size: var(--font-size-xs);
+  line-height: 18px;
   font-variant-numeric: tabular-nums;
 }
 
-.nc-good { background: var(--tint-success-bg); color: var(--tint-success-text); }
-.nc-mid { background: var(--tint-warning-bg); color: var(--tint-warning-text); }
-.nc-bad { background: var(--tint-danger-bg); color: var(--tint-danger-text); }
+.nc-good {
+  background: var(--tint-success-bg);
+  color: color-mix(in srgb, var(--tint-success-text) 82%, var(--text-1));
+}
 
-/* 状态/数值徽标：tint 底 + tint 字（quiet chip 语言，替代 effect=dark 实心 tag） */
+.nc-mid {
+  background: var(--tint-warning-bg);
+  color: color-mix(in srgb, var(--tint-warning-text) 82%, var(--text-1));
+}
+
+.nc-bad {
+  background: var(--tint-danger-bg);
+  color: color-mix(in srgb, var(--tint-danger-text) 82%, var(--text-1));
+}
+
+/* 状态/数值徽标：tint 底 + tint 字（quiet chip 语言，替代 effect=dark 实心 tag）。
+   文字 = tint 文字 82% 混 text-1：浅色加深→AA（原 ~4.2–4.4:1 → ≥5.6），深色提亮→≥6.5 */
 .state-chip {
   display: inline-flex;
   align-items: center;
@@ -1647,10 +1667,28 @@ onMounted(() => {
   white-space: nowrap;
 }
 
-.state-chip--success { background: var(--tint-success-bg); color: var(--tint-success-text); }
-.state-chip--warning { background: var(--tint-warning-bg); color: var(--tint-warning-text); }
-.state-chip--danger { background: var(--tint-danger-bg); color: var(--tint-danger-text); }
-.state-chip--info { background: var(--tint-info-bg); color: var(--tint-info-text); }
+.state-chip__icon { margin-right: 4px; }
+
+.state-chip--success {
+  background: var(--tint-success-bg);
+  color: color-mix(in srgb, var(--tint-success-text) 82%, var(--text-1));
+}
+
+.state-chip--warning {
+  background: var(--tint-warning-bg);
+  color: color-mix(in srgb, var(--tint-warning-text) 82%, var(--text-1));
+}
+
+.state-chip--danger {
+  background: var(--tint-danger-bg);
+  color: color-mix(in srgb, var(--tint-danger-text) 82%, var(--text-1));
+}
+
+.state-chip--info {
+  background: var(--tint-info-bg);
+  color: color-mix(in srgb, var(--tint-info-text) 82%, var(--text-1));
+}
+
 .state-chip--neutral { background: var(--tint-neutral-bg); color: var(--text-2); }
 
 .decode-ok { color: var(--tint-success-text); font-weight: var(--font-weight-bold); }
@@ -1785,6 +1823,7 @@ onMounted(() => {
 .anchor-chips { display: flex; gap: 12px; flex-wrap: wrap; }
 
 .anchor-chip {
+  flex: 1 1 0; /* 撑满锚定区宽度，消除右侧死区 */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1812,5 +1851,60 @@ onMounted(() => {
 .mono {
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
+}
+
+/* 键盘可达的行内链接（交付 UUID；样式同正文，focus 出环） */
+.row-link {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-10);
+  cursor: pointer;
+  border-radius: 2px;
+}
+
+.row-link:hover { text-decoration: underline; }
+
+.row-link:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+/* ── 小字数字统一 tabular-nums（KPI/表格/徽标之外的小数串） ── */
+.chain-ring-meta,
+.donut-center-sub,
+.metric-marker-label,
+.metric-scale,
+.chart-sub {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 状态点描环随单元 hover 底色（避免白圈与 hover 底不一致） */
+.kpi-card:hover .kpi-dot { box-shadow: 0 0 0 2px var(--bg-hover); }
+
+/* ── 键盘焦点补齐：分段控件（radio-button）与主按钮统一走 --ring ── */
+.watermark-quality-dashboard :deep(.el-radio-button__original-radio:focus-visible + .el-radio-button__inner) {
+  box-shadow: var(--ring);
+}
+
+.watermark-quality-dashboard :deep(.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):focus-visible) {
+  outline: none !important;
+  box-shadow: var(--ring) !important;
+}
+
+/* ── 深色三级文字在页面深底上仅 ~3.5:1，未达 AA：
+   令牌值由 token 线统一调整（本页不改全局），此处深色下将标签/注释类文字提一档到 --text-2（浅色不动） ── */
+html.dark .subtitle,
+html.dark .subtitle-meta,
+html.dark .kpi-label,
+html.dark .kpi-meta,
+html.dark .chart-sub,
+html.dark .chain-ring-meta,
+html.dark .donut-center-sub,
+html.dark .metric-scale,
+html.dark .metric-marker-label,
+html.dark .bench-howto-row {
+  color: var(--text-2);
 }
 </style>
