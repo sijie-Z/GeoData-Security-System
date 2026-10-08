@@ -21,7 +21,7 @@
     "jsonp": "^0.2.1",
     "jwt-decode": "^4.0.0",
     "leaflet": "^1.9.4",
-    "ol": "^10.1.0",
+    "ol": "^10.11.0",
     "pinia": "^2.1.7",
     "pinia-plugin-persistedstate": "^3.2.1",
     "qrcode": "^1.5.4",
