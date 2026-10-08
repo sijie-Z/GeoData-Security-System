@@ -190,8 +190,8 @@ import { getApplicationsGenerateWatermark, generateWatermark } from '@/api/water
 import { Search, Loading } from '@element-plus/icons-vue';
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
 
-// TianDiTu key (same as data_viewing_new.vue)
-const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '11ac7f190ef74ee4bd64081fe7ae419c';
+// 天地图 key 从本地 .env（VITE_TIANDITU_KEY）读取；未配置时不创建天地图图层，底图降级为 OSM
+const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '';
 
 const { t } = useI18n();
 
@@ -441,30 +441,36 @@ const initializeMap = async (dataUrl) => {
     const { default: Point } = await import('ol/geom/Point');
     const { Style, Fill, Stroke, Circle: CircleStyle } = await import('ol/style');
 
-    // Base layers: TianDiTu + OSM fallback (same as data_viewing_new.vue)
-    const tiandituBase = new TileLayer({
-      source: new XYZ({
-        url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      }),
-      zIndex: 0
-    });
-    const tiandituLabel = new TileLayer({
-      source: new XYZ({
-        url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      }),
-      zIndex: 1
-    });
+    // Base layers: Tianditu only when a key is configured; without a key OSM is
+    // the base map and no Tianditu tile requests are ever made.
     const osmFallback = new TileLayer({
       source: new OSM(),
       zIndex: 0,
-      visible: false
+      visible: !tiandituKey
     });
 
-    tiandituBase.getSource().on('error', () => {
-      tiandituBase.setVisible(false);
-      tiandituLabel.setVisible(false);
-      osmFallback.setVisible(true);
-    });
+    let tiandituBase = null;
+    let tiandituLabel = null;
+    if (tiandituKey) {
+      tiandituBase = new TileLayer({
+        source: new XYZ({
+          url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
+        }),
+        zIndex: 0
+      });
+      tiandituLabel = new TileLayer({
+        source: new XYZ({
+          url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
+        }),
+        zIndex: 1
+      });
+
+      tiandituBase.getSource().on('error', () => {
+        tiandituBase.setVisible(false);
+        tiandituLabel.setVisible(false);
+        osmFallback.setVisible(true);
+      });
+    }
 
     // Marker layer for search results
     markerSource = new VectorSource();
@@ -482,7 +488,7 @@ const initializeMap = async (dataUrl) => {
 
     const map = new Map({
       target: mapContainer.value,
-      layers: [osmFallback, tiandituBase, tiandituLabel, markerLayer],
+      layers: [osmFallback, tiandituBase, tiandituLabel, markerLayer].filter(Boolean),
       view: new OlView({
         projection: 'EPSG:4326',
         center: [104.0, 35.0],
@@ -546,29 +552,31 @@ const searchMap = async () => {
 
   let lon = null, lat = null, displayName = keyword;
 
-  try {
-    // --- Try TianDiTu geocoding first ---
-    const params = new URLSearchParams({
-      postStr: JSON.stringify({ keyword }),
-      type: 'query',
-      tk: tiandituKey,
-    });
-    const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
-    if (geoResp.ok) {
-      const geoData = await geoResp.json();
-      const pois = geoData.pois || [];
-      if (pois.length > 0 && pois[0].lonlat) {
-        const coords = String(pois[0].lonlat).split(',').map(Number);
-        if (!Number.isNaN(coords[0]) && !Number.isNaN(coords[1])
-            && coords[0] >= -180 && coords[0] <= 180
-            && coords[1] >= -90 && coords[1] <= 90) {
-          [lon, lat] = coords;
-          displayName = pois[0].name || keyword;
+  if (tiandituKey) {
+    try {
+      // --- Try TianDiTu geocoding first ---
+      const params = new URLSearchParams({
+        postStr: JSON.stringify({ keyword }),
+        type: 'query',
+        tk: tiandituKey,
+      });
+      const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
+      if (geoResp.ok) {
+        const geoData = await geoResp.json();
+        const pois = geoData.pois || [];
+        if (pois.length > 0 && pois[0].lonlat) {
+          const coords = String(pois[0].lonlat).split(',').map(Number);
+          if (!Number.isNaN(coords[0]) && !Number.isNaN(coords[1])
+              && coords[0] >= -180 && coords[0] <= 180
+              && coords[1] >= -90 && coords[1] <= 90) {
+            [lon, lat] = coords;
+            displayName = pois[0].name || keyword;
+          }
         }
       }
+    } catch {
+      // TianDiTu failed — will try fallback below
     }
-  } catch {
-    // TianDiTu failed — will try fallback below
   }
 
   // --- Fallback: Nominatim (OpenStreetMap, no key needed) ---

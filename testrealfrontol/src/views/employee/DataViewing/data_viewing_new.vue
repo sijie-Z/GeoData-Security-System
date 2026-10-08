@@ -652,7 +652,9 @@ import { useUserStore } from '@/stores/userStore';
 
 const { t } = useI18n();
 
-const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '11ac7f190ef74ee4bd64081fe7ae419c';
+// 天地图 key 从本地 .env（VITE_TIANDITU_KEY，见 .env.example）读取；
+// 未配置时不创建天地图图层，底图降级为 OSM，且不发起任何天地图请求
+const tiandituKey = import.meta.env.VITE_TIANDITU_KEY || '';
 
 // 状态管理
 const loading = ref(true);
@@ -813,6 +815,27 @@ const handleSearch = () => {
     }
   };
 
+  // Fallback: Nominatim (OSM) — also the only path when no TianDiTu key is configured
+  const geocodeViaNominatim = () => {
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(kw)}&limit=1`, {
+      headers: { 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.5' }
+    })
+      .then(r => r.json())
+      .then(nomData => {
+        if (nomData.length > 0) {
+          setCenter(parseFloat(nomData[0].lon), parseFloat(nomData[0].lat));
+        } else {
+          geocodedCenter.value = null;
+        }
+      })
+      .catch(() => { geocodedCenter.value = null; });
+  };
+
+  if (!tiandituKey) {
+    geocodeViaNominatim();
+    return;
+  }
+
   // Try TianDiTu
   const params = new URLSearchParams({
     postStr: JSON.stringify({ keyword: kw }),
@@ -833,21 +856,7 @@ const handleSearch = () => {
         throw new Error('No TianDiTu results');
       }
     })
-    .catch(() => {
-      // Fallback: Nominatim
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(kw)}&limit=1`, {
-        headers: { 'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.5' }
-      })
-        .then(r => r.json())
-        .then(nomData => {
-          if (nomData.length > 0) {
-            setCenter(parseFloat(nomData[0].lon), parseFloat(nomData[0].lat));
-          } else {
-            geocodedCenter.value = null;
-          }
-        })
-        .catch(() => { geocodedCenter.value = null; });
-    });
+    .catch(() => geocodeViaNominatim());
 };
 
 const pageChanged = (newPage) => {
@@ -981,28 +990,30 @@ const handleMapSearch = async () => {
   const kw = mapSearchKeyword.value.trim();
   let lon = null, lat = null;
 
-  try {
-    // Geocode via TianDiTu (browser key)
-    const params = new URLSearchParams({
-      postStr: JSON.stringify({ keyword: kw }),
-      type: 'query',
-      tk: tiandituKey,
-    });
-    const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
-    if (geoResp.ok) {
-      const geoData = await geoResp.json();
-      const pois = geoData.pois || [];
-      if (pois.length > 0 && pois[0].lonlat) {
-        const coords = String(pois[0].lonlat).split(',').map(Number);
-        if (!Number.isNaN(coords[0]) && !Number.isNaN(coords[1])
-            && coords[0] >= -180 && coords[0] <= 180
-            && coords[1] >= -90 && coords[1] <= 90) {
-          [lon, lat] = coords;
+  if (tiandituKey) {
+    try {
+      // Geocode via TianDiTu (browser key)
+      const params = new URLSearchParams({
+        postStr: JSON.stringify({ keyword: kw }),
+        type: 'query',
+        tk: tiandituKey,
+      });
+      const geoResp = await fetch(`https://api.tianditu.gov.cn/v2/search?${params}`);
+      if (geoResp.ok) {
+        const geoData = await geoResp.json();
+        const pois = geoData.pois || [];
+        if (pois.length > 0 && pois[0].lonlat) {
+          const coords = String(pois[0].lonlat).split(',').map(Number);
+          if (!Number.isNaN(coords[0]) && !Number.isNaN(coords[1])
+              && coords[0] >= -180 && coords[0] <= 180
+              && coords[1] >= -90 && coords[1] <= 90) {
+            [lon, lat] = coords;
+          }
         }
       }
+    } catch {
+      // TianDiTu failed — try fallback
     }
-  } catch {
-    // TianDiTu failed — try fallback
   }
 
   // Fallback: Nominatim (OpenStreetMap)
@@ -1056,36 +1067,43 @@ const initializeMapView = async (url, fullLayerName) => {
     const { TileWMS, XYZ, OSM } = olSource;
     const { ScaleLine, Rotate, defaults: defaultControls } = olControl;
 
-    const tiandituBase = new TileLayer({
-      source: new XYZ({
-        url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      }),
-      zIndex: 0
-    });
-    const tiandituLabel = new TileLayer({
-      source: new XYZ({
-        url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
-      }),
-      zIndex: 1
-    });
+    // Base layers: Tianditu only when a key is configured; without a key OSM is
+    // the base map and no Tianditu tile requests are ever made.
     const osmFallback = new TileLayer({
       source: new OSM(),
       zIndex: 0,
-      visible: false
+      visible: !tiandituKey
     });
 
-    tiandituBase.getSource().on('error', () => {
-      tiandituBase.setVisible(false);
-      tiandituLabel.setVisible(false);
-      osmFallback.setVisible(true);
-    });
+    let tiandituBase = null;
+    let tiandituLabel = null;
+    if (tiandituKey) {
+      tiandituBase = new TileLayer({
+        source: new XYZ({
+          url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
+        }),
+        zIndex: 0
+      });
+      tiandituLabel = new TileLayer({
+        source: new XYZ({
+          url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
+        }),
+        zIndex: 1
+      });
+
+      tiandituBase.getSource().on('error', () => {
+        tiandituBase.setVisible(false);
+        tiandituLabel.setVisible(false);
+        osmFallback.setVisible(true);
+      });
+    }
 
     const center = geocodedCenter.value?.center || [104.0, 35.0];
     const zoom = geocodedCenter.value?.zoom || 4;
 
     const map = new Map({
       target: mapContainer.value,
-      layers: [osmFallback, tiandituBase, tiandituLabel],
+      layers: [osmFallback, tiandituBase, tiandituLabel].filter(Boolean),
       view: new OlView({
         projection: 'EPSG:4326',
         center,
