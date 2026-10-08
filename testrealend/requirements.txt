@@ -1,7 +1,7 @@
 flask
 flask-restful
 flask-sqlalchemy
-flask-jwt-extended>=4.7.0
+flask-jwt-extended>=4.7.4
 flask-migrate
 flask-cors
 flask-limiter
