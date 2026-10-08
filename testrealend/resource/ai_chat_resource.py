@@ -7,7 +7,13 @@ from flask import Response, request, stream_with_context
 from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
 from flask_restful import Resource
 
-from utils.ai_config import DEFAULT_AI_API_BASE, DEFAULT_AI_MODEL, _chat_completions_url, _get_ai_config
+from utils.ai_config import (
+    DEFAULT_AI_API_BASE,
+    DEFAULT_AI_MODEL,
+    _chat_completions_url,
+    _get_ai_config,
+    _get_ai_timeout,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -140,7 +146,7 @@ class AIChatResource(Resource):
                     "max_tokens": 1024,
                     "temperature": 0.7,
                 },
-                timeout=25.0,
+                timeout=_get_ai_timeout(),
             )
             resp.raise_for_status()
             data = resp.json()
@@ -196,7 +202,7 @@ class AIChatStreamResource(Resource):
                 import httpx
 
                 with (
-                    httpx.Client(timeout=60.0) as client,
+                    httpx.Client(timeout=_get_ai_timeout()) as client,
                     client.stream(
                         "POST",
                         _chat_completions_url(api_base),
