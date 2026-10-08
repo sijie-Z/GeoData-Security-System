@@ -39,3 +39,10 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: "ci"
+    # 所有 actions 更新合并进单个 PR：codeql-action 的 init/autobuild/analyze/
+    # upload-sarif 必须整体同版本升级，拆开单独升会因 "Loaded a configuration
+    # file for version X, but running version Y" 死锁。
+    groups:
+      github-actions:
+        patterns:
+          - "*"
