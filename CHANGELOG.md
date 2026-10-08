@@ -60,7 +60,7 @@ Elevates the platform from "QR watermark + two-level approval" to a closed loop 
 - **D-QIM vector scheme** (`algorithm/vector_dqim.py`): difference-domain QIM — the carrier is edge coordinate differences, robust to translation; extraction dispatches on `vr_data.scheme` (legacy absolute-coordinate QIM still supported).
 - **blind_watermark — 4th raster scheme** (`algorithm/raster_blind_watermark.py`): blind DWT-DCT-SVD embed/extract with GeoTIFF CRS preservation; crop recovery via host-template realignment.
 - **IW-DCT — 5th raster scheme** (`algorithm/raster_iw_dct.py`): invisible-watermark-style blind extraction — Haar-LL 4×4 block DCT, fixed lowest mid-frequency pair, cyclic repetition; **blind block-grid realignment for crop attacks** (structure-score-gated 64-phase search — no host template, no format change, existing stegos stay valid) and **EMBED_MARGIN experimentally calibrated to 40** (scan of {16, 20, 26, 32, 40} × {none, JPEG q50–q85, noise σ2–σ15, crop 0.8}: 40 passes the noise σ15 probe and JPEG q50 at BER 0 for ~0.9 dB PSNR cost vs 26; mean PSNR 35.70 → 34.11 dB across the ladder; no-attack roundtrip bit-exact at every margin; crop cell NC 0.990).
-- Raster dispatch wired through embed/extract/decode endpoints and both frontends' algorithm dropdowns; 1024-host crop-recovery + load-overhead tests.
+- Raster dispatch wired through embed/extract/decode endpoints and the frontend embed dialogs (single + batch) + lab scheme list; 1024-host crop-recovery + load-overhead tests.
 
 ### Backend — Robustness Lab Engine (`algorithm/robustness*.py`, `resource/robustness_resource.py`)
 
@@ -151,7 +151,7 @@ Elevates the platform from "QR watermark + two-level approval" to a closed loop 
 
 ### Verification
 
-- **Backend:** full suite **577 passed / 0 failed** (file-based SQLite; hermetic — no external network in tests).
+- **Backend:** full suite **583 passed / 0 failed** (file-based SQLite; hermetic — no external network in tests).
 - **Lint/format:** `ruff check .` and `ruff format --check .` clean (171 files).
 - **Commits:** 278 after v2.4.0 (through `d63e347`).
 
