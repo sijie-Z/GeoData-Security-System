@@ -1100,7 +1100,9 @@ const initializeMapView = async (url, fullLayerName) => {
         zIndex: 1
       });
 
-      tiandituBase.getSource().on('error', () => {
+      // #38 天地图故障降级：OL 瓦片源派发 tileloaderror（逐瓦片多次触发），
+      //     用 once 保证仅生效一次；原先监听的 'error' 事件并不存在。
+      tiandituBase.getSource().once('tileloaderror', () => {
         tiandituBase.setVisible(false);
         tiandituLabel.setVisible(false);
         osmFallback.setVisible(true);
