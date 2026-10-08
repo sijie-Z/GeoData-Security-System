@@ -65,9 +65,22 @@ Parameters (all module constants, recorded in the meta JSON):
 * ``BLOCK = 4`` (iw default), DWT level 1 (Haar), channel Y,
 * coefficient pair (1,2)/(2,1) — the lowest mid-frequency 4x4 DCT pair
   (lower frequency = more robust than diagonal high-frequency choices),
-* ``EMBED_MARGIN = 26`` — calibrated so that the no-attack roundtrip is
-  exact on uint8 storage while keeping PSNR in the high-30s dB and giving the
-  JPEG q70 / noise sigma=5 cells a real chance (measured in the lab matrix).
+* ``EMBED_MARGIN = 40`` — experimentally calibrated (feat_iw_align §2;
+  synthetic 512x512 host, standard 57x57 payload, 3 trials). Scanned
+  {16, 20, 26, 32, 40} x {none, jpeg q85/q70, noise sigma 2/5/10, crop 0.8}:
+  decode success saturates from 26 up (no attack, jpeg q85/q70 and noise
+  sigma 2/5/10 all 3/3 at >= 26; crop 0.8 is capacity-refused at the standard
+  payload for every margin; NC improves monotonically). An extended edge probe
+  ({32,40} x {jpeg q50/q30, blur r2, noise sigma 15}) splits 26 from 32/40:
+  jpeg q50 flips green at 32 (0/3 -> 3/3) and noise sigma 15 flips at 40
+  (0/3 -> 3/3; jpeg q50 reaches BER 0) — 40 is the scanned grid's top and was
+  adopted for that edge headroom (48, outside the grid, would additionally
+  flip jpeg q30 but was not adopted; reported only). No-attack extraction
+  stays bit-exact at every margin (NC 1.000, BER 0); mean PSNR 35.70 dB at
+  16 down to 34.11 dB at 40 — within the project metric guide's "needs
+  careful comparison" band (< 30 dB would be visibly degraded). Crop
+  realignment is margin-insensitive (a crop does not perturb pixel values):
+  the compact-payload crop 0.8 cell recovers at every margin with NC 0.990.
 
 Determinism: the embed is a pure function of (host, payload, constants) —
 no RNG, no multiprocessing, no shared state between requests.
@@ -98,7 +111,12 @@ CHANNEL = "Y"
 # Fixed mid-frequency coefficient pair of the 4x4 DCT (row, col); row-major
 # indices 6 and 9 of the flattened block.
 DCT_PAIR = ((1, 2), (2, 1))
-EMBED_MARGIN = 26.0
+# Experimental calibration (feat_iw_align §2 — see the module docstring):
+# 26 is the smallest scanned margin that saturates the standard attack set;
+# 32 flips the jpeg q50 edge probe green; 40 (grid top) additionally flips
+# noise sigma15 (and jpeg q50 to BER 0) for ~0.9 dB PSNR against 26, with the
+# no-attack roundtrip still bit-exact at every scanned margin.
+EMBED_MARGIN = 40.0
 
 # ── crop realignment (feat_iw_align) ────────────────────────────────────────
 # QR render contract: delivery.qr2 renders payloads with qrcode border=4, so a
