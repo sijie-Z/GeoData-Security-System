@@ -163,4 +163,4 @@ jobs:
         # proxy_pass http://backend:5003 在配置解析期就需要解析 backend 主机名；
         # 冒烟容器不在 compose 网络里，--add-host 提供占位解析（真实 compose 部署里
         # 该名字由 Docker 网络解析）。
-        run: docker run --rm --add-host backend:127.0.0.1 --entrypoint nginx geodata-frontend nginx -t
+        run: docker run --rm --add-host backend:127.0.0.1 --entrypoint nginx geodata-frontend -t
