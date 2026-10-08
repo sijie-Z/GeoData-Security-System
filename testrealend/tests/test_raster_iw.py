@@ -343,11 +343,12 @@ class TestIwDctCropRealignment:
 
     def test_standard_payload_crop_stays_an_honest_failure(self, db, tmp_path):
         """The standard 57 px matrix payload is at ~79% utilization (~1.26
-        votes per bit): a keep=0.9 center crop leaves ~370 payload bits with
-        zero surviving votes — far beyond the QR error correction. The
-        extractor returns its best structured readout (no crash, no fake
-        recovery); keep=0.8 shrinks the naive grid below the payload and still
-        refuses with the capacity error, unchanged."""
+        votes per bit): a keep=0.9 center crop leaves 360/3249 payload bits
+        (11.1%, measured with an oracle realignment) with zero surviving
+        votes — far beyond the QR error correction. The extractor returns its
+        best structured readout (no crash, no fake recovery); keep=0.8 shrinks
+        the naive grid below the payload and still refuses with the capacity
+        error, unchanged."""
         from PIL import Image
 
         from algorithm.raster_iw_dct import embed_iw_dct, extract_iw_dct
@@ -366,6 +367,30 @@ class TestIwDctCropRealignment:
         attacked80 = r_crop(result["stego_path"], keep=0.8, output_path=str(tmp_path / "crop_80.tif"))
         with pytest.raises(ValueError, match="too small for IW-DCT extraction"):
             extract_iw_dct(attacked80, result["wm_meta_path"], str(tmp_path / "ext_80.png"))
+
+    def test_1024_host_standard_payload_crop_recovers(self, db, tmp_path):
+        """Production regime: a 1024x1024 host carries the standard 57 px
+        payload at ~4.4 votes per bit, so center crops are blind-recoverable —
+        measured keep=0.9 and 0.65 (the crop ladder's tiers 1 and 3) decode
+        the payload end to end after realignment. This is the host class the
+        scheme's ≥1024 capacity guidance points at (512 hosts cannot crop-
+        recover this payload; see the test above)."""
+        from PIL import Image
+
+        from algorithm.raster_iw_dct import embed_iw_dct, extract_iw_dct
+        from resource.watermark_utils import decode_qr_from_image
+
+        text = _build_matrix_payload()
+        qr_path, side = render_raster_payload_qr(text, str(tmp_path / "payload_qr.png"))
+        host = make_host_tif(str(tmp_path / "host_1024.tif"), size=1024)
+        result = embed_iw_dct(host, Image.open(qr_path), str(tmp_path / "embed"), prefix="iw1024")
+        assert result["bit_count"] == side * side
+        assert result["blocks"] == 16384  # 1024/8 -> 128x128 block grid
+
+        for keep in (0.9, 0.65):
+            attacked = r_crop(result["stego_path"], keep=keep, output_path=str(tmp_path / f"crop_{keep}.tif"))
+            out_png = extract_iw_dct(attacked, result["wm_meta_path"], str(tmp_path / f"ext_{keep}.png"))
+            assert decode_qr_from_image(out_png) == text, f"1024-host crop keep={keep} not recovered"
 
     def test_realignment_search_only_runs_on_failed_fast_path(self, db, tmp_path, monkeypatch):
         """The realignment search is a failure-path fallback: clean and
@@ -401,9 +426,12 @@ class TestIwDctCropRealignment:
 
     def test_no_attack_extraction_overhead_below_10_percent(self, db, tmp_path):
         """无攻击路径耗时不得劣化 >10%: the gate is one O(n log n) structure
-        score on the already-computed votes (~14 us measured). Both variants
-        are timed interleaved in one process against the same stego, so slow
-        machine drift cancels and the ratio is machine-independent."""
+        score on the already-computed votes (~14 us measured). The two variants
+        (gated vs. score short-circuited) are timed as adjacent interleaved
+        pairs against the same stego in one process; the overhead is the
+        median of the per-pair differences, which cancels machine drift and
+        single-sample load spikes (a wall-clock median-of-medians flakes under
+        external CPU load)."""
         import statistics
         import time
 
@@ -415,27 +443,27 @@ class TestIwDctCropRealignment:
         no_gate = lambda *a, **k: float("inf")  # short-circuit stand-in for the gate
 
         mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / "warm.png"))  # warm-up
-        full_times, short_times = [], []
+        pairs = []
         short_png = None
         try:
-            for i in range(6):
+            for i in range(8):
                 t0 = time.perf_counter()
                 mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / f"full_{i}.png"))
-                full_times.append(time.perf_counter() - t0)
+                t_full = time.perf_counter() - t0
                 mod._structure_score = no_gate
                 t0 = time.perf_counter()
                 short_png = mod.extract_iw_dct(
                     result["stego_path"], result["wm_meta_path"], str(tmp_path / f"short_{i}.png")
                 )
-                short_times.append(time.perf_counter() - t0)
+                t_short = time.perf_counter() - t0
                 mod._structure_score = real_score
+                pairs.append((t_full, t_short))
         finally:
             mod._structure_score = real_score
 
         assert decode_qr_from_image(short_png) == self.COMPACT_TEXT  # short-circuit still extracts
-        t_full = statistics.median(full_times)
-        t_short = statistics.median(short_times)
-        overhead = (t_full - t_short) / t_full
+        t_full = statistics.median(f for f, _s in pairs)
+        overhead = statistics.median(f - s for f, s in pairs) / t_full
         assert overhead < 0.10, (
             f"fast-path overhead {overhead:.1%} exceeds the 10% budget (full {t_full * 1000:.1f} ms)"
         )
