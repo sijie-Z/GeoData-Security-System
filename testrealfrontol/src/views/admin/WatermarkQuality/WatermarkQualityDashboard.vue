@@ -1883,9 +1883,12 @@ onMounted(() => {
 /* 状态点描环随单元 hover 底色（避免白圈与 hover 底不一致） */
 .kpi-card:hover .kpi-dot { box-shadow: 0 0 0 2px var(--bg-hover); }
 
-/* ── 键盘焦点补齐：分段控件（radio-button）与主按钮统一走 --ring ── */
+/* ── 键盘焦点补齐：分段控件（radio-button）与主按钮统一走 --ring ──
+   注：EP 自带 `.el-radio-button:first-child .el-radio-button__inner { box-shadow: none !important }`
+   （包边缝线用），必须用同权重 !important + 更高特异性才能让焦点环可见 */
 .watermark-quality-dashboard :deep(.el-radio-button__original-radio:focus-visible + .el-radio-button__inner) {
-  box-shadow: var(--ring);
+  box-shadow: var(--ring) !important;
+  outline: none !important;
 }
 
 .watermark-quality-dashboard :deep(.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):focus-visible) {
