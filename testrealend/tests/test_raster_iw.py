@@ -399,11 +399,11 @@ class TestIwDctCropRealignment:
         assert decode_qr_from_image(out) == self.COMPACT_TEXT
         assert calls["n"] >= 1, "a grid-scrambling crop must trigger the realignment search"
 
-    def test_no_attack_extraction_overhead_below_10_percent(self, db, tmp_path, monkeypatch):
+    def test_no_attack_extraction_overhead_below_10_percent(self, db, tmp_path):
         """无攻击路径耗时不得劣化 >10%: the gate is one O(n log n) structure
-        score on the already-computed votes. Measured against the same
-        pipeline with the score short-circuited (the pre-realignment fast
-        path) in one process, so the ratio is machine-independent."""
+        score on the already-computed votes (~14 us measured). Both variants
+        are timed interleaved in one process against the same stego, so slow
+        machine drift cancels and the ratio is machine-independent."""
         import statistics
         import time
 
@@ -411,24 +411,34 @@ class TestIwDctCropRealignment:
         from resource.watermark_utils import decode_qr_from_image
 
         result = self._embed_compact(tmp_path)
-
-        def time_extract(n):
-            stamps = []
-            for i in range(n):
-                t0 = time.perf_counter()
-                mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / f"t_{i}.png"))
-                stamps.append(time.perf_counter() - t0)
-            return statistics.median(stamps)
+        real_score = mod._structure_score
+        no_gate = lambda *a, **k: float("inf")  # short-circuit stand-in for the gate
 
         mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / "warm.png"))  # warm-up
-        t_full = time_extract(5)
-        monkeypatch.setattr(mod, "_structure_score", lambda *a, **k: float("inf"))
-        out = mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / "short.png"))
-        assert decode_qr_from_image(out) == self.COMPACT_TEXT  # short-circuit still extracts
-        t_nogate = time_extract(5)
+        full_times, short_times = [], []
+        short_png = None
+        try:
+            for i in range(6):
+                t0 = time.perf_counter()
+                mod.extract_iw_dct(result["stego_path"], result["wm_meta_path"], str(tmp_path / f"full_{i}.png"))
+                full_times.append(time.perf_counter() - t0)
+                mod._structure_score = no_gate
+                t0 = time.perf_counter()
+                short_png = mod.extract_iw_dct(
+                    result["stego_path"], result["wm_meta_path"], str(tmp_path / f"short_{i}.png")
+                )
+                short_times.append(time.perf_counter() - t0)
+                mod._structure_score = real_score
+        finally:
+            mod._structure_score = real_score
 
-        overhead = (t_full - t_nogate) / t_full
-        assert overhead < 0.10, f"fast-path overhead {overhead:.1%} exceeds the 10% budget (full {t_full * 1000:.1f} ms)"
+        assert decode_qr_from_image(short_png) == self.COMPACT_TEXT  # short-circuit still extracts
+        t_full = statistics.median(full_times)
+        t_short = statistics.median(short_times)
+        overhead = (t_full - t_short) / t_full
+        assert overhead < 0.10, (
+            f"fast-path overhead {overhead:.1%} exceeds the 10% budget (full {t_full * 1000:.1f} ms)"
+        )
 
     def test_matrix_crop_row_turns_green_for_compact_payload(self, db, tmp_path, monkeypatch):
         """Engine-level: with the matrix crop default set to keep=0.9, the
