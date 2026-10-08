@@ -1,4 +1,4 @@
-"""AI Chat endpoint — calls DeepSeek API with system knowledge context."""
+"""AI Chat endpoint — calls an OpenAI-compatible chat API with system knowledge context."""
 
 import json
 import logging
@@ -9,6 +9,29 @@ from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_req
 from flask_restful import Resource
 
 logger = logging.getLogger(__name__)
+
+# ── AI 接口配置 ──
+# 默认指向 DeepSeek 官方 API，未配置时行为与历史版本一致；
+# 设置 AI_API_BASE 可指向任意 OpenAI 兼容端点（如本地 Ollama）。
+DEFAULT_AI_API_BASE = "https://api.deepseek.com"
+DEFAULT_AI_MODEL = "deepseek-chat"
+
+
+def _get_ai_config():
+    """从环境变量解析 (api_base, api_key, model)，按请求实时读取。
+
+    ``AI_API_KEY`` 优先，回落旧名 ``DEEPSEEK_API_KEY`` 以兼容既有部署。
+    """
+    api_base = os.environ.get("AI_API_BASE") or DEFAULT_AI_API_BASE
+    api_key = os.environ.get("AI_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or ""
+    model = os.environ.get("AI_MODEL") or DEFAULT_AI_MODEL
+    return api_base, api_key, model
+
+
+def _chat_completions_url(api_base):
+    """将 OpenAI 兼容的 base URL 拼装为 chat completions 端点。"""
+    return api_base.rstrip("/") + "/chat/completions"
+
 
 # ── 系统知识库（注入 System Prompt） ──
 SYSTEM_PROMPT = """你是"地安智助"——地理空间数据安全追踪系统的 AI 智能助手。你的职责是帮助用户理解和使用本系统。
@@ -112,26 +135,26 @@ class AIChatResource(Resource):
                 messages.append({"role": role, "content": content})
         messages.append({"role": "user", "content": user_message})
 
-        # 调用 DeepSeek API
-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        # 调用 AI 服务（OpenAI 兼容端点）
+        api_base, api_key, model = _get_ai_config()
         if not api_key:
             return {
                 "status": False,
-                "msg": "AI 服务未配置（缺少 DEEPSEEK_API_KEY 环境变量）",
+                "msg": "AI 服务未配置（缺少 AI_API_KEY 环境变量）",
             }, 503
 
         try:
             import httpx
 
-            # 直接调用 DeepSeek API（不依赖 openai 库，避免兼容性问题）
+            # 直接 HTTP 调用（不依赖 openai 库，避免兼容性问题）
             resp = httpx.post(
-                "https://api.deepseek.com/chat/completions",
+                _chat_completions_url(api_base),
                 headers={
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": "deepseek-chat",
+                    "model": model,
                     "messages": messages,
                     "max_tokens": 1024,
                     "temperature": 0.7,
@@ -146,12 +169,12 @@ class AIChatResource(Resource):
         except ImportError:
             return {"status": False, "msg": "服务端缺少 httpx 库，请 pip install httpx"}, 500
         except Exception as e:
-            logger.error(f"DeepSeek API 调用失败: {e}", exc_info=True)
+            logger.error(f"AI API 调用失败: {e}", exc_info=True)
             return {"status": False, "msg": f"AI 服务暂时不可用: {str(e)[:200]}"}, 502
 
 
 def _build_messages(user_message, history):
-    """Build the messages list for DeepSeek API."""
+    """Build the messages list for the chat API."""
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     for item in history[-20:]:
         role = item.get("role", "user")
@@ -178,11 +201,11 @@ class AIChatStreamResource(Resource):
         if not user_message:
             return {"status": False, "msg": "消息不能为空"}, 400
 
-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        api_base, api_key, model = _get_ai_config()
         if not api_key:
             return {
                 "status": False,
-                "msg": "AI 服务未配置（缺少 DEEPSEEK_API_KEY 环境变量）",
+                "msg": "AI 服务未配置（缺少 AI_API_KEY 环境变量）",
             }, 503
 
         messages = _build_messages(user_message, history)
@@ -195,13 +218,13 @@ class AIChatStreamResource(Resource):
                     httpx.Client(timeout=60.0) as client,
                     client.stream(
                         "POST",
-                        "https://api.deepseek.com/chat/completions",
+                        _chat_completions_url(api_base),
                         headers={
                             "Authorization": f"Bearer {api_key}",
                             "Content-Type": "application/json",
                         },
                         json={
-                            "model": "deepseek-chat",
+                            "model": model,
                             "messages": messages,
                             "max_tokens": 1024,
                             "temperature": 0.7,
@@ -228,7 +251,7 @@ class AIChatStreamResource(Resource):
             except ImportError:
                 yield f"data: {json.dumps({'error': '服务端缺少 httpx 库'})}\n\n"
             except Exception as e:
-                logger.error(f"DeepSeek SSE 调用失败: {e}", exc_info=True)
+                logger.error(f"AI SSE 调用失败: {e}", exc_info=True)
                 yield f"data: {json.dumps({'error': f'AI 服务暂时不可用: {str(e)[:200]}'})}\n\n"
 
         return Response(
