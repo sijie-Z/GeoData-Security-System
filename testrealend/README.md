@@ -97,6 +97,14 @@ curl http://127.0.0.1:5003/api/health
 
 ---
 
+## AI 助手配置（可选）
+
+AI 问答接口（`/api/ai/chat`、`/api/ai/chat/stream`）默认为 DeepSeek 官方 API，也可在 `.env` 中通过
+`AI_API_BASE` / `AI_MODEL` / `AI_API_KEY` 指向任意 OpenAI 兼容端点（`AI_API_KEY` 未设置时回落旧名 `DEEPSEEK_API_KEY`）。
+本地模型示例（Ollama）：`AI_API_BASE=http://localhost:11434/v1`、`AI_MODEL=qwen2.5`、`AI_API_KEY=ollama`。
+
+---
+
 ## 版本历史
 
 | 版本 | 说明 |
