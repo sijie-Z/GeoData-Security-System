@@ -509,6 +509,21 @@ html.dark ::-webkit-scrollbar-track {
 }
 
 /* ============================================
+   #24 地图底图瓦片深色适配（方案 A：仅瓦片层 class + CSS filter）
+   仅作用于显式挂载 .dark-tile-layer 的底图瓦片层容器：
+   · OpenLayers：OSM / 天地图 vec_w / cva_w 三个 TileLayer（className 选项）
+   · Leaflet：OSM tileLayer（className 选项）
+   理由：零外部依赖（不引入深色瓦片服务）；filter 只作用在层容器上——
+   标记 / 矢量要素 / 控件 / 比例尺 / 弹窗 / 数据图层（WMS、后端栅格瓦片）
+   不是其后代，天然不受影响；浅色模式（html 无 .dark）零变化。
+   ol/ol.css 由组件动态 import 注入，选择器统一带 html.dark 前缀保证优先级。
+   ============================================ */
+
+html.dark .dark-tile-layer {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.9);
+}
+
+/* ============================================
    Base Styles
    ============================================ */
 

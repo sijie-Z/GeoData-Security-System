@@ -769,7 +769,11 @@ const initializeMapView = (data_url) => {
   });
 
   // OpenStreetMap 高清瓦片
+  // #24 深色适配（方案 A）：仅瓦片层挂 dark-tile-layer class，由全局
+  // design-system.css 在 html.dark 下施加 invert+hue-rotate filter；默认 PNG
+  // 标记、GeoJSON 矢量与控件位于独立 pane，不含该 class，不受影响。
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    className: 'dark-tile-layer', // #24
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(mapInstance);
