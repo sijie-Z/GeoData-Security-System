@@ -85,3 +85,8 @@ others/GeoScene Enterprise安装部署信息.txt
 others/check_employee_passwords.py
 others/reset_admin_credentials.py
 others/fix_admin_role.py
+
+# Dangling nested-repo gitlinks removed from the index (no .gitmodules entry;
+# dirs kept on local disk only — do not re-add)
+/C1165/C1165开发源代码/项目前端/testrealfrontol/
+/最早期代码/testrealfrontol/testrealfrontol/
