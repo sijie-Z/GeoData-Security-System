@@ -37,7 +37,7 @@ blind_watermark>=0.4.4
 # requires the non-headless build — declare the same variant explicitly so a second
 # (headless) copy can never be installed alongside it, which would leave the shared `cv2`
 # package directory in an undefined mix of builds.
-opencv-python>=4.8
+opencv-python>=5.0.0.93
 cryptography>=42
 cbor2>=5.6
 httpx
