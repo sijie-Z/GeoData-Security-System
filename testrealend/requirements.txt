@@ -43,7 +43,7 @@ cbor2>=5.6
 httpx
 openai
 # EVM anchor (Sepolia): py-solc-x compiles AnchorRegistry.sol, eth-tester drives the in-memory chain in tests
-web3>=7
+web3>=8.0.0
 py-solc-x>=2
 # eth-tester publishes pre-releases only — a bare >=0.11 cannot be resolved by
 # older pip (e.g. the one bundled in python:3.11-slim, which broke the docker CI
