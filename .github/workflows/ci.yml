@@ -117,5 +117,50 @@ jobs:
       - name: Build backend image
         run: docker build -t geodata-backend ./testrealend
 
+      # 运行期冒烟：build 只能证明镜像能构建，下面两步证明镜像真的能启动。
+      # FLASK_ENV=testing → TestingConfig 走 SQLite（同 conftest），无需 MySQL/Redis。
+      - name: Smoke-test backend image (app factory + routes)
+        run: |
+          docker run --rm --workdir /app \
+            -e FLASK_ENV=testing \
+            -e SECRET_KEY=ci-smoke-secret \
+            -e JWT_SECRET_KEY=ci-smoke-jwt-secret \
+            geodata-backend \
+            python -c "import app; a = app.create_app(); n = len(list(a.url_map.iter_rules())); print(f'SMOKE OK: app factory built, {n} routes'); assert n > 100, n"
+
+      - name: Smoke-test backend image (gunicorn CMD serves /api/health)
+        run: |
+          docker run -d --name backend-smoke \
+            -e FLASK_ENV=testing \
+            -e SECRET_KEY=ci-smoke-secret \
+            -e JWT_SECRET_KEY=ci-smoke-jwt-secret \
+            geodata-backend
+          ok=0
+          for i in $(seq 1 40); do
+            if [ "$(docker inspect -f '{{.State.Running}}' backend-smoke 2>/dev/null)" != "true" ]; then
+              echo "container exited before becoming healthy (attempt $i)"
+              break
+            fi
+            if docker exec backend-smoke python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5003/api/health', timeout=3).status)"; then
+              ok=1
+              break
+            fi
+            sleep 3
+          done
+          echo '---- container logs ----'
+          docker logs backend-smoke || true
+          docker rm -f backend-smoke >/dev/null 2>&1 || true
+          if [ "$ok" != "1" ]; then
+            echo 'SMOKE FAILED: backend image did not serve /api/health'
+            exit 1
+          fi
+          echo 'SMOKE OK: gunicorn CMD served /api/health'
+
       - name: Build frontend image
         run: docker build -t geodata-frontend ./testrealfrontol
+
+      - name: Smoke-test frontend image (nginx config)
+        # proxy_pass http://backend:5003 在配置解析期就需要解析 backend 主机名；
+        # 冒烟容器不在 compose 网络里，--add-host 提供占位解析（真实 compose 部署里
+        # 该名字由 Docker 网络解析）。
+        run: docker run --rm --add-host backend:127.0.0.1 --entrypoint nginx geodata-frontend -t

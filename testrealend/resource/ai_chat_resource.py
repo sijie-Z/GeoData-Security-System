@@ -2,35 +2,16 @@
 
 import json
 import logging
-import os
 
 from flask import Response, request, stream_with_context
 from flask_jwt_extended import get_jwt_identity, jwt_required, verify_jwt_in_request
 from flask_restful import Resource
 
+from utils.ai_config import DEFAULT_AI_API_BASE, DEFAULT_AI_MODEL, _chat_completions_url, _get_ai_config
+
 logger = logging.getLogger(__name__)
 
-# ── AI 接口配置 ──
-# 默认指向 DeepSeek 官方 API，未配置时行为与历史版本一致；
-# 设置 AI_API_BASE 可指向任意 OpenAI 兼容端点（如本地 Ollama）。
-DEFAULT_AI_API_BASE = "https://api.deepseek.com"
-DEFAULT_AI_MODEL = "deepseek-chat"
-
-
-def _get_ai_config():
-    """从环境变量解析 (api_base, api_key, model)，按请求实时读取。
-
-    ``AI_API_KEY`` 优先，回落旧名 ``DEEPSEEK_API_KEY`` 以兼容既有部署。
-    """
-    api_base = os.environ.get("AI_API_BASE") or DEFAULT_AI_API_BASE
-    api_key = os.environ.get("AI_API_KEY") or os.environ.get("DEEPSEEK_API_KEY") or ""
-    model = os.environ.get("AI_MODEL") or DEFAULT_AI_MODEL
-    return api_base, api_key, model
-
-
-def _chat_completions_url(api_base):
-    """将 OpenAI 兼容的 base URL 拼装为 chat completions 端点。"""
-    return api_base.rstrip("/") + "/chat/completions"
+# AI 端点配置已收编到 utils/ai_config.py；这里按原路径再导出，兼容既有导入。
 
 
 # ── 系统知识库（注入 System Prompt） ──

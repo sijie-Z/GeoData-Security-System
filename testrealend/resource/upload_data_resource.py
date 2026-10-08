@@ -13,6 +13,7 @@ from werkzeug.utils import secure_filename
 from extension.extension import db, limiter
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
+from utils.ai_config import _chat_completions_url, _get_ai_config
 
 
 def _bg_publish_geoserver(file_path, layer_name, data_type, record_id, model_class, app):
@@ -104,11 +105,9 @@ def _extract_raster_metadata(file_path):
 
 
 def _bg_generate_description(meta, layer_name, data_type, record_id, model_class, app):
-    """Background: call DeepSeek to auto-generate a data description."""
+    """Background: call the configured (OpenAI-compatible) AI API to auto-generate a data description."""
     try:
-        import os
-
-        api_key = os.environ.get("DEEPSEEK_API_KEY", "")
+        api_base, api_key, model = _get_ai_config()
         if not api_key:
             return
 
@@ -135,10 +134,10 @@ def _bg_generate_description(meta, layer_name, data_type, record_id, model_class
 请直接输出简介文本，不要加标题或前缀。"""
 
         resp = httpx.post(
-            "https://api.deepseek.com/chat/completions",
+            _chat_completions_url(api_base),
             headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
             json={
-                "model": "deepseek-chat",
+                "model": model,
                 "messages": [{"role": "user", "content": prompt}],
                 "max_tokens": 300,
                 "temperature": 0.7,
