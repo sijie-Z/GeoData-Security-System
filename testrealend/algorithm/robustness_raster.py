@@ -91,7 +91,7 @@ RASTER_SCHEMES = ("lsb", "dwt", "histogram", "blind", "iw_dct")
 
 # Standard attack set: the no-attack baseline first, then the image attacks.
 # "blur" is supported by the engine but not part of the default whitelist runs
-# (the reference matrix is 4 schemes x [none, jpeg, resize, crop, rotate, noise]).
+# (the reference matrix is 5 schemes x [none, jpeg, resize, crop, rotate, noise]).
 RASTER_ATTACKS = ("none", "jpeg", "resize", "crop", "rotate", "noise", "blur")
 
 # Default parameters per attack (attack_params recorded per row).
