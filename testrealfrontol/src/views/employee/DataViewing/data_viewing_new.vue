@@ -1069,8 +1069,15 @@ const initializeMapView = async (url, fullLayerName) => {
 
     // Base layers: Tianditu only when a key is configured; without a key OSM is
     // the base map and no Tianditu tile requests are ever made.
+    // #24 深色适配（方案 A）：仅底图瓦片层挂 dark-tile-layer class，由全局
+    // design-system.css 在 html.dark 下施加 invert+hue-rotate filter；零外部依赖。
+    // 标记/矢量要素/控件/比例尺/WMS 数据图层均不含该 class，天然不受影响。
+    // 注：底图与注记层再各挂互异后缀 class —— OL canvas 渲染器会复用 className
+    //     完全相同的容器（useContainer），互异可避免底图/注记层共用同一 canvas。
+    const DARK_TILE_CLASS = 'ol-layer dark-tile-layer dark-tile-base';
     const osmFallback = new TileLayer({
       source: new OSM(),
+      className: DARK_TILE_CLASS, // #24
       zIndex: 0,
       visible: !tiandituKey
     });
@@ -1082,12 +1089,14 @@ const initializeMapView = async (url, fullLayerName) => {
         source: new XYZ({
           url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=vec_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
         }),
+        className: DARK_TILE_CLASS, // #24 底图 vec_w
         zIndex: 0
       });
       tiandituLabel = new TileLayer({
         source: new XYZ({
           url: `https://t{0-7}.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tiandituKey}`
         }),
+        className: 'ol-layer dark-tile-layer dark-tile-label', // #24 注记 cva_w（与底图同滤；独立 class 防 OL 容器复用）
         zIndex: 1
       });
 
