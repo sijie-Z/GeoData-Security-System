@@ -579,7 +579,10 @@ def extract_iw_dct(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     # trims). A center crop scrambles grid phase and cyclic indexing; its
     # structure score collapses, which gates the realignment search below.
     readout = "direct"
-    if _is_qr_like_side(wm_w, wm_h):
+    # The stamp positions live in [0, side^2), so the structure machinery also
+    # requires a consistent meta (bit_count == wm_w * wm_h, true for every
+    # stego this scheme produced); anything else keeps the direct readout.
+    if _is_qr_like_side(wm_w, wm_h) and wm_w * wm_h == bit_count:
         stamp_cells = int(_qr_structure_stamp(wm_w)[0].size)
         direct_score = _structure_score(votes, counts, wm_w)
         if direct_score < _REALIGN_GATE_FRACTION * stamp_cells:
