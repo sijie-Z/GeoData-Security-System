@@ -2,7 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies for GDAL, rasterio, and database drivers
+# Install system dependencies for GDAL, rasterio, and database drivers.
+# libgl1/libglib2.0-0/libxcb1: opencv-python (imported for the raster watermark
+# algorithms) dlopens its bundled Qt plug-ins at `import cv2`, which link these
+# system libraries even on a headless server — without them the app cannot start.
+# libzbar0: pyzbar (QR decoding in resource/watermark_utils.py) loads libzbar at
+# decode time; same packages the CI backend job apt-installs.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gdal-bin \
     libgdal-dev \
@@ -11,6 +16,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq-dev \
     default-libmysqlclient-dev \
     pkg-config \
+    libgl1 \
+    libglib2.0-0 \
+    libxcb1 \
+    libzbar0 \
     && rm -rf /var/lib/apt/lists/*
 
 # Set GDAL environment
