@@ -18,6 +18,7 @@ from model.Application import Application
 from model.download_delivery import DownloadDelivery
 from model.Download_Record import DownloadRecord
 from model.evidence_event import EvidenceEvent
+from model.Log_Info import LogInfo
 from resource.watermark_utils import build_qr_text
 from tests.test_delivery_flow import _make_small_shp
 
@@ -667,3 +668,131 @@ class TestDeliveriesFourDimFilters:
             )
             assert resp.status_code == 200
             assert len(resp.get_json()["deliveries"]) == 2
+
+
+class TestForensicsAudit:
+    """Audit trail for the leaked-copy verify/trace endpoints: exactly one
+    LogInfo row per call, and ``details`` is strictly non-PII — the result
+    (matched delivery uuid / 未命中) plus input type & size magnitude only.
+    The raw qr_text (v1 payloads embed applicant names/ids), provenance
+    blocks, comments, IPs and filenames must never reach the audit trail."""
+
+    @staticmethod
+    def _baseline_id():
+        row = LogInfo.query.order_by(LogInfo.id.desc()).first()
+        return row.id if row else 0
+
+    @staticmethod
+    def _new_rows(action, after_id):
+        return LogInfo.query.filter(LogInfo.action == action, LogInfo.id > after_id).order_by(LogInfo.id.asc()).all()
+
+    def test_verify_hit_writes_audit_row_without_pii(self, db, client, auth_headers):
+        item = _seed_app(db, alias="fx-audit-hit", adm1_name="Approver One", adm1_user_number="admin1")
+        delivery = _seed_delivery(db, item)
+        text = _v2_text_for(delivery)
+        baseline = self._baseline_id()
+
+        resp = client.post("/api/forensics/verify", json={"qr_text": text}, headers=auth_headers)
+        assert resp.status_code == 200
+
+        rows = self._new_rows("泄露取证验证", baseline)
+        assert len(rows) == 1, f"verify must write exactly one audit row, got {len(rows)}"
+        row = rows[0]
+        assert row.status == "成功"
+        assert row.user_number == "admin1"  # caller identity belongs in its own columns
+        details = row.details or ""
+        assert delivery.uuid in details and "命中" in details
+        for pii in ("Tester", "E001", "Approver One", "admin1", text):
+            assert pii not in details, f"audit details leaked {pii!r}: {details}"
+
+    def test_v1_request_pii_never_reaches_audit_details(self, db, client, auth_headers):
+        item = _seed_app(db, alias="fx-audit-v1", adm1_name="Approver One", adm1_user_number="admin1")
+        text, _signature = build_qr_text(item, {"reason": "audit-test"})
+        baseline = self._baseline_id()
+
+        resp = client.post("/api/forensics/verify", json={"qr_text": text}, headers=auth_headers)
+        assert resp.status_code == 200
+
+        rows = self._new_rows("泄露取证验证", baseline)
+        assert len(rows) == 1
+        details = rows[0].details or ""
+        assert "v1" in details
+        for pii in ("Tester", "E001", "Approver One", "admin1", "audit-test", "ApplicantID", "Adm1Name"):
+            assert pii not in details, f"audit details leaked {pii!r}: {details}"
+
+    def test_trace_writes_audit_row_without_provenance_pii(self, db, client, auth_headers):
+        item = _seed_app(
+            db,
+            alias="fx-audit-trace",
+            adm1_name="Approver One",
+            adm1_user_number="admin1",
+            adm1_approval_time=datetime.now(UTC),
+            adm1_comment="looks good",
+        )
+        delivery = _seed_delivery(db, item)
+        db.session.add(
+            DownloadRecord(
+                application_id=item.id,
+                delivery_id=delivery.delivery_id,
+                data_id=item.data_id,
+                data_name=item.data_name,
+                download_user_number="E001",
+                download_ip="10.9.8.7",
+                applicant_user_number="E001",
+                filename="artifact.zip",
+            )
+        )
+        db.session.commit()
+        text = _v2_text_for(delivery)
+        baseline = self._baseline_id()
+
+        resp = client.post("/api/forensics/trace", json={"qr_text": text}, headers=auth_headers)
+        assert resp.status_code == 200
+        assert resp.get_json()["provenance"]["applicant_name"] == "Tester"  # response is PII-rich by contract…
+
+        rows = self._new_rows("泄露溯源查询", baseline)
+        assert len(rows) == 1, f"trace must write exactly one audit row, got {len(rows)}"
+        row = rows[0]
+        assert row.status == "成功"
+        details = row.details or ""
+        assert delivery.uuid in details and "已返回溯源档案" in details
+        # …the audit row is not: no names, ids, ips, comments, filenames or raw text.
+        for pii in ("Tester", "E001", "Approver One", "admin1", "10.9.8.7", "looks good", "artifact.zip", text):
+            assert pii not in details, f"audit details leaked {pii!r}: {details}"
+
+    def test_miss_is_audited_as_miss(self, db, client, auth_headers):
+        baseline = self._baseline_id()
+        resp = client.post("/api/forensics/verify", json={"qr_text": "NOT-A-GDS-QR"}, headers=auth_headers)
+        assert resp.status_code == 200
+
+        rows = self._new_rows("泄露取证验证", baseline)
+        assert len(rows) == 1
+        assert "未命中" in (rows[0].details or "")
+
+    def test_rejected_requests_audited_as_failure(self, db, client, auth_headers):
+        baseline = self._baseline_id()
+        resp = client.post("/api/forensics/verify", json={}, headers=auth_headers)
+        assert resp.status_code == 400
+        resp2 = client.post("/api/forensics/trace", json={}, headers=auth_headers)
+        assert resp2.status_code == 400
+
+        verify_rows = self._new_rows("泄露取证验证", baseline)
+        trace_rows = self._new_rows("泄露溯源查询", baseline)
+        assert len(verify_rows) == 1 and verify_rows[0].status == "失败"
+        assert len(trace_rows) == 1 and trace_rows[0].status == "失败"
+
+    def test_file_upload_audit_records_type_and_size_magnitude(self, db, client, auth_headers):
+        baseline = self._baseline_id()
+        resp = client.post(
+            "/api/forensics/verify",
+            data={"file": (io.BytesIO(_zip_bytes([("readme.txt", b"hi")])), "bundle.zip")},
+            headers=auth_headers,
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 200
+
+        rows = self._new_rows("泄露取证验证", baseline)
+        assert len(rows) == 1
+        details = rows[0].details or ""
+        assert "文件类型=.zip" in details
+        assert "大小≈" in details

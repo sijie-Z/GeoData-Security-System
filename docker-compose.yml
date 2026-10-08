@@ -7,7 +7,7 @@ services:
     container_name: geodata-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-geodata_root_2024}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请复制 .env.example 为 .env 并设置 MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE:-esri_test}
     ports:
       - "3306:3306"
@@ -26,7 +26,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-geodata_pg_2024}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请复制 .env.example 为 .env 并设置 POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-esri_test}
     ports:
       - "5432:5432"
@@ -65,10 +65,10 @@ services:
       - "5003:5003"
     environment:
       FLASK_ENV: production
-      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
-      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-jwt-secret}
-      MYSQL_URI: "mysql+mysqldb://root:${MYSQL_ROOT_PASSWORD:-geodata_root_2024}@mysql/${MYSQL_DATABASE:-esri_test}"
-      POSTGRES_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-geodata_pg_2024}@postgres/${POSTGRES_DB:-esri_test}"
+      SECRET_KEY: ${SECRET_KEY:?请复制 .env.example 为 .env 并设置 SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?请复制 .env.example 为 .env 并设置 JWT_SECRET_KEY}
+      MYSQL_URI: "mysql+mysqldb://root:${MYSQL_ROOT_PASSWORD:?请复制 .env.example 为 .env 并设置 MYSQL_ROOT_PASSWORD}@mysql/${MYSQL_DATABASE:-esri_test}"
+      POSTGRES_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?请复制 .env.example 为 .env 并设置 POSTGRES_PASSWORD}@postgres/${POSTGRES_DB:-esri_test}"
       REDIS_URL: "redis://redis:6379/0"
       CORS_ORIGINS: "http://localhost,http://localhost:80,http://localhost:5173"
       UPLOAD_FOLDER: /data/upload_folder
@@ -122,7 +122,7 @@ services:
       - "3000:3000"
     environment:
       GF_SECURITY_ADMIN_USER: ${GRAFANA_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-geodata_grafana}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:?请复制 .env.example 为 .env 并设置 GRAFANA_PASSWORD}
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/provisioning/dashboards/json/geodata-overview.json
       GF_ALERTING_ENABLED: "true"
     volumes:

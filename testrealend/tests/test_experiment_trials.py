@@ -331,7 +331,7 @@ class TestTrialsEndpoint:
             assert "trials" in resp.get_json()["msg"]
 
     def test_trials_validation_rejects_oversized_matrix(self, client, db, auth_headers):
-        # Raster defaults are 4 schemes x 6 attacks = 24 cells; 24 x 10 = 240 > 200.
+        # Raster defaults are 5 schemes x 6 attacks = 30 cells; 30 x 10 = 300 > 200.
         resp = client.post("/api/robustness/run", json={"kind": "raster", "trials": 10}, headers=auth_headers)
         assert resp.status_code == 400
         assert "200" in resp.get_json()["msg"]

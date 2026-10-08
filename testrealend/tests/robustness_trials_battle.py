@@ -9,7 +9,7 @@ aggregates every cell into success rate + mean/std NC:
     ``2 schemes x 6 attacks x trials=5 = 60 rows``;
   * raster battle: synthetic 512x512 host per trial (production
     ``kind="raster"`` parity, host seed varies with the trial),
-    ``4 schemes x 6 attacks x trials=3 = 72 rows``.
+    ``5 schemes x 6 attacks x trials=3 = 90 rows``.
 
 Payload: a real v2 COSE payload signed with the live active key when
 ``--key-pem`` is given (kid matched read-only against the live MySQL

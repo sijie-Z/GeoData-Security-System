@@ -9,7 +9,7 @@ repos:
         args: ['--maxkb=1000']
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+    rev: v0.15.12 # keep in lockstep with ci.yml (pip install ruff==0.15.12)
     hooks:
       - id: ruff
         args: [--fix]
