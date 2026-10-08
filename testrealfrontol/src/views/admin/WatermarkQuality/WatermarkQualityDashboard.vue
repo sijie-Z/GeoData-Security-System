@@ -45,104 +45,94 @@
         </div>
       </template>
 
-      <!-- Row 1 · NC 直方图 + NC 日均趋势 -->
-      <el-row :gutter="16">
-        <el-col :xs="24" :lg="12">
-          <div class="chart-box">
-            <div class="chart-head">
-              <div class="chart-head-left">
-                <span class="chart-title-row">
-                  <span class="chart-title">{{ $t('watermarkQuality.ncHistogram') }}</span>
-                  <GlossaryHelp v-bind="glossary.histogram" />
-                </span>
-                <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
-              </div>
+      <!-- 图表联排细线网格：直方图 + 趋势 / 算法（跨列）/ 构成 + 交付 -->
+      <div class="chart-grid">
+        <div class="chart-box">
+          <div class="chart-head">
+            <div class="chart-head-left">
+              <span class="chart-title-row">
+                <span class="chart-title">{{ $t('watermarkQuality.ncHistogram') }}</span>
+                <GlossaryHelp v-bind="glossary.histogram" />
+              </span>
+              <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
             </div>
-            <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" autoresize />
-            <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
           </div>
-        </el-col>
-        <el-col :xs="24" :lg="12">
-          <div class="chart-box" v-loading="trendLoading">
-            <div class="chart-head">
-              <div class="chart-head-left">
-                <span class="chart-title-row">
-                  <span class="chart-title">{{ $t('watermarkQuality.ncTrend') }}</span>
-                  <GlossaryHelp v-bind="glossary.trend" />
-                </span>
-                <span class="chart-sub">{{ $t('watermarkQuality.ncTrendSub', { days: 30 }) }}</span>
-              </div>
-              <el-radio-group v-model="trendDataType" size="small">
-                <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
-                <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
-                <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
-              </el-radio-group>
-            </div>
-            <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" autoresize />
-            <EmptyState v-else compact :variant="trendDataType ? 'filtered' : 'never'" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
-          </div>
-        </el-col>
-      </el-row>
+          <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" autoresize />
+          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+        </div>
 
-      <!-- Row 2 · 算法对比双轴柱线图 -->
-      <div class="chart-box">
-        <div class="chart-head">
-          <div class="chart-head-left">
-            <span class="chart-title-row">
-              <span class="chart-title">{{ $t('watermarkQuality.algoBreakdown') }}</span>
-              <GlossaryHelp v-bind="glossary.algo" />
-            </span>
-            <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
+        <div class="chart-box" v-loading="trendLoading">
+          <div class="chart-head">
+            <div class="chart-head-left">
+              <span class="chart-title-row">
+                <span class="chart-title">{{ $t('watermarkQuality.ncTrend') }}</span>
+                <GlossaryHelp v-bind="glossary.trend" />
+              </span>
+              <span class="chart-sub">{{ $t('watermarkQuality.ncTrendSub', { days: 30 }) }}</span>
+            </div>
+            <el-radio-group v-model="trendDataType" size="small">
+              <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
+              <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
+              <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
+            </el-radio-group>
+          </div>
+          <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" autoresize />
+          <EmptyState v-else compact :variant="trendDataType ? 'filtered' : 'never'" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+        </div>
+
+        <div class="chart-box chart-box--wide">
+          <div class="chart-head">
+            <div class="chart-head-left">
+              <span class="chart-title-row">
+                <span class="chart-title">{{ $t('watermarkQuality.algoBreakdown') }}</span>
+                <GlossaryHelp v-bind="glossary.algo" />
+              </span>
+              <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
+            </div>
+          </div>
+          <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" autoresize />
+          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-head">
+            <div class="chart-head-left">
+              <span class="chart-title-row">
+                <span class="chart-title">{{ $t('watermarkQuality.verificationShare') }}</span>
+                <GlossaryHelp v-bind="glossary.share" />
+              </span>
+              <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
+            </div>
+          </div>
+          <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" autoresize />
+          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+        </div>
+
+        <div class="chart-box" v-loading="dLoading">
+          <div class="chart-head">
+            <div class="chart-head-left">
+              <span class="chart-title-row">
+                <span class="chart-title">{{ $t('watermarkQuality.deliveryHealth') }}</span>
+                <GlossaryHelp v-bind="glossary.deliveryChart" />
+              </span>
+              <span class="chart-sub">
+                {{ $t('watermarkQuality.ringInner') }} / {{ $t('watermarkQuality.ringOuter') }}
+              </span>
+            </div>
+          </div>
+          <div class="donut-wrap">
+            <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" autoresize />
+            <div v-if="hasDelivery" class="donut-center">
+              <span class="donut-center-value">{{ dStats?.total ?? '—' }}</span>
+              <span class="donut-center-label">{{ $t('watermarkQuality.centerDeliveries') }}</span>
+              <span class="donut-center-sub">
+                {{ $t('watermarkQuality.centerDownloaded') }} {{ dStats?.downloaded_count ?? '—' }}
+              </span>
+            </div>
+            <EmptyState v-if="!hasDelivery && !dLoading" compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
           </div>
         </div>
-        <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" autoresize />
-        <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
       </div>
-
-      <!-- Row 3 · 验证数据构成 + 交付健康度 -->
-      <el-row :gutter="16">
-        <el-col :xs="24" :lg="12">
-          <div class="chart-box">
-            <div class="chart-head">
-              <div class="chart-head-left">
-                <span class="chart-title-row">
-                  <span class="chart-title">{{ $t('watermarkQuality.verificationShare') }}</span>
-                  <GlossaryHelp v-bind="glossary.share" />
-                </span>
-                <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
-              </div>
-            </div>
-            <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" autoresize />
-            <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
-          </div>
-        </el-col>
-        <el-col :xs="24" :lg="12">
-          <div class="chart-box" v-loading="dLoading">
-            <div class="chart-head">
-              <div class="chart-head-left">
-                <span class="chart-title-row">
-                  <span class="chart-title">{{ $t('watermarkQuality.deliveryHealth') }}</span>
-                  <GlossaryHelp v-bind="glossary.deliveryChart" />
-                </span>
-                <span class="chart-sub">
-                  {{ $t('watermarkQuality.ringInner') }} / {{ $t('watermarkQuality.ringOuter') }}
-                </span>
-              </div>
-            </div>
-            <div class="donut-wrap">
-              <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" autoresize />
-              <div v-if="hasDelivery" class="donut-center">
-                <span class="donut-center-value">{{ dStats?.total ?? '—' }}</span>
-                <span class="donut-center-label">{{ $t('watermarkQuality.centerDeliveries') }}</span>
-                <span class="donut-center-sub">
-                  {{ $t('watermarkQuality.centerDownloaded') }} {{ dStats?.downloaded_count ?? '—' }}
-                </span>
-              </div>
-              <EmptyState v-if="!hasDelivery && !dLoading" compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
-            </div>
-          </div>
-        </el-col>
-      </el-row>
     </el-card>
 
     <!-- ═══════════ 区三 · 算法能力矩阵（基准真数据） ═══════════ -->
@@ -491,17 +481,17 @@ import {
 } from '@element-plus/icons-vue'
 import { getVerificationRecords, getBenchmarkResults, getVerificationStats, getBenchmarkStats } from '@/api/watermark'
 import { getDeliveryStats } from '@/api/forensics'
-import { use, graphic } from 'echarts/core'
+import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { BarChart, LineChart, PieChart } from 'echarts/charts'
-import { TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
+import { TooltipComponent, LegendComponent, GridComponent, MarkLineComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useTheme } from '@/composables/useTheme.js'
 import GlossaryHelp from './GlossaryHelp.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
 // ── ECharts 按需注册：本页用到的渲染器 / 图表 / 组件 ──
-use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent])
+use([CanvasRenderer, BarChart, LineChart, PieChart, TooltipComponent, LegendComponent, GridComponent, MarkLineComponent])
 
 const { t } = useI18n()
 const router = useRouter()
@@ -688,77 +678,107 @@ watch(kpiCards, (cards) => {
 }, { immediate: true })
 
 // ══════════════════ 区二 · 图表 ══════════════════
-// 图表配色（canvas 内无法用 CSS 变量，随 isDark 切换；对齐 A/B 设计体系）
-const chartInk = computed(() => (isDark.value
-  ? {
-      axisLabel: '#a0a0ab',
-      axisLabelMinor: '#6e6e7a',
-      pieBorder: '#111114',
-      chartLabel: '#a0a0ab',
-      tooltipBg: 'rgba(17,17,20,0.96)',
-      tooltipBorder: 'rgba(94,106,210,0.35)',
-      tooltipText: '#ededf0',
-      chainTrack: 'rgba(255,255,255,0.08)',
-      accent: '#5e6ad2',
-      accentHi: '#6e79de',
-      accentSoft: 'rgba(94,106,210,0.16)',
-      green: '#5cc08f',
-      greenHi: '#6fce9f',
-      red: '#e06a6a',
-      amber: '#d6a75c',
-      amberHi: '#e0b97a',
-      neutral: '#6e6e7a',
-    }
-  : {
-      axisLabel: '#666666',
-      axisLabelMinor: '#8f8f8f',
-      pieBorder: '#ffffff',
-      chartLabel: '#666666',
-      tooltipBg: 'rgba(255,255,255,0.98)',
-      tooltipBorder: '#eaeaea',
-      tooltipText: '#0a0a0a',
-      chainTrack: '#eaeaea',
-      accent: '#0070f3',
-      accentHi: '#4d9bf7',
-      accentSoft: 'rgba(0,112,243,0.12)',
-      green: '#0e7a4e',
-      greenHi: '#3e9c74',
-      red: '#b42318',
-      amber: '#9a6b15',
-      amberHi: '#d6a75c',
-      neutral: '#8f8f8f',
-    }))
-// ── NC 直方图（服务端 10 桶，低于 0.8 冷暖双色渐变） ──
+// 图表墨色：canvas 消费不了 CSS 变量 → 运行时从 design-system 令牌解析（AuthBrandPanel 同源做法，
+// 不散落魔法色值）。依赖 isDark 触发重解析：主题类是同步切换的，getComputedStyle 立即可见新值。
+const cssVar = (name, fallback) => {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+  return v || fallback
+}
+const hexToRgba = (color, alpha) => {
+  const h = String(color).trim().replace('#', '')
+  const full = h.length === 3 ? h.split('').map((c) => c + c).join('') : h
+  const n = parseInt(full.slice(0, 6), 16)
+  if (!Number.isFinite(n) || full.length !== 6) return color
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
+}
+const chartInk = computed(() => {
+  void isDark.value // 主题切换即重取
+  const accent = cssVar('--accent-9', '#0070f3')
+  return {
+    axisLabel: cssVar('--text-2', '#333333'),     // 轴刻度：两模式都保持 AA 对比度
+    label: cssVar('--text-3', '#666666'),         // 次级说明（图例/轴名）
+    grid: cssVar('--border-default', '#eaeaea'),  // 仅横向网格线，低强度
+    pieBorder: cssVar('--bg-surface', '#ffffff'), // 环形扇区间隙 = 卡面底色
+    tooltipBg: cssVar('--bg-raised', '#ffffff'),
+    tooltipBorder: cssVar('--border-default', '#eaeaea'),
+    tooltipText: cssVar('--text-1', '#0a0a0a'),
+    chainTrack: cssVar('--border-default', '#eaeaea'),
+    accent,
+    accentSoft: hexToRgba(accent, 0.14),
+    success: cssVar('--tint-success-text', '#0e7a4e'),
+    danger: cssVar('--tint-danger-text', '#b42318'),
+    warning: cssVar('--tint-warning-text', '#9a6b15'),
+    neutral: cssVar('--text-4', '#8f8f8f'),
+  }
+})
+// 通用 tooltip（ECharts tooltip 是 HTML 层，可直接吃 CSS 变量：阴影/圆角对齐 el-popper 体系）
+const tooltipBase = () => ({
+  backgroundColor: chartInk.value.tooltipBg,
+  borderColor: chartInk.value.tooltipBorder,
+  borderWidth: 1,
+  padding: [8, 12],
+  textStyle: { color: chartInk.value.tooltipText, fontSize: 12 },
+  extraCssText: 'box-shadow: var(--elevation-2); border-radius: var(--radius-md); font-variant-numeric: tabular-nums;',
+})
+// 通用图例：小圆点 + 次级文字
+const legendBase = (data) => ({
+  data,
+  bottom: 0,
+  icon: 'circle',
+  itemWidth: 8,
+  itemHeight: 8,
+  itemGap: 14,
+  textStyle: { fontSize: 11, color: chartInk.value.label },
+})
+// 轴公理：隐藏轴线/刻度，量级以低强度横向网格线承载（Sentry 式克制）
+const axisBase = () => ({
+  axisLine: { show: false },
+  axisTick: { show: false },
+  axisLabel: { fontSize: 10, color: chartInk.value.axisLabel },
+})
+const ySplitBase = () => ({
+  ...axisBase(),
+  splitLine: { lineStyle: { color: chartInk.value.grid, width: 1 } },
+})
+// NC 阈值参考线（0.8）：虚线 + 极小标签，不改任何数字口径
+const NC_THRESHOLD = 0.8
+const thresholdMarkLine = () => ({
+  silent: true,
+  symbol: 'none',
+  label: { show: true, position: 'insideEndTop', formatter: '0.8', fontSize: 10, color: chartInk.value.warning },
+  lineStyle: { type: 'dashed', width: 1, color: chartInk.value.warning },
+  data: [{ yAxis: NC_THRESHOLD }],
+})
+// ── NC 直方图（服务端 10 桶；<0.8 危险色 / ≥0.8 成功色，纯色替代渐变） ──
 const hasHistogram = computed(() => (vStats.value?.total || 0) > 0)
 const ncHistogramOption = computed(() => {
   const hist = vStats.value?.nc_histogram || []
   return {
-    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
-    grid: { left: '4%', right: '4%', bottom: '6%', top: '10%', containLabel: true },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow', shadowStyle: { color: hexToRgba(chartInk.value.accent, 0.06) } },
+      ...tooltipBase(),
+    },
+    grid: { left: '2%', right: '2%', bottom: 6, top: 16, containLabel: true },
     xAxis: {
       type: 'category',
       data: hist.map((h) => h.bucket),
-      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel },
+      ...axisBase(),
+      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel, hideOverlap: true },
     },
-    yAxis: { type: 'value', minInterval: 1, axisLabel: { color: chartInk.value.axisLabel } },
+    yAxis: { type: 'value', minInterval: 1, ...ySplitBase() },
     series: [{
       name: t('watermarkQuality.seriesCount'),
       type: 'bar',
-      barWidth: '56%',
-      barMaxWidth: 56,
+      barWidth: '52%',
+      barMaxWidth: 48,
       data: hist.map((h) => {
         const low = parseFloat(h.bucket) || 0
         return {
           value: h.count,
           itemStyle: {
-            borderRadius: [6, 6, 0, 0],
-            color: low < 0.8
-              ? new graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: chartInk.value.amberHi }, { offset: 1, color: chartInk.value.red },
-              ])
-              : new graphic.LinearGradient(0, 0, 0, 1, [
-                { offset: 0, color: chartInk.value.greenHi }, { offset: 1, color: chartInk.value.green },
-              ]),
+            borderRadius: [4, 4, 0, 0],
+            color: low < NC_THRESHOLD ? chartInk.value.danger : chartInk.value.success,
           },
         }
       }),
@@ -777,33 +797,40 @@ const ncTrendOption = computed(() => {
   const countLabel = t('watermarkQuality.seriesCount')
   const ncLabel = t('watermarkQuality.seriesAvgNc')
   return {
-    tooltip: { trigger: 'axis', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
-    legend: { data: [ncLabel, countLabel], bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
-    grid: { left: '4%', right: '4%', bottom: '18%', top: '10%', containLabel: true },
+    tooltip: { trigger: 'axis', ...tooltipBase() },
+    legend: legendBase([ncLabel, countLabel]),
+    grid: { left: '2%', right: '2%', bottom: 34, top: 30, containLabel: true },
     xAxis: {
       type: 'category',
       data: daily.map((d) => String(d.date).slice(5)),
-      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel },
+      ...axisBase(),
+      axisLabel: { fontSize: 10, color: chartInk.value.axisLabel, hideOverlap: true },
     },
     yAxis: [
-      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: chartInk.value.axisLabel } },
       {
-        type: 'value', name: countLabel, minInterval: 1,
-        axisLabel: { color: chartInk.value.axisLabelMinor }, splitLine: { show: false },
+        type: 'value', name: 'NC', min: 0, max: 1, nameGap: 10,
+        nameTextStyle: { fontSize: 10, color: chartInk.value.label, align: 'right' },
+        ...ySplitBase(),
+      },
+      {
+        type: 'value', name: countLabel, minInterval: 1, nameGap: 10,
+        nameTextStyle: { fontSize: 10, color: chartInk.value.label },
+        ...axisBase(), splitLine: { show: false },
       },
     ],
     series: [
       {
-        name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%', barMaxWidth: 56,
+        name: countLabel, type: 'bar', yAxisIndex: 1, barWidth: '52%', barMaxWidth: 40,
         data: daily.map((d) => d.count),
         itemStyle: { color: chartInk.value.accentSoft, borderRadius: [3, 3, 0, 0] },
       },
       {
         name: ncLabel, type: 'line', yAxisIndex: 0, smooth: true, connectNulls: false,
         data: daily.map((d) => d.avg_nc),
-        symbolSize: 6,
-        lineStyle: { width: 2.5, color: chartInk.value.accent },
+        symbolSize: 5,
+        lineStyle: { width: 2, color: chartInk.value.accent },
         itemStyle: { color: chartInk.value.accent },
+        markLine: thresholdMarkLine(),
       },
     ],
   }
@@ -818,9 +845,7 @@ const algoBreakdownOption = computed(() => {
   return {
     tooltip: {
       trigger: 'axis',
-      backgroundColor: chartInk.value.tooltipBg,
-      borderColor: chartInk.value.tooltipBorder,
-      textStyle: { color: chartInk.value.tooltipText },
+      ...tooltipBase(),
       formatter: (params) => {
         const alg = params?.[0]?.axisValue
         const row = rows.find((r) => r.algorithm === alg)
@@ -832,33 +857,37 @@ const algoBreakdownOption = computed(() => {
         ].join('<br/>')
       },
     },
-    legend: { data: [countLabel, ncLabel], bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
-    grid: { left: '4%', right: '4%', bottom: '18%', top: '12%', containLabel: true },
+    legend: legendBase([countLabel, ncLabel]),
+    grid: { left: '2%', right: '2%', bottom: 34, top: 30, containLabel: true },
     xAxis: {
       type: 'category',
       data: rows.map((r) => r.algorithm),
-      axisLabel: { color: chartInk.value.axisLabel },
+      ...axisBase(),
     },
     yAxis: [
-      { type: 'value', name: countLabel, minInterval: 1, axisLabel: { color: chartInk.value.axisLabel } },
-      { type: 'value', name: 'NC', min: 0, max: 1, axisLabel: { color: chartInk.value.axisLabelMinor }, splitLine: { show: false } },
+      {
+        type: 'value', name: countLabel, minInterval: 1, nameGap: 10,
+        nameTextStyle: { fontSize: 10, color: chartInk.value.label },
+        ...ySplitBase(),
+      },
+      {
+        type: 'value', name: 'NC', min: 0, max: 1, nameGap: 10,
+        nameTextStyle: { fontSize: 10, color: chartInk.value.label, align: 'right' },
+        ...axisBase(), splitLine: { show: false },
+      },
     ],
     series: [
       {
-        name: countLabel, type: 'bar', barWidth: '32%', barMaxWidth: 56,
+        name: countLabel, type: 'bar', barWidth: '30%', barMaxWidth: 44,
         data: rows.map((r) => r.count),
-        itemStyle: {
-          borderRadius: [6, 6, 0, 0],
-          color: new graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: chartInk.value.accentHi }, { offset: 1, color: chartInk.value.accent },
-          ]),
-        },
+        itemStyle: { borderRadius: [4, 4, 0, 0], color: chartInk.value.accentSoft },
       },
       {
-        name: ncLabel, type: 'line', yAxisIndex: 1, symbolSize: 9,
+        name: ncLabel, type: 'line', yAxisIndex: 1, symbolSize: 7,
         data: rows.map((r) => r.avg_nc),
-        lineStyle: { width: 2.5, color: chartInk.value.green },
-        itemStyle: { color: chartInk.value.green },
+        lineStyle: { width: 2, color: chartInk.value.accent },
+        itemStyle: { color: chartInk.value.accent },
+        markLine: thresholdMarkLine(),
       },
     ],
   }
@@ -873,38 +902,39 @@ const dataTypeLabel = (dt) => {
 const hasShare = computed(() =>
   (vStats.value?.total || 0) > 0 && (vStats.value?.by_data_type || []).length > 0)
 const verificationShareOption = computed(() => ({
-  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
-  legend: { bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
+  tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)', ...tooltipBase() },
+  legend: legendBase(),
   series: [{
     type: 'pie',
-    radius: ['50%', '72%'],
-    center: ['50%', '44%'],
-    itemStyle: { borderRadius: 6, borderColor: chartInk.value.pieBorder, borderWidth: 2 },
-    label: { formatter: '{b}\n{d}%', fontSize: 11, color: chartInk.value.chartLabel },
+    radius: ['52%', '72%'],
+    center: ['50%', '45%'],
+    itemStyle: { borderRadius: 4, borderColor: chartInk.value.pieBorder, borderWidth: 2 },
+    label: { formatter: '{b}\n{d}%', fontSize: 11, color: chartInk.value.label, lineHeight: 15 },
+    labelLine: { lineStyle: { color: chartInk.value.grid }, length: 8, length2: 8 },
     data: (vStats.value?.by_data_type || []).map((d) => ({
       name: dataTypeLabel(d.data_type),
       value: d.count,
       itemStyle: {
-        color: d.data_type === 'vector' ? chartInk.value.accent : d.data_type === 'raster' ? chartInk.value.green : chartInk.value.neutral,
+        color: d.data_type === 'vector' ? chartInk.value.accent : d.data_type === 'raster' ? chartInk.value.success : chartInk.value.neutral,
       },
     })),
   }],
 }))
 
 // ── 交付健康度（内环 = 交付状态，外环 = 锚定状态，中心叠加汇总） ──
-const STATUS_INK_KEY = { READY: 'green', FAILED: 'red', PENDING: 'amber' }
+const STATUS_INK_KEY = { READY: 'success', FAILED: 'danger', PENDING: 'warning' }
 const hasDelivery = computed(() => (dStats.value?.total || 0) > 0)
 const deliveryHealthOption = computed(() => {
   const d = dStats.value || {}
   const anchor = d.anchor || {}
   const ink = chartInk.value
   return {
-    tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)', backgroundColor: chartInk.value.tooltipBg, borderColor: chartInk.value.tooltipBorder, textStyle: { color: chartInk.value.tooltipText } },
-    legend: { bottom: 0, textStyle: { fontSize: 11, color: chartInk.value.chartLabel } },
+    tooltip: { trigger: 'item', formatter: '{a} · {b}: {c} ({d}%)', ...tooltipBase() },
+    legend: legendBase(),
     series: [
       {
         name: t('watermarkQuality.ringInner'), type: 'pie',
-        radius: ['38%', '58%'], center: ['50%', '44%'],
+        radius: ['38%', '56%'], center: ['50%', '45%'],
         itemStyle: { borderColor: chartInk.value.pieBorder, borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: (d.by_status || []).map((s) => ({
@@ -914,12 +944,12 @@ const deliveryHealthOption = computed(() => {
       },
       {
         name: t('watermarkQuality.ringOuter'), type: 'pie',
-        radius: ['64%', '84%'], center: ['50%', '44%'],
+        radius: ['62%', '80%'], center: ['50%', '45%'],
         itemStyle: { borderColor: chartInk.value.pieBorder, borderWidth: 2 },
         label: { show: false }, labelLine: { show: false },
         data: [
           { name: t('watermarkQuality.anchorSubmitted'), value: anchor.submitted || 0, itemStyle: { color: ink.accent } },
-          { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: ink.amber } },
+          { name: t('watermarkQuality.anchorPending'), value: anchor.pending || 0, itemStyle: { color: ink.warning } },
           { name: t('watermarkQuality.anchorNone'), value: anchor.none || 0, itemStyle: { color: ink.neutral } },
         ].filter((x) => x.value > 0),
       },
@@ -965,7 +995,7 @@ const chainPct = computed(() => {
   return Math.round((d.chain_valid_count / d.chain_checked) * 100)
 })
 const chainRingStyle = computed(() => ({
-  background: `conic-gradient(${chainPct.value >= 100 ? chartInk.value.green : chartInk.value.amber} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
+  background: `conic-gradient(${chainPct.value >= 100 ? chartInk.value.success : chartInk.value.warning} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
 }))
 const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
 const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
@@ -1370,10 +1400,10 @@ onMounted(() => {
 .kpi-dot--warn { background: var(--tint-warning-text); }
 .kpi-dot--bad { background: var(--tint-danger-text); }
 
-/* ── 区二 · 图表画廊 ── */
+/* ── 区二 · 图表画廊（联排细线网格：图表坐在卡面上，去"卡中卡"双层容器） ── */
 .section-card {
-  border-radius: var(--radius-lg, 8px);
-  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .card-header {
@@ -1393,25 +1423,37 @@ onMounted(() => {
 }
 
 .section-title {
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1px; /* 发丝分隔线（容器底色透出） */
+  background: var(--border-subtle);
+}
+
+/* 与 el-col 断点对齐：<1200 单列 */
+@media (max-width: 1199px) {
+  .chart-grid { grid-template-columns: 1fr; }
 }
 
 .chart-box {
-  background: var(--bg-tertiary, #fafafa);
-  border: 1px solid var(--border-color-light, #f0f0f0);
-  border-radius: var(--radius-md, 8px);
-  padding: 16px;
-  margin-bottom: 16px;
+  min-width: 0;
+  padding: var(--spacing-md) var(--spacing-md) var(--spacing-sm);
+  background: var(--bg-surface);
 }
+
+.chart-box--wide { grid-column: 1 / -1; }
 
 .chart-head {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   flex-wrap: wrap;
-  margin-bottom: 8px;
+  margin-bottom: var(--spacing-sm);
 }
 
 .chart-head-left {
@@ -1426,14 +1468,14 @@ onMounted(() => {
 }
 
 .chart-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
 }
 
 .chart-sub {
-  font-size: 12px;
-  color: var(--text-tertiary, #8f8f8f);
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
 }
 
 .chart-holder {
@@ -1445,7 +1487,7 @@ onMounted(() => {
 
 .donut-center {
   position: absolute;
-  top: 44%;
+  top: 45%;
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
