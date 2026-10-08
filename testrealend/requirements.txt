@@ -48,7 +48,7 @@ py-solc-x>=2
 # eth-tester publishes pre-releases only — a bare >=0.11 cannot be resolved by
 # older pip (e.g. the one bundled in python:3.11-slim, which broke the docker CI
 # job); an explicit pre-release floor is accepted by every pip per PEP 440
-eth-tester[py-evm]>=0.11.0b1
+eth-tester[py-evm]>=0.14.0b1
 pytest
 pytest-cov
 backports.zoneinfo; python_version < '3.9'
