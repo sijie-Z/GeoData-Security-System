@@ -1318,8 +1318,8 @@ onMounted(() => {
 .page-header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap; /* 窄屏（<420px）下按钮换行，避免横向溢出 */
 }
 
 /* ── 区一 · Hero 统计带（联排细线网格：结构靠 1px 线，不靠 8 层卡片影） ── */
