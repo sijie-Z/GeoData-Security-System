@@ -231,6 +231,7 @@ export default {
   watermarkQuality: {
     title: '水印质量仪表盘',
     subtitle: '监控水印验证记录和质量指标',
+    dataWindow: '数据窗口 {range}',
     totalVerifications: '总验证次数',
     avgNc: '平均NC值',
     lowNc: '低NC值（< 0.8）',

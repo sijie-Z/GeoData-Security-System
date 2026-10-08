@@ -3,7 +3,12 @@
     <div class="page-header">
       <div class="page-header-left" :ref="setTourEl('header')">
         <h2>{{ $t('watermarkQuality.title') }}</h2>
-        <p class="subtitle">{{ $t('watermarkQuality.subtitle') }}</p>
+        <p class="subtitle">
+          {{ $t('watermarkQuality.subtitle') }}
+          <span v-if="verificationWindowText" class="subtitle-meta">{{
+            $t('watermarkQuality.dataWindow', { range: verificationWindowText })
+          }}</span>
+        </p>
       </div>
       <div class="page-header-actions">
         <el-button :icon="Guide" @click="startTour">
@@ -15,24 +20,22 @@
       </div>
     </div>
 
-    <!-- ═══════════ 区一 · Hero 统计带（8 KPI · 数字滚动） ═══════════ -->
-    <el-row :gutter="16" class="hero-band" :ref="setTourEl('hero')">
-      <el-col v-for="card in kpiCards" :key="card.key" :xs="24" :sm="12" :md="8" :lg="6">
-        <div class="kpi-card hover-lift">
-          <div class="kpi-icon">
-            <el-icon size="18"><component :is="card.icon" /></el-icon>
+    <!-- ═══════════ 区一 · Hero 统计带（8 KPI · 联排细线网格 · 数字滚动） ═══════════ -->
+    <div class="hero-band" :ref="setTourEl('hero')">
+      <div class="kpi-grid">
+        <div v-for="card in kpiCards" :key="card.key" class="kpi-card">
+          <!-- 状态点：纯视觉增强，语义已在 meta 文案中（aria 隐藏） -->
+          <span v-if="card.status" class="kpi-dot" :class="`kpi-dot--${card.status}`" aria-hidden="true" />
+          <div class="kpi-label-row">
+            <el-icon class="kpi-icon" :size="13"><component :is="card.icon" /></el-icon>
+            <span class="kpi-label">{{ card.label }}</span>
+            <GlossaryHelp v-bind="glossary[card.help]" />
           </div>
-          <div class="kpi-body">
-            <span class="kpi-value">{{ kpiText(card) }}</span>
-            <span class="kpi-label-row">
-              <span class="kpi-label">{{ card.label }}</span>
-              <GlossaryHelp v-bind="glossary[card.help]" />
-            </span>
-            <span v-if="card.meta" class="kpi-meta" :title="card.meta">{{ card.meta }}</span>
-          </div>
+          <div class="kpi-value">{{ kpiText(card) }}</div>
+          <div v-if="card.meta" class="kpi-meta" :title="card.meta">{{ card.meta }}</div>
         </div>
-      </el-col>
-    </el-row>
+      </div>
+    </div>
 
     <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
     <el-card class="section-card" shadow="never" v-loading="verifLoading">
@@ -244,7 +247,7 @@
       </div>
 
       <!-- 矢量 D-QIM（v3 新方案） -->
-      <div class="dqim-card hover-lift">
+      <div class="dqim-card">
         <div class="dqim-head">
           <div>
             <span class="dqim-title">{{ $t('watermarkQuality.dqimTitle') }}</span>
@@ -556,6 +559,8 @@ const verificationWindow = (v) => {
   if (!a || !b) return ''
   return `${String(a).slice(0, 10)} ~ ${String(b).slice(0, 10)}`
 }
+// 页头副标题的数据窗口（来自真实 stats，非装饰文案）
+const verificationWindowText = computed(() => verificationWindow(vStats.value))
 
 // ══════════════════ 区一 · KPI（count-up rAF，200ms） ══════════════════
 const kpiDisplay = reactive({})
@@ -565,6 +570,11 @@ const animateKpi = (key, target) => {
   if (kpiRaf[key]) cancelAnimationFrame(kpiRaf[key])
   if (target == null || !Number.isFinite(target)) {
     kpiDisplay[key] = null
+    return
+  }
+  // prefers-reduced-motion：直接落值，不做 rAF 补间（§3.10 动效纪律）
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    kpiDisplay[key] = target
     return
   }
   const from = Number.isFinite(kpiDisplay[key]) ? kpiDisplay[key] : 0
@@ -613,13 +623,15 @@ const kpiCards = computed(() => {
   const anchor = d.anchor || {}
   const chainRate = d.chain_checked ? (d.chain_valid_count / d.chain_checked) * 100 : null
   const snap = benchData.value?.latest_run?.created_at
+  // 状态点（ok/warn/bad）：仅"需要关注/健康"的少数指标亮起，其余保持中性
+  const failedDeliveries = (d.by_status || []).find((s) => s.status === 'FAILED')?.count || 0
   return [
     {
       key: 'verify', icon: DataLine, help: 'verify',
       label: t('watermarkQuality.totalVerifications'), value: numOrNull(v.total), fmt: 'int',
-      meta: verificationWindow(v) || (v.min_nc != null && v.max_nc != null
+      meta: v.min_nc != null && v.max_nc != null
         ? t('watermarkQuality.kpiNcMinMax', { min: v.min_nc.toFixed(3), max: v.max_nc.toFixed(3) })
-        : t('watermarkQuality.kpiTotalNote')),
+        : t('watermarkQuality.kpiTotalNote'),
     },
     {
       key: 'avgNc', icon: TrendCharts, help: 'nc',
@@ -630,6 +642,7 @@ const kpiCards = computed(() => {
       key: 'lowNc', icon: Warning, help: 'lowNc',
       label: t('watermarkQuality.lowNc'), value: numOrNull(v.low_nc_count), fmt: 'int',
       meta: v.total ? `${((v.low_nc_count / v.total) * 100).toFixed(1)}% / ${v.total}` : '',
+      status: v.total ? (v.low_nc_count > 0 ? 'warn' : 'ok') : null,
     },
     {
       key: 'deliveries', icon: Box, help: 'deliveries',
@@ -637,6 +650,7 @@ const kpiCards = computed(() => {
       meta: d.total != null
         ? t('watermarkQuality.kpiDeliveryDetail', { downloaded: d.downloaded_count ?? 0, total: d.total })
         : '',
+      status: failedDeliveries > 0 ? 'warn' : null,
     },
     {
       key: 'downloaded', icon: Download, help: 'downloaded',
@@ -649,6 +663,7 @@ const kpiCards = computed(() => {
       meta: d.chain_checked != null
         ? t('watermarkQuality.kpiChainDetail', { valid: d.chain_valid_count ?? 0, checked: d.chain_checked })
         : '',
+      status: d.chain_checked ? (d.chain_valid_count === d.chain_checked ? 'ok' : 'warn') : null,
     },
     {
       key: 'anchor', icon: Aim, help: 'anchor',
@@ -658,6 +673,7 @@ const kpiCards = computed(() => {
       meta: anchor.submitted != null || anchor.pending != null
         ? t('watermarkQuality.kpiAnchorDetail', { submitted: anchor.submitted ?? '—', pending: anchor.pending ?? '—' })
         : '',
+      status: anchor.pending > 0 ? 'warn' : null,
     },
     {
       key: 'bench', icon: Odometer, help: 'bench',
@@ -1235,15 +1251,26 @@ onMounted(() => {
 }
 
 .page-header h2 {
-  font-size: 24px;
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
   margin-bottom: 4px;
 }
 
 .subtitle {
-  color: var(--text-secondary, #666666);
-  font-size: 14px;
+  color: var(--text-3);
+  font-size: var(--font-size-base);
+}
+
+.subtitle-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.subtitle-meta::before {
+  content: '·';
+  margin: 0 6px;
 }
 
 .page-header-left { min-width: 0; }
@@ -1255,80 +1282,93 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
-/* ── 区一 · Hero 统计带（A：近黑卡+灰阶层次 / B：白卡+1px 边框 · 安静排版） ── */
-.hero-band { margin-bottom: 8px; }
+/* ── 区一 · Hero 统计带（联排细线网格：结构靠 1px 线，不靠 8 层卡片影） ── */
+.hero-band { margin-bottom: var(--spacing-lg); }
 
-.hero-band .el-col { margin-bottom: 16px; }
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px; /* 发丝分隔线：容器底色色透出（随模式取 --border-subtle） */
+  background: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--card-ring);
+  overflow: hidden;
+}
+
+/* 与 el-col 断点对齐：≥1200 四列 / 768–1199 两列 / <768 单列（保证每行填满，不留线洞） */
+@media (max-width: 1199px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
 
 .kpi-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 14px;
-  height: 100%;
-  padding: 20px;
-  background: var(--bg-primary, #ffffff);
-  /* §4.11 ring 描边（1px 前景 alpha 10%，替代 border，避免双线） */
-  border: none;
-  box-shadow: var(--card-ring);
-  border-radius: var(--radius-lg, 8px);
-}
-
-.hover-lift {
-  transition: box-shadow var(--duration-200) var(--ease-out-soft);
-}
-
-.hover-lift:hover {
-  transform: none;
-  box-shadow: var(--card-ring-hover);
-}
-
-.kpi-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-md, 8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--text-secondary, #666666);
-  background: var(--bg-tertiary, #fafafa);
-  border: 1px solid var(--border-color, #eaeaea);
-  flex-shrink: 0;
-}
-
-.kpi-body {
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-width: 0;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-md) 14px;
+  background: var(--bg-surface);
+  transition: background-color var(--duration-150) var(--ease-out-soft);
 }
 
-.kpi-value {
-  font-size: 24px;
-  font-weight: 600;
-  line-height: 1.15;
-  letter-spacing: -0.01em;
-  color: var(--text-primary, #0a0a0a);
-  font-variant-numeric: tabular-nums;
-}
+.kpi-card:hover { background: var(--bg-hover); }
 
 .kpi-label-row {
   display: inline-flex;
   align-items: center;
-  margin-top: 2px;
+  gap: 6px;
+  min-width: 0;
+  padding-right: 14px; /* 给状态点留位 */
+}
+
+.kpi-icon {
+  color: var(--text-4);
+  flex-shrink: 0;
 }
 
 .kpi-label {
-  font-size: 13px;
-  color: var(--text-secondary, #666666);
-}
-
-.kpi-meta {
-  font-size: 12px;
-  color: var(--text-tertiary, #8f8f8f);
-  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+.kpi-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--text-1);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpi-meta {
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 状态点：仅少数"需关注/健康"指标亮起（绿=达阈值，琥珀=有风险） */
+.kpi-dot {
+  position: absolute;
+  top: 15px;
+  right: 14px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--bg-surface);
+}
+
+.kpi-dot--ok { background: var(--tint-success-text); }
+.kpi-dot--warn { background: var(--tint-warning-text); }
+.kpi-dot--bad { background: var(--tint-danger-text); }
 
 /* ── 区二 · 图表画廊 ── */
 .section-card {
