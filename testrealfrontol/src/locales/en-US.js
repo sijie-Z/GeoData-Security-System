@@ -231,6 +231,7 @@ export default {
   watermarkQuality: {
     title: 'Watermark Quality Dashboard',
     subtitle: 'Monitor watermark verification records and quality metrics',
+    dataWindow: 'Data window {range}',
     totalVerifications: 'Total Verifications',
     avgNc: 'Average NC Value',
     lowNc: 'Low NC (< 0.8)',

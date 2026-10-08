@@ -132,7 +132,7 @@ const pct = (v) => {
 .glossary-scale__bar {
   position: relative;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   margin: 16px 0 6px;
 }
 
@@ -170,5 +170,14 @@ const pct = (v) => {
   border-top: 1px solid var(--border-color-light);
   padding-top: 8px;
   margin-top: 2px;
+}
+
+/* 深色下三级文字在弹层深底（--bg-raised）上仅 ~3.2:1，未达 AA：
+   令牌值由 token 线统一调整，本组件深色内提及一级到 --text-2（浅色不动） */
+html.dark .glossary-card__label,
+html.dark .glossary-scale__tag,
+html.dark .glossary-scale__labels,
+html.dark .glossary-card__caveat {
+  color: var(--text-2);
 }
 </style>
