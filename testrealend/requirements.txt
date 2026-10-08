@@ -7,9 +7,13 @@ flask-cors
 flask-limiter
 flasgger
 flask-socketio
+# WebSocket transport for Flask-SocketIO async_mode="threading" (utils/websocket.py);
+# without it engineio falls back to HTTP long-polling only.
 simple-websocket
 gunicorn
-eventlet
+# eventlet removed (2026-10): zero references in the codebase — Socket.IO runs
+# async_mode="threading" + simple-websocket and the Docker CMD uses -k gthread.
+# gunicorn 26 dropped its eventlet worker class; gthread needs no version floor.
 redis
 prometheus_client
 mysqlclient
