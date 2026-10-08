@@ -40,19 +40,53 @@ Design (spec: taskbook feat_lab_iw, Track B)
   image is cropped to a multiple of 8 pixels (BLOCK x 2) for the grid and
   the trailing edge is left untouched. GeoTIFF hosts keep CRS/transform via
   the same rasterio write-back pattern as the blind/histogram modules.
+* **Crop realignment (feat_iw_align)**: a center crop shifts the 8x8
+  host-pixel block-grid phase and re-indexes every surviving block's cyclic
+  payload position, so the naive readout is noise. Extraction therefore first
+  computes a *structure score* of the naive readout against the QR layout
+  every payload is rendered with (quiet-zone ring, three finder patterns, both
+  timing patterns, dark module — the version-independent part of the code,
+  ~24% of the bitmap). A low score gates a pure-Python fallback that tries all
+  64 grid phases (dx, dy in [0,8)^2: sample the attacked pixels on the
+  original grid) and, per phase, every cyclic flat offset u in
+  [0, bit_count) at once — one circular correlation (FFT) of the phase's vote
+  margins against the structure stamp. The best-scoring candidate whose score
+  also passes the gate replaces the naive readout. Deterministic (no RNG,
+  fixed scan order); only pure crops are covered (rotation / rescaling are out
+  of scope, same as the blind module's fixed-scale template match).
+  Measured limits (synthetic 512x512 host, see tests): a compact 41x41 payload
+  (~2.4 votes/bit) recovers crop keep=0.9 and 0.8 bit-exactly; the standard
+  57x57 payload (~1.26 votes/bit, ~79% utilization) cannot survive any real
+  crop blind — the removed block bands leave hundreds of payload bits with
+  zero surviving votes, beyond QR error correction (the blind module documents
+  the same utilization rule). keep=0.65 stays an honest failure at both sizes.
 
 Parameters (all module constants, recorded in the meta JSON):
 * ``BLOCK = 4`` (iw default), DWT level 1 (Haar), channel Y,
 * coefficient pair (1,2)/(2,1) — the lowest mid-frequency 4x4 DCT pair
   (lower frequency = more robust than diagonal high-frequency choices),
-* ``EMBED_MARGIN = 26`` — calibrated so that the no-attack roundtrip is
-  exact on uint8 storage while keeping PSNR in the high-30s dB and giving the
-  JPEG q70 / noise sigma=5 cells a real chance (measured in the lab matrix).
+* ``EMBED_MARGIN = 40`` — experimentally calibrated (feat_iw_align §2;
+  synthetic 512x512 host, standard 57x57 payload, 3 trials). Scanned
+  {16, 20, 26, 32, 40} x {none, jpeg q85/q70, noise sigma 2/5/10, crop 0.8}:
+  decode success saturates from 26 up (no attack, jpeg q85/q70 and noise
+  sigma 2/5/10 all 3/3 at >= 26; crop 0.8 is capacity-refused at the standard
+  payload for every margin; NC improves monotonically). An extended edge probe
+  ({32,40} x {jpeg q50/q30, blur r2, noise sigma 15}) splits 26 from 32/40:
+  jpeg q50 flips green at 32 (0/3 -> 3/3) and noise sigma 15 flips at 40
+  (0/3 -> 3/3; jpeg q50 reaches BER 0) — 40 is the scanned grid's top and was
+  adopted for that edge headroom (48, outside the grid, would additionally
+  flip jpeg q30 but was not adopted; reported only). No-attack extraction
+  stays bit-exact at every margin (NC 1.000, BER 0); mean PSNR 35.70 dB at
+  16 down to 34.11 dB at 40 — within the project metric guide's "needs
+  careful comparison" band (< 30 dB would be visibly degraded). Crop
+  realignment is margin-insensitive (a crop does not perturb pixel values):
+  the compact-payload crop 0.8 cell recovers at every margin with NC 0.990.
 
 Determinism: the embed is a pure function of (host, payload, constants) —
 no RNG, no multiprocessing, no shared state between requests.
 """
 
+import functools
 import json
 import logging
 import os
@@ -77,7 +111,25 @@ CHANNEL = "Y"
 # Fixed mid-frequency coefficient pair of the 4x4 DCT (row, col); row-major
 # indices 6 and 9 of the flattened block.
 DCT_PAIR = ((1, 2), (2, 1))
-EMBED_MARGIN = 26.0
+# Experimental calibration (feat_iw_align §2 — see the module docstring):
+# 26 is the smallest scanned margin that saturates the standard attack set;
+# 32 flips the jpeg q50 edge probe green; 40 (grid top) additionally flips
+# noise sigma15 (and jpeg q50 to BER 0) for ~0.9 dB PSNR against 26, with the
+# no-attack roundtrip still bit-exact at every scanned margin.
+EMBED_MARGIN = 40.0
+
+# ── crop realignment (feat_iw_align) ────────────────────────────────────────
+# QR render contract: delivery.qr2 renders payloads with qrcode border=4, so a
+# payload bitmap of side s carries an (s - 8) x (s - 8) module QR whose
+# structure (finders / timing / dark module / quiet ring) sits at fixed
+# positions relative to the bitmap. The structure score of a vote readout is
+# the mean normalized margin over those known cells, in [-1, 1]; the gate and
+# the acceptance bar are fractions of that scale (measured: clean / JPEG /
+# noise extractions score ~0.8-1.0; a grid-scrambled crop scores ~0.0 and the
+# realigned candidates for recoverable crops score ~0.8; rotation candidates
+# stay <= 0.15 — 0.4 separates all observed regimes with margin).
+_REALIGN_GATE_FRACTION = 0.4
+_QR_BORDER = 4
 
 
 def _ensure_dir(path: str) -> str:
@@ -133,6 +185,166 @@ def _to_wm_bits(watermark_img: Image.Image) -> np.ndarray:
     """
     wm_arr = np.array(watermark_img.convert("L"), dtype=np.uint8)
     return wm_arr.reshape(-1) > WM_THRESHOLD
+
+
+# --------------------------------------------------------------------------- #
+# crop realignment internals (feat_iw_align)                                   #
+# --------------------------------------------------------------------------- #
+
+
+@functools.cache
+def _dct_pair_kernel() -> np.ndarray:
+    """4x4 kernel K with ``<K, block> == cv2.dct(block)[r1,c1] - cv2.dct(block)[r2,c2]``.
+
+    cv2.dct is an orthonormal DCT-II and linear, so the coefficient-pair
+    difference the scheme reads is one fixed linear functional of the block;
+    building it from unit impulses makes the 64-phase realignment search cheap
+    (one ``einsum`` extracts every block's pair difference at once, exactly
+    equal to the per-block ``cv2.dct`` readout).
+    """
+    (r1, c1), (r2, c2) = DCT_PAIR
+    basis = np.zeros((BLOCK, BLOCK, BLOCK, BLOCK), dtype=np.float64)
+    for x in range(BLOCK):
+        for y in range(BLOCK):
+            impulse = np.zeros((BLOCK, BLOCK), dtype=np.float64)
+            impulse[x, y] = 1.0
+            basis[x, y] = cv2.dct(impulse)
+    return basis[:, :, r1, c1] - basis[:, :, r2, c2]
+
+
+@functools.lru_cache(maxsize=8)
+def _qr_structure_stamp(side: int):
+    """(flat positions, expected bits) of the version-independent QR structure.
+
+    Every payload in this system is a QR bitmap rendered with a 4-module quiet
+    border (``delivery.qr2`` contract), so for a bitmap of side ``s`` the
+    module grid is ``m = s - 8`` and these cells have payload-independent
+    values: the quiet ring (all white -> bit 1), the three 7x7 finder patterns
+    at (0,0) / (0,m-7) / (m-7,0), both timing lines (module row/col 6, dark on
+    even module indices), and the always-dark module at (m-8, 8). Returned in
+    flat row-major order with bit semantics (white pixel -> 1), matching
+    ``_to_wm_bits``.
+    """
+    m = side - 2 * _QR_BORDER
+    val = np.full((side, side), np.nan)
+
+    def put(row, col, value):
+        if 0 <= row < side and 0 <= col < side:
+            val[row, col] = value
+
+    ring = np.zeros((side, side), dtype=bool)
+    ring[:_QR_BORDER, :] = ring[-_QR_BORDER:, :] = True
+    ring[:, :_QR_BORDER] = ring[:, -_QR_BORDER:] = True
+    val[ring] = 1.0  # white quiet zone -> bit 1
+
+    finder_dark = np.array(
+        [
+            [1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 1, 1, 1, 0, 1],
+            [1, 0, 0, 0, 0, 0, 1],
+            [1, 1, 1, 1, 1, 1, 1],
+        ]
+    )
+    for mo_r, mo_c in ((0, 0), (0, m - 7), (m - 7, 0)):
+        for dr in range(7):
+            for dc in range(7):
+                put(_QR_BORDER + mo_r + dr, _QR_BORDER + mo_c + dc, 1.0 - float(finder_dark[dr, dc]))
+    for idx in range(8, m - 8):  # timing lines: dark on even module index
+        put(_QR_BORDER + 6, _QR_BORDER + idx, 1.0 if idx % 2 == 1 else 0.0)
+        put(_QR_BORDER + idx, _QR_BORDER + 6, 1.0 if idx % 2 == 1 else 0.0)
+    put(_QR_BORDER + (m - 8), _QR_BORDER + 8, 0.0)  # dark module
+
+    flat = val.reshape(-1)
+    mask = ~np.isnan(flat)
+    positions = np.nonzero(mask)[0]
+    return positions, flat[positions].copy()
+
+
+def _is_qr_like_side(width: int, height: int) -> bool:
+    """True when (width, height) matches the 4-border square QR contract.
+
+    side = 4*version + 25 for version >= 1, so any real payload bitmap is a
+    square with ``side % 4 == 1`` and ``side >= 29``. Non-QR payloads skip the
+    structure machinery entirely and keep the plain extraction (the score
+    would be meaningless).
+    """
+    return int(width) == int(height) and int(width) >= 29 and (int(width) - 25) % 4 == 0
+
+
+def _structure_score(votes: np.ndarray, counts: np.ndarray, side: int) -> float:
+    """Structure agreement of a vote readout with the QR layout at offset 0.
+
+    Per-bit normalized margin ``(2*votes - counts) / counts`` (in [-1, 1],
+    0 where a bit has no vote) dotted with the stamp (+/-1 per known cell);
+    range is +/- ``len(stamp)``. This is the fast-path gate (and the test
+    hooks it to short-circuit the search for timing measurement).
+    """
+    positions, expected = _qr_structure_stamp(side)
+    margin = (2.0 * votes - counts) / np.maximum(counts, 1)
+    return float(((2.0 * expected - 1.0) * margin[positions]).sum())
+
+
+def _realign_search(stego_y: np.ndarray, bit_count: int, side: int, original_block_cols: int):
+    """Blind block-grid realignment for a cropped IW-DCT stego (pure crop).
+
+    A center crop shifts the block grid by an unknown phase ``(dx, dy)`` in
+    [0,8)^2 and moves every surviving block to a different cyclic payload
+    position. For each of the 64 phases the attacked Y channel is sampled on
+    the original grid (offset ``(8 - dy) % 8, (8 - dx) % 8``) and Haar-DWT'd;
+    the per-block pair differences are read with one ``einsum`` (identical to
+    the per-block ``cv2.dct`` readout). The blocks' vote margins are decorated
+    with their *original* flat index ``64 * row + col`` (``original_block_cols``
+    per row) shifted by every candidate cyclic offset ``u`` in [0, bit_count)
+    at once: the structure score for all ``u`` is the circular correlation of
+    the margin sequence with the QR structure stamp, computed via FFT. The
+    per-phase argmax (ties: first phase in scan order) is kept; the global
+    best candidate is returned as ``{phase, rotation, score, votes, counts}``,
+    or None when no phase produced usable blocks.
+
+    Deterministic: no RNG, fixed scan order, exact integer offsets.
+    """
+    stamp_positions, stamp_expected = _qr_structure_stamp(side)
+    stamp_sign = 2.0 * stamp_expected - 1.0
+    kernel = _dct_pair_kernel()
+    height, width = stego_y.shape
+
+    best = None
+    for py in range(8):
+        ay = (8 - py) % 8
+        for px in range(8):
+            ax = (8 - px) % 8
+            rows = (height - ay) // (2 * BLOCK)
+            cols = (width - ax) // (2 * BLOCK)
+            if rows < 1 or cols < 1:
+                continue
+            aligned = stego_y[ay : ay + rows * 2 * BLOCK, ax : ax + cols * 2 * BLOCK]
+            ll = np.asarray(pywt.dwt2(aligned, DWT_WAVELET)[0], dtype=np.float64)
+            blocks = ll.reshape(rows, BLOCK, cols, BLOCK).transpose(0, 2, 1, 3)
+            diff = np.einsum("ijab,ab->ij", blocks, kernel)
+            signs = (diff > 0.0).reshape(-1).astype(np.float64)
+            bases = (original_block_cols * np.arange(rows)[:, None] + np.arange(cols)[None, :]).reshape(-1)
+            buckets = bases % bit_count
+            votes = np.bincount(buckets, weights=signs, minlength=bit_count)
+            counts = np.bincount(buckets, minlength=bit_count)
+            margin = (2.0 * votes - counts) / np.maximum(counts, 1)
+            dense = np.zeros(bit_count, dtype=np.float64)
+            dense[stamp_positions] = stamp_sign
+            # score(u) = sum_p stamp[p] * margin[(p - u) mod n] (circular corr.)
+            scores = np.fft.irfft(np.fft.rfft(dense) * np.conj(np.fft.rfft(margin)), n=bit_count)
+            u = int(np.argmax(scores))
+            score = float(scores[u])
+            if best is None or score > best["score"]:
+                best = {
+                    "phase": (px, py),
+                    "rotation": u,
+                    "score": score,
+                    "votes": votes,
+                    "counts": counts,
+                }
+    return best
 
 
 def embed_iw_dct(
@@ -315,6 +527,12 @@ def extract_iw_dct(stego_path: str, wm_meta_path: str, output_path: str) -> str:
     Cyclic repetition means every payload bit is read from one or more blocks;
     a stego whose geometry shrank below one block per bit (e.g. a 0.5x resize
     or an aggressive crop) is rejected honestly instead of returning garbage.
+
+    Crop realignment (feat_iw_align): the naive readout doubles as the fast
+    path. When its QR-structure score falls below the gate the blind 64-phase
+    x cyclic-offset search runs and its best structured candidate replaces the
+    readout — no host template, no format change (existing stegos and meta
+    JSONs extract exactly as before; the search is a decode-time fallback).
     """
     with open(wm_meta_path, encoding="utf-8") as fp:
         meta = json.load(fp)
@@ -354,17 +572,59 @@ def extract_iw_dct(stego_path: str, wm_meta_path: str, output_path: str) -> str:
             counts[idx] += 1
 
     bits = (votes / counts > 0.5).astype(np.uint8)
+
+    # ── fast-path gate + blind crop realignment (feat_iw_align) ────────────
+    # The naive readout is correct whenever the attacked image still samples
+    # the original grid (no attack / compression / noise / origin-aligned
+    # trims). A center crop scrambles grid phase and cyclic indexing; its
+    # structure score collapses, which gates the realignment search below.
+    readout = "direct"
+    # The stamp positions live in [0, side^2), so the structure machinery also
+    # requires a consistent meta (bit_count == wm_w * wm_h, true for every
+    # stego this scheme produced); anything else keeps the direct readout.
+    if _is_qr_like_side(wm_w, wm_h) and wm_w * wm_h == bit_count:
+        stamp_cells = int(_qr_structure_stamp(wm_w)[0].size)
+        direct_score = _structure_score(votes, counts, wm_w)
+        if direct_score < _REALIGN_GATE_FRACTION * stamp_cells:
+            original_block_cols = int(meta.get("shape", {}).get("width", 0)) // (2 * BLOCK)
+            aligned = _realign_search(y, bit_count, wm_w, original_block_cols) if original_block_cols >= 1 else None
+            if aligned is not None and aligned["score"] >= _REALIGN_GATE_FRACTION * stamp_cells:
+                rotation = int(aligned["rotation"])
+                aligned_votes = np.roll(aligned["votes"], rotation)
+                aligned_counts = np.roll(aligned["counts"], rotation)
+                bits = (aligned_votes > aligned_counts / 2.0).astype(np.uint8)
+                readout = (
+                    f"realigned (phase={aligned['phase']}, rotation={rotation}, "
+                    f"score {aligned['score']:.0f}/{stamp_cells})"
+                )
+                logging.info(
+                    "IW-DCT extract: direct readout scored %.0f/%d (below gate %.0f) — using blind block-grid "
+                    "realignment: %s",
+                    direct_score,
+                    stamp_cells,
+                    _REALIGN_GATE_FRACTION * stamp_cells,
+                    readout,
+                )
+            else:
+                logging.info(
+                    "IW-DCT extract: direct readout scored %.0f/%d (below gate) and no structured realignment "
+                    "candidate passed — keeping the direct readout (honest failure)",
+                    direct_score,
+                    stamp_cells,
+                )
+
     wm_img = (bits.reshape(wm_h, wm_w) * 255).astype(np.uint8)
     Image.fromarray(wm_img, mode="L").save(output_path, format="PNG")
 
     logging.info(
-        "IW-DCT extract: recovered %dx%d watermark (%d bits) from %d blocks (%d..%d votes/bit) to %s",
+        "IW-DCT extract: recovered %dx%d watermark (%d bits) from %d blocks (%d..%d votes/bit, %s) to %s",
         wm_w,
         wm_h,
         bit_count,
         blocks,
         int(counts.min()),
         int(counts.max()),
+        readout,
         output_path,
     )
     return output_path
