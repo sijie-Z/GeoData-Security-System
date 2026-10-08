@@ -13,7 +13,7 @@ from werkzeug.utils import secure_filename
 from extension.extension import db, limiter
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
-from utils.ai_config import _chat_completions_url, _get_ai_config
+from utils.ai_config import _chat_completions_url, _get_ai_config, _get_ai_timeout
 
 
 def _bg_publish_geoserver(file_path, layer_name, data_type, record_id, model_class, app):
@@ -142,7 +142,7 @@ def _bg_generate_description(meta, layer_name, data_type, record_id, model_class
                 "max_tokens": 300,
                 "temperature": 0.7,
             },
-            timeout=30,
+            timeout=_get_ai_timeout(),
         )
         if resp.status_code == 200:
             reply = resp.json()["choices"][0]["message"]["content"].strip()
