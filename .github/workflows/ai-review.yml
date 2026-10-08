@@ -36,7 +36,7 @@ jobs:
           fetch-depth: 1
       - name: Claude review
         if: env.ANTHROPIC_API_KEY != ''
-        uses: anthropics/claude-code-action@56cf60fde42f7b19c3abfd5c9c48b69a1288461f # v1.0.222
+        uses: anthropics/claude-code-action@6c690188da61cf16ee7debb28383ba67f02abb4c # v1.0.242
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           track_progress: true
