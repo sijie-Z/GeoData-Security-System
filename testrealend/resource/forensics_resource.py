@@ -53,6 +53,7 @@ from model.Download_Record import DownloadRecord
 from model.evidence_event import EvidenceEvent
 from resource.watermark_utils import QR_SECRET_KEY, decode_qr_from_image
 from resource.watermark_utils import parse_qr_text as parse_v1_lines
+from utils.log_helper import log_action
 from utils.required import admin_required
 from utils.time_fmt import parse_utc_iso, utc_iso_z
 
@@ -438,7 +439,12 @@ def _detect_upload(saved_path, work_root):
 
 
 def _run_detection():
-    """Shared entry: multipart file or JSON {qr_text}. Returns (detection, tmp_dir)."""
+    """Shared entry: multipart file or JSON {qr_text}.
+
+    Returns ``(detection, tmp_dir, input_meta)``; ``input_meta`` is the
+    non-PII descriptor of the received input (file extension + byte size, or
+    "qr_text") that the audit trail is allowed to record.
+    """
     if "file" in request.files and request.files["file"].filename:
         tmp_dir = tempfile.mkdtemp(prefix="forensics_")
         uploaded = request.files["file"]
@@ -446,15 +452,84 @@ def _run_detection():
         path = os.path.join(tmp_dir, name)
         try:
             uploaded.save(path)
-            return _detect_upload(path, tmp_dir), tmp_dir
+            input_meta = {
+                "kind": "file",
+                "ext": (os.path.splitext(name)[1] or "").lower() or "无扩展名",
+                "size": os.path.getsize(path),
+            }
+            return _detect_upload(path, tmp_dir), tmp_dir, input_meta
         except Exception:
             shutil.rmtree(tmp_dir, ignore_errors=True)
             raise
     data = request.get_json(silent=True) or {}
     text = (data.get("qr_text") or "").strip()
     if text:
-        return _detect_qr_text(text), None
-    return {"kind": "empty"}, None
+        return _detect_qr_text(text), None, {"kind": "qr_text"}
+    return {"kind": "empty"}, None, {"kind": "empty"}
+
+
+# --------------------------------------------------------------------------- #
+# audit trail (non-PII)                                                        #
+# --------------------------------------------------------------------------- #
+
+
+def _size_magnitude(num_bytes):
+    """Coarse size bucket for the audit trail — magnitude, never exact bytes."""
+    if num_bytes >= 1024 * 1024:
+        return f"≈{num_bytes / (1024 * 1024):.1f}MB"
+    if num_bytes >= 1024:
+        return f"≈{num_bytes / 1024:.1f}KB"
+    return f"≈{num_bytes}B"
+
+
+def _audit_forensics(action, status, detection, view, input_meta):
+    """Write the audit row for one verify/trace call.
+
+    ``details`` carries ONLY non-PII material: the input's type + size
+    magnitude and the detection result (matched delivery uuid, watermark
+    version, or "未命中"). The raw qr_text (v1 payloads embed applicant
+    names/ids), provenance blocks, comments, IPs and file names are never
+    included — trace responses are PII-rich, the audit row is not.
+    """
+    identity = get_jwt_identity() or {}
+    if isinstance(identity, dict):
+        user_number = identity.get("number")
+        username = identity.get("name")
+    else:
+        user_number, username = identity, None
+
+    parts = []
+    if input_meta.get("kind") == "file":
+        ext = input_meta.get("ext") or "无扩展名"
+        parts.append(f"文件类型={ext} 大小{_size_magnitude(input_meta.get('size') or 0)}")
+    elif input_meta.get("kind") == "qr_text":
+        parts.append("输入=二维码文本")
+
+    kind = detection.get("kind")
+    if kind == "v2":
+        parts.append(f"命中交付 uuid={detection['delivery'].uuid}")
+    elif kind == "v2unknown":
+        parts.append("未命中（签名有效但库中无对应交付记录）")
+    elif kind == "tamper":
+        parts.append("疑似篡改（签名校验失败）")
+    elif kind == "v1":
+        parts.append("检测到 v1 水印（签名通过）" if detection.get("signature_ok") else "检测到 v1 水印（签名失败）")
+    elif kind == "error":
+        parts.append("压缩包处理失败（请求被拒绝）")
+    elif kind == "empty":
+        parts.append("未提供文件或二维码文本")
+    elif view and view.get("found") and view.get("watermark_version") == 1:
+        # v1 trace-by-application: extraction succeeded even though the raw
+        # detection alone could not classify the upload.
+        parts.append("v1 水印提取命中")
+    else:
+        parts.append("未命中")
+
+    if view and view.get("artifact_root_match") is not None:
+        parts.append("产物根一致" if view["artifact_root_match"] else "产物根不一致")
+    if view and view.get("provenance"):
+        parts.append("已返回溯源档案")
+    log_action(user_number, username, action, status, "；".join(parts))
 
 
 # --------------------------------------------------------------------------- #
@@ -649,13 +724,17 @@ class ForensicsVerifyResource(Resource):
     @admin_required
     @limiter.limit("60 per minute")
     def post(self):
-        detection, tmp_dir = _run_detection()
+        detection, tmp_dir, input_meta = _run_detection()
         try:
             if detection["kind"] == "error":
+                _audit_forensics("泄露取证验证", "失败", detection, None, input_meta)
                 return {"status": False, "msg": detection["msg"]}, 400
             if detection["kind"] == "empty":
+                _audit_forensics("泄露取证验证", "失败", detection, None, input_meta)
                 return {"status": False, "msg": "请提供文件或 qr_text"}, 400
-            return {"status": True, **_verify_view(detection)}, 200
+            view = _verify_view(detection)
+            _audit_forensics("泄露取证验证", "成功", detection, view, input_meta)
+            return {"status": True, **view}, 200
         finally:
             if tmp_dir:
                 shutil.rmtree(tmp_dir, ignore_errors=True)
@@ -667,11 +746,13 @@ class ForensicsTraceResource(Resource):
     @admin_required
     @limiter.limit("60 per minute")
     def post(self):
-        detection, tmp_dir = _run_detection()
+        detection, tmp_dir, input_meta = _run_detection()
         try:
             if detection["kind"] == "error":
+                _audit_forensics("泄露溯源查询", "失败", detection, None, input_meta)
                 return {"status": False, "msg": detection["msg"]}, 400
             if detection["kind"] == "empty":
+                _audit_forensics("泄露溯源查询", "失败", detection, None, input_meta)
                 return {"status": False, "msg": "请提供文件或 qr_text"}, 400
 
             view = _verify_view(detection)
@@ -697,6 +778,7 @@ class ForensicsTraceResource(Resource):
                         app_row = db.session.get(Application, application_id)
                         if app_row is not None:
                             view["provenance"] = _build_provenance(app_row)
+            _audit_forensics("泄露溯源查询", "成功", detection, view, input_meta)
             return {"status": True, **view}, 200
         finally:
             if tmp_dir:
