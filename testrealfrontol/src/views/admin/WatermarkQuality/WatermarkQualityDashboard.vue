@@ -201,13 +201,10 @@
           </el-table-column>
           <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110" align="right">
             <template #default="{ row }">
-              <el-tag
-                :type="row.baseline_nc >= 0.95 ? 'success' : row.baseline_nc >= 0.8 ? 'warning' : 'danger'"
-                effect="dark"
-                size="small"
-              >
-                {{ row.baseline_nc != null ? row.baseline_nc.toFixed(4) : '—' }}
-              </el-tag>
+              <span v-if="row.baseline_nc != null" class="state-chip" :class="ncChipClass(row.baseline_nc)">
+                {{ row.baseline_nc.toFixed(4) }}
+              </span>
+              <span v-else>—</span>
             </template>
           </el-table-column>
           <el-table-column :label="$t('watermarkQuality.baselineBer')" width="110" align="right">
@@ -217,14 +214,14 @@
           </el-table-column>
           <el-table-column :label="$t('watermarkQuality.recovery')" width="100">
             <template #default="{ row }">
-              <el-tag :type="row.recovery_perfect ? 'success' : 'danger'" size="small">
+              <span class="state-chip" :class="row.recovery_perfect ? 'state-chip--success' : 'state-chip--danger'">
                 {{ row.recovery_perfect ? $t('watermarkQuality.perfect') : $t('watermarkQuality.broken') }}
-              </el-tag>
+              </span>
             </template>
           </el-table-column>
           <el-table-column :label="$t('watermarkQuality.colStatus')" min-width="120">
             <template #default="{ row }">
-              <el-tag v-if="row.embed_error" type="danger" size="small">{{ $t('watermarkQuality.embedFailed') }}</el-tag>
+              <span v-if="row.embed_error" class="state-chip state-chip--danger">{{ $t('watermarkQuality.embedFailed') }}</span>
               <span v-else class="decode-ok">✓</span>
             </template>
           </el-table-column>
@@ -327,7 +324,7 @@
         </el-table-column>
         <el-table-column :label="$t('watermarkQuality.colStatus')" width="110">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small" effect="dark">{{ row.status }}</el-tag>
+            <span class="state-chip" :class="statusChipClass(row.status)">{{ row.status }}</span>
           </template>
         </el-table-column>
         <el-table-column :label="$t('watermarkQuality.colTime')" width="180">
@@ -387,12 +384,13 @@
         </el-table-column>
         <el-table-column prop="nc_value" :label="$t('watermarkQuality.ncValue')" width="110" align="right">
           <template #default="{ row }">
-            <el-tag :type="getNcTagType(row.nc_value)" effect="dark" round>
-              {{ row.nc_value?.toFixed(4) || '-' }}
-            </el-tag>
+            <span v-if="row.nc_value != null" class="state-chip" :class="ncChipClass(row.nc_value)">
+              {{ row.nc_value.toFixed(4) }}
+            </span>
+            <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="verified_by" :label="$t('watermarkQuality.verifiedBy')" width="130" />
+        <el-table-column prop="verified_by" :label="$t('watermarkQuality.verifiedBy')" width="150" />
         <el-table-column prop="verified_at" :label="$t('watermarkQuality.verifiedAt')" width="170">
           <template #default="{ row }">{{ formatDate(row.verified_at) }}</template>
         </el-table-column>
@@ -417,7 +415,7 @@
         <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">
           <div class="metric-item">
             <div class="metric-header">
-              <el-tag effect="dark" :type="m.type" round>{{ m.tag }}</el-tag>
+              <span class="state-chip" :class="metricChipClass(m.type)">{{ m.tag }}</span>
               <span class="metric-range">{{ m.range }}</span>
             </div>
             <div class="metric-bar">
@@ -998,7 +996,6 @@ const chainRingStyle = computed(() => ({
   background: `conic-gradient(${chainPct.value >= 100 ? chartInk.value.success : chartInk.value.warning} ${chainPct.value}%, ${chartInk.value.chainTrack} 0)`,
 }))
 const shortUuid = (u) => (u ? String(u).slice(0, 8) : '—')
-const statusTagType = (s) => ({ READY: 'success', FAILED: 'danger', PENDING: 'warning' }[s] || 'info')
 // §4.13 状态色带：行左 4px（仅状态类表格）
 const deliveryRowClass = ({ row }) => {
   const t = { READY: 'success', FAILED: 'danger', PENDING: 'warning' }[row.status]
@@ -1017,12 +1014,25 @@ const total = ref(0)
 const dataTypeFilter = ref('')  // ''=all, 'vector', 'raster'
 const dateRange = ref(null)     // [from, to] 'YYYY-MM-DD'
 
-const getNcTagType = (nc) => {
-  if (nc == null) return 'info'
-  if (nc >= 0.95) return 'success'
-  if (nc >= 0.8) return 'warning'
-  return 'danger'
+// 状态/数值着色统一为 tint 徽标（state-chip，见样式块）；阈值与旧 el-tag 完全一致
+const ncChipClass = (nc) => {
+  if (nc == null) return 'state-chip--neutral'
+  if (nc >= 0.95) return 'state-chip--success'
+  if (nc >= 0.8) return 'state-chip--warning'
+  return 'state-chip--danger'
 }
+const statusChipClass = (s) => ({
+  READY: 'state-chip--success',
+  FAILED: 'state-chip--danger',
+  PENDING: 'state-chip--warning',
+  PROCESSING: 'state-chip--info',
+}[s] || 'state-chip--neutral')
+const metricChipClass = (type) => ({
+  primary: 'state-chip--info',
+  success: 'state-chip--success',
+  warning: 'state-chip--warning',
+  danger: 'state-chip--danger',
+}[type] || 'state-chip--neutral')
 
 const formatDate = (isoStr) => {
   if (!isoStr) return '-'
@@ -1265,7 +1275,7 @@ onMounted(() => {
 
 <style scoped>
 .watermark-quality-dashboard {
-  padding: 24px;
+  padding: var(--spacing-lg);
   max-width: 1440px;
   margin: 0 auto;
 }
@@ -1498,33 +1508,33 @@ onMounted(() => {
 }
 
 .donut-center-value {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.1;
-  color: var(--text-primary, #0a0a0a);
+  color: var(--text-1);
   font-variant-numeric: tabular-nums;
 }
 
 .donut-center-label {
-  font-size: 12px;
-  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-xs);
+  color: var(--text-2);
 }
 
 .donut-center-sub {
-  font-size: 12px;
-  color: var(--text-tertiary, #8f8f8f);
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
 }
 
 /* ── 验证记录表 ── */
 .records-card {
-  border-radius: var(--radius-lg, 8px);
-  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--spacing-lg);
 }
 
 .pagination-wrapper {
   display: flex;
   justify-content: center;
-  margin-top: 16px;
+  margin-top: var(--spacing-md);
 }
 
 /* ── 区五 · 指标说明（阈值可视化） ── */
@@ -1532,9 +1542,9 @@ onMounted(() => {
   height: 100%;
   margin-bottom: 16px;
   padding: 16px;
-  background: var(--bg-tertiary, #fafafa);
-  border-radius: var(--radius-lg, 8px);
-  border: 1px solid var(--border-color, #eaeaea);
+  background: var(--bg-inset);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-default);
 }
 
 .metric-bar {
@@ -1558,8 +1568,8 @@ onMounted(() => {
   top: -4px;
   width: 2px;
   height: 16px;
-  background: var(--bg-primary, #ffffff);
-  box-shadow: 0 0 0 1px var(--border-color-hover, #d4d4d4);
+  background: var(--bg-surface);
+  box-shadow: 0 0 0 1px var(--border-strong);
   border-radius: 2px;
 }
 
@@ -1568,8 +1578,8 @@ onMounted(() => {
   top: -16px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 12px;
-  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-xs);
+  color: var(--text-2);
   white-space: nowrap;
 }
 
@@ -1577,8 +1587,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   margin-bottom: 8px;
-  font-size: 12px;
-  color: var(--text-tertiary, #8f8f8f);
+  font-size: var(--font-size-xs);
+  color: var(--text-3);
 }
 
 .metric-header {
@@ -1588,51 +1598,71 @@ onMounted(() => {
   margin-bottom: 8px;
 }
 
-.metric-range { font-size: 12px; color: var(--text-secondary, #666666); }
+.metric-range { font-size: var(--font-size-xs); color: var(--text-2); }
 
 .metric-desc {
-  font-size: 13px;
-  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-sm);
+  color: var(--text-2);
   margin: 0;
   line-height: 1.6;
 }
 
 /* ── 区三 · 算法能力矩阵 ── */
 .matrix-legend {
-  font-size: 12px;
-  color: var(--text-secondary, #666666);
+  font-size: var(--font-size-xs);
+  color: var(--text-2);
   margin: 0 0 12px;
 }
 
 .attack-name {
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
 }
 
 .nc-cell {
   display: inline-block;
   min-width: 64px;
   padding: 2px 8px;
-  border-radius: var(--radius-sm, 6px);
-  font-weight: 600;
-  font-size: 12px;
+  border-radius: var(--radius-sm);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
 }
 
-.nc-good { background: var(--tint-success-bg, rgba(16, 185, 129, 0.12)); color: var(--tint-success-text, #047857); }
-.nc-mid { background: var(--tint-warning-bg, rgba(245, 158, 11, 0.14)); color: var(--tint-warning-text, #b45309); }
-.nc-bad { background: var(--tint-danger-bg, rgba(239, 68, 68, 0.12)); color: var(--tint-danger-text, #b91c1c); }
+.nc-good { background: var(--tint-success-bg); color: var(--tint-success-text); }
+.nc-mid { background: var(--tint-warning-bg); color: var(--tint-warning-text); }
+.nc-bad { background: var(--tint-danger-bg); color: var(--tint-danger-text); }
 
-.decode-ok { color: var(--tint-success-text, #0e7a4e); font-weight: 700; }
-.decode-bad { color: var(--tint-danger-text, #b42318); font-weight: 700; }
+/* 状态/数值徽标：tint 底 + tint 字（quiet chip 语言，替代 effect=dark 实心 tag） */
+.state-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.state-chip--success { background: var(--tint-success-bg); color: var(--tint-success-text); }
+.state-chip--warning { background: var(--tint-warning-bg); color: var(--tint-warning-text); }
+.state-chip--danger { background: var(--tint-danger-bg); color: var(--tint-danger-text); }
+.state-chip--info { background: var(--tint-info-bg); color: var(--tint-info-text); }
+.state-chip--neutral { background: var(--tint-neutral-bg); color: var(--text-2); }
+
+.decode-ok { color: var(--tint-success-text); font-weight: var(--font-weight-bold); }
+.decode-bad { color: var(--tint-danger-text); font-weight: var(--font-weight-bold); }
 
 .sub-section { margin-top: 20px; }
 
 .sub-title {
   margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
 }
 
 .bench-howto-row {
@@ -1640,17 +1670,17 @@ onMounted(() => {
   align-items: flex-start;
   gap: 6px;
   margin-top: 10px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   line-height: 1.6;
-  color: var(--text-tertiary, #8f8f8f);
+  color: var(--text-3);
 }
 
 .dqim-card {
   margin-top: 20px;
   padding: 18px;
-  border-radius: var(--radius-md, 8px);
-  border: 1px solid var(--tint-info-border, rgba(0, 112, 243, 0.2));
-  background: var(--tint-info-bg, #f0f7ff);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--tint-info-border);
+  background: var(--tint-info-bg);
 }
 
 .dqim-head {
@@ -1662,18 +1692,18 @@ onMounted(() => {
 }
 
 .dqim-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
   margin-right: 8px;
 }
 
-.dqim-subtitle { font-size: 12px; color: var(--text-secondary, #666666); }
+.dqim-subtitle { font-size: var(--font-size-xs); color: var(--text-2); }
 
 .dqim-desc {
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 1.7;
-  color: var(--text-secondary, #666666);
+  color: var(--text-2);
   margin: 10px 0 14px;
 }
 
@@ -1684,19 +1714,19 @@ onMounted(() => {
   flex-direction: column;
   min-width: 150px;
   padding: 10px 16px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #eaeaea);
-  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
 }
 
 .dqim-stat-value {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--primary-500, #0070f3);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-9);
   font-variant-numeric: tabular-nums;
 }
 
-.dqim-stat-label { font-size: 12px; color: var(--text-secondary, #666666); }
+.dqim-stat-label { font-size: var(--font-size-xs); color: var(--text-2); }
 
 /* ── 区四 · 证据链健康度 ── */
 .chain-top { margin-bottom: 16px; }
@@ -1722,24 +1752,24 @@ onMounted(() => {
   width: 104px;
   height: 104px;
   border-radius: 50%;
-  background: var(--bg-primary, #fff);
+  background: var(--bg-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: inset 0 0 0 1px var(--border-color-light, #f1f5f9);
+  box-shadow: inset 0 0 0 1px var(--border-subtle);
 }
 
 .chain-ring-value {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary, #0a0a0a);
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-1);
   font-variant-numeric: tabular-nums;
 }
 
-.chain-ring-label { font-size: 12px; color: var(--text-secondary, #666666); }
+.chain-ring-label { font-size: var(--font-size-xs); color: var(--text-2); }
 
-.chain-ring-meta { font-size: 12px; color: var(--text-tertiary, #8f8f8f); }
+.chain-ring-meta { font-size: var(--font-size-xs); color: var(--text-3); }
 
 .chain-anchor-box {
   height: 100%;
@@ -1750,7 +1780,7 @@ onMounted(() => {
   padding: 10px 4px;
 }
 
-.chain-anchor-title { font-size: 13px; font-weight: 600; color: var(--text-secondary, #666666); }
+.chain-anchor-title { font-size: var(--font-size-sm); font-weight: var(--font-weight-semibold); color: var(--text-2); }
 
 .anchor-chips { display: flex; gap: 12px; flex-wrap: wrap; }
 
@@ -1760,27 +1790,27 @@ onMounted(() => {
   align-items: center;
   min-width: 110px;
   padding: 12px 20px;
-  background: var(--bg-primary, #fff);
-  border: 1px solid var(--border-color, #eaeaea);
-  border-radius: var(--radius-md, 8px);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
 }
 
 .anchor-chip-value {
-  font-size: 20px;
-  font-weight: 600;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
   font-variant-numeric: tabular-nums;
 }
 
-.anchor-chip-label { font-size: 12px; color: var(--text-secondary, #666666); }
+.anchor-chip-label { font-size: var(--font-size-xs); color: var(--text-2); }
 
-.chip-submitted .anchor-chip-value { color: var(--primary-500, #0070f3); }
-.chip-pending .anchor-chip-value { color: var(--tint-warning-text, #9a6b15); }
-.chip-none .anchor-chip-value { color: var(--text-tertiary, #8f8f8f); }
+.chip-submitted .anchor-chip-value { color: var(--accent-9); }
+.chip-pending .anchor-chip-value { color: var(--tint-warning-text); }
+.chip-none .anchor-chip-value { color: var(--text-3); }
 
 .clickable-table :deep(.el-table__row) { cursor: pointer; }
 
 .mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, 'Courier New', monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
 }
 </style>
