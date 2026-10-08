@@ -4,6 +4,167 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)
+
+> **开发主线（unreleased on `main`）** — 最近发布 tag 仍为 **v2.4.0**。本段覆盖 v2.4.0 之后合入 main 的全部 v3.0 内容。
+
+### Summary
+
+Elevates the platform from "QR watermark + two-level approval" to a closed loop of **controlled delivery → per-recipient fingerprint → leak forensics → verifiable evidence**:
+
+- **Personalized delivery (DownloadDelivery)**: every authorized download issues an independent artifact (same dataset, different recipient → different copy) carrying a 128-bit fingerprint (FID) in an Ed25519 + COSE_Sign1 signed **QR v2** payload (`v / kid / fid / delivery / issued_at`, no PII) and a recorded artifact hash (`artifact_root`, CIDv1).
+- **Evidence chain**: append-only hash chain per delivery (canonical CBOR + Ed25519), Merkle batch snapshots anchored via OpenTimestamps; the EVM second anchor (AnchorRegistry) is test-ready — **pending Sepolia deployment**.
+- **Leak forensics**: upload a leaked copy → decode + verify → match delivery fingerprints → lock the delivery record and confirm the deliverer.
+- **Robustness lab**: vector matrix (legacy vs D-QIM) and the five raster schemes under one attack matrix, with multi-trial and strength-sweep modes and in-app attack source code.
+- **Ops**: async batch embedding jobs, audit-log CSV export, download statistics board, four-dimension delivery search.
+- **Design system**: site-wide dark/light dual themes on the two-tier (L1/L2) token architecture.
+- **AI**: any OpenAI-compatible endpoint (incl. local models), configurable timeout.
+- **Security**: hardcoded map key removed, compose secret hard-fail, non-PII audit trail on forensics endpoints.
+
+**Commits:** 278 after v2.4.0 · **Total changes:** 262 files, +40,859 / −5,996
+
+---
+
+### Backend — Personalized Delivery (`delivery/`, `model/download_delivery.py`)
+
+- **Per-recipient artifacts**: each authorized download runs the delivery pipeline with a `PENDING → PROCESSING → READY / FAILED` state machine; the returned artifact is personalized for that recipient (vector via the D-QIM/legacy embed pipeline, raster via the selected algorithm). Unclaimed, unexpired tokens reuse their READY delivery; FAILED deliveries are re-issued.
+- **Fingerprint (FID)**: a 128-bit CSPRNG value per delivery, bound to the delivery record (`fingerprint_id`); `uuid`, `artifact_path`, `artifact_root` and embed metadata (`vr_data`) persisted per delivery; `delivery_id` linkage columns added to download/verification records.
+- **Employee download** switched to the personalized delivery token flow.
+
+### Backend — Crypto & QR v2 (`crypto/`)
+
+- **Canonical CBOR** (RFC 8949): deterministic bytes for hashing/signing — sorted keys, type whitelist, floats rejected.
+- **COSE_Sign1 (RFC 9052) with Ed25519** (`crypto/cose.py`), key registry with kid management (`model/key_registry.py`; key material git-ignored); public keys exportable via `/api/forensics/keyinfo` for independent verification — replaces the legacy 64-bit truncated HMAC.
+- **QR v2 payload** (`crypto/payload.py`): compact short payload `v=2 / kid / fid / delivery / issued_at`; legacy v1 text QR still parses (`{"version": 1, "raw": ...}`), and v1 QR text is persisted at all four generation points so old copies remain verifiable.
+- **Strict decode**: `QrPayloadError` contract for all parse/verify failures, payload-vs-header kid binding, empty unprotected header rejection, type-strict `alg` (two adversarial-review fix rounds, items A-1..B-6).
+
+### Backend — Evidence Chain & Anchors (`evidence/`)
+
+- **Hash chain** (`evidence/chain.py`): append-only, per-delivery streams; canonical CBOR + Ed25519 per event; `stream + seq` bound into every event hash (same-second genesis collision eliminated); event timestamps normalized to UTC whole seconds (MySQL DATETIME rounding can no longer break verification); tampering is detectable and localized (`broken_at`).
+- **Merkle batch snapshots** (`evidence/merkle.py`): leaves bound to batch size/position; roots carry event count + chain head; anchor completeness checks.
+- **OpenTimestamps** (`evidence/anchor.py`): real network client (httpx → public calendar pool); any network failure degrades to `PENDING` and never blocks business.
+- **EVM second anchor**: `contracts/AnchorRegistry.sol` (permissionless; duplicate anchor reverts) + `EVMAnchorProvider` (web3 local signing; receipt + on-chain `getTimestamp` check) + py-solc-x deploy script; `POST /api/forensics/anchor/build` accepts `provider=evm` (default OpenTimestamps), embeds a JSON evidence pack and returns an explorer URL; eth-tester in-memory coverage in CI (auto-skip when solc is unavailable). **Deployment status: pending Sepolia.**
+- **CIDv1**: artifact roots recorded as CIDv1 (multiformats raw codec, sha2-256, base32-lower — `delivery/artifact.py`) in the personalized completion event; anchor batch list/detail endpoints + safe proof download.
+
+### Backend — Leak Forensics (`resource/forensics_resource.py`)
+
+- **`POST /api/forensics/verify`**: upload a leaked sample (SHP / ZIP / image, zip-bomb + path-traversal defenses) or raw `qr_text` → decode + signature verify → compare against candidate delivery fingerprints → lock the delivery record (uuid / 交付编号) and confirm the deliverer; responses carry no PII.
+- **`POST /api/forensics/trace`**: full QR provenance chain for a sample.
+- **Delivery ledger** `GET /api/forensics/deliveries`: four-dimension search — user / fingerprint prefix / delivery uuid / time range (+ `application_id`); employees see only their own; id fragments are matched as safe prefixes, not wildcard patterns.
+- **`GET /api/forensics/deliveries/stats`**: status / algorithm / anchor-bucket / chain-health aggregates; delivery detail exposes chain state + anchor info.
+- **Audit trail**: verify/trace write audit rows with strictly non-PII details (size buckets, coarse context) — trace responses are PII-rich, the audit row is not.
+- Tested end-to-end including **3-user localization** (`tests/test_delivery_flow.py::test_three_users_three_fids_roundtrip_and_copy_attack`).
+
+### Backend — Watermark Schemes: D-QIM / blind / IW-DCT
+
+- **D-QIM vector scheme** (`algorithm/vector_dqim.py`): difference-domain QIM — the carrier is edge coordinate differences, robust to translation; extraction dispatches on `vr_data.scheme` (legacy absolute-coordinate QIM still supported).
+- **blind_watermark — 4th raster scheme** (`algorithm/raster_blind_watermark.py`): blind DWT-DCT-SVD embed/extract with GeoTIFF CRS preservation; crop recovery via host-template realignment.
+- **IW-DCT — 5th raster scheme** (`algorithm/raster_iw_dct.py`): invisible-watermark-style blind extraction — Haar-LL 4×4 block DCT, fixed lowest mid-frequency pair, cyclic repetition; **blind block-grid realignment for crop attacks** (structure-score-gated 64-phase search — no host template, no format change, existing stegos stay valid) and **EMBED_MARGIN experimentally calibrated to 40** (scan of {16, 20, 26, 32, 40} × {none, JPEG q50–q85, noise σ2–σ15, crop 0.8}: 40 passes the noise σ15 probe and JPEG q50 at BER 0 for ~0.9 dB PSNR cost vs 26; mean PSNR 35.70 → 34.11 dB across the ladder; no-attack roundtrip bit-exact at every margin; crop cell NC 0.990).
+- Raster dispatch wired through embed/extract/decode endpoints and the frontend embed dialogs (single + batch) + lab scheme list; 1024-host crop-recovery + load-overhead tests.
+
+### Backend — Robustness Lab Engine (`algorithm/robustness*.py`, `resource/robustness_resource.py`)
+
+- **Matrices**: vector — legacy vs D-QIM under translation / scale / point-drop / noise / simplification attacks; raster — the five schemes under JPEG / scale / crop / rotate / noise (/ blur, optional) image attacks. Admin run/list/detail endpoints with a background worker; `kind` switch for vector or raster.
+- **Multi-trial**: fixed-seed reproducible engines, 1–10 trials per cell, success-rate + NC-mean aggregation, zombie-run sweep.
+- **Strength sweep (WAVES-style)**: 5-tier ladders per attack, `strength_index` in results, detection-rate curves and collapse points in the UI (1–5 trials).
+- **Attack source transparency**: `GET /api/robustness/attacks/meta` returns the true attack implementation (`inspect.getsource`), read-only — every published number is grounded in executable source.
+- Real-machine scripts (`tests/robustness_matrix_realrun.py`, `tests/robustness_trials_battle.py`) run read-only against real datasets.
+
+### Backend — Batch Jobs, Analytics & Exports
+
+- **Batch embedding jobs** (`resource/batch_embed_resource.py`): create/list/detail; ≤50 de-duplicated items per job; one active job at a time (409 carries the active job's uuid); real per-item progress with failure reasons; stale-job zombie sweep; reuses the single-embed dispatch.
+- **Audit-log CSV export** (`GET /api/admin/logs/export`): streamed CSV (UTF-8 BOM, csv-module escaping, CRLF), newest ≤50,000 rows, truncation flagged by `X-Truncated` header + warning log.
+- **Download statistics** (`GET /api/admin/download_stats` + `/export`): window constrained to {7, 14, 30, 90} days, daily trend, Top-10 users / datasets, week-over-week comparison; CSV export; admin dashboard block.
+- **Quality data layer**: `watermark_verification` gains BER / SSIM / algorithm / linkage columns (+ indexes); `GET /api/watermark/verification_stats` with from/to window; DB-backed benchmark results exposed at `/api/benchmark/stats` (JSON moved out of `static/`).
+
+### Backend — AI Endpoints & Runtime Hardening
+
+- **Any OpenAI-compatible endpoint**: `AI_API_BASE` / `AI_MODEL` / `AI_API_KEY` (legacy `DEEPSEEK_API_KEY` honored as fallback); defaults unchanged (DeepSeek), local models (e.g. Ollama) work by pointing the base URL; config centralized in `utils/ai_config.py` — the AI assistant (chat/stream) and the upload auto-description both resolve through it.
+- **Configurable timeout**: `AI_TIMEOUT` (float > 0, default 120s; empty/invalid/nan/inf/≤0 falls back) read per request — local-model cold starts (~40s) no longer time out; the upload auto-description timeout was unified onto the same `_get_ai_timeout()` (previously hardcoded 30s).
+- **Runtime**: `eventlet` dropped entirely; production CMD is gunicorn `-w 1 --threads 8 -k gthread`; numpy-2-compatible dependency floors; `opencv-python` declared explicitly.
+
+### Backend — Security Fixes
+
+- **Hardcoded Tianditu key removed**: the two pages (data viewing, watermark generation) now read `VITE_TIANDITU_KEY` from env only and degrade gracefully (map/search disabled with a notice) when unset.
+- **Compose secret hard-fail**: no built-in default credentials anymore — missing `MYSQL_ROOT_PASSWORD` / `POSTGRES_PASSWORD` / `SECRET_KEY` / `JWT_SECRET_KEY` / `GRAFANA_PASSWORD` fails fast with a pointer to `.env.example`.
+- **Non-PII audit trail** on forensics verify/trace (see Leak Forensics).
+- **Authorization hardening (O1)**: review/approval read endpoints gated by reviewer sub-role; role matrix pinned by tests (`tests/test_authz_review.py`).
+- **Secret hygiene**: plaintext credential files dropped from HEAD; gitleaks secret-scanning workflow; key material ignored in `.gitignore`; stray gitlinks removed.
+
+### Backend — E2E Verification Campaign (integration fixes)
+
+- Vector watermark embed → extract recovers the QR again (true-floor grid anchor + canonical seed string for negative coordinates); compact QR rendered for the blind path; v1 QR text persisted at all four generation points.
+- Raster: GeoTIFF embed records the real stego artifact; float rasters stretched so tiles no longer render all-black; tile GET path aligned with the nested layout written by the generator; preview returns 4xx for non-images and confines paths to app roots; multi-band DWT embed/extract agree; insufficient histogram capacity maps to a readable 400.
+- Platform: SQLite-safe dashboard aggregation (`func.date()`); testing DB fully SQLite; dict JWT identities accepted under modern PyJWT; token-download and recall-deadline datetimes compared without tz mixing; readable 4xx for registration conflicts; SHP upload stores EPSG (varchar(100) overflow fixed); dangling FK targets resolved (`add_employee` 500); admin chat-role vocabulary unified; untampered QR signature verification fixed.
+- Regression coverage added for BUG-1..5 and the float-tile render path.
+
+---
+
+### Frontend — Delivery, Forensics & Evidence UI
+
+- Employee download switched to the personalized delivery token flow.
+- **Forensics page** (admin): delivery ledger tab (four-dimension filters) + leak forensics tab (verify / trace with uploaded file or QR text); `src/api/forensics.js`; route + sidebar + zh/en strings; multipart FormData only when needed; extended request timeout for long forensics scans; stale results cleared on input change.
+- **Evidence presentation**: `HashText` monospace hash component (copy + paired i18n); QR provenance card rework (conclusion card, sectioned fields, raw data with signature); forensics dialog redo (summary card, DFIR event-timeline cards, evidence/anchor block); traceability result panels as bordered cards.
+- **Attestation Center** (存证中心) page for anchor batches.
+
+### Frontend — Robustness Lab & Quality Dashboards
+
+- **Robustness lab page**: attack-matrix result table + comparison verdict + run controls + history + NC comparison chart; v2 layout; trials selector / success-rate cells / per-trial tooltips; strength-sweep curve mode; raster toggle; **attack source drawer** (highlight.js python highlighting, line numbers, shareable `#L{n}` anchors); metric/attack glossary with a per-metric documentation drawer (definition / how to read / thresholds / sources); first-visit ElTour (non-blocking, in-viewport).
+- **Watermark quality dashboard v2**: hero KPI band + analytics gallery on real stats endpoints, threshold-visualized metric explainer, evidence-chain health zone with recent deliveries, benchmark capability matrix + stego overview + D-QIM card; glossary + tour.
+- QR/watermark previews: nearest-neighbor upscale (cap 16×) and teleported previews site-wide.
+
+### Frontend — Design System, Themes & Shell
+
+- **Site-wide dark theme**: navy palette, Element Plus dark css-vars brand-overridden, `html.dark` token section, header toggle (`useTheme`); admin + employee page sweeps (dashboards, watermarks, forensics, approvals, data management/upload, logs, system management, recall).
+- **Dual-mode token architecture v2.1** (`72d7725`): L1 ramps + a single L2 semantic map driving both modes (Linear-style dark / Vercel-style light); chart ink fully tokenized (thin grid lines, threshold reference lines); typography discipline (weight compliance for YaHei, ≤3 weights); motion params + per-component reduced-motion (loop animations off, skeleton de-sampled); self-hosted Noto subset; shell/nav alignment; primary-button variant fix; remaining inline colors tokenized.
+- Login/register brand redesign (dual-column / grouped form) + paper-plate traceability-seal brand QR; de-AI-purple navy recolor across auth / quality / globe.
+- Admin dashboard **data-flow 3D globe** hero (three-globe) with real delivery arcs sourced from delivery statistics.
+
+### Frontend — Data, Maps & Charts
+
+- Data management pages + Leaflet maps; dashboard/chat overhaul; GeoServer integration (uploads publish layers and store WMS URLs).
+- **On-demand raster tiles**: rio-tiler replaces pre-generation; signed short-lived tokens for browser tile access (F1) — the frontend fetches the token for map layers.
+- **vue-echarts 7.0.3** migration: admin dashboard (5 charts), watermark quality dashboard (5), employee dashboard (3).
+
+---
+
+### Infrastructure & CI
+
+- **Container runtime smoke in CI** (docker job): the backend image boots (app factory + route check) and serves `/api/health` via the gunicorn CMD; the frontend image's nginx config is validated — image builds alone don't pass anymore.
+- **pytest promoted to a blocking gate**; failing-test tails mirrored into an issue comment for remote diagnostics; libzbar0 installed for pyzbar QR decode on Linux; eth-tester pre-release floor so the docker build resolves.
+- Dependabot (grouped action bumps), CodeQL, gitleaks secret scan, Scorecard and AI-review workflows; ruff/pre-commit kept in lock-step (0.15.x); issue/PR templates + CodeRabbit config.
+- Dead code: frontend `socket.js` and the unused `socket.io-client` dependency removed.
+
+### Tests
+
+- 29 new test files (25 `test_*.py` + 4 real-run/helper scripts): crypto/COSE, key registry, evidence chain, EVM anchor (eth-tester), delivery flow (incl. three-user E2E), forensics API (filters / zip defenses / no-PII audit), anchor center, delivery stats, download stats, batch embed jobs, D-QIM, raster blind / IW / robustness matrices, strength sweep, experiment trials, quality stats, benchmark DB, authz review, AI endpoint / timeout / upload config (hermetic stdlib mock servers), metadata integrity, raster tiles.
+
+### Files Changed Summary
+
+| Area | Files | Highlights |
+|------|-------|-------------|
+| `testrealend/` (backend) | 123 | delivery / crypto / evidence / forensics / lab / batch / quality + 29 new test files |
+| `testrealfrontol/` (frontend) | 87 | delivery & forensics UI, robustness lab, quality dashboards, dark theme + tokens, tiles, ECharts |
+| `contracts/` | 3 | `AnchorRegistry.sol`, deploy script, README |
+| Root / CI / docker / docs | 49 | CI workflows, compose, Dockerfiles, README, `.env.example` |
+| **Total** | **262** | **+40,859 / −5,996** |
+
+### Verification
+
+- **Backend:** full suite **583 passed / 0 failed** (file-based SQLite; hermetic — no external network in tests).
+- **Lint/format:** `ruff check .` and `ruff format --check .` clean (171 files).
+- **Commits:** 278 after v2.4.0 (through `d63e347`).
+
+### Known Limitations (v3.0)
+
+1. **EVM second anchor** — contract + provider + eth-tester coverage are in-tree, but there is no Sepolia deployment yet; unless configured, anchoring stays on OpenTimestamps (the EVM path reports `PENDING`).
+2. **OpenTimestamps semantics** — it proves a commitment existed before a point in time; it is not a real-time notary.
+3. **FID is an identifier, not a secret** — security comes from the signature and server-side binding; the current scheme does not claim anti-collusion resistance.
+4. **Dark theme residuals** — a few legacy pages are still converging to the dark palette.
+5. **Frontend E2E** — still manual; no Cypress/Playwright suite.
+
+---
+
 ## [v2.3.1] — 2026-05-09 (Codebase Cleanup, Bug Fixes, Deprecation Fix & Directory Normalization)
 
 ### Summary
