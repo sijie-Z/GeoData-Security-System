@@ -1593,6 +1593,7 @@ export default {
     pageInfo: 'Page {page}/{pages}, Total {total}',
     prevPage: 'Previous',
     nextPage: 'Next',
+    noAnnouncements: 'No announcements',
     icon: 'Icon',
     tagCustom: 'Custom',
     iconInfo: 'Info',
@@ -1633,6 +1634,7 @@ export default {
     exportCsv: 'Export CSV',
     exportSuccess: 'Export succeeded — download started',
     exportFailed: 'Export failed, please retry later',
+    noLogs: 'No log records',
   },
   adminDataUpload: {
     title: 'Data Resource Upload',

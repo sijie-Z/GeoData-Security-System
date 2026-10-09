@@ -15,108 +15,106 @@
         </div>
       </template>
 
-      <div class="filter-bar">
-        <el-input
-          v-model="filters.user_number"
-          :placeholder="$t('adminLogViewer.filterByNumber')"
-          clearable
-          class="filter-input"
-          style="width: 180px;"
-          @clear="handleFilterSearch"
-          @keyup.enter="handleFilterSearch"
-        >
-          <template #prefix>
-            <el-icon><User /></el-icon>
-          </template>
-        </el-input>
-        <el-input
-          v-model="filters.username"
-          :placeholder="$t('adminLogViewer.filterByName')"
-          clearable
-          class="filter-input"
-          style="width: 180px;"
-          @clear="handleFilterSearch"
-          @keyup.enter="handleFilterSearch"
-        >
-          <template #prefix>
-            <el-icon><UserFilled /></el-icon>
-          </template>
-        </el-input>
-        <el-select
-          v-model="filters.action"
-          :placeholder="$t('adminLogViewer.actionType')"
-          clearable
-          class="filter-select"
-          style="width: 200px;"
-          @change="handleFilterSearch"
-        >
-          <el-option :label="$t('adminLogViewer.allTypes')" value="" />
-          <el-option :label="$t('adminLogViewer.userLogin')" value="登录" />
-          <el-option :label="$t('adminLogViewer.submitDataRequest')" value="申请提交" />
-          <el-option :label="$t('adminLogViewer.approveDataRequest')" value="一审通过" />
-          <el-option :label="$t('adminLogViewer.generateWatermark')" value="生成水印" />
-          <el-option :label="$t('adminLogViewer.embedWatermark')" value="嵌入水印" />
-          <el-option :label="$t('adminLogViewer.extractWatermark')" value="提取水印" />
-          <el-option :label="$t('adminLogViewer.downloadData')" value="下载数据" />
-          <el-option :label="$t('adminLogViewer.withdrawApplication')" value="撤回申请" />
-          <el-option :label="$t('adminLogViewer.recallProposal')" value="回收提议创建" />
-          <el-option :label="$t('adminLogViewer.recallVote')" value="回收投票" />
-        </el-select>
-        <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('adminLogViewer.search') }}</el-button>
-        <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('adminLogViewer.reset') }}</el-button>
-      </div>
-
-      <el-table
-        :data="logList"
-        border
-        stripe
-        v-loading="loading"
-        class="log-table"
-        style="width: 100%"
+      <ListShell
+        :empty="!loading && logList.length === 0"
+        :empty-variant="hasActiveFilters ? 'filtered' : 'never'"
+        :empty-title="$t('adminLogViewer.noLogs')"
+        :empty-description="$t('common.noDataDesc')"
+        :pagination="{ page: currentPage, pageSize, total, layout: 'total, sizes, prev, pager, next, jumper', pageSizes: [10, 20, 50, 100], background: true }"
+        @page-change="handlePageChange"
+        @size-change="handleSizeChange"
       >
-        <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="timestamp" :label="$t('adminLogViewer.timestamp')" width="172" sortable />
-        <el-table-column prop="user_number" :label="$t('adminLogViewer.userNumber')" width="120" show-overflow-tooltip />
-        <el-table-column prop="username" :label="$t('adminLogViewer.operator')" width="110" show-overflow-tooltip />
-        <el-table-column prop="ip_address" :label="$t('adminLogViewer.ipAddress')" width="130" show-overflow-tooltip />
-        <el-table-column prop="action" :label="$t('adminLogViewer.actionType')" width="130" show-overflow-tooltip />
-        <el-table-column prop="status" :label="$t('adminLogViewer.status')" width="88" align="center">
-          <template #default="scope">
-            <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
-              {{ scope.row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('adminLogViewer.details')" min-width="240">
-          <template #default="scope">
-            <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
-          </template>
-        </el-table-column>
-      </el-table>
+        <template #filters>
+          <el-input
+            v-model="filters.user_number"
+            :placeholder="$t('adminLogViewer.filterByNumber')"
+            clearable
+            class="filter-input"
+            style="width: 180px;"
+            @clear="handleFilterSearch"
+            @keyup.enter="handleFilterSearch"
+          >
+            <template #prefix>
+              <el-icon><User /></el-icon>
+            </template>
+          </el-input>
+          <el-input
+            v-model="filters.username"
+            :placeholder="$t('adminLogViewer.filterByName')"
+            clearable
+            class="filter-input"
+            style="width: 180px;"
+            @clear="handleFilterSearch"
+            @keyup.enter="handleFilterSearch"
+          >
+            <template #prefix>
+              <el-icon><UserFilled /></el-icon>
+            </template>
+          </el-input>
+          <el-select
+            v-model="filters.action"
+            :placeholder="$t('adminLogViewer.actionType')"
+            clearable
+            class="filter-select"
+            style="width: 200px;"
+            @change="handleFilterSearch"
+          >
+            <el-option :label="$t('adminLogViewer.allTypes')" value="" />
+            <el-option :label="$t('adminLogViewer.userLogin')" value="登录" />
+            <el-option :label="$t('adminLogViewer.submitDataRequest')" value="申请提交" />
+            <el-option :label="$t('adminLogViewer.approveDataRequest')" value="一审通过" />
+            <el-option :label="$t('adminLogViewer.generateWatermark')" value="生成水印" />
+            <el-option :label="$t('adminLogViewer.embedWatermark')" value="嵌入水印" />
+            <el-option :label="$t('adminLogViewer.extractWatermark')" value="提取水印" />
+            <el-option :label="$t('adminLogViewer.downloadData')" value="下载数据" />
+            <el-option :label="$t('adminLogViewer.withdrawApplication')" value="撤回申请" />
+            <el-option :label="$t('adminLogViewer.recallProposal')" value="回收提议创建" />
+            <el-option :label="$t('adminLogViewer.recallVote')" value="回收投票" />
+          </el-select>
+          <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('adminLogViewer.search') }}</el-button>
+          <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('adminLogViewer.reset') }}</el-button>
+        </template>
 
-      <div class="pagination-wrap">
-        <el-pagination
-          background
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="total"
-          :page-sizes="[10, 20, 50, 100]"
-          v-model:page-size="pageSize"
-          v-model:current-page="currentPage"
-          @size-change="handleSizeChange"
-          @current-change="handlePageChange"
-        />
-      </div>
+        <el-table
+          :data="logList"
+          border
+          stripe
+          v-loading="loading"
+          class="log-table"
+          style="width: 100%"
+        >
+          <el-table-column type="index" label="#" width="56" align="center" />
+          <el-table-column prop="timestamp" :label="$t('adminLogViewer.timestamp')" width="172" sortable />
+          <el-table-column prop="user_number" :label="$t('adminLogViewer.userNumber')" width="120" show-overflow-tooltip />
+          <el-table-column prop="username" :label="$t('adminLogViewer.operator')" width="110" show-overflow-tooltip />
+          <el-table-column prop="ip_address" :label="$t('adminLogViewer.ipAddress')" width="130" show-overflow-tooltip />
+          <el-table-column prop="action" :label="$t('adminLogViewer.actionType')" width="130" show-overflow-tooltip />
+          <el-table-column prop="status" :label="$t('adminLogViewer.status')" width="88" align="center">
+            <template #default="scope">
+              <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
+                {{ scope.row.status }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('adminLogViewer.details')" min-width="240">
+            <template #default="scope">
+              <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
+            </template>
+          </el-table-column>
+        </el-table>
+      </ListShell>
     </el-card>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search, RefreshRight, RefreshLeft, Download, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSystemLogs, exportSystemLogs } from '@/api/admin'
 import PageHeader from '@/components/common/PageHeader.vue'
+import ListShell from '@/components/common/ListShell.vue'
 
 const { t } = useI18n()
 
@@ -132,6 +130,9 @@ const filters = reactive({
   user_number: '',
   action: ''
 })
+
+// 空态语义：有筛选条件且无结果 -> filtered；否则 never（与 EmptyState 约定一致）
+const hasActiveFilters = computed(() => !!(filters.username || filters.user_number || filters.action))
 
 const fetchLogs = async () => {
   loading.value = true
@@ -162,8 +163,13 @@ const fetchLogs = async () => {
   }
 };
 
-const handlePageChange = () => fetchLogs();
-const handleSizeChange = () => {
+// 分页状态回写与取数流程与旧版一致（旧 v-model 先行回写，现由事件参数回写）
+const handlePageChange = (page) => {
+  currentPage.value = page;
+  fetchLogs();
+};
+const handleSizeChange = (size) => {
+  pageSize.value = size;
   currentPage.value = 1;
   fetchLogs();
 };
@@ -248,13 +254,6 @@ onMounted(() => fetchLogs());
   font-weight: 600;
   color: var(--text-1);
 }
-.filter-bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-  margin-bottom: 20px;
-}
 .log-table {
   font-size: 13px;
 }
@@ -270,10 +269,5 @@ onMounted(() => fetchLogs());
   color: var(--text-2);
   max-height: 160px;
   overflow-y: auto;
-}
-.pagination-wrap {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
 }
 </style>

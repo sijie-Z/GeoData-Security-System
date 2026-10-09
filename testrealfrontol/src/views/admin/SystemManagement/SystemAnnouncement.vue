@@ -3,8 +3,8 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue'
-import TipWrap from '@/components/common/TipWrap.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
+import ListShell from '@/components/common/ListShell.vue'
 import {
   getAnnouncements,
   createAnnouncement,
@@ -102,8 +102,13 @@ const removeAnnouncement = async (row) => {
   }
 }
 
-const nextPage = () => { if (pages.page < pages.pages) { pages.page += 1; fetchAnnouncements() } }
-const prevPage = () => { if (pages.page > 1) { pages.page -= 1; fetchAnnouncements() } }
+// 翻页入口统一到 el-pagination（ListShell 透传 page-change）：沿用原 prev/next 的边界守卫与取数流程
+const goToPage = (target) => {
+  if (target >= 1 && target <= pages.pages && target !== pages.page) {
+    pages.page = target;
+    fetchAnnouncements();
+  }
+}
 
 onMounted(fetchAnnouncements)
 </script>
@@ -121,43 +126,42 @@ onMounted(fetchAnnouncements)
 
     <el-card class="mb-3">
       <template #header><span class="card-label">{{ $t('adminAnnounce.announcementList') }}</span></template>
-      <el-table :data="list" v-loading="loading" border>
-        <el-table-column :label="$t('adminAnnounce.icon')" width="80">
-          <template #default="{ row }">
-            <el-icon :style="{ color: row.tag_color }">
-              <component :is="row.icon === 'CircleCheckFilled' ? CircleCheckFilled : row.icon === 'WarningFilled' ? WarningFilled : InfoFilled" />
-            </el-icon>
-          </template>
-        </el-table-column>
-        <el-table-column prop="title" :label="$t('adminAnnounce.titleLabel')" min-width="200" />
-        <el-table-column :label="$t('adminAnnounce.tag')" width="140">
-          <template #default="{ row }">
-            <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">{{ row.tag }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column :label="$t('adminAnnounce.content')" min-width="320">
-          <template #default="{ row }">
-            <div class="content-clamp" :title="row.content">{{ row.content }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="created_at" :label="$t('adminAnnounce.time')" width="180" />
-        <el-table-column :label="$t('adminAnnounce.action')" width="180">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="openForm(row)">{{ $t('adminAnnounce.edit') }}</el-button>
-            <el-button link type="danger" @click="removeAnnouncement(row)">{{ $t('adminAnnounce.delete') }}</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination">
-        <TipWrap :reason="pages.page<=1 ? $t('common.disabledReason.firstPage') : ''">
-          <el-button :disabled="pages.page<=1" @click="prevPage">{{ $t('adminAnnounce.prevPage') }}</el-button>
-        </TipWrap>
-        <span>{{ $t('adminAnnounce.pageInfo', { page: pages.page, pages: pages.pages, total: pages.total }) }}</span>
-        <TipWrap :reason="pages.page>=pages.pages ? $t('common.disabledReason.lastPage') : ''">
-          <el-button :disabled="pages.page>=pages.pages" @click="nextPage">{{ $t('adminAnnounce.nextPage') }}</el-button>
-        </TipWrap>
-      </div>
+      <ListShell
+        :empty="!loading && list.length === 0"
+        empty-variant="never"
+        :empty-title="$t('adminAnnounce.noAnnouncements')"
+        :empty-description="$t('common.noDataDesc')"
+        :pagination="{ page: pages.page, pageSize: pages.pageSize, total: pages.total, layout: 'prev, pager, next, jumper, total' }"
+        @page-change="goToPage"
+      >
+        <el-table :data="list" v-loading="loading" border>
+          <el-table-column :label="$t('adminAnnounce.icon')" width="80">
+            <template #default="{ row }">
+              <el-icon :style="{ color: row.tag_color }">
+                <component :is="row.icon === 'CircleCheckFilled' ? CircleCheckFilled : row.icon === 'WarningFilled' ? WarningFilled : InfoFilled" />
+              </el-icon>
+            </template>
+          </el-table-column>
+          <el-table-column prop="title" :label="$t('adminAnnounce.titleLabel')" min-width="200" />
+          <el-table-column :label="$t('adminAnnounce.tag')" width="140">
+            <template #default="{ row }">
+              <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">{{ row.tag }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column :label="$t('adminAnnounce.content')" min-width="320">
+            <template #default="{ row }">
+              <div class="content-clamp" :title="row.content">{{ row.content }}</div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="created_at" :label="$t('adminAnnounce.time')" width="180" />
+          <el-table-column :label="$t('adminAnnounce.action')" width="180">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="openForm(row)">{{ $t('adminAnnounce.edit') }}</el-button>
+              <el-button link type="danger" @click="removeAnnouncement(row)">{{ $t('adminAnnounce.delete') }}</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </ListShell>
     </el-card>
 
     <el-dialog v-model="formVisible" :title="formTitle" width="620px" draggable custom-class="rounded-dialog">
@@ -202,7 +206,6 @@ onMounted(fetchAnnouncements)
 .card-desc { color: var(--text-3); font-size: 13px; margin: 0 0 12px 0 }
 .form-tip { font-size: 12px; color: var(--text-4); margin-top: 4px }
 .mb-3 { margin-bottom: 12px }
-.pagination { display: flex; gap: 12px; align-items: center; padding: 12px }
 /* 内容列：最多 2 行，超出省略；完整正文经原生 title 提供悬停全称 */
 .content-clamp {
   display: -webkit-box;
