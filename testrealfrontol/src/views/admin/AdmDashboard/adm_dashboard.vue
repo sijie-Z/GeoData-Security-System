@@ -1188,6 +1188,23 @@ onBeforeUnmount(() => {
   .dl-stats-tables { grid-template-columns: 1fr; }
 }
 
+/* 移动端（<768px）：hero 纵向堆叠，避免标题被按钮挤成逐字换行 */
+@media (max-width: 767px) {
+  .hero-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 18px;
+  }
+  .hero-content,
+  .hero-actions {
+    width: 100%;
+  }
+  .kpi-body { gap: 10px; }
+  .kpi-icon { width: 40px; height: 40px; font-size: 19px; flex-shrink: 0; }
+  .kpi-info h2.kpi-value { white-space: nowrap; }
+}
+
 .skeleton-hero {
   padding: 40px;
   margin-bottom: 24px;

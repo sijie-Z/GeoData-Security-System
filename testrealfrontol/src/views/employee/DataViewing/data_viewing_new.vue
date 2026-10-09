@@ -1980,6 +1980,16 @@ onMounted(() => {
     padding: 40px 20px;
   }
 
+  /* 长坐标系统字符串（WKT/PROJCS）在窄卡片内换行，避免被 overflow:hidden 静默裁切 */
+  .meta-item {
+    align-items: flex-start;
+  }
+
+  .meta-item span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
   .hero-title {
     font-size: 32px;
   }
