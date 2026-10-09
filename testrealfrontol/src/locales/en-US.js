@@ -1633,6 +1633,7 @@ export default {
     exportCsv: 'Export CSV',
     exportSuccess: 'Export succeeded — download started',
     exportFailed: 'Export failed, please retry later',
+    noLogs: 'No log records',
   },
   adminDataUpload: {
     title: 'Data Resource Upload',

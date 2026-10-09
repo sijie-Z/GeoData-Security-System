@@ -1633,6 +1633,7 @@ export default {
     exportCsv: '导出 CSV',
     exportSuccess: '导出成功，文件已开始下载',
     exportFailed: '导出失败，请稍后重试',
+    noLogs: '暂无日志记录',
   },
   adminDataUpload: {
     title: '数据资源上传',
