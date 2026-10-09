@@ -348,6 +348,20 @@ onActivated(async () => {
   .grid { grid-template-columns: 1fr; }
 }
 
+/* 移动端（<768px）：hero 纵向堆叠 + 动作钮换行，避免按钮越过面板右缘 */
+@media (max-width: 767px) {
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .hero-actions {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+}
+
 .skeleton-hero {
   padding: 40px;
   margin-bottom: 24px;

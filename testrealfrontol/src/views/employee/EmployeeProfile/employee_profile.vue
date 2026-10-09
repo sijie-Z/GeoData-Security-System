@@ -32,7 +32,7 @@
             </div>
           </div>
 
-          <el-descriptions :column="2" border class="profile-descriptions">
+          <el-descriptions :column="isMobile ? 1 : 2" border class="profile-descriptions">
             <el-descriptions-item :label="$t('empProfile.jobNumber')">
               <strong>{{ profileData.jobNumber || 'N/A' }}</strong>
             </el-descriptions-item>
@@ -220,6 +220,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { useMediaQuery } from '@vueuse/core';
 import { ElMessage, ElLoading, ElMessageBox } from 'element-plus';
 import { User, Camera, Edit, Key, DataAnalysis, Calendar, Clock, Document } from '@element-plus/icons-vue';
 import { getProfile, updateProfile, changePassword, getPhoto, getDashboard } from '@/api/employee';
@@ -227,6 +228,7 @@ import { useUserStore } from '@/stores/userStore';
 
 const { t } = useI18n();
 const userStore = useUserStore();
+const isMobile = useMediaQuery('(max-width: 767px)');
 
 // 获取当前用户编号
 const userNumber = computed(() => userStore.userNumber);

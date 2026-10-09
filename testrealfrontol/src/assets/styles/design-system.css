@@ -1217,11 +1217,23 @@ html.dark .el-tour-skip:hover {
 
 @media (max-width: 768px) {
   :root {
-    --sidebar-width: 100%;
     --header-height: 56px;
     --spacing-lg: 16px;
     --spacing-xl: 24px;
     --spacing-2xl: 32px;
+  }
+
+  /* 移动端分页：允许内部换行，避免 justify-content:flex-end 的容器把控件
+     推到负坐标（overflow 到左侧不可滚动 → 控件丢失） */
+  .el-pagination {
+    flex-wrap: wrap;
+    white-space: normal;
+    row-gap: 4px;
+  }
+
+  /* 移动端空态：EP 默认 empty-text 宽 50%，窄屏会把空态文字压成 2-3 字/行 */
+  .el-table__empty-text {
+    width: 100%;
   }
 
   .el-dialog {

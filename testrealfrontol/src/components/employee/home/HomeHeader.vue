@@ -87,7 +87,7 @@ const logout = async () => {
  import { ElMessage } from "element-plus";
  import {
    UserFilled, SwitchButton, ArrowDown,
-   QuestionFilled, InfoFilled, Expand, Fold, Sunny, Moon
+   QuestionFilled, InfoFilled, Expand, Fold, Sunny, Moon, Menu
  } from "@element-plus/icons-vue";
  import Axios from "@/utils/Axios";
 import { useTheme } from "@/composables/useTheme.js";
@@ -106,7 +106,9 @@ const { isDark, toggleTheme } = useTheme();
  const avatarUrl = ref('');
 
  const props = defineProps({
-   isSideCollapse: Boolean
+   isSideCollapse: Boolean,
+   isMobile: Boolean,
+   drawerOpen: Boolean
  });
  const emit = defineEmits(['toggle-sidebar']);
  
@@ -210,9 +212,11 @@ const { isDark, toggleTheme } = useTheme();
    <header class="employee-header">
      <div class="header-left">
        <el-button
-         :icon="isSideCollapse ? Expand : Fold"
+         :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
          class="toggle-sidebar-button"
          text
+         :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
+         :aria-expanded="isMobile ? drawerOpen : undefined"
          @click="toggleSidebar"
        />
        <!-- 使用新的维基风格地理空间logo -->
@@ -380,5 +384,41 @@ const { isDark, toggleTheme } = useTheme();
  
  .return-home {
      display: none;
+ }
+
+ /* ===== 移动端顶栏（<768px）：隐藏重复导航菜单与用户名，保证主题/通知/用户菜单可达 ===== */
+ @media (max-width: 767px) {
+   .employee-header {
+     padding: 0 8px;
+   }
+
+   .toggle-sidebar-button {
+     margin-right: 2px;
+   }
+
+   .wiki-logo {
+     margin-right: 0;
+   }
+
+   .system-title {
+     display: none;
+   }
+
+   .header-right {
+     gap: 8px;
+     flex-shrink: 0;
+   }
+
+   .header-nav-menu {
+     display: none; /* 四项导航与抽屉菜单完全重复，移动端由抽屉承担 */
+   }
+
+   .user-info-dropdown {
+     padding: 4px;
+   }
+
+   .user-name {
+     display: none;
+   }
  }
  </style>

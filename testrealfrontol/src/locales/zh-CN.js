@@ -589,6 +589,9 @@ export default {
     avatarError: '获取用户头像时发生错误。',
     switchToLight: '切换到浅色模式',
     switchToDark: '切换到深色模式',
+    openMenu: '打开菜单',
+    closeMenu: '关闭菜单',
+    toggleSidebar: '收起/展开侧栏',
   },
   profile: {
     title: '个人中心',

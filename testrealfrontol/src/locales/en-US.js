@@ -631,6 +631,9 @@ export default {
     avatarError: 'Error loading avatar.',
     switchToLight: 'Switch to light mode',
     switchToDark: 'Switch to dark mode',
+    openMenu: 'Open menu',
+    closeMenu: 'Close menu',
+    toggleSidebar: 'Toggle sidebar',
   },
   profile: {
     title: 'Profile',

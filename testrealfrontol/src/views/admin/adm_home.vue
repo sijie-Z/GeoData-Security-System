@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onErrorCaptured, watch } from 'vue';
+import { ref, onErrorCaptured, watch, onMounted, onUnmounted } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import HomeHeader from "@/components/admin/home/HomeHeader.vue";
 import HomeSide from "@/components/admin/home/HomeSide.vue";
 import { useRouter, useRoute } from "vue-router";
@@ -10,8 +11,20 @@ const route = useRoute();
 const isSideCollapse = ref(false);
 const hasError = ref(false);
 
+// 移动端（<768px）：侧栏改为覆盖层抽屉，由汉堡按钮唤出，遮罩点击/路由切换/Esc 关闭
+const isMobile = useMediaQuery('(max-width: 767px)');
+const isDrawerOpen = ref(false);
+
 const toggleSideCollapse = () => {
+  if (isMobile.value) {
+    isDrawerOpen.value = !isDrawerOpen.value;
+    return;
+  }
   isSideCollapse.value = !isSideCollapse.value;
+};
+
+const closeDrawer = () => {
+  isDrawerOpen.value = false;
 };
 
 // Error boundary — catch child component errors, show fallback instead of white screen
@@ -22,12 +35,22 @@ onErrorCaptured((err, instance, info) => {
   return false; // prevent error from propagating further
 });
 
+const onKeydown = (e) => {
+  if (e.key === 'Escape' && isDrawerOpen.value) closeDrawer();
+};
+
+onMounted(() => window.addEventListener('keydown', onKeydown));
+onUnmounted(() => window.removeEventListener('keydown', onKeydown));
+
 // Reset error state when route changes (user clicked a different menu item)
 watch(() => route.path, () => {
   if (hasError.value) {
     hasError.value = false;
   }
+  closeDrawer();
 });
+
+watch(isMobile, closeDrawer);
 
 const reloadPage = () => {
   hasError.value = false;
@@ -39,10 +62,25 @@ const reloadPage = () => {
 
 <template>
   <div class="admin-home-layout">
-    <HomeHeader :is-side-collapse="isSideCollapse" @toggle-sidebar="toggleSideCollapse" />
+    <HomeHeader
+      :is-side-collapse="isSideCollapse"
+      :is-mobile="isMobile"
+      :drawer-open="isDrawerOpen"
+      @toggle-sidebar="toggleSideCollapse"
+    />
 
     <div class="main-content-area">
-      <HomeSide :is-collapse="isSideCollapse" />
+      <div
+        v-if="isMobile && isDrawerOpen"
+        class="sidebar-mask"
+        aria-hidden="true"
+        @click="closeDrawer"
+      ></div>
+
+      <HomeSide
+        :is-collapse="isMobile ? false : isSideCollapse"
+        :class="{ 'drawer-open': isMobile && isDrawerOpen }"
+      />
 
       <div :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]">
         <div v-if="hasError" class="error-fallback">
@@ -125,5 +163,49 @@ const reloadPage = () => {
 }
 .error-fallback p {
   margin-bottom: 20px;
+}
+
+/* ===== 移动端壳层（<768px）：侧栏离屏抽屉 + 内容区全宽 =====
+   ≥768px 保持桌面现状（媒体查询不生效）。 */
+@media (max-width: 767px) {
+  .sidebar-mask {
+    position: fixed;
+    top: 60px; /* 顶栏保持可点（汉堡可再次开合） */
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.45);
+    z-index: 1100;
+  }
+
+  .main-content-area > .sidebar {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 0;
+    height: auto;
+    width: min(240px, 82vw);
+    z-index: 1200;
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 220ms var(--ease-drawer), visibility 0s linear 260ms;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .main-content-area > .sidebar.drawer-open {
+    transform: translateX(0);
+    visibility: visible;
+    transition: transform 220ms var(--ease-drawer), visibility 0s;
+  }
+
+  .main-content-area > .sidebar :deep(.sidebar-menu:not(.el-menu--collapse)) {
+    width: 100%;
+  }
+
+  .content-panel {
+    margin: 8px;
+    padding: 10px;
+    overflow-x: auto; /* 原 overflow-x:hidden 会静默裁切；改为可操作横滚 */
+  }
 }
 </style>
