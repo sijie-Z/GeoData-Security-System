@@ -15,6 +15,7 @@ export default {
     more: '更多',
     noData: '暂无数据',
     noDataDesc: '当前没有可显示的内容',
+    retry: '重试',
     /** §4.15 禁用按钮 disabledReason（tooltip 文案） */
     disabledReason: {
       selectItems: '请先勾选要操作的申请',
@@ -751,7 +752,7 @@ export default {
     copyright: '© 2024 空间数据跟踪系统 | 专业 · 安全 · 可信赖',
   },
   adminDashboard: {
-    heroSubtitle: '实时掌握审批、数据资产与系统运行状态 | 更新时间：',
+    heroSubtitle: '实时掌握审批、数据资产与系统运行状态',
     refreshData: '刷新数据',
     exportReport: '导出报告',
     registeredUsers: '注册用户',
@@ -1660,6 +1661,7 @@ export default {
   },
   adminDataManage: {
     title: '数据管理',
+    pageDescription: '浏览、上传与管理已发布的空间数据资源',
     vectorData: '矢量数据',
     rasterData: '栅格数据',
     searchPlaceholder: '搜索数据名称...',
