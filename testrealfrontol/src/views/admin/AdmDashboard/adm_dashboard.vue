@@ -1,13 +1,64 @@
 <template>
   <div class="admin-dashboard" v-loading="loading">
     <template v-if="loading">
-      <div class="skeleton-hero">
-        <div class="sk-line long motion-shimmer"></div>
-        <div class="sk-line medium motion-shimmer"></div>
-      </div>
-      <div class="stats-grid">
-        <div v-for="n in 4" :key="n" class="stat-card"><div class="sk-line short motion-shimmer"></div><div class="sk-line medium motion-shimmer"></div></div>
-      </div>
+      <!-- hero 位：与 .hero-section 同骨架（问候线 + 副标题线 + 右侧 2 按钮块） -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <div class="sk-line sk-hero-title motion-shimmer"></div>
+          <div class="sk-line sk-hero-sub motion-shimmer"></div>
+        </div>
+        <div class="hero-actions">
+          <div class="sk-btn motion-shimmer"></div>
+          <div class="sk-btn motion-shimmer"></div>
+        </div>
+      </section>
+
+      <!-- 地球位：与 DataFlowGlobe 实测同高的整块占位（head + 340 stage + footnote） -->
+      <section class="skeleton-globe">
+        <div class="skeleton-globe-head">
+          <div class="sk-dark sk-globe-title motion-shimmer"></div>
+          <div class="sk-dark sk-globe-subtitle motion-shimmer"></div>
+        </div>
+        <div class="sk-dark skeleton-globe-stage motion-shimmer"></div>
+        <div class="sk-dark sk-globe-footnote motion-shimmer"></div>
+      </section>
+
+      <!-- KPI 位：真实 .kpi-grid + el-card.kpi-card 骨架（图标块 + 3 行） -->
+      <section class="kpi-grid">
+        <el-card v-for="n in 4" :key="n" class="kpi-card" shadow="hover">
+          <div class="kpi-body">
+            <div class="kpi-icon sk-kpi-icon motion-shimmer"></div>
+            <div class="kpi-info sk-kpi-info">
+              <div class="sk-line sk-kpi-label motion-shimmer"></div>
+              <div class="sk-line sk-kpi-value motion-shimmer"></div>
+              <div class="sk-line sk-kpi-small motion-shimmer"></div>
+            </div>
+          </div>
+        </el-card>
+      </section>
+
+      <!-- 快捷入口位：标题线 + 6 个小块 -->
+      <section class="quick-actions">
+        <el-card shadow="hover">
+          <template #header><div class="sk-line sk-card-title motion-shimmer"></div></template>
+          <div class="action-grid">
+            <div v-for="n in 6" :key="n" class="action-item sk-action-item">
+              <div class="sk-square motion-shimmer"></div>
+              <div class="sk-line sk-action-text motion-shimmer"></div>
+            </div>
+          </div>
+        </el-card>
+      </section>
+
+      <!-- 图表位 ×2：标题线 + 与 .chart-container 同高（320px）的占位块 -->
+      <section v-for="n in 2" :key="n" class="charts-grid">
+        <el-card v-for="m in 2" :key="m" shadow="hover">
+          <template #header><div class="sk-line sk-card-title motion-shimmer"></div></template>
+          <div class="chart-container">
+            <div class="sk-chart motion-shimmer"></div>
+          </div>
+        </el-card>
+      </section>
     </template>
     <template v-else>
     <!-- Hero区域 -->
@@ -1207,22 +1258,71 @@ onBeforeUnmount(() => {
   .action-item { padding: 10px 6px; }
 }
 
-.skeleton-hero {
-  padding: 40px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.sk-line {
-  height: 16px;
-  border-radius: 8px;
+/* ── 加载骨架（高保真：复用真实布局类，块高对齐 5224 实测值） ── */
+.sk-line,
+.sk-btn,
+.sk-square,
+.sk-chart,
+.sk-kpi-icon {
   background: linear-gradient(90deg, var(--skeleton-base, #e2e8f0) 25%, var(--skeleton-highlight, #f1f5f9) 50%, var(--skeleton-base, #e2e8f0) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-.sk-line.long { width: 60%; }
-.sk-line.medium { width: 40%; }
-.sk-line.short { width: 25%; }
+.sk-line {
+  height: 22px;
+  border-radius: 8px;
+}
+
+/* hero 位（实测 .hero-section = 102px：24×2 padding + 内容 52 + 边框 2） */
+.hero-content .sk-hero-title { width: 300px; height: 22px; margin: 0 0 8px; }
+.hero-content .sk-hero-sub { width: 380px; height: 22px; }
+.sk-btn { width: 106px; height: 32px; border-radius: 8px; }
+.sk-btn + .sk-btn { width: 108px; margin-left: 12px; }
+
+/* 地球位（实测 .dfg-card = 460px：18 + head 50 + 6 + stage 340 + 8+22 + 14 + 边框 2） */
+.skeleton-globe {
+  margin-bottom: 20px;
+  border-radius: 14px;
+  padding: 18px 22px 14px;
+  border: 1px solid rgba(120, 170, 255, 0.16);
+  background:
+    radial-gradient(120% 160% at 85% -20%, rgba(56, 122, 216, 0.30), transparent 55%),
+    radial-gradient(90% 120% at 8% 110%, rgba(35, 198, 214, 0.16), transparent 60%),
+    linear-gradient(135deg, #0a1424 0%, #0e1c33 48%, #0a1626 100%);
+  box-shadow: 0 12px 32px -12px rgba(6, 18, 40, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.skeleton-globe-head { height: 50px; }
+.sk-dark {
+  border-radius: 8px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.07) 25%, rgba(255, 255, 255, 0.16) 50%, rgba(255, 255, 255, 0.07) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+.sk-globe-title { width: 220px; height: 24px; }
+.sk-globe-subtitle { width: 300px; height: 18px; margin-top: 8px; }
+.skeleton-globe-stage { height: 340px; margin-top: 6px; border-radius: 10px; }
+.sk-globe-footnote { width: 280px; height: 22px; margin-top: 8px; }
+@media (max-width: 1200px) {
+  .skeleton-globe-stage { height: 300px; }
+}
+
+/* KPI 位（实测 .kpi-card = 140px：body padding 24×2 + .kpi-body 92） */
+.sk-kpi-icon { width: 48px; height: 48px; border-radius: 8px; flex-shrink: 0; }
+.sk-kpi-info { flex: 1; min-height: 76px; }
+.sk-kpi-label { width: 62%; }
+.sk-kpi-value { width: 46%; margin: 4px 0; }
+.sk-kpi-small { width: 74%; }
+
+/* 快捷入口位（实测卡 198px、.action-item 91px） */
+.quick-actions .sk-card-title { width: 120px; }
+.action-item.sk-action-item { min-height: 91px; }
+.sk-square { width: 24px; height: 24px; border-radius: 6px; }
+.sk-action-text { width: 64px; }
+
+/* 图表位（实测 .charts-grid 卡 427px：header 59 + body 48 + .chart-container 320） */
+.charts-grid .sk-card-title { width: 140px; }
+.sk-chart { height: 100%; border-radius: var(--el-card-border-radius, 4px); }
+
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
