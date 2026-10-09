@@ -48,7 +48,7 @@
   --slate-6: #d4d4d4;
   --slate-7: #c6c6cb;
   --slate-8: #b3b3ba;
-  --slate-9: #8f8f8f;
+  --slate-9: #747474;    /* 占位/提示（--text-4）：对 #ffffff 4.67:1、#fcfcfd 4.56:1（原 #8f8f8f 3.23/3.15，不达 AA） */
   --slate-10: #666666;
   --slate-11: #333333;
   --slate-12: #0a0a0a;
@@ -97,7 +97,7 @@
   --neutral-100: #f4f4f5;
   --neutral-200: #eaeaea;
   --neutral-300: #d4d4d4;
-  --neutral-400: #8f8f8f;
+  --neutral-400: #747474; /* 镜像 --slate-9（兼容色板 0 引用，同步防存量 sub-AA 灰回流） */
   --neutral-500: #666666;
   --neutral-600: #333333;
   --neutral-700: #262626;
