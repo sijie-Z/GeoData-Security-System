@@ -462,7 +462,9 @@
           {{ $t('watermarkQuality.tourSkip') }}
         </button>
       </template>
-      <el-tour-step :target="() => tourEls.header" placement="bottom-start" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
+      <!-- 首步：总览引入。锚定 KPI 带 + placement=top，气泡整体悬在 KPI 数据之上
+           （bottom 恒定贴在 KPI 上沿，任何文案行数/语言都不会盖住 KPI 数值） -->
+      <el-tour-step :target="() => tourEls.hero" placement="top" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
       <el-tour-step :target="() => tourEls.hero" :title="$t('watermarkQuality.tourStep2Title')" :description="$t('watermarkQuality.tourStep2Desc')" />
       <el-tour-step :target="() => tourEls.gallery" :title="$t('watermarkQuality.tourStep3Title')" :description="$t('watermarkQuality.tourStep3Desc')" />
       <el-tour-step :target="() => tourEls.matrix" :title="$t('watermarkQuality.tourStep4Title')" :description="$t('watermarkQuality.tourStep4Desc')" />

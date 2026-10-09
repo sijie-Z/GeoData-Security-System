@@ -575,6 +575,7 @@
         v-for="(step, i) in tourSteps"
         :key="i"
         :target="step.target"
+        :placement="step.placement"
         :title="step.title"
         :description="step.description"
       />
@@ -1723,7 +1724,10 @@ const tourTarget = (...selectors) => () => {
 
 const tourSteps = computed(() => [
   {
-    target: tourTarget('#lab-head'),
+    // 首步总览：锚定 KPI 带 + placement=top——气泡整体悬在 KPI 数据之上
+    // （bottom 恒定贴在 KPI 上沿，任何文案行数/语言都不会盖住 KPI 数值）
+    target: tourTarget('#lab-kpi', '.control-grid'),
+    placement: 'top',
     title: t('robustnessLab.tour1Title'),
     description: t(uiKind.value === 'raster' ? 'robustnessLab.tour1DescRaster' : 'robustnessLab.tour1Desc'),
   },
