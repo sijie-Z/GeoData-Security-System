@@ -33,7 +33,7 @@
     "vue": "^3.5.43",
     "vue-echarts": "^7.0.3",
     "vue-i18n": "^9.14.0",
-    "vue-router": "^4.3.2"
+    "vue-router": "^5.3.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
