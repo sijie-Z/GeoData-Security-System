@@ -1,14 +1,64 @@
 <template>
   <div class="employee-dashboard" v-loading="loading">
     <template v-if="loading">
-      <div class="skeleton-hero glass">
-        <div class="sk-line long motion-shimmer"></div>
-        <div class="sk-line medium motion-shimmer"></div>
-        <div class="sk-line short motion-shimmer"></div>
-      </div>
-      <div class="kpi-grid">
-        <div v-for="n in 4" :key="n" class="kpi glass"><div class="sk-line short motion-shimmer"></div><div class="sk-line medium motion-shimmer"></div></div>
-      </div>
+      <!-- hero 位：与 .hero 同骨架（3 行 + 右侧 2 按钮块） -->
+      <section class="hero glass">
+        <div>
+          <div class="sk-line sk-hero-title motion-shimmer"></div>
+          <div class="sk-line sk-hero-sub motion-shimmer"></div>
+          <div class="sk-line sk-hero-meta motion-shimmer"></div>
+        </div>
+        <div class="hero-actions">
+          <div class="sk-btn motion-shimmer"></div>
+          <div class="sk-btn motion-shimmer"></div>
+        </div>
+      </section>
+
+      <!-- KPI 位：真实 .kpi-grid + .kpi.glass（标签线 + 数值线） -->
+      <section class="kpi-grid">
+        <div v-for="n in 4" :key="n" class="kpi glass sk-pin">
+          <div class="sk-line sk-kpi-label motion-shimmer"></div>
+          <div class="sk-line sk-kpi-value motion-shimmer"></div>
+        </div>
+      </section>
+
+      <!-- 图表行位：1 宽图 + 2 小图（与 .chart / .chart.small 同高） -->
+      <section class="grid">
+        <el-card class="glass" shadow="never">
+          <template #header><div class="panel-header"><div class="sk-line sk-h3 sk-h3-with-tag motion-shimmer"></div></div></template>
+          <div class="chart sk-block motion-shimmer"></div>
+        </el-card>
+        <el-card class="glass" shadow="never">
+          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+          <div class="chart small sk-block motion-shimmer"></div>
+        </el-card>
+        <el-card class="glass" shadow="never">
+          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+          <div class="chart small sk-block motion-shimmer"></div>
+        </el-card>
+      </section>
+
+      <!-- 快捷入口 + 公告行位（3 动作块 + 5 行公告线） -->
+      <section class="grid">
+        <el-card class="glass" shadow="never">
+          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+          <div class="action-grid">
+            <div v-for="n in 3" :key="n" class="action-card sk-action-card">
+              <div class="sk-line sk-action-b motion-shimmer"></div>
+              <div class="sk-line sk-action-s motion-shimmer"></div>
+            </div>
+          </div>
+        </el-card>
+        <el-card class="glass" shadow="never">
+          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+          <div class="announcement-list">
+            <div v-for="n in 5" :key="n" class="announcement-item sk-ann-row">
+              <div class="sk-line sk-ann-line1 motion-shimmer"></div>
+              <div class="sk-line sk-ann-line2 motion-shimmer"></div>
+            </div>
+          </div>
+        </el-card>
+      </section>
     </template>
     <template v-else>
     <section class="hero glass">
@@ -362,22 +412,49 @@ onActivated(async () => {
   }
 }
 
-.skeleton-hero {
-  padding: 40px;
-  margin-bottom: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.sk-line {
-  height: 16px;
-  border-radius: 8px;
+/* ── 加载骨架（高保真：复用真实布局类，块高对齐 5224 实测值） ── */
+.sk-line,
+.sk-btn,
+.sk-block {
   background: linear-gradient(90deg, var(--skeleton-base, #e2e8f0) 25%, var(--skeleton-highlight, #f1f5f9) 50%, var(--skeleton-base, #e2e8f0) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
 }
-.sk-line.long { width: 60%; }
-.sk-line.medium { width: 40%; }
-.sk-line.short { width: 25%; }
+.sk-line {
+  height: 22px;
+  border-radius: 8px;
+}
+
+/* hero 位（实测 .hero = 118px：padding 18/20 + 内容 80 + 边框 2） */
+.sk-hero-title { width: 300px; height: 22px; }
+.sk-hero-sub { width: 380px; height: 22px; margin-top: 6px; }
+.sk-hero-meta { width: 280px; height: 22px; margin-top: 8px; }
+.sk-btn { width: 86px; height: 32px; border-radius: 8px; }
+.sk-btn + .sk-btn { width: 116px; margin-left: 12px; }
+
+/* KPI 位（实测 .kpi = 87px：padding 14×2 + 内容 56，补至 87） */
+.sk-pin { min-height: 87px; }
+.sk-kpi-label { width: 50%; }
+.sk-kpi-value { width: 60%; margin: 6px 0; }
+
+/* 图表行位（实测：.chart 320 / .chart.small 260 / 卡片行高 429） */
+.sk-h3 { width: 140px; }
+.sk-h3.sk-h3-with-tag { height: 24px; }
+.sk-block { border-radius: var(--el-card-border-radius, 4px); }
+
+/* 快捷入口 + 公告位（实测 .action-card 74、卡片行高 427、公告区 320） */
+.sk-action-card { min-height: 74px; }
+.sk-action-b { width: 55%; }
+.sk-action-s { width: 75%; margin-top: 4px; }
+.sk-ann-row {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  height: 56px;
+}
+.sk-ann-line1 { width: 55%; height: 18px; }
+.sk-ann-line2 { width: 80%; height: 14px; }
+
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
