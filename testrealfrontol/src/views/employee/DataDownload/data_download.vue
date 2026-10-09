@@ -3,7 +3,7 @@
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
-        <span>{{ $t('empDataDownload.title') }}</span>
+        <h1>{{ $t('empDataDownload.title') }}</h1>
         <el-button :icon="Refresh" circle @click="get_applications" :loading="loading" />
       </div>
     </template>
@@ -221,7 +221,7 @@ const download = async (row) => {
   align-items: center;
 }
 
-.card-header span {
+.card-header h1 {
   font-size: 18px;
   font-weight: 400;
   color: var(--text-primary, #303133);

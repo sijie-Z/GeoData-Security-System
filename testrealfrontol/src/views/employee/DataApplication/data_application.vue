@@ -3,7 +3,7 @@
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
-        <span>{{ $t('empDataApp.title') }}</span>
+        <h1>{{ $t('empDataApp.title') }}</h1>
         <el-button :icon="Refresh" circle @click="get_applications" />
       </div>
     </template>
@@ -207,7 +207,7 @@ onMounted(() => {
   align-items: center;
 }
 
-.card-header span {
+.card-header h1 {
   font-size: 18px;
   font-weight: 400;
   color: var(--text-1);

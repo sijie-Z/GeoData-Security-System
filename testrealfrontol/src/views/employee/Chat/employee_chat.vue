@@ -4,6 +4,7 @@
       <template #header>
         <div class="chat-header">
           <div class="header-left">
+            <h1 class="chat-title">{{ $t('empChat.title') }}</h1>
             <el-radio-group v-model="activeTab" size="default">
               <el-radio-button value="human">💬 {{ $t('empChat.humanChat') || '人工聊天' }}</el-radio-button>
               <el-radio-button value="ai">🤖 {{ $t('empChat.aiAssistant') || 'AI 助手' }}</el-radio-button>
@@ -631,6 +632,8 @@ onBeforeUnmount(() => {
 .chat-card { border-radius: 12px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .chat-card :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .chat-header { display: flex; justify-content: space-between; align-items: center; }
+.header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.chat-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
 .chat-layout { display: grid; grid-template-columns: 360px 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; }
 
 /* ── AI 助手样式 ── */
@@ -701,5 +704,11 @@ onBeforeUnmount(() => {
 
 @media (max-width: 1100px) {
   .chat-layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 220px) minmax(0, 1fr); }
+}
+
+/* 移动端（<=767px）：header 允许换行，避免 标题 + tab + 按钮 挤在一行溢出 */
+@media (max-width: 767px) {
+  .chat-header { flex-wrap: wrap; row-gap: 10px; }
+  .header-left { flex-wrap: wrap; row-gap: 8px; }
 }
 </style>

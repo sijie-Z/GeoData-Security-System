@@ -22,7 +22,7 @@
     <!-- ① 页头 -->
     <div id="lab-head" class="page-header">
       <div class="page-header-text">
-        <h2>{{ $t('robustnessLab.title') }}</h2>
+        <h1>{{ $t('robustnessLab.title') }}</h1>
         <p class="subtitle">{{ subtitleText }}</p>
       </div>
       <div class="page-header-actions">
@@ -1878,7 +1878,7 @@ onMounted(async () => {
   margin-bottom: 16px;
 }
 
-.page-header h2 {
+.page-header h1 {
   font-size: 22px;
   color: var(--text-primary);
   margin: 0 0 6px;

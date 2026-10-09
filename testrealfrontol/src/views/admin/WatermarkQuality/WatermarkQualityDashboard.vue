@@ -2,7 +2,7 @@
   <div class="watermark-quality-dashboard">
     <div class="page-header">
       <div class="page-header-left" :ref="setTourEl('header')">
-        <h2>{{ $t('watermarkQuality.title') }}</h2>
+        <h1>{{ $t('watermarkQuality.title') }}</h1>
         <p class="subtitle">
           {{ $t('watermarkQuality.subtitle') }}
           <span v-if="verificationWindowText" class="subtitle-meta">{{
@@ -1304,7 +1304,7 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
-.page-header h2 {
+.page-header h1 {
   font-size: var(--font-size-2xl);
   font-weight: var(--font-weight-semibold);
   color: var(--text-1);
