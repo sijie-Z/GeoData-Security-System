@@ -896,6 +896,7 @@ html.dark .el-tour-skip:hover {
   --el-pagination-button-color: var(--text-2);
   --el-pagination-button-disabled-color: var(--text-4);
   --el-pagination-button-disabled-bg-color: transparent;
+  --el-disabled-bg-color: var(--bg-canvas); /* is-background 禁用胶囊底（EP 默认 #f5f7fa） */
   --el-pagination-hover-color: var(--primary-600);
 }
 
