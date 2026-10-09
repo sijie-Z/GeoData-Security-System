@@ -1593,6 +1593,7 @@ export default {
     pageInfo: 'Page {page}/{pages}, Total {total}',
     prevPage: 'Previous',
     nextPage: 'Next',
+    noAnnouncements: 'No announcements',
     icon: 'Icon',
     tagCustom: 'Custom',
     iconInfo: 'Info',

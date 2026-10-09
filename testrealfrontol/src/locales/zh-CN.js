@@ -1593,6 +1593,7 @@ export default {
     pageInfo: '第 {page}/{pages} 页，共 {total} 条',
     prevPage: '上一页',
     nextPage: '下一页',
+    noAnnouncements: '暂无公告',
     icon: '图标',
     tagCustom: '自定义',
     iconInfo: '信息',
