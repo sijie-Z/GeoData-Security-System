@@ -7,7 +7,7 @@
         <el-icon size="32" color="var(--accent-9)"><Document /></el-icon>
       </div>
       <div class="header-content">
-        <h2>{{ $t('rasterWmExtract.pageTitle') }}</h2>
+        <h1>{{ $t('rasterWmExtract.pageTitle') }}</h1>
         <p class="description">
           {{ $t('rasterWmExtract.pageDescription') }}
         </p>
@@ -361,7 +361,7 @@ const handleUploadError = (err, file) => {
   color: white;
 }
 
-.header-content h2 {
+.header-content h1 {
   margin: 0 0 8px 0;
   color: var(--text-1);
   font-size: 24px;

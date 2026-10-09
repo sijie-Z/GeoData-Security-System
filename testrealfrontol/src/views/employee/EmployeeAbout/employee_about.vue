@@ -7,7 +7,7 @@
         </div>
       </template>
       <div class="about-content">
-        <h2>{{ $t('empAbout.systemName') }}</h2>
+        <h1>{{ $t('empAbout.systemName') }}</h1>
         <p><strong>{{ $t('empAbout.version') }}</strong> v1.0</p>
         <p><strong>{{ $t('empAbout.releaseDate') }}</strong> 2025</p>
 
@@ -74,7 +74,7 @@ const { t } = useI18n();
   color: var(--text-2);
 }
 
-.about-content h2 {
+.about-content h1 {
   font-size: 24px;
   font-weight: 700;
   color: var(--text-1);

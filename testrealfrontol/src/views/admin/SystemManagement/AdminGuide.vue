@@ -3,7 +3,7 @@
     <el-card class="guide-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <h2>{{ $t('adminGuide.title') }}</h2>
+          <h1>{{ $t('adminGuide.title') }}</h1>
           <el-tag type="success">{{ $t('adminGuide.beginner') }}</el-tag>
         </div>
       </template>
@@ -189,7 +189,7 @@ const goToChat = () => router.push('/admin/system/chat')
   align-items: center;
 }
 
-.card-header h2 {
+.card-header h1 {
   margin: 0;
   font-size: 20px;
 }
