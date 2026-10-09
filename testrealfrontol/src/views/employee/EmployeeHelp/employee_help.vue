@@ -7,7 +7,7 @@
         </div>
       </template>
       <div class="help-content">
-        <h2>{{ $t('empHelp.welcome') }}</h2>
+        <h1>{{ $t('empHelp.welcome') }}</h1>
         <p>{{ $t('empHelp.intro') }}</p>
 
         <h3>{{ $t('empHelp.dataCatalog') }}</h3>
@@ -76,13 +76,13 @@ const { t } = useI18n();
   color: var(--text-2);
 }
 
-.help-content h2, .help-content h3 {
+.help-content h1, .help-content h3 {
   color: var(--text-1);
   margin-top: 25px;
   margin-bottom: 15px;
 }
 
-.help-content h2 {
+.help-content h1 {
   font-size: 24px;
   font-weight: 700;
 }

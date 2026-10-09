@@ -3,7 +3,7 @@
     <el-card class="chat-card" shadow="hover">
       <template #header>
         <div class="chat-header">
-          <h2>{{ $t('adminChat.title') }}</h2>
+          <h1>{{ $t('adminChat.title') }}</h1>
           <el-button type="primary" @click="showUserList = true" :icon="Plus">{{ $t('adminChat.selectContact') }}</el-button>
         </div>
       </template>
@@ -367,7 +367,7 @@ onBeforeUnmount(() => {
 .chat-page { padding: 20px; background: var(--bg-canvas); min-height: calc(100vh - 60px); }
 .chat-card { border-radius: 12px; }
 .chat-header { display: flex; justify-content: space-between; align-items: center; }
-.chat-header h2 { margin: 0; font-size: 18px; color: var(--text-1); }
+.chat-header h1 { margin: 0; font-size: 18px; color: var(--text-1); }
 
 .chat-layout {
   display: grid;

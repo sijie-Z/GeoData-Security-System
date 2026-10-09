@@ -5,7 +5,7 @@
     <div class="raster-embed-page">
       <el-alert :title="$t('rasterWmEmbed.roleAlert')" type="info" :closable="false" style="margin-bottom: 12px;" />
       <div class="page-header-compact">
-        <h2 class="page-title">{{ $t('rasterWmEmbed.pageTitle') }}</h2>
+        <h1 class="page-title">{{ $t('rasterWmEmbed.pageTitle') }}</h1>
         <p class="page-desc">{{ $t('rasterWmEmbed.pageDesc') }}</p>
       </div>
       <el-alert :title="$t('rasterWmEmbed.workflowTip')" type="warning" :closable="false" style="margin-bottom: 12px;" />
