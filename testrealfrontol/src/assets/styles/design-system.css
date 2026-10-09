@@ -342,8 +342,8 @@ html.dark {
   --slate-6: #363a3f;
   --slate-7: #43484e;
   --slate-8: #5a6169;
-  --slate-9: #6e6e7a;
-  --slate-10: #6e6e7a;
+  --slate-9: #8d8d98;    /* 占位/提示（--text-4）：对 raised #212225 = 4.84:1（原 #6e6e7a 仅 3.16，不达 AA） */
+  --slate-10: #9797a2;   /* 弱化文字（--text-3）：对 raised #212225 = 5.50:1（原 #6e6e7a 仅 3.16，不达 AA） */
   --slate-11: #a0a0ab;
   --slate-12: #ededf0;
 
@@ -777,11 +777,6 @@ html:has(.admin-home-layout):has(.sidebar.collapsed) .el-tour__mask svg {
 
 .el-tour-skip:hover {
   color: var(--primary-600);
-}
-
-/* 深色下提一级对比度（12px 小字，正文级 --text-2 达 AA） */
-html.dark .el-tour-skip {
-  color: var(--text-2);
 }
 
 html.dark .el-tour-skip:hover {
