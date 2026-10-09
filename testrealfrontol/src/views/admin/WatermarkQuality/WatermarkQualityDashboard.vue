@@ -697,8 +697,8 @@ const chartInk = computed(() => {
   const accent = cssVar('--accent-9', '#0070f3')
   const dark = isDark.value
   return {
-    axisLabel: cssVar('--text-2', '#333333'),     // 轴刻度：两模式都保持 AA 对比度
-    label: cssVar('--text-2', '#333333'),         // 图例/轴名：深色三级文字不达 AA，统一提一档
+    axisLabel: cssVar('--text-3', '#666666'),     // 轴刻度：深色令牌已修至 AA（≥4.5:1），workaround 回退
+    label: cssVar('--text-3', '#666666'),         // 图例/轴名：同上（统一走三级文字）
     grid: cssVar('--border-default', '#eaeaea'),  // 仅横向网格线，低强度
     pieBorder: cssVar('--bg-surface', '#ffffff'), // 环形扇区间隙 = 卡面底色
     tooltipBg: cssVar('--bg-raised', '#ffffff'),
@@ -1894,20 +1894,5 @@ onMounted(() => {
 .watermark-quality-dashboard :deep(.el-button--primary:not(.is-plain):not(.is-link):not(.is-text):focus-visible) {
   outline: none !important;
   box-shadow: var(--ring) !important;
-}
-
-/* ── 深色三级文字在页面深底上仅 ~3.5:1，未达 AA：
-   令牌值由 token 线统一调整（本页不改全局），此处深色下将标签/注释类文字提一档到 --text-2（浅色不动） ── */
-html.dark .subtitle,
-html.dark .subtitle-meta,
-html.dark .kpi-label,
-html.dark .kpi-meta,
-html.dark .chart-sub,
-html.dark .chain-ring-meta,
-html.dark .donut-center-sub,
-html.dark .metric-scale,
-html.dark .metric-marker-label,
-html.dark .bench-howto-row {
-  color: var(--text-2);
 }
 </style>

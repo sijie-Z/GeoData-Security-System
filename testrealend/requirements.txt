@@ -1,7 +1,7 @@
 flask
 flask-restful
 flask-sqlalchemy
-flask-jwt-extended>=4.7.0
+flask-jwt-extended>=4.7.4
 flask-migrate
 flask-cors
 flask-limiter
@@ -41,18 +41,18 @@ blind_watermark>=0.4.4
 # requires the non-headless build — declare the same variant explicitly so a second
 # (headless) copy can never be installed alongside it, which would leave the shared `cv2`
 # package directory in an undefined mix of builds.
-opencv-python>=4.8
-cryptography>=42
-cbor2>=5.6
+opencv-python>=5.0.0.93
+cryptography>=50.0.2
+cbor2>=6.1.5
 httpx
 openai
 # EVM anchor (Sepolia): py-solc-x compiles AnchorRegistry.sol, eth-tester drives the in-memory chain in tests
-web3>=7
-py-solc-x>=2
-# eth-tester publishes pre-releases only — a bare >=0.11 cannot be resolved by
+web3>=8.0.0
+py-solc-x>=2.0.5
+# eth-tester publishes pre-releases only — a bare >=0.14 cannot be resolved by
 # older pip (e.g. the one bundled in python:3.11-slim, which broke the docker CI
 # job); an explicit pre-release floor is accepted by every pip per PEP 440
-eth-tester[py-evm]>=0.11.0b1
+eth-tester[py-evm]>=0.14.0b1
 pytest
 pytest-cov
 backports.zoneinfo; python_version < '3.9'
