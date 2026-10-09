@@ -1,9 +1,6 @@
 <template>
   <div class="log-viewer-page">
-    <div class="page-header">
-      <h1 class="page-title">{{ $t('adminLogViewer.title') }}</h1>
-      <p class="page-desc">{{ $t('adminLogViewer.description') }}</p>
-    </div>
+    <PageHeader :title="$t('adminLogViewer.title')" :subtitle="$t('adminLogViewer.description')" />
 
     <el-card class="log-card density-compact" shadow="hover">
       <template #header>
@@ -119,6 +116,7 @@ import { useI18n } from 'vue-i18n'
 import { Search, RefreshRight, RefreshLeft, Download, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSystemLogs, exportSystemLogs } from '@/api/admin'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const { t } = useI18n()
 
@@ -230,20 +228,6 @@ onMounted(() => fetchLogs());
   padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
-}
-.page-header {
-  margin-bottom: 24px;
-}
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-1);
-  margin: 0 0 8px 0;
-}
-.page-desc {
-  font-size: 14px;
-  color: var(--text-3);
-  margin: 0;
 }
 .log-card {
   border-radius: 12px;

@@ -6,6 +6,7 @@ import { Back, User as UserIcon, Plus as PlusIcon } from '@element-plus/icons-vu
 import { useI18n } from 'vue-i18n';
 import { getEmployeeDetails, updateEmployee } from '@/api/admin';
 import EmptyState from '@/components/common/EmptyState.vue';
+import PageHeader from '@/components/common/PageHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -112,9 +113,9 @@ onMounted(() => {
 
 <template>
   <div class="page-container">
-    <el-page-header :icon="Back" :title="$t('employeeMgmt.backToList')" @back="handleBack">
-      <template #content><span class="page-title">{{ $t('employeeMgmt.editEmployeeInfo') }}</span></template>
-    </el-page-header>
+    <PageHeader :title="$t('employeeMgmt.editEmployeeInfo')">
+      <el-button :icon="Back" @click="handleBack">{{ $t('employeeMgmt.backToList') }}</el-button>
+    </PageHeader>
     <el-divider />
     <div class="form-wrapper">
       <!-- 取数失败：错误占位 + 重试；表单隐藏，避免空白表单可编辑误导 -->
@@ -161,7 +162,6 @@ onMounted(() => {
 <style scoped>
 /* 样式可以复用 information_add.vue 的样式 */
 .page-container { padding: 24px; background-color: var(--bg-canvas); height: 100%; box-sizing: border-box; }
-.page-title { font-size: 20px; font-weight: 600; color: var(--text-1); }
 .form-wrapper { margin-top: 20px; background-color: var(--bg-surface); padding: 30px; border-radius: 8px; border: 1px solid var(--border-default); }
 .form-section-title { font-size: 16px; font-weight: 400; color: var(--text-2); margin: 0 0 24px 0; padding-bottom: 12px; border-bottom: 1px solid var(--border-subtle); }
 .el-upload__tip { color: var(--text-4); font-size: 12px; margin-top: 8px; line-height: 1.5; }

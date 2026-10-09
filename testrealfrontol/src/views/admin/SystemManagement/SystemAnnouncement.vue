@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { InfoFilled, CircleCheckFilled, WarningFilled } from '@element-plus/icons-vue'
 import TipWrap from '@/components/common/TipWrap.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import {
   getAnnouncements,
   createAnnouncement,
@@ -109,12 +110,9 @@ onMounted(fetchAnnouncements)
 
 <template>
   <div class="announcement-admin">
-    <div class="header">
-      <h2>{{ $t('adminAnnounce.title') }}</h2>
-      <div class="header-actions">
-        <el-button type="primary" @click="openForm()">{{ $t('adminAnnounce.publish') }}</el-button>
-      </div>
-    </div>
+    <PageHeader :title="$t('adminAnnounce.title')">
+      <el-button type="primary" @click="openForm()">{{ $t('adminAnnounce.publish') }}</el-button>
+    </PageHeader>
 
     <el-card class="mb-3 notify-card">
       <template #header><span class="card-label">{{ $t('adminAnnounce.explanation') }}</span></template>
@@ -199,8 +197,6 @@ onMounted(fetchAnnouncements)
 
 <style scoped>
 .announcement-admin { padding: 16px }
-.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 8px }
-.header-actions { display: flex; gap: 8px }
 .notify-card { margin-bottom: 16px }
 .card-label { font-weight: 600 }
 .card-desc { color: var(--text-3); font-size: 13px; margin: 0 0 12px 0 }

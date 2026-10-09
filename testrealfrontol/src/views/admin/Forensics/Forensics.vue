@@ -1,9 +1,6 @@
 <template>
   <div class="forensics-page">
-    <div class="page-header">
-      <h2>{{ $t('forensics.title') }}</h2>
-      <p class="subtitle">{{ $t('forensics.subtitle') }}</p>
-    </div>
+    <PageHeader :title="$t('forensics.title')" :subtitle="$t('forensics.subtitle')" />
 
     <el-tabs v-model="activeTab" type="border-card" class="forensics-tabs">
       <!-- Tab 1: 交付台账 -->
@@ -375,6 +372,7 @@ import { Search, UploadFilled, Aim, CircleCheck, Link } from '@element-plus/icon
 import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DeliveryChain from '@/components/common/DeliveryChain.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import {
   verifyForensics,
   traceForensics,
@@ -668,23 +666,6 @@ const buildAnchor = async () => {
 <style scoped>
 .forensics-page {
   padding: 4px;
-}
-
-.page-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
-.page-header h2 {
-  font-size: 24px;
-  color: var(--text-primary, #303133);
-  margin: 0 0 8px;
-}
-
-.subtitle {
-  color: var(--text-tertiary, #909399);
-  font-size: 14px;
-  margin: 0;
 }
 
 .forensics-tabs {

@@ -1,9 +1,6 @@
 <template>
   <div class="data-manage-container">
-    <div class="page-header">
-      <h1 class="page-title">{{ $t('adminDataManage.title') }}</h1>
-      <p class="page-description">{{ $t('adminDataManage.pageDescription') }}</p>
-    </div>
+    <PageHeader :title="$t('adminDataManage.title')" :subtitle="$t('adminDataManage.pageDescription')" />
 
     <!-- Tab 切换 -->
     <el-tabs v-model="activeTab" @tab-change="handleTabChange" class="data-tabs">
@@ -98,6 +95,7 @@ import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getDataList, updateData, deleteData, publishToGeoServer } from '@/api/upload'
 import EmptyState from '@/components/common/EmptyState.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const { t } = useI18n()
 
@@ -204,9 +202,6 @@ onMounted(fetchData)
 
 <style scoped>
 .data-manage-container { padding: 24px 40px; background-color: var(--bg-secondary, #f7f8fa); min-height: calc(100vh - 50px); }
-.page-header { margin-bottom: 16px; }
-.page-title { font-size: 24px; font-weight: 600; color: var(--text-primary, #1d2129); margin: 0 0 8px 0; }
-.page-description { font-size: 14px; color: var(--text-tertiary, #86909c); margin: 0; }
 .data-tabs { margin-bottom: 16px; }
 .toolbar { display: flex; gap: 12px; margin-bottom: 16px; }
 .pagination-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }

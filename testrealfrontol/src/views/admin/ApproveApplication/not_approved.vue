@@ -1,9 +1,6 @@
 <template>
   <div class="approval-page">
-    <div class="page-header">
-      <h1 class="page-title">{{ $t('approval.firstReviewTitle') }}</h1>
-      <p class="page-desc">{{ $t('approval.firstReviewDescription') }}</p>
-    </div>
+    <PageHeader :title="$t('approval.firstReviewTitle')" :subtitle="$t('approval.firstReviewDescription')" />
 
     <el-card class="table-card" shadow="hover">
       <div class="batch-toolbar" v-if="isAdm1">
@@ -68,6 +65,7 @@ import {
   batchReviewFailedExport
 } from '@/api/admin';
 import {useUserStore} from "@/stores/userStore.js";
+import PageHeader from '@/components/common/PageHeader.vue';
 
 import { ChatDotSquare } from '@element-plus/icons-vue'
 import TipWrap from '@/components/common/TipWrap.vue'
@@ -296,20 +294,6 @@ const batchReview = async (action) => {
   padding: 20px 24px;
   max-width: 1200px;
   margin: 0 auto;
-}
-.page-header {
-  margin-bottom: 20px;
-}
-.page-title {
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text-primary, #1f2937);
-  margin: 0 0 8px 0;
-}
-.page-desc {
-  font-size: 14px;
-  color: var(--text-secondary, #6b7280);
-  margin: 0;
 }
 .table-card {
   border-radius: 12px;
