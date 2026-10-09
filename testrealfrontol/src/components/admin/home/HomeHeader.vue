@@ -3,7 +3,7 @@ import { computed, onMounted } from 'vue';
 import { useUserStore } from "@/stores/userStore";
 import { useRouter } from "vue-router";
 import { useI18n } from 'vue-i18n';
-import { UserFilled, SwitchButton, Expand, Fold, Sunny, Moon } from "@element-plus/icons-vue";
+import { UserFilled, SwitchButton, Expand, Fold, Sunny, Moon, Menu } from "@element-plus/icons-vue";
 import { ElMessage } from "element-plus";
 import axiosInstance from "@/utils/Axios";
 import { useTheme } from "@/composables/useTheme.js";
@@ -30,7 +30,9 @@ const displayLabel = computed(() => {
 });
 
 const props = defineProps({
-  isSideCollapse: Boolean
+  isSideCollapse: Boolean,
+  isMobile: Boolean,
+  drawerOpen: Boolean
 });
 const emit = defineEmits(['toggle-sidebar']);
 
@@ -81,9 +83,11 @@ const logout = async () => {
   <header class="admin-header">
     <div class="header-left">
       <el-button
-          :icon="isSideCollapse ? Expand : Fold"
+          :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
           class="toggle-sidebar-button"
           text
+          :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
+          :aria-expanded="isMobile ? drawerOpen : undefined"
           @click="toggleSidebar"
       />
       <div class="logo-container">
@@ -219,5 +223,42 @@ const logout = async () => {
 .el-button.el-button--danger.is-circle:hover {
   background-color: var(--btn-danger-bg-hover);
   color: var(--btn-danger-text);
+}
+
+/* ===== 移动端顶栏（<768px）：左收标题、右收用户名，保证主题/通知/登出可达 ===== */
+@media (max-width: 767px) {
+  .admin-header {
+    padding: 0 8px;
+  }
+
+  .toggle-sidebar-button {
+    margin-right: 2px;
+  }
+
+  .logo-container {
+    margin-right: 0;
+  }
+
+  .logo-text,
+  .return-home {
+    display: none;
+  }
+
+  .header-right {
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .user-info-display {
+    font-size: 14px;
+  }
+
+  .user-info-display .el-icon {
+    margin-right: 0;
+  }
+
+  .user-info-display span {
+    display: none;
+  }
 }
 </style>
