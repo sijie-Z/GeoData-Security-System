@@ -2863,4 +2863,8 @@ export default {
     verdictNotComparable: '当前运行不是两方案（旧方案 / D-QIM）对比实验，不生成对比结论；矩阵与指标照常展示。',
     verdictNotComparableRaster: '当前运行不足两个方案，不生成对比结论；矩阵与指标照常展示。',
   },
+  notFound: {
+    message: '页面不存在，或已被移动到别处。',
+    backHome: '返回首页',
+  },
 }

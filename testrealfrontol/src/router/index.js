@@ -65,6 +65,11 @@ const routes = [
       { path: 'about', name: 'EmployeeAbout', component: () => import('@/views/employee/EmployeeAbout/employee_about.vue') }
     ]
   },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: () => import('@/views/NotFound.vue'),
+  },
 ];
 
 const router = createRouter({
