@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * WCAG 对比度审计（可复跑）—— 深色 --text-3 根因修复轮
+ * WCAG 对比度审计（可复跑）—— 深色 --text-3 + 浅色 --text-4 根因修复轮
  *
  * 解析 src/assets/styles/design-system.css 的令牌定义：
  *   :root       → 浅色默认值
@@ -12,7 +12,7 @@
  *   node scripts/contrast-audit.mjs                 # 打印浅/深对照表
  *   node scripts/contrast-audit.mjs --eval "#94949f,#8a8a95"
  *                                                   # 评估候选色（对深色三层底）
- * 退出码: 表内存在 AA 正文（4.5:1）不达格时非 0（浅色占位/disabled 例外不算）。
+ * 退出码: 表内任一文本档（--text-1..4，含占位档 --text-4）对 raised 底 <4.5:1 时非 0。
  */
 import fs from 'node:fs'
 import path from 'node:path'
