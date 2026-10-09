@@ -30,11 +30,11 @@
         <el-radio-group v-model="activeDataType" size="large" class="data-type-selector">
           <el-radio-button value="vector">
             <el-icon><Location /></el-icon>
-            {{ $t('approval.vectorData') }} ({{ vectorApplications.length }})
+            {{ $t('approval.vectorData') }} ({{ pendingVectorCount }})
           </el-radio-button>
           <el-radio-button value="raster">
             <el-icon><Picture /></el-icon>
-            {{ $t('approval.rasterData') }} ({{ rasterApplications.length }})
+            {{ $t('approval.rasterData') }} ({{ pendingRasterCount }})
           </el-radio-button>
         </el-radio-group>
 
@@ -96,13 +96,13 @@
           </template>
         </el-table-column>
 
-        <el-table-column prop="id" :label="$t('approval.applyId')" width="100" />
-        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="150" />
-        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="120" />
-        <el-table-column prop="applicant_name" :label="$t('approval.applicant')" width="120" />
+        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" />
+        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="130" />
+        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="90" />
+        <el-table-column prop="applicant_name" :label="$t('approval.applicant')" width="110" />
         <el-table-column prop="applicant_user_number" :label="$t('approval.userId')" width="100" />
 
-        <el-table-column :label="$t('approval.reviewStatus')" width="120" align="center">
+        <el-table-column :label="$t('approval.reviewStatus')" width="110" align="center">
           <template #default="scope">
             <el-tag
               :type="getStatusType(scope.row)"
@@ -114,7 +114,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.firstReviewInfo')" width="200" align="center">
+        <el-table-column :label="$t('approval.firstReviewInfo')" width="170" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getFirstReviewClass(scope.row)">
@@ -136,7 +136,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.secondReviewInfo')" width="200" align="center">
+        <el-table-column :label="$t('approval.secondReviewInfo')" width="170" align="center">
           <template #default="scope">
             <div class="review-info">
               <div class="review-status" :class="getSecondReviewClass(scope.row)">
@@ -226,7 +226,7 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页 -->
+      <!-- 分页（is-background 胶囊样式，与存证中心卡内分页同貌） -->
       <div class="pagination-container">
         <el-pagination
           v-model:current-page="currentPage"
@@ -234,6 +234,7 @@
           :total="totalCount"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
+          background
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
         />
@@ -623,17 +624,38 @@ const viewApplicationDetail = (row) => {
 }
 
 // 数据获取
+// 分页循环拉全量：单页 100 条截断会造成页签/统计口径不一致（曾被截到与真实总数不符）
+const fetchAllPages = async (fetchPage) => {
+  const PAGE_SIZE = 100
+  const first = await fetchPage({ page: 1, pageSize: PAGE_SIZE })
+  const firstBody = first.data || {}
+  let items = firstBody.application_data || []
+  const total = firstBody.pages?.total ?? items.length
+  let page = 2
+  while (items.length < total && page <= 20) {
+    const next = await fetchPage({ page, pageSize: PAGE_SIZE })
+    const chunk = next.data?.application_data || []
+    if (chunk.length === 0) break
+    items = items.concat(chunk)
+    page += 1
+  }
+  return items
+}
+
+// 待审口径（与 hero 统计、页签计数共用）：一审待审 + 二审待审
+const isPendingReview = (item) => item.status === 'pending' || item.status === 'adm1_approved'
+
+const updateTotalProcessed = () => {
+  const all = [...vectorApplications.value, ...rasterApplications.value]
+  totalProcessed.value = all.filter((item) => !isPendingReview(item)).length
+}
+
 const fetchVectorApplications = async () => {
   try {
     loading.value = true
-    const response = await getShpApplications({ page: 1, pageSize: 100 })
-
-    if (response.data && response.data.status) {
-      vectorApplications.value = response.data.application_data || []
-      pendingVectorCount.value = vectorApplications.value.filter(item =>
-        item.status === 'pending' || item.status === 'adm1_approved'
-      ).length
-    }
+    vectorApplications.value = await fetchAllPages(getShpApplications)
+    pendingVectorCount.value = vectorApplications.value.filter(isPendingReview).length
+    updateTotalProcessed()
   } catch (error) {
     ElMessage.error(t('approval.fetchVectorFailed'))
   } finally {
@@ -644,14 +666,9 @@ const fetchVectorApplications = async () => {
 const fetchRasterApplications = async () => {
   try {
     loading.value = true
-    const response = await getRasterApplications({ page: 1, pageSize: 100 })
-
-    if (response.data && response.data.status) {
-      rasterApplications.value = response.data.application_data || []
-      pendingRasterCount.value = rasterApplications.value.filter(item =>
-        item.status === 'pending' || item.status === 'adm1_approved'
-      ).length
-    }
+    rasterApplications.value = await fetchAllPages(getRasterApplications)
+    pendingRasterCount.value = rasterApplications.value.filter(isPendingReview).length
+    updateTotalProcessed()
   } catch (error) {
     ElMessage.error(t('approval.fetchRasterFailed'))
   } finally {
