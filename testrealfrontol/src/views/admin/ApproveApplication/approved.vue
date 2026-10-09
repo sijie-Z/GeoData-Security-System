@@ -3,51 +3,41 @@
     <PageHeader :title="$t('approval.secondReviewTitle')" :subtitle="$t('approval.secondReviewDescription')" />
 
     <el-card class="table-card" shadow="hover">
-      <div class="toolbar">
-        <el-input v-model="filters.keyword" :placeholder="$t('approval.searchPlaceholder')" clearable style="width: 300px;" />
-      </div>
-
-      <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table">
-        <template #empty>
-          <EmptyState
-            :variant="filters.keyword ? 'filtered' : 'never'"
-            compact
-            :title="$t('approval.noSecondReview')"
-            :description="$t('common.noDataDesc')"
-          />
+      <ListShell
+        :empty="!loading && filteredList.length === 0"
+        :empty-variant="filters.keyword ? 'filtered' : 'never'"
+        :empty-title="$t('approval.noSecondReview')"
+        :empty-description="$t('common.noDataDesc')"
+        :pagination="{ page, pageSize, total, layout: 'prev, pager, next, jumper, total' }"
+        @page-change="pageChanged"
+      >
+        <template #filters>
+          <el-input v-model="filters.keyword" :placeholder="$t('approval.searchPlaceholder')" clearable style="width: 300px;" />
         </template>
-        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
-        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
-        <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="130" align="center" />
-        <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="110" align="center" />
-        <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="180" show-overflow-tooltip />
 
-        <el-table-column :label="$t('approval.firstReviewStatus')" width="100" align="center">
-          <template #default="scope">
-            {{ getStatusText(scope.row.first_statu) }}
-          </template>
-        </el-table-column>
+        <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table">
+          <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
+          <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="140" show-overflow-tooltip />
+          <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
+          <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="130" align="center" />
+          <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="110" align="center" />
+          <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="180" show-overflow-tooltip />
 
-        <el-table-column :label="$t('approval.operation')" width="230" align="center" fixed="right">
-          <template #default="scope">
-            <el-button size="small" type="primary" @click="review(scope.row, true)">{{ $t('approval.secondReviewApprove') }}</el-button>
-            <el-button size="small" @click="review(scope.row, false)">{{ $t('approval.secondReviewReject') }}</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column :label="$t('approval.firstReviewStatus')" width="100" align="center">
+            <template #default="scope">
+              {{ getStatusText(scope.row.first_statu) }}
+            </template>
+          </el-table-column>
+
+          <el-table-column :label="$t('approval.operation')" width="230" align="center" fixed="right">
+            <template #default="scope">
+              <el-button size="small" type="primary" @click="review(scope.row, true)">{{ $t('approval.secondReviewApprove') }}</el-button>
+              <el-button size="small" @click="review(scope.row, false)">{{ $t('approval.secondReviewReject') }}</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </ListShell>
     </el-card>
-
-    <div class="pagination-wrap" v-if="total > 0">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="prev, pager, next, jumper, total"
-        @current-change="pageChanged"
-        class="view-pagination"
-      />
-    </div>
   </div>
 </template>
 
@@ -57,7 +47,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from 'vue-i18n';
 import { getApprovedApplications, reReview } from '@/api/admin';
 import { useUserStore } from "@/stores/userStore.js";
-import EmptyState from '@/components/common/EmptyState.vue';
+import ListShell from '@/components/common/ListShell.vue';
 import PageHeader from '@/components/common/PageHeader.vue';
 
 const { t } = useI18n();
@@ -164,8 +154,5 @@ onMounted(() => {
 <style scoped>
 .approval-page { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
 .table-card { border-radius: 12px; }
-.toolbar { display: flex; margin-bottom: 12px; }
 .approval-table { width: 100%; }
-.pagination-wrap { margin-top: 20px; display: flex; justify-content: flex-end; }
-.view-pagination { margin-top: 0; }
 </style>

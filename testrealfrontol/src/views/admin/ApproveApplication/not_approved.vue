@@ -3,52 +3,42 @@
     <PageHeader :title="$t('approval.firstReviewTitle')" :subtitle="$t('approval.firstReviewDescription')" />
 
     <el-card class="table-card" shadow="hover">
-      <div class="batch-toolbar" v-if="isAdm1">
-        <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
-          <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
-        </TipWrap>
-        <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
-          <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
-        </TipWrap>
-        <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
-      </div>
-      <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" @selection-change="onSelectionChange">
-        <template #empty>
-          <EmptyState
-            variant="never"
-            compact
-            :title="$t('approval.noPendingApproval')"
-            :description="$t('common.noDataDesc')"
-          />
+      <ListShell
+        :empty="!loading && data.list.length === 0"
+        empty-variant="never"
+        :empty-title="$t('approval.noPendingApproval')"
+        :empty-description="$t('common.noDataDesc')"
+        :pagination="{ page, pageSize, total, layout: 'prev, pager, next, jumper, total' }"
+        @page-change="pageChanged"
+      >
+        <template v-if="isAdm1" #filters>
+          <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
+            <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
+          </TipWrap>
+          <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
+            <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
+          </TipWrap>
+          <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
         </template>
-        <el-table-column type="selection" width="50" align="center" />
-        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
-        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
-        <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="110" align="center" />
-        <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="100" align="center" />
-        <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="160" show-overflow-tooltip />
+        <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" @selection-change="onSelectionChange">
+          <el-table-column type="selection" width="50" align="center" />
+          <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
+          <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
+          <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="110" align="center" />
+          <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="100" align="center" />
+          <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="160" show-overflow-tooltip />
 
-        <el-table-column :label="$t('approval.operation')" width="200" align="center" fixed="right">
-          <template #default="scope">
-            <el-button size="small" type="primary" @click="pass(scope.row)">{{ $t('approval.approve') }}</el-button>
-            <el-button size="small" @click="fail(scope.row)">{{ $t('approval.reject') }}</el-button>
-            <el-button size="small" :icon="ChatDotSquare" circle type="primary" :title="$t('approval.contactApplicant')" @click="contactApplicant(scope.row)" />
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column :label="$t('approval.operation')" width="200" align="center" fixed="right">
+            <template #default="scope">
+              <el-button size="small" type="primary" @click="pass(scope.row)">{{ $t('approval.approve') }}</el-button>
+              <el-button size="small" @click="fail(scope.row)">{{ $t('approval.reject') }}</el-button>
+              <el-button size="small" :icon="ChatDotSquare" circle type="primary" :title="$t('approval.contactApplicant')" @click="contactApplicant(scope.row)" />
+            </template>
+          </el-table-column>
+        </el-table>
+      </ListShell>
     </el-card>
-
-    <div class="pagination-wrap" v-if="total > 0">
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="prev, pager, next, jumper, total"
-        @current-change="pageChanged"
-        class="view-pagination"
-      />
-    </div>
   </div>
 </template>
 
@@ -66,10 +56,10 @@ import {
 } from '@/api/admin';
 import {useUserStore} from "@/stores/userStore.js";
 import PageHeader from '@/components/common/PageHeader.vue';
+import ListShell from '@/components/common/ListShell.vue';
 
 import { ChatDotSquare } from '@element-plus/icons-vue'
 import TipWrap from '@/components/common/TipWrap.vue'
-import EmptyState from '@/components/common/EmptyState.vue'
 
 const { t } = useI18n();
 
@@ -298,25 +288,11 @@ const batchReview = async (action) => {
 .table-card {
   border-radius: 12px;
 }
-.batch-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-}
 .batch-tip {
   color: var(--text-secondary, #6b7280);
   font-size: 13px;
 }
 .approval-table {
   width: 100%;
-}
-.pagination-wrap {
-  margin-top: 20px;
-  display: flex;
-  justify-content: flex-end;
-}
-.view-pagination {
-  margin-top: 0;
 }
 </style>
