@@ -75,7 +75,7 @@ const router = createRouter({
   }
 });
 
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to) => {
   const userStore = useUserStore();
 
   if (!userStore.token) {
