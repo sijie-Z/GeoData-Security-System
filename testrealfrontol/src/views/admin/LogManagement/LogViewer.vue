@@ -10,10 +10,10 @@
         <div class="card-header">
           <span class="card-title">{{ $t('adminLogViewer.logList') }}</span>
           <div class="card-header-actions">
-            <el-button type="primary" plain :icon="Download" :loading="exporting" @click="exportLogs">
+            <el-button :icon="Download" :loading="exporting" @click="exportLogs">
               {{ $t('adminLogViewer.exportCsv') }}
             </el-button>
-            <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
+            <el-button :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
           </div>
         </div>
       </template>

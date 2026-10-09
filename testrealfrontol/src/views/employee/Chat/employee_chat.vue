@@ -625,15 +625,18 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chat-page { padding: 20px; }
-.chat-card { border-radius: 12px; }
+/* 弹性高度：聊天卡随内容面板（视口）填满，内部区域滚动；
+   原 640px 固定 min-height 会在高视口留出卡下大片空白、矮视口又整体滚动 */
+.chat-page { padding: 20px; height: 100%; box-sizing: border-box; display: flex; }
+.chat-card { border-radius: 12px; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chat-card :deep(.el-card__body) { flex: 1; min-height: 0; display: flex; flex-direction: column; }
 .chat-header { display: flex; justify-content: space-between; align-items: center; }
-.chat-layout { display: grid; grid-template-columns: 360px 1fr; gap: 14px; min-height: 640px; }
+.chat-layout { display: grid; grid-template-columns: 360px 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; }
 
 /* ── AI 助手样式 ── */
-.ai-layout { display: grid; grid-template-columns: 280px 1fr; gap: 14px; min-height: 640px; }
-.ai-main { display: flex; flex-direction: column; min-height: 640px; }
-.ai-messages { flex: 1; overflow-y: auto; padding: 16px 0; min-height: 480px; }
+.ai-layout { display: grid; grid-template-columns: 280px 1fr; grid-template-rows: minmax(0, 1fr); gap: 14px; flex: 1; min-height: 0; }
+.ai-main { display: flex; flex-direction: column; min-height: 0; }
+.ai-messages { flex: 1; overflow-y: auto; padding: 16px 0; }
 
 /* AI 对话侧边栏 */
 .ai-conv-list { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
@@ -678,11 +681,11 @@ onBeforeUnmount(() => {
 .time { color: var(--text-3); font-size: 12px; }
 .bottom-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .last { color: var(--text-2); font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
-.message-panel { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; }
+.message-panel { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; min-height: 0; }
 .empty-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; }
 .peer-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 10px; border-bottom: 1px solid var(--border-subtle); }
 .sub { color: var(--text-3); margin-left: 4px; font-size: 12px; }
-.message-list { flex: 1; overflow-y: auto; padding: 12px 0; min-height: 420px; }
+.message-list { flex: 1; overflow-y: auto; padding: 12px 0; min-height: 0; }
 /* §3.8 AI 消息 200ms 入场（流式追加不重放：CSS animation 只在挂载触发） */
 .msg-row { display: flex; flex-direction: column; margin-bottom: 12px; align-items: flex-start; animation: motion-rise var(--duration-200) var(--ease-out) both; }
 .msg-row.me { align-items: flex-end; }
@@ -697,6 +700,6 @@ onBeforeUnmount(() => {
 .composer-actions { margin-top: 8px; display: flex; justify-content: flex-end; }
 
 @media (max-width: 1100px) {
-  .chat-layout { grid-template-columns: 1fr; }
+  .chat-layout { grid-template-columns: 1fr; grid-template-rows: minmax(0, 220px) minmax(0, 1fr); }
 }
 </style>

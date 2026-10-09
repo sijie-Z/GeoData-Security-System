@@ -61,7 +61,7 @@
           <el-icon><Upload /></el-icon>
           <span>{{ $t('rasterWmExtract.uploadRasterFile') }}</span>
         </div>
-        <TipWrap block :reason="!dataIdInput ? $t('common.disabledReason.enterDataId') : ''">
+        <div class="upload-guard" @click="onUploadAreaClick">
           <el-upload
             class="upload-area"
             drag
@@ -83,7 +83,7 @@
               </div>
             </div>
           </el-upload>
-        </TipWrap>
+        </div>
       </div>
     </div>
 
@@ -221,7 +221,6 @@ import {
   Search
 } from '@element-plus/icons-vue';
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
-import TipWrap from '@/components/common/TipWrap.vue';
 import ImageCompare from '@/components/common/ImageCompare.vue';
 
 const { t } = useI18n();
@@ -265,6 +264,13 @@ watch(dataIdInput, (newValue) => {
 // 数据编号变化处理
 const onDataIdChange = () => {
   comparisonResult.isReady = false;
+};
+
+// 交互后校验：载入时不再常驻错误气泡；用户点击禁用状态的上传区时才提示原因
+const onUploadAreaClick = () => {
+  if (!dataIdInput.value) {
+    ElMessage.warning(t('common.disabledReason.enterDataId'));
+  }
 };
 
 // 上传文件前的检查

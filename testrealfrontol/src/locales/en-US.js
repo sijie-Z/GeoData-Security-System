@@ -15,6 +15,7 @@ export default {
     more: 'More',
     noData: 'No Data',
     noDataDesc: 'There is nothing to display at the moment',
+    retry: 'Retry',
     /** §4.15 disabled-button reasons (tooltip copy) */
     disabledReason: {
       selectItems: 'Select applications first',
@@ -793,7 +794,7 @@ export default {
     copyright: '© 2024 Spatial Data Tracking System | Professional · Secure · Trusted',
   },
   adminDashboard: {
-    heroSubtitle: 'Real-time overview of approvals, data assets & system status | Updated: ',
+    heroSubtitle: 'Real-time overview of approvals, data assets & system status',
     refreshData: 'Refresh',
     exportReport: 'Export Report',
     registeredUsers: 'Registered Users',
@@ -1660,6 +1661,7 @@ export default {
   },
   adminDataManage: {
     title: 'Data Management',
+    pageDescription: 'Browse, upload and manage published spatial data resources',
     vectorData: 'Vector Data',
     rasterData: 'Raster Data',
     searchPlaceholder: 'Search by name...',

@@ -14,7 +14,7 @@
     <section class="hero-section">
       <div class="hero-content">
         <h1>{{ greeting }}，{{ adminRoleLabel }}</h1>
-        <p>{{ $t('adminDashboard.heroSubtitle') }}{{ lastUpdate }}</p>
+        <p>{{ $t('adminDashboard.heroSubtitle') }}<span v-if="lastUpdate && lastUpdate !== '-'"> · {{ lastUpdate }}</span></p>
       </div>
       <div class="hero-actions">
         <el-button type="primary" @click="refreshNow" :icon="RefreshRight">{{ $t('adminDashboard.refreshData') }}</el-button>

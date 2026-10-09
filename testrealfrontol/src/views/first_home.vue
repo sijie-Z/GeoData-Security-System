@@ -535,8 +535,18 @@ const register_button = () => router.push('/register');
 
 /* 响应式设计 */
 @media (max-width: 768px) {
+  /* 移动端：内容可纵向滚动，起点从顶部开始（修 CTA 贴顶裁切），页脚回到文档流（修步骤条与版权重叠） */
+  .home-container {
+    height: 100vh;
+    overflow-x: hidden;
+    overflow-y: auto;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+  }
+
   .content-overlay {
-    padding: 20px 10px;
+    padding: 64px 10px 24px;
     gap: 30px;
   }
 
@@ -584,6 +594,19 @@ const register_button = () => router.push('/register');
   .lang-switcher {
     top: 10px;
     right: 10px;
+  }
+
+  /* 页脚：脱离绝对定位，随文档流排在步骤条之后 */
+  .footer-info {
+    position: static;
+    left: auto;
+    transform: none;
+    padding: 4px 12px 22px;
+  }
+
+  /* 滚动指示器在移动端无需提示滚动，且绝对定位会压住步骤条 */
+  .scroll-indicator {
+    display: none;
   }
 }
 </style>

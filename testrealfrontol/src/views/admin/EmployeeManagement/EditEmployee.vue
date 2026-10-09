@@ -5,12 +5,16 @@ import { ElMessage } from 'element-plus';
 import { Back, User as UserIcon, Plus as PlusIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { getEmployeeDetails, updateEmployee } from '@/api/admin';
+import EmptyState from '@/components/common/EmptyState.vue';
 
 const { t } = useI18n();
 const router = useRouter();
 const route = useRoute();
 const formRef = ref(null);
 const submitLoading = ref(false);
+const employeeId = route.params.id;
+// 取数失败态：显示错误占位 + 重试，表单区隐藏（避免空表单可编辑误导）
+const loadError = ref(false);
 
 const formData = reactive({
   id: null,
@@ -35,6 +39,7 @@ const rules = reactive({
 const handleBack = () => router.back();
 
 const fetchEmployeeData = async (employeeNumber) => {
+  loadError.value = false;
   try {
     // 后端需要一个 /api/employee/details/{id} 接口来获取单个员工信息
     const response = await getEmployeeDetails(employeeNumber);
@@ -46,10 +51,11 @@ const fetchEmployeeData = async (employeeNumber) => {
         photoFileList.value = [{ name: 'current_photo.jpg', url: formData.current_photo_url }];
       }
     } else {
-      ElMessage.error(t('employeeMgmt.fetchEmployeeFailed'));
+      loadError.value = true;
     }
   } catch (error) {
-    ElMessage.error(t('employeeMgmt.fetchEmployeeFailedCheckNetwork'));
+    console.error('获取员工信息失败:', error);
+    loadError.value = true;
   }
 };
 
@@ -98,7 +104,6 @@ const submitForm = async () => {
 };
 
 onMounted(() => {
-  const employeeId = route.params.id;
   if (employeeId) {
     fetchEmployeeData(employeeId);
   }
@@ -112,7 +117,16 @@ onMounted(() => {
     </el-page-header>
     <el-divider />
     <div class="form-wrapper">
-      <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" style="max-width: 700px;">
+      <!-- 取数失败：错误占位 + 重试；表单隐藏，避免空白表单可编辑误导 -->
+      <EmptyState
+        v-if="loadError"
+        variant="never"
+        :title="$t('employeeMgmt.fetchEmployeeFailed')"
+        :description="$t('employeeMgmt.fetchEmployeeFailedCheckNetwork')"
+        :cta-text="$t('common.retry')"
+        @cta="fetchEmployeeData(employeeId)"
+      />
+      <el-form v-else ref="formRef" :model="formData" :rules="rules" label-width="100px" style="max-width: 700px;">
         <h3 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h3>
         <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
           <el-input v-model="formData.employee_number" disabled />

@@ -10,7 +10,15 @@
         <el-input v-model="filters.keyword" :placeholder="$t('approval.searchPlaceholder')" clearable style="width: 300px;" />
       </div>
 
-      <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table" :empty-text="$t('approval.noSecondReview')">
+      <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table">
+        <template #empty>
+          <EmptyState
+            :variant="filters.keyword ? 'filtered' : 'never'"
+            compact
+            :title="$t('approval.noSecondReview')"
+            :description="$t('common.noDataDesc')"
+          />
+        </template>
         <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
         <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="140" show-overflow-tooltip />
         <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
@@ -33,7 +41,7 @@
       </el-table>
     </el-card>
 
-    <div class="pagination-wrap">
+    <div class="pagination-wrap" v-if="total > 0">
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="pageSize"
@@ -52,6 +60,7 @@ import { ElMessage, ElMessageBox } from "element-plus";
 import { useI18n } from 'vue-i18n';
 import { getApprovedApplications, reReview } from '@/api/admin';
 import { useUserStore } from "@/stores/userStore.js";
+import EmptyState from '@/components/common/EmptyState.vue';
 
 const { t } = useI18n();
 
