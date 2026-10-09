@@ -20,7 +20,7 @@
         <div class="profile-content">
           <div class="avatar-section">
             <el-avatar :size="120" class="profile-avatar">
-              <img v-if="profileData.avatarUrl" :src="profileData.avatarUrl" :alt="$t('empProfile.employeeAvatar')" />
+              <img v-if="profileData.avatarUrl" :src="profileData.avatarUrl" :alt="$t('empProfile.employeeAvatar')" @error="handleAvatarError" />
               <el-icon v-else :size="60" class="default-avatar-icon"><User /></el-icon>
             </el-avatar>
             <div class="avatar-info">
@@ -308,6 +308,11 @@ const fetchUserAvatar = async (employeeNumber) => {
     // 头像加载失败属于正常情况，静默显示默认图标
     profileData.value.avatarUrl = null;
   }
+};
+
+// 头像图片加载失败（URL 失效等）：回退默认图标，暗色下不再露出 alt 文字
+const handleAvatarError = () => {
+  profileData.value.avatarUrl = null;
 };
 
 // 计算入职天数
