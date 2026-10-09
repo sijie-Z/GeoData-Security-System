@@ -1802,6 +1802,7 @@ export default {
     mapLoadFailed: 'Failed to load map',
   },
   wmEmbed: {
+    pageTitle: 'Vector Watermark Embedding',
     dataTypeLabel: 'Data Type: Vector',
     colApplicationId: 'App ID',
     colDataName: 'Data Name',
@@ -1893,6 +1894,7 @@ export default {
     batchJobCount: 'Progress',
   },
   wmExtract: {
+    pageTitle: 'Vector Watermark Extraction',
     applicationIdLabel: 'Application ID:',
     inputPlaceholder: 'Enter application ID',
     selectAndExtract: 'Select file and extract watermark',
@@ -1937,6 +1939,7 @@ export default {
     idHint: 'Enter either application ID or data ID. Find the app ID in the downloaded filename, e.g. "test_coast_申请_39_..."',
   },
   rasterWmGen: {
+    pageTitle: 'Raster Watermark Generation',
     colApplicationId: 'App ID',
     colDataName: 'Data Name',
     colRasterDataId: 'Raster Data ID',

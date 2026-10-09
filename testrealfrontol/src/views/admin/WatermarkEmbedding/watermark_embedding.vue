@@ -1,5 +1,6 @@
 <template>
   <div>
+    <PageHeader :title="$t('wmEmbed.pageTitle')" />
     <div class="data-type-tabs" style="margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
       <span class="data-type-label">{{ $t('wmEmbed.dataTypeLabel') }}</span>
       <div v-if="hasRasterData" class="algo-block">
@@ -300,6 +301,7 @@
 
 <script setup>
 import {useUserStore} from "@/stores/userStore.js";
+import PageHeader from '@/components/common/PageHeader.vue';
 import {reactive, ref, onMounted, onBeforeUnmount, watch, nextTick, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
 import { ElMessage, ElMessageBox } from 'element-plus';
