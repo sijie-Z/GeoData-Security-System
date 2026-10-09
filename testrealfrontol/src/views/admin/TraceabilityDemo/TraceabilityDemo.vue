@@ -1,9 +1,6 @@
 <template>
   <div class="decode-platform">
-    <div class="page-header">
-      <h2>{{ $t('decodePlatform.title') }}</h2>
-      <p class="subtitle">{{ $t('decodePlatform.subtitle') }}</p>
-    </div>
+    <PageHeader :title="$t('decodePlatform.title')" :subtitle="$t('decodePlatform.subtitle')" />
 
     <el-tabs v-model="activeTab" type="border-card" class="platform-tabs">
       <!-- Tab 1: 直接解码 QR 码（主要） -->
@@ -232,6 +229,7 @@ import WatermarkImage from '@/components/common/WatermarkImage.vue'
 import DeliveryChain from '@/components/common/DeliveryChain.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import TipWrap from '@/components/common/TipWrap.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { getApplicationDetail } from '@/api/employee'
 
 const { t } = useI18n()
@@ -438,11 +436,6 @@ const resetAll = () => {
   margin: 0 auto;
 }
 
-.page-header {
-  text-align: center;
-  margin-bottom: 24px;
-}
-
 /* §5.16 分发链面板（水位图容器） */
 .chain-panel {
   margin-top: 24px;
@@ -455,18 +448,6 @@ const resetAll = () => {
 .chain-panel h4 {
   margin: 0 0 12px;
   color: var(--text-primary);
-}
-
-.page-header h2 {
-  font-size: 24px;
-  color: var(--text-1);
-  margin: 0 0 8px;
-}
-
-.subtitle {
-  color: #909399;
-  font-size: 14px;
-  margin: 0;
 }
 
 .platform-tabs {

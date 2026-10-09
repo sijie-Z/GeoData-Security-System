@@ -2863,4 +2863,8 @@ export default {
     verdictNotComparable: 'This run is not a two-scheme (Legacy / D-QIM) comparison — no verdict is generated; the matrix and metrics are unaffected.',
     verdictNotComparableRaster: 'This run has fewer than two schemes — no verdict is generated; the matrix and metrics are unaffected.',
   },
+  notFound: {
+    message: 'The page you are looking for does not exist or has been moved.',
+    backHome: 'Back to home',
+  },
 }
