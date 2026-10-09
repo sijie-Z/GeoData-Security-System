@@ -1,9 +1,6 @@
 <template>
   <div class="admin-notify-page">
-    <div class="page-header">
-      <h1 class="page-title">{{ $t('adminNotify.title') }}</h1>
-      <p class="page-desc">{{ $t('adminNotify.description') }}</p>
-    </div>
+    <PageHeader :title="$t('adminNotify.title')" :subtitle="$t('adminNotify.description')" />
 
     <el-card class="notify-card" shadow="hover">
       <el-form :model="form" label-width="96px" class="notify-form">
@@ -62,6 +59,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { getEmployeeInfo, sendNotification as sendNotificationApi } from '@/api/admin'
+import PageHeader from '@/components/common/PageHeader.vue'
 
 const { t } = useI18n()
 
@@ -137,9 +135,6 @@ onMounted(loadEmployees)
 
 <style scoped>
 .admin-notify-page { padding: 24px; max-width: 980px; margin: 0 auto; }
-.page-header { margin-bottom: 20px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
-.page-desc { margin: 0; color: var(--text-3); }
 .notify-card { border-radius: 12px; }
 .notify-form { max-width: 860px; }
 </style>

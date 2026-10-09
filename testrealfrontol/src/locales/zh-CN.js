@@ -1802,6 +1802,7 @@ export default {
     mapLoadFailed: '地图加载失败',
   },
   wmEmbed: {
+    pageTitle: '矢量水印·嵌入',
     dataTypeLabel: '数据类型：矢量',
     colApplicationId: '申请编号',
     colDataName: '数据名称',
@@ -1893,6 +1894,7 @@ export default {
     batchJobCount: '进度',
   },
   wmExtract: {
+    pageTitle: '矢量水印·提取',
     applicationIdLabel: '申请编号：',
     inputPlaceholder: '输入申请编号',
     selectAndExtract: '选择文件并提取水印',
@@ -1937,6 +1939,7 @@ export default {
     idHint: '输入申请编号或数据编号皆可。申请编号可在下载的文件名中找到，例如 "test_coast_申请_39_..." 中的 39',
   },
   rasterWmGen: {
+    pageTitle: '栅格数据水印生成',
     colApplicationId: '申请编号',
     colDataName: '数据名称',
     colRasterDataId: '栅格数据编号',

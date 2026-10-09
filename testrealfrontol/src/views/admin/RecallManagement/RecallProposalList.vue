@@ -1,9 +1,6 @@
 <template>
   <div class="recall-list-page">
-    <div class="page-header">
-      <h1 class="page-title">{{ $t('recall.title') }}</h1>
-      <p class="page-desc">{{ $t('recall.pageDesc') }}</p>
-    </div>
+    <PageHeader :title="$t('recall.title')" :subtitle="$t('recall.pageDesc')" />
 
     <el-card class="filter-card" shadow="hover">
       <div class="filter-row">
@@ -173,6 +170,7 @@ import { Plus } from '@element-plus/icons-vue';
 import { getRecallProposals, createRecall, voteRecall, getRecallDetail } from '@/api/recall';
 import { getAllApplications } from '@/api/admin';
 import { useUserStore } from '@/stores/userStore';
+import PageHeader from '@/components/common/PageHeader.vue';
 
 const { t } = useI18n();
 const userStore = useUserStore();
@@ -329,9 +327,6 @@ onMounted(() => {
 
 <style scoped>
 .recall-list-page { padding: 20px 24px; }
-.page-header { margin-bottom: 16px; }
-.page-title { margin: 0 0 8px; font-size: 22px; color: var(--text-1); }
-.page-desc { margin: 0; color: var(--text-2); }
 .filter-card { margin-bottom: 16px; border-radius: 12px; }
 .filter-row { display: flex; justify-content: space-between; align-items: center; }
 .table-card { border-radius: 12px; }

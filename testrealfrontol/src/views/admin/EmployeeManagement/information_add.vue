@@ -186,6 +186,7 @@ import { ElMessage } from 'element-plus';
 import { Back, Plus as PlusIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { addEmployee } from '@/api/admin';
+import PageHeader from '@/components/common/PageHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -281,9 +282,9 @@ const resetForm = () => {
 
 <template>
   <div class="page-container">
-    <el-page-header :icon="Back" :title="$t('employeeMgmt.back')" @back="handleBack">
-      <template #content><span class="page-title">{{ $t('employeeMgmt.addNewEmployee') }}</span></template>
-    </el-page-header>
+    <PageHeader :title="$t('employeeMgmt.addNewEmployee')">
+      <el-button :icon="Back" @click="handleBack">{{ $t('employeeMgmt.back') }}</el-button>
+    </PageHeader>
     <el-divider />
     <div class="form-wrapper">
       <el-form
@@ -358,11 +359,6 @@ const resetForm = () => {
   background-color: var(--bg-canvas);
   height: 100%;
   box-sizing: border-box;
-}
-.page-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--text-1);
 }
 .form-wrapper {
   margin-top: 20px;

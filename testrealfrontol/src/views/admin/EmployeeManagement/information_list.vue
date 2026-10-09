@@ -6,6 +6,7 @@ import { Refresh, Plus, User as UserIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { getEmployeeList, deleteEmployee } from '@/api/admin';
 import { getPhoto } from '@/api/employee';
+import PageHeader from '@/components/common/PageHeader.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -103,14 +104,11 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="page-container">
-    <div class="page-header">
-      <h2 class="page-title">{{ $t('employeeMgmt.employeeInfoList') }}</h2>
-      <div class="action-bar">
-        <el-button :icon="Plus" type="primary" @click="handleAdd">{{ $t('employeeMgmt.addNewEmployee') }}</el-button>
-        <el-button :icon="Refresh" circle @click="handleRefresh" />
-      </div>
-    </div>
-    <el-divider />
+    <PageHeader :title="$t('employeeMgmt.employeeInfoList')">
+      <el-button :icon="Plus" type="primary" @click="handleAdd">{{ $t('employeeMgmt.addNewEmployee') }}</el-button>
+      <el-button :icon="Refresh" circle @click="handleRefresh" />
+    </PageHeader>
+    <el-divider class="header-divider" />
     <el-table :data="state.employeeList" v-loading="loading" style="width: 100%" stripe table-layout="auto">
       <template #empty><el-empty :description="$t('employeeMgmt.noEmployeeInfo')" /></template>
       <el-table-column :label="$t('employeeMgmt.photo')" width="80" align="center" fixed>
@@ -137,8 +135,7 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .page-container { padding: 24px; background-color: var(--bg-canvas); height: 100%; display: flex; flex-direction: column; }
-.page-header { display: flex; justify-content: space-between; align-items: center; }
-.page-title { font-size: 22px; font-weight: 600; color: var(--text-1); margin: 0; }
-.action-bar { display: flex; gap: 10px; }
+/* flex 容器不折叠外边距：分割线上边距归零，页头 24px 下间距即节奏（与旧版一致） */
+.header-divider { margin-top: 0; }
 .el-table { flex-grow: 1; }
 </style>

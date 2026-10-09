@@ -1,15 +1,9 @@
 <template>
   <div class="anchor-center">
-    <div class="page-header">
-      <div class="page-header-text">
-        <h2>{{ $t('anchorCenter.title') }}</h2>
-        <p class="subtitle">{{ $t('anchorCenter.subtitle') }}</p>
-      </div>
-      <div class="page-header-actions">
-        <el-button :icon="Refresh" :loading="loading" @click="fetchAnchors">{{ $t('anchorCenter.refreshBtn') }}</el-button>
-        <el-button type="primary" :icon="Plus" @click="buildVisible = true">{{ $t('anchorCenter.buildBtn') }}</el-button>
-      </div>
-    </div>
+    <PageHeader :title="$t('anchorCenter.title')" :subtitle="$t('anchorCenter.subtitle')">
+      <el-button :icon="Refresh" :loading="loading" @click="fetchAnchors">{{ $t('anchorCenter.refreshBtn') }}</el-button>
+      <el-button type="primary" :icon="Plus" @click="buildVisible = true">{{ $t('anchorCenter.buildBtn') }}</el-button>
+    </PageHeader>
 
     <!-- Hero 统计带：整表聚合（summary），不是当前页聚合 -->
     <div class="hero-band">
@@ -270,6 +264,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, Download, Refresh, Link } from '@element-plus/icons-vue'
 import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import PageHeader from '@/components/common/PageHeader.vue'
 import { getAnchors, getAnchorDetail, buildAnchorBatch, downloadAnchorProof } from '@/api/forensics'
 
 const { t } = useI18n()
@@ -447,32 +442,6 @@ onMounted(fetchAnchors)
 <style scoped>
 .anchor-center {
   padding: 4px;
-}
-
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-bottom: 20px;
-}
-
-.page-header h2 {
-  font-size: 24px;
-  color: var(--text-primary);
-  margin: 0 0 8px;
-}
-
-.subtitle {
-  color: var(--text-tertiary);
-  font-size: 14px;
-  margin: 0;
-}
-
-.page-header-actions {
-  display: flex;
-  gap: 10px;
 }
 
 /* ── Hero 统计带 ── */

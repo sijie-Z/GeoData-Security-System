@@ -1,5 +1,6 @@
 <template>
   <div class="watermark-extraction-container" v-loading="loading">
+    <PageHeader :title="$t('wmExtract.pageTitle')" />
     <div class="input-section">
       <span class="input-label">{{ $t('wmExtract.applicationIdLabel') }}</span>
       <el-input v-model="GetIdInput" style="width: 200px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
@@ -124,6 +125,7 @@
 <script setup>
 import { UploadFilled, QuestionFilled } from "@element-plus/icons-vue";
 import WatermarkImage from '@/components/common/WatermarkImage.vue';
+import PageHeader from '@/components/common/PageHeader.vue';
 import { ref, computed } from "vue";
 import { useI18n } from 'vue-i18n';
 import { useUserStore } from '@/stores/userStore';

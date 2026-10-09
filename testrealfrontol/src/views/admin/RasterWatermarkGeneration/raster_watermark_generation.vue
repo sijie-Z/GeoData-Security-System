@@ -3,6 +3,7 @@
 
 <template>
     <div>
+      <PageHeader :title="$t('rasterWmGen.pageTitle')" />
       <!-- 水印生成申请表格 -->
       <el-table :data="data.list" border>
         <el-table-column prop="id" :label="$t('rasterWmGen.colApplicationId')" width="85" />
@@ -148,6 +149,7 @@
   import { ElMessage, ElMessageBox } from 'element-plus';
   import { getRasterApplicationsGenerateWatermark, generateRasterWatermark } from '@/api/watermark';
   import WatermarkImage from '@/components/common/WatermarkImage.vue';
+  import PageHeader from '@/components/common/PageHeader.vue';
 
   const { t } = useI18n();
 
