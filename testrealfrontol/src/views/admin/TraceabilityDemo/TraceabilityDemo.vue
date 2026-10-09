@@ -459,7 +459,7 @@ const resetAll = () => {
 
 .page-header h2 {
   font-size: 24px;
-  color: #303133;
+  color: var(--text-1);
   margin: 0 0 8px;
 }
 
