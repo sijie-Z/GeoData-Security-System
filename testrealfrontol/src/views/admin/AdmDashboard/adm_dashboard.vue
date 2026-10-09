@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-dashboard" v-loading="loading">
+  <div class="admin-dashboard" :aria-busy="loading">
     <template v-if="loading">
       <!-- hero 位：与 .hero-section 同骨架（问候线 + 副标题线 + 右侧 2 按钮块） -->
       <section class="hero-section">

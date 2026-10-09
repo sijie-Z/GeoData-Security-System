@@ -1,5 +1,5 @@
 <template>
-  <div class="employee-dashboard" v-loading="loading">
+  <div class="employee-dashboard" :aria-busy="loading">
     <template v-if="loading">
       <!-- hero 位：与 .hero 同骨架（3 行 + 右侧 2 按钮块） -->
       <section class="hero glass">
