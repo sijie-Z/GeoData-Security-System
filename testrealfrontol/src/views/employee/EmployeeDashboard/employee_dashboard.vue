@@ -457,4 +457,13 @@ onActivated(async () => {
 .sk-ann-line2 { width: 80%; height: 14px; }
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* 移动端（<=767px）：标题与元信息换行为两行，骨架同步（390 实测值） */
+@media (max-width: 767px) {
+  .sk-hero-title,
+  .sk-hero-sub,
+  .sk-hero-meta { width: 100%; }
+  .sk-hero-title { height: 44px; }
+  .sk-hero-meta { height: 44px; }
+}
 </style>

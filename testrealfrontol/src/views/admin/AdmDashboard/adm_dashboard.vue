@@ -1325,4 +1325,19 @@ onBeforeUnmount(() => {
 .sk-chart { height: 100%; border-radius: var(--el-card-border-radius, 4px); }
 
 @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* 移动端（<=767px）：文本换行使真实块变高，骨架同步（390 实测值） */
+@media (max-width: 767px) {
+  .hero-content .sk-hero-title,
+  .hero-content .sk-hero-sub { width: 100%; }
+  .hero-content .sk-hero-sub { height: 44px; }
+  .skeleton-globe-head { display: flex; flex-direction: column; justify-content: space-between; height: 92px; }
+  .sk-globe-footnote { height: 44px; }
+  .sk-kpi-icon { width: 40px; height: 40px; }
+  .sk-kpi-info { min-height: 168px; display: flex; flex-direction: column; justify-content: space-between; }
+  .sk-kpi-label,
+  .sk-kpi-value,
+  .sk-kpi-small { width: 100%; }
+  .action-item.sk-action-item { min-height: 77px; }
+}
 </style>
