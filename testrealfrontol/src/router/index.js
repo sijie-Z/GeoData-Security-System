@@ -75,7 +75,7 @@ const router = createRouter({
   }
 });
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
   const userStore = useUserStore();
 
   if (!userStore.token) {
@@ -84,17 +84,17 @@ router.beforeEach(async (to, from, next) => {
 
   if (userStore.isLoginSuccess) {
     userStore.resetLoginStatus();
-    return next();
+    return true;
   }
 
   if (to.path === '/login' || to.path === '/register' || to.path === '/first_home') {
-    return next();
+    return true;
   }
 
   if (to.meta.requiresAuth) {
     if (!userStore.isAuthenticated) {
       ElMessage.error(t('auth.unauthorized'));
-      return next('/login');
+      return '/login';
     }
 
     try {
@@ -104,7 +104,7 @@ router.beforeEach(async (to, from, next) => {
 
       if (to.meta.roles && !to.meta.roles.includes(normalizedRole)) {
         ElMessage.error(t('auth.noPermission'));
-        return next(isAdmin ? '/admin' : '/employee');
+        return isAdmin ? '/admin' : '/employee';
       }
 
       if (isAdmin && (to.meta.adminRole || to.meta.adminRoles)) {
@@ -126,20 +126,20 @@ router.beforeEach(async (to, from, next) => {
           const allowed = to.meta.adminRole ? [to.meta.adminRole] : (to.meta.adminRoles || []);
           if (allowed.length && !allowed.includes(adminRole)) {
             ElMessage.error(t('auth.noPermissionPage'));
-            return next({ name: 'AdminDashboard' });
+            return { name: 'AdminDashboard' };
           }
         }
       }
 
-      next();
+      return true;
     } catch (err) {
       console.error('验证用户状态失败:', err);
       userStore.clearUserInfo();
       ElMessage.error(t('auth.sessionError'));
-      return next('/login');
+      return '/login';
     }
   } else {
-    next();
+    return true;
   }
 });
 
