@@ -519,11 +519,11 @@ const chartColors = computed(() => (isDark.value
       divider: '1px solid rgba(255,255,255,0.08)',
       legendText: '#a0a0ab',
       axisLine: 'rgba(255,255,255,0.10)',
-      axisLabelMuted: '#6e6e7a',
+      axisLabelMuted: '#8d8d98',
       axisLabelStrong: '#a0a0ab',
       splitLine: 'rgba(255,255,255,0.06)',
       centerLabel: '#ededf0',
-      centerSubLabel: '#6e6e7a',
+      centerSubLabel: '#8d8d98',
     }
   : {
       tooltipBg: 'rgba(255,255,255,0.98)',
