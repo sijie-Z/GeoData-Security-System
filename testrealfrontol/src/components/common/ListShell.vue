@@ -104,4 +104,12 @@ const showPagination = computed(() => !!(props.pagination && (props.pagination.t
   justify-content: flex-end;
   flex-wrap: wrap;
 }
+
+/* 窄屏：分页元素在容器内收缩并内部换行，
+   避免 flex-end 容器把超宽控件推到左缘外被卡片裁切 */
+@media (max-width: 767px) {
+  .list-shell__pagination .el-pagination {
+    max-width: 100%;
+  }
+}
 </style>
