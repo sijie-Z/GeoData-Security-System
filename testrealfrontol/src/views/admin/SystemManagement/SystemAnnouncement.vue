@@ -137,7 +137,11 @@ onMounted(fetchAnnouncements)
             <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">{{ row.tag }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="content" :label="$t('adminAnnounce.content')" min-width="320" />
+        <el-table-column :label="$t('adminAnnounce.content')" min-width="320">
+          <template #default="{ row }">
+            <div class="content-clamp" :title="row.content">{{ row.content }}</div>
+          </template>
+        </el-table-column>
         <el-table-column prop="created_at" :label="$t('adminAnnounce.time')" width="180" />
         <el-table-column :label="$t('adminAnnounce.action')" width="180">
           <template #default="{ row }">
@@ -203,5 +207,14 @@ onMounted(fetchAnnouncements)
 .form-tip { font-size: 12px; color: var(--text-4); margin-top: 4px }
 .mb-3 { margin-bottom: 12px }
 .pagination { display: flex; gap: 12px; align-items: center; padding: 12px }
+/* 内容列：最多 2 行，超出省略；完整正文经原生 title 提供悬停全称 */
+.content-clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.5;
+  max-width: 520px;
+}
 .rounded-dialog { border-radius: 14px; overflow: hidden; }
 </style>

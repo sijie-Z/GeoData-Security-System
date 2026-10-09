@@ -15,7 +15,15 @@
         </TipWrap>
         <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
       </div>
-      <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" :empty-text="$t('approval.noPendingApproval')" @selection-change="onSelectionChange">
+      <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" @selection-change="onSelectionChange">
+        <template #empty>
+          <EmptyState
+            variant="never"
+            compact
+            :title="$t('approval.noPendingApproval')"
+            :description="$t('common.noDataDesc')"
+          />
+        </template>
         <el-table-column type="selection" width="50" align="center" />
         <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
         <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="120" show-overflow-tooltip />
@@ -34,7 +42,7 @@
       </el-table>
     </el-card>
 
-    <div class="pagination-wrap">
+    <div class="pagination-wrap" v-if="total > 0">
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="pageSize"
@@ -63,6 +71,7 @@ import {useUserStore} from "@/stores/userStore.js";
 
 import { ChatDotSquare } from '@element-plus/icons-vue'
 import TipWrap from '@/components/common/TipWrap.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const { t } = useI18n();
 

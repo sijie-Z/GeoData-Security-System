@@ -2,7 +2,7 @@
   <div class="data-manage-container">
     <div class="page-header">
       <h1 class="page-title">{{ $t('adminDataManage.title') }}</h1>
-      <p class="page-description">{{ $t('adminDataManage.description') }}</p>
+      <p class="page-description">{{ $t('adminDataManage.pageDescription') }}</p>
     </div>
 
     <!-- Tab 切换 -->
@@ -19,8 +19,15 @@
     </div>
 
     <!-- 数据表格 -->
-    <el-table :data="dataList" v-loading="loading" stripe style="width: 100%"
-      :empty-text="$t('adminDataManage.noData')">
+    <el-table :data="dataList" v-loading="loading" stripe style="width: 100%">
+      <template #empty>
+        <EmptyState
+          :variant="keyword ? 'filtered' : 'never'"
+          compact
+          :title="$t('adminDataManage.noData')"
+          :description="$t('common.noDataDesc')"
+        />
+      </template>
       <el-table-column prop="data_id" label="ID" width="60" />
       <el-table-column prop="data_alias" :label="$t('adminDataManage.dataName')" min-width="150" show-overflow-tooltip />
       <el-table-column :label="$t('adminDataManage.category')" width="120" show-overflow-tooltip>
@@ -90,6 +97,7 @@ import { useI18n } from 'vue-i18n'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getDataList, updateData, deleteData, publishToGeoServer } from '@/api/upload'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const { t } = useI18n()
 
