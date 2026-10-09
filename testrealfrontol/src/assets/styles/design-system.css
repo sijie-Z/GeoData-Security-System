@@ -1231,6 +1231,11 @@ html.dark .el-tour-skip:hover {
     row-gap: 4px;
   }
 
+  /* 移动端空态：EP 默认 empty-text 宽 50%，窄屏会把空态文字压成 2-3 字/行 */
+  .el-table__empty-text {
+    width: 100%;
+  }
+
   .el-dialog {
     --el-dialog-width: 95% !important;
     margin: 20px auto !important;

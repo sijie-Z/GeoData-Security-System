@@ -99,4 +99,16 @@ defineEmits(['cta'])
 .is-filtered .empty-2col__desc {
   color: var(--text-placeholder);
 }
+
+/* 移动端（<768px）：单列堆叠并隐藏装饰图，避免文字列被挤成 2-3 字/行 */
+@media (max-width: 767px) {
+  .empty-2col {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .empty-2col__art {
+    display: none;
+  }
+}
 </style>

@@ -1203,6 +1203,8 @@ onBeforeUnmount(() => {
   .kpi-body { gap: 10px; }
   .kpi-icon { width: 40px; height: 40px; font-size: 19px; flex-shrink: 0; }
   .kpi-info h2.kpi-value { white-space: nowrap; }
+  .action-grid { gap: 8px; }
+  .action-item { padding: 10px 8px; }
 }
 
 .skeleton-hero {
