@@ -7,6 +7,7 @@ import { useI18n } from 'vue-i18n';
 import { getEmployeeList, deleteEmployee } from '@/api/admin';
 import { getPhoto } from '@/api/employee';
 import PageHeader from '@/components/common/PageHeader.vue';
+import ListShell from '@/components/common/ListShell.vue';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -109,27 +110,34 @@ onBeforeUnmount(() => {
       <el-button :icon="Refresh" circle @click="handleRefresh" />
     </PageHeader>
     <el-divider class="header-divider" />
-    <el-table :data="state.employeeList" v-loading="loading" style="width: 100%" stripe table-layout="auto">
-      <template #empty><el-empty :description="$t('employeeMgmt.noEmployeeInfo')" /></template>
-      <el-table-column :label="$t('employeeMgmt.photo')" width="80" align="center" fixed>
-        <template #default="scope">
-          <el-avatar :size="40" :src="scope.row.photo"><el-icon><UserIcon /></el-icon></el-avatar>
-        </template>
-      </el-table-column>
-      <el-table-column prop="employee_number" :label="$t('employeeMgmt.employeeNumber')" width="180" sortable />
-      <el-table-column prop="name" :label="$t('employeeMgmt.name')" width="120" />
-      <el-table-column prop="job_number" :label="$t('employeeMgmt.jobNumber')" width="150" sortable />
-      <el-table-column prop="id_number" :label="$t('employeeMgmt.idNumber')" width="180" />
-      <el-table-column prop="phone_number" :label="$t('employeeMgmt.phoneNumber')" width="180" />
-      <el-table-column prop="address" :label="$t('employeeMgmt.address')" min-width="250" show-overflow-tooltip />
-      <el-table-column :label="$t('employeeMgmt.actions')" width="150" align="center" fixed="right">
-        <template #default="scope">
-          <!-- 【新增】为编辑按钮绑定点击事件 -->
-          <el-button link type="primary" size="small" @click="handleEdit(scope.row)">{{ $t('employeeMgmt.edit') }}</el-button>
-          <el-button link type="danger" size="small" @click="handleDelete(scope.row)">{{ $t('employeeMgmt.delete') }}</el-button>
-        </template>
-      </el-table-column>
-    </el-table>
+    <ListShell
+      class="employee-list-shell"
+      :empty="!loading && state.employeeList.length === 0"
+      empty-variant="never"
+      :empty-title="$t('employeeMgmt.noEmployeeInfo')"
+      :empty-description="$t('common.noDataDesc')"
+    >
+      <el-table :data="state.employeeList" v-loading="loading" style="width: 100%" stripe table-layout="auto">
+        <el-table-column :label="$t('employeeMgmt.photo')" width="80" align="center" fixed>
+          <template #default="scope">
+            <el-avatar :size="40" :src="scope.row.photo"><el-icon><UserIcon /></el-icon></el-avatar>
+          </template>
+        </el-table-column>
+        <el-table-column prop="employee_number" :label="$t('employeeMgmt.employeeNumber')" width="180" sortable />
+        <el-table-column prop="name" :label="$t('employeeMgmt.name')" width="120" />
+        <el-table-column prop="job_number" :label="$t('employeeMgmt.jobNumber')" width="150" sortable />
+        <el-table-column prop="id_number" :label="$t('employeeMgmt.idNumber')" width="180" />
+        <el-table-column prop="phone_number" :label="$t('employeeMgmt.phoneNumber')" width="180" />
+        <el-table-column prop="address" :label="$t('employeeMgmt.address')" min-width="250" show-overflow-tooltip />
+        <el-table-column :label="$t('employeeMgmt.actions')" width="150" align="center" fixed="right">
+          <template #default="scope">
+            <!-- 【新增】为编辑按钮绑定点击事件 -->
+            <el-button link type="primary" size="small" @click="handleEdit(scope.row)">{{ $t('employeeMgmt.edit') }}</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(scope.row)">{{ $t('employeeMgmt.delete') }}</el-button>
+          </template>
+        </el-table-column>
+      </el-table>
+    </ListShell>
   </div>
 </template>
 
@@ -137,5 +145,7 @@ onBeforeUnmount(() => {
 .page-container { padding: 24px; background-color: var(--bg-canvas); height: 100%; display: flex; flex-direction: column; }
 /* flex 容器不折叠外边距：分割线上边距归零，页头 24px 下间距即节奏（与旧版一致） */
 .header-divider { margin-top: 0; }
+/* 列表壳占满剩余高度；表格的 flex-grow 由壳内弹性列容器承接 */
+.employee-list-shell { flex: 1; min-height: 0; }
 .el-table { flex-grow: 1; }
 </style>
