@@ -4,6 +4,34 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [Unreleased] — 2026-10-10 (UI 收尾两波 + 全站 axe 无障碍修复波 + 构建分块)
+
+> **范围与诚实声明**：本段全部提交位于**本地**（UI 两波已合入本地 `main`；axe 波在 `fix/a11y-axe`），**未推 GitHub**（账号暂停期间积压）。最近发布 tag 仍为 **v2.4.0**；v3.0 功能段见下节。
+
+### 波 1 · UI 收尾（已合入本地 main）
+
+- **管理仪表盘骨架高保真重建**（`eb7cd87`）：根因坐实 = v2.1 改版后遗留的死类 `.stats-grid`/`.stat-card`（全仓无定义）导致 loading 态乱条；改用真实布局类重建（hero / 地球 460px / KPI×4 / 快捷动作 / 图表×2），骨架块↔真实布局 Δ高 105 对中 103 对精确 0、最深残差 ±3px 且为数据驱动；390px 实测同步；全骨架带 `motion-shimmer` 标记（reduced-motion 下 3s 降频）。
+- **员工仪表盘骨架补齐**（`9b6e721`）：新增图表行与快捷/公告行占位（原先只盖 hero+KPI，数据落地大幅跳动）。
+- **v-loading 遮罩摘除**（`e29ae35`）：仪表盘 v-loading 与骨架重复 → 摘除遮罩，骨架即加载语言（`aria-busy` 保留）。
+- **全站恰一 h1 收尾**（`13b7807` + 合并 `124fdb6`）：6 个旧页标题 h2→h1 + 5 个零 h1 路由收尾（data_download/data_application `span→h1`、watermark-quality/robustness `h2→h1`、employee chat 新增可见 h1）→ 40 路由（含 404）**恰一 h1**。
+- **死类扫描结论**：53 个 loading 区域、423 个类、14 个候选逐条人工复核 = 12 条视觉惰性（报告不修）+ 2 条随重写移除。
+
+### 波 2 · 全站 axe 无障碍修复（`fix/a11y-axe`，本地分支）
+
+commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`（构建分块）、本条目所在提交（文档）。基线 = 40 路由 axe 全量扫描（主 checkout :5173）；修复项逐类：
+
+- **地标体系**（`3e1b639`）：两个壳 `content-panel` → `<main tabindex="0">`（landmark-one-main 40/40 → 0；主内容区溢出时可键盘聚焦滚动）、侧栏 → `<nav>`；region 计数大幅下降。
+- **el-tour 上游补丁**：WQ 与 RobustnessLab 引导打开后修正 EP 弹层（`header→role=presentation`、`title→aria-level=2`），landmark-no-duplicate-banner / landmark-unique / aria-required-attr 三规则清零；引导功能零回归（六步全走）。
+- **可访问名**：图标圆钮 `aria-label` ×5；`el-select` ×5 与 `el-date-picker` 用 `aria-label`（EP 2.14 `ariaLabel` 直通内部 combobox，实测 axe 认）；`el-pagination` 内部「每页条数」选择器经 `utils/a11yPatches` 补丁补名（logs/anchors/notifications/operation_history/data_viewing）；上传触发区补 `.sr-only` 文本。
+- **图片 alt**：information_list 头像用员工姓名；`WatermarkImage` 组件新增 `alt` prop，8 处调用点按场景传 alt（二维码列/预览、数据预览、恢复图、嵌入缩略图、抽取水印）。
+- **对比度 6 处**：login 角色未选中 `#5b6b7d`（4.34→4.99:1）、employee chat append 按钮恢复正常字色、EmptyState CTA（plain 主按钮 3.98→≥4.5）、AdminGuide 三色快捷按钮改 tint 着色式、AdminNotifications 字数统计改语义 token。
+- **可滚动区可聚焦**：hot-list / log-list / announcement-list 补 `tabindex=0 + aria-label`；el-table max-height 内部 `.el-scrollbar__wrap` 经补丁补 `tabindex/aria-label`。
+- **heading-order 10 页清零**（9 页修复 + 1 页留档）：h1→h4 跳级改 h2（WQ/robustness/anchors 台账）、h1→h3 跳级改 h2（information_add/apply_admin/profile/help/about 等）；同步 scoped 样式选择器；H1 计数不变。
+- **留档（含理由）**：`approve_application/dual_channel` 的 label×2 / heading-order×1 / empty-table-header×1（红线冻结 `DualChannelApproval.vue`）；`information_add` `.el-upload-list` 的 list×1（EP 将 `div[role=button]` 触发区直渲进 `<ul>`；DOM 重排实测触发 Vue `insertBefore` 崩溃，证据留档）。
+- **构建分块**（`3131d5c`）：`vite manualChunks` 拆 `vendor-element`（1,061.60 kB）/ `vendor-echarts`（587.30 kB）/ `vendor-vue`（191.24 kB），入口 index **1,502.81 kB → 247.93 kB**（gzip 483.44 → 80.13 kB）。
+
+---
+
 ## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)
 
 > **开发主线（unreleased on `main`）** — 最近发布 tag 仍为 **v2.4.0**。本段覆盖 v2.4.0 之后合入 main 的全部 v3.0 内容。
