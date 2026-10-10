@@ -1,5 +1,6 @@
 <template>
-  <div class="sidebar" :class="{ collapsed: isCollapse }">
+  <!-- 侧栏即站点导航：<nav> 提供 navigation 地标（axe region / landmark-one-main 根因之一） -->
+  <nav class="sidebar" :class="{ collapsed: isCollapse }">
     <el-menu
       router
       :default-active="$route.path"
@@ -99,7 +100,7 @@
         <el-menu-item index="/admin/guide">{{ $t('sidebar.admin.guide') }}</el-menu-item>
       </el-sub-menu>
     </el-menu>
-  </div>
+  </nav>
 </template>
 
 <script setup>

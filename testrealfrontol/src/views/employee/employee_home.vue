@@ -94,7 +94,11 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
          :class="{ 'drawer-open': isMobile && isDrawerOpen }"
        />
 
-       <div :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]">
+       <!-- 主内容地标（<main>）：axe landmark-one-main；tabindex=0 让纵向溢出时可键盘聚焦滚动 -->
+       <main
+         :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]"
+         tabindex="0"
+       >
          <router-view v-slot="{ Component }">
            <transition name="page-fade" mode="out-in">
              <keep-alive :include="['EmployeeDashboard', 'EmployeeDataViewing', 'EmployeeNotifications']">
@@ -104,7 +108,7 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
              </keep-alive>
            </transition>
          </router-view>
-       </div>
+       </main>
      </div>
    </div>
  </template>
