@@ -8,7 +8,17 @@ import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const route = useRoute();
-const isSideCollapse = ref(false);
+
+// 折叠状态持久化：桌面端记忆到 localStorage；移动端抽屉开合不写入（见下方 watch 守卫）
+const SIDEBAR_COLLAPSE_KEY = 'ui:sidebar-collapsed:admin';
+const readStoredCollapse = () => {
+  try {
+    return localStorage.getItem(SIDEBAR_COLLAPSE_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+};
+const isSideCollapse = ref(readStoredCollapse());
 const hasError = ref(false);
 
 // 移动端（<768px）：侧栏改为覆盖层抽屉，由汉堡按钮唤出，遮罩点击/路由切换/Esc 关闭
@@ -51,6 +61,16 @@ watch(() => route.path, () => {
 });
 
 watch(isMobile, closeDrawer);
+
+// 持久化折叠状态（移动端不入此逻辑：抽屉开合不影响该值，也不写存储）
+watch(isSideCollapse, (v) => {
+  if (isMobile.value) return;
+  try {
+    localStorage.setItem(SIDEBAR_COLLAPSE_KEY, v ? '1' : '0');
+  } catch (e) {
+    /* localStorage 不可用时静默降级 */
+  }
+});
 
 const reloadPage = () => {
   hasError.value = false;
