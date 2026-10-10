@@ -46,4 +46,23 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // 构建分块：把大体积、低频变更的第三方库拆成独立 vendor 块，
+        // 入口/业务 chunk 变小，浏览器可长期缓存 vendor（变更时只失效业务块）。
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('echarts') || id.includes('zrender')) return 'vendor-echarts';
+          if (id.includes('element-plus')) return 'vendor-element';
+          if (
+            id.includes('/vue/') || id.includes('/vue-router/') || id.includes('/pinia/') ||
+            id.includes('pinia-plugin-persistedstate') || id.includes('/vue-i18n/') ||
+            id.includes('/@vueuse/') || id.includes('/@vue/') || id.includes('vue-demi')
+          ) return 'vendor-vue';
+          return undefined;
+        },
+      },
+    },
+  },
 })
