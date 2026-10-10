@@ -20,7 +20,7 @@ All notable changes to this project are documented in this file.
 
 commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`（构建分块）、本条目所在提交（文档）。基线 = 40 路由 axe 全量扫描（主 checkout :5173）；修复项逐类：
 
-- **地标体系**（`3e1b639`）：两个壳 `content-panel` → `<main tabindex="0">`（landmark-one-main 40/40 → 0；主内容区溢出时可键盘聚焦滚动）、侧栏 → `<nav>`；region 计数大幅下降。
+- **地标体系**（`3e1b639`）：两个壳 `content-panel` → `<main tabindex="0">`（landmark-one-main 40/40 → 0；主内容区溢出时可键盘聚焦滚动）、侧栏 → `<nav>`；region 计数大幅下降。404 兜底路由经新增 `NotFoundRoute.vue` 包装补 `<main>`（NotFound.vue 按红线未动）。
 - **el-tour 上游补丁**：WQ 与 RobustnessLab 引导打开后修正 EP 弹层（`header→role=presentation`、`title→aria-level=2`），landmark-no-duplicate-banner / landmark-unique / aria-required-attr 三规则清零；引导功能零回归（六步全走）。
 - **可访问名**：图标圆钮 `aria-label` ×5；`el-select` ×5 与 `el-date-picker` 用 `aria-label`（EP 2.14 `ariaLabel` 直通内部 combobox，实测 axe 认）；`el-pagination` 内部「每页条数」选择器经 `utils/a11yPatches` 补丁补名（logs/anchors/notifications/operation_history/data_viewing）；上传触发区补 `.sr-only` 文本。
 - **图片 alt**：information_list 头像用员工姓名；`WatermarkImage` 组件新增 `alt` prop，8 处调用点按场景传 alt（二维码列/预览、数据预览、恢复图、嵌入缩略图、抽取水印）。
