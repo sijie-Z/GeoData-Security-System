@@ -1,8 +1,14 @@
 <template>
   <!-- 侧栏即站点导航：<nav> 提供 navigation 地标（axe region / landmark-one-main 根因之一） -->
-  <nav class="sidebar" :class="{ collapsed: isCollapse }">
+  <nav
+    ref="navRef"
+    class="sidebar"
+    :class="{ collapsed: isCollapse }"
+  >
     <el-menu
       router
+      unique-opened
+      :popper-offset="0"
       :default-active="$route.path"
       :collapse="isCollapse"
       class="sidebar-menu"
@@ -104,7 +110,8 @@
 </template>
 
 <script setup>
-import { defineProps } from 'vue'
+import { defineProps, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
+import { useRoute } from 'vue-router'
 import {
   HomeFilled, User, DocumentChecked, Setting,
   Picture, Folder, Aim, DataAnalysis, Search, Stamp, Cpu
@@ -116,6 +123,44 @@ defineProps({
     default: false
   }
 })
+
+const route = useRoute()
+const navRef = ref(null)
+let scrollTimers = []
+
+// 激活项滚入侧栏可视区（block: 'nearest' 语义；只调整侧栏自身滚动容器，绝不滚动外层壳）
+const scrollActiveIntoView = () => {
+  const nav = navRef.value
+  if (!nav) return
+  const active =
+    nav.querySelector('.el-menu-item.is-active') ||
+    nav.querySelector('.el-sub-menu.is-active > .el-sub-menu__title')
+  if (!active) return
+  const nr = nav.getBoundingClientRect()
+  const ar = active.getBoundingClientRect()
+  if (ar.width === 0 && ar.height === 0) return // 激活项在未展开的子菜单里（display:none）
+  if (ar.top < nr.top) nav.scrollTop = Math.max(0, nav.scrollTop - (nr.top - ar.top))
+  else if (ar.bottom > nr.bottom) nav.scrollTop += ar.bottom - nr.bottom
+}
+
+const scheduleScrollActive = () => {
+  scrollTimers.forEach(clearTimeout)
+  scrollTimers = []
+  nextTick(() => {
+    requestAnimationFrame(scrollActiveIntoView)
+    // 子菜单开合带过渡（unique-opened 联动时位置会继续变化）：过渡中/后再校正两次
+    scrollTimers.push(setTimeout(scrollActiveIntoView, 180))
+    scrollTimers.push(setTimeout(scrollActiveIntoView, 380))
+  })
+}
+
+// 路由变化与首挂载都要把激活项滚入可视区（keep-alive 返回页面同样触发 path 变化）
+watch(() => route.path, scheduleScrollActive)
+onMounted(scheduleScrollActive)
+onBeforeUnmount(() => {
+  scrollTimers.forEach(clearTimeout)
+  scrollTimers = []
+})
 </script>
 
 <style scoped>
@@ -123,9 +168,10 @@ defineProps({
   width: 200px;
   background: var(--sidebar-solid-bg, #ffffff);
   border-right: 1px solid var(--border-color);
-  height: 100vh;
+  /* 高度不写死：flex stretch 精确填满顶栏（60px）下的可用高度，自身即滚动容器 */
   overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain; /* 滚轮在侧栏尽头不链式带动外层壳 */
   transition: width 220ms var(--ease-drawer), background-color var(--duration-200) var(--ease-out-soft), border-color var(--duration-200) var(--ease-out-soft);
   flex-shrink: 0;
 }
@@ -150,7 +196,8 @@ defineProps({
   line-height: 46px;
   color: var(--sidebar-text) !important;
   font-size: 14px;
-  transition: all var(--transition-fast) !important;
+  /* 显式属性过渡（原 transition: all 会在容器变宽时全量比对/重算）*/
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast) !important;
 }
 
 :deep(.el-menu-item:hover),
@@ -186,11 +233,19 @@ defineProps({
 }
 
 .sidebar::-webkit-scrollbar {
-  width: 4px;
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 .sidebar::-webkit-scrollbar-thumb {
   background: var(--border-color-hover);
-  border-radius: 2px;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--text-3);
 }
 </style>
