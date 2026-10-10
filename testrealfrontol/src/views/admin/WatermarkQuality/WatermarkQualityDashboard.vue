@@ -57,7 +57,7 @@
               <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" autoresize />
+          <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" :autoresize="{ throttle: 160 }" />
           <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
         </div>
 
@@ -76,7 +76,7 @@
               <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
             </el-radio-group>
           </div>
-          <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" autoresize />
+          <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" :autoresize="{ throttle: 160 }" />
           <EmptyState v-else compact :variant="trendDataType ? 'filtered' : 'never'" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
         </div>
 
@@ -90,7 +90,7 @@
               <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" autoresize />
+          <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" :autoresize="{ throttle: 160 }" />
           <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
         </div>
 
@@ -104,7 +104,7 @@
               <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" autoresize />
+          <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" :autoresize="{ throttle: 160 }" />
           <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
         </div>
 
@@ -121,7 +121,7 @@
             </div>
           </div>
           <div class="donut-wrap">
-            <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" autoresize />
+            <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" :autoresize="{ throttle: 160 }" />
             <div v-if="hasDelivery" class="donut-center">
               <span class="donut-center-value">{{ dStats?.total ?? '—' }}</span>
               <span class="donut-center-label">{{ $t('watermarkQuality.centerDeliveries') }}</span>

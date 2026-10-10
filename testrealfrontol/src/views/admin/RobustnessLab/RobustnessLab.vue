@@ -311,7 +311,7 @@
                   {{ $t('robustnessLab.sweepCardMeta', { trials: runMeta.trials }) }}
                 </span>
               </div>
-              <v-chart class="sweep-chart" :option="sweepOption(attack)" autoresize />
+              <v-chart class="sweep-chart" :option="sweepOption(attack)" :autoresize="{ throttle: 160 }" />
               <p v-if="sweepErrorCount(attack)" class="sweep-anomaly mono-num">
                 {{ $t('robustnessLab.sweepCardAnomalies', { n: sweepErrorCount(attack) }) }}
               </p>

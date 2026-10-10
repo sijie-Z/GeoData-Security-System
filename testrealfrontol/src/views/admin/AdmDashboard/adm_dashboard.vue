@@ -179,7 +179,7 @@
           v-if="chartData.length > 0"
           class="chart-container"
           :option="trendOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
@@ -191,7 +191,7 @@
           v-if="statusDistribution.pending || statusDistribution.approved || statusDistribution.rejected"
           class="chart-container"
           :option="statusOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
@@ -207,7 +207,7 @@
           v-if="hourlyActivity.length > 0"
           class="chart-container"
           :option="hourlyOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noActivityData')" />
@@ -219,7 +219,7 @@
           v-if="dataTypeStats.vector || dataTypeStats.raster"
           class="chart-container"
           :option="dataTypeOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noData')" />
@@ -267,7 +267,7 @@
           v-if="dlStats.daily.length > 0"
           class="dl-stats-chart"
           :option="dlStatsOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty dl-stats-chart">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
@@ -330,7 +330,7 @@
           v-if="adminEfficiency.length > 0"
           class="chart-container-wide"
           :option="efficiencyOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
         <div v-else class="chart-empty">
           <EmptyState compact variant="never" :title="$t('adminDashboard.noReviewData')" />

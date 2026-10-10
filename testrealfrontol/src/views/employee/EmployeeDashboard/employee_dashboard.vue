@@ -103,7 +103,7 @@
         <v-chart
           class="chart"
           :option="trendOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
       </el-card>
 
@@ -112,7 +112,7 @@
         <v-chart
           class="chart small"
           :option="statusOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
       </el-card>
 
@@ -121,7 +121,7 @@
         <v-chart
           class="chart small"
           :option="dataTypeOption"
-          autoresize
+          :autoresize="{ throttle: 160 }"
         />
       </el-card>
     </section>
