@@ -220,6 +220,13 @@ onBeforeUnmount(() => {
   background-color: transparent !important;
 }
 
+/* 折叠时 Element Plus 会把整块 <ul> 经 <transition name="horizontal-collapse-transition"> 换装；
+   Vue 在该元素上等一个永远不会发生的 width transitionend（301ms 兜底超时），
+   导致宽度动画结束后才做菜单换装、末尾卡顿。取消该等待：换装与折叠同帧完成。 */
+:deep(.horizontal-collapse-transition) {
+  transition: none !important;
+}
+
 :deep(.el-sub-menu .el-menu-item) {
   min-width: auto !important;
   padding-left: 50px !important;
