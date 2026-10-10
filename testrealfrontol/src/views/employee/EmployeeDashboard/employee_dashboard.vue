@@ -148,7 +148,8 @@
       <el-card class="glass" shadow="never">
         <template #header><div class="panel-header"><h3>{{ $t('empDashboard.systemAnnouncements') }}</h3></div></template>
         <div v-if="announcements.length === 0" class="empty">{{ $t('empDashboard.noAnnouncements') }}</div>
-        <div v-else class="announcement-list">
+        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+        <div v-else class="announcement-list" tabindex="0" :aria-label="$t('empDashboard.systemAnnouncements')">
           <div v-for="a in announcements" :key="a.id" class="announcement-item">
             <div>
               <b>{{ a.title }}</b>

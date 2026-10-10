@@ -55,6 +55,7 @@ export default {
     page: 'Page',
     prev: 'Previous',
     next: 'Next',
+    pageSize: 'Items per page',
     refresh: 'Refresh',
     export: 'Export',
     import: 'Import',

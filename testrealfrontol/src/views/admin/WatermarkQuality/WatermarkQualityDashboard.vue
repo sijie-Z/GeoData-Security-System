@@ -181,7 +181,8 @@
 
       <!-- 嵌入质量总览（无攻击基线） -->
       <div class="sub-section">
-        <h4 class="sub-title">{{ $t('watermarkQuality.stegoOverview') }}</h4>
+        <!-- axe heading-order：页内仅有 h1，h4 与 h1 跨两级；实测 axe 规则 h1→h3 仍判 -2 跳级，故用 h2 -->
+        <h2 class="sub-title">{{ $t('watermarkQuality.stegoOverview') }}</h2>
         <el-table :data="benchSummaries" stripe size="small" style="width: 100%" :empty-text="$t('common.noData')" :row-class-name="benchRowClass">
           <el-table-column prop="algorithm" :label="$t('watermarkQuality.algoName')" width="110" />
           <el-table-column :label="$t('watermarkQuality.wmBitCount')" width="110" align="right">
@@ -302,7 +303,7 @@
         </el-col>
       </el-row>
 
-      <h4 class="sub-title">{{ $t('watermarkQuality.chainRecentTitle') }}</h4>
+      <h2 class="sub-title">{{ $t('watermarkQuality.chainRecentTitle') }}</h2>
       <el-table
         :data="recentDeliveries"
         stripe
@@ -355,6 +356,7 @@
               size="small"
               value-format="YYYY-MM-DD"
               :start-placeholder="$t('watermarkQuality.timeRange')"
+              :aria-label="$t('watermarkQuality.timeRange')"
               range-separator="~"
               unlink-panels
               style="width: 250px"
@@ -490,6 +492,7 @@ import { BarChart, LineChart, PieChart } from 'echarts/charts'
 import { TooltipComponent, LegendComponent, GridComponent, MarkLineComponent } from 'echarts/components'
 import VChart from 'vue-echarts'
 import { useTheme } from '@/composables/useTheme.js'
+import { patchElTourOverlay } from '@/utils/a11yPatches'
 import GlossaryHelp from './GlossaryHelp.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 
@@ -520,6 +523,9 @@ const closeTour = () => {
   tourVisible.value = false
   onTourClose()
 }
+// EP 上游补丁：引导打开后修正 el-tour 弹层的 banner 地标 / aria-level 缺陷
+// （axe: landmark-no-duplicate-banner / landmark-unique / aria-required-attr，详见 utils/a11yPatches.js）
+watch(tourVisible, (open) => { if (open) patchElTourOverlay() })
 
 // ══════════════════ 数据源：三个统计端点并行 ══════════════════
 // 注意：此 ref 绝不能命名为 vLoading —— <script setup> 会把模板里的

@@ -338,7 +338,8 @@ const capsuleStyle = computed(() => ({
   user-select: none;
   font-size: 14.5px;
   font-weight: 600;
-  color: #64748b;
+  /* axe color-contrast：原 #64748b 于 #f1f5f9 底仅 4.34:1；压暗为 4.99:1 */
+  color: #5b6b7d;
   transition: color 0.3s ease;
 }
 

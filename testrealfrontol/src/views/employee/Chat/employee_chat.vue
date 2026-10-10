@@ -673,6 +673,9 @@ onBeforeUnmount(() => {
 }
 .conversation-list { border: 1px solid var(--border-subtle); border-radius: 10px; padding: 8px; overflow-y: auto; }
 .tool-row { margin-bottom: 10px; }
+/* axe color-contrast：EP 输入组 append 内按钮继承 #909399/#fafafa（2.95:1，观感像禁用态）。
+   恢复正常按钮字色（token 双模式自适应）。 */
+.tool-row :deep(.el-input-group__append .el-button) { color: var(--text-2); }
 .search-result { border: 1px dashed var(--border-default); border-radius: 8px; padding: 8px; margin-bottom: 10px; }
 .result-title { font-size: 12px; color: var(--text-3); margin-bottom: 6px; }
 .result-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 2px; }

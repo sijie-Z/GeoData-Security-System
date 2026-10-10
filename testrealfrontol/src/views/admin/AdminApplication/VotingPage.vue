@@ -20,6 +20,7 @@
                 :percentage="scope.row.approval_ratio"
                 :status="scope.row.approval_ratio >= 66 ? 'success' : ''"
                 :stroke-width="8"
+                :aria-label="`${$t('adminApp.voteProgress')} ${scope.row.approve_votes}/${scope.row.total_votes}`"
               />
             </div>
           </template>

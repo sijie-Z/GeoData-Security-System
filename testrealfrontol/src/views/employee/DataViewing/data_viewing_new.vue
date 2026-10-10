@@ -152,6 +152,7 @@
             <el-select
               v-model="dataSourceFilter"
               :placeholder="$t('empDataViewNew.selectDataSource')"
+              :aria-label="$t('empDataViewNew.dataSource')"
               clearable
               size="large"
               class="filter-select"
@@ -180,6 +181,7 @@
             <el-select
               v-model="timeFilter"
               :placeholder="$t('empDataViewNew.selectTimeRange')"
+              :aria-label="$t('empDataViewNew.timeRange')"
               clearable
               size="large"
               class="filter-select"
@@ -218,12 +220,14 @@
             :icon="Refresh"
             circle
             size="default"
+            :aria-label="$t('common.refresh')"
             @click="fetchData"
           />
           <el-button
             :icon="Download"
             circle
             size="default"
+            :aria-label="$t('common.export')"
             @click="exportData"
           />
         </div>
@@ -382,6 +386,7 @@
       class="pagination-section"
     >
       <el-pagination
+        ref="paginationRef"
         background
         layout="total, sizes, prev, pager, next, jumper"
         :total="total"
@@ -649,6 +654,7 @@ import { vectorDataViewing, rasterDataViewing } from '@/api/data';
 import { submitApplication } from '@/api/employee';
 import { axios as http } from '@/utils/Axios';
 import { useUserStore } from '@/stores/userStore';
+import { patchPaginationSizeLabel } from '@/utils/a11yPatches';
 
 const { t } = useI18n();
 
@@ -1198,6 +1204,10 @@ watch([activeDataType, dataSourceFilter, timeFilter], () => {
 onMounted(() => {
   fetchData();
 });
+
+// EP 上游补丁：分页「每页条数」选择器补可访问名（分页 v-if 出现后再补，详见 utils/a11yPatches.js）
+const paginationRef = ref(null);
+watch(total, () => nextTick(() => patchPaginationSizeLabel(paginationRef.value?.$el, t('common.pageSize'))));
 </script>
 
 

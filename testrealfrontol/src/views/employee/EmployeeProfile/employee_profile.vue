@@ -24,7 +24,7 @@
               <el-icon v-else :size="60" class="default-avatar-icon"><User /></el-icon>
             </el-avatar>
             <div class="avatar-info">
-              <h3 class="user-name">{{ profileData.userName || $t('empProfile.nameNotSet') }}</h3>
+              <h2 class="user-name">{{ profileData.userName || $t('empProfile.nameNotSet') }}</h2>
               <p class="user-number">{{ $t('empProfile.employeeNumber') }}: {{ profileData.userNumber || 'N/A' }}</p>
               <p class="user-status">
                 <el-tag type="success" size="small">{{ $t('empProfile.active') }}</el-tag>

@@ -55,6 +55,7 @@ export default {
     page: '页',
     prev: '上一页',
     next: '下一页',
+    pageSize: '每页条数',
     refresh: '刷新',
     export: '导出',
     import: '导入',

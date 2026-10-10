@@ -23,6 +23,7 @@
             <WatermarkImage
               v-if="scope.row.qrcode"
               :src="`data:image/png;base64,${scope.row.qrcode}`"
+              :alt="$t('wmGen.colWatermark')"
               fit="cover"
               style="width: 72px; height: 72px; border-radius: 6px;"
             />
@@ -120,6 +121,7 @@
             <WatermarkImage
               v-if="generatedQrcode"
               :src="`data:image/png;base64,${generatedQrcode}`"
+              :alt="$t('wmGen.sectionQrPreview')"
               fit="contain"
               style="width: 140px; height: 140px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px;"
             />

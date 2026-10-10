@@ -4,7 +4,7 @@
     <template #header>
       <div class="card-header">
         <h1>{{ $t('empDataApp.title') }}</h1>
-        <el-button :icon="Refresh" circle @click="get_applications" />
+        <el-button :icon="Refresh" circle :aria-label="$t('common.refresh')" @click="get_applications" />
       </div>
     </template>
 

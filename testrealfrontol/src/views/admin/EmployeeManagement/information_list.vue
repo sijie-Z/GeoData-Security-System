@@ -107,7 +107,7 @@ onBeforeUnmount(() => {
   <div class="page-container">
     <PageHeader :title="$t('employeeMgmt.employeeInfoList')">
       <el-button :icon="Plus" type="primary" @click="handleAdd">{{ $t('employeeMgmt.addNewEmployee') }}</el-button>
-      <el-button :icon="Refresh" circle @click="handleRefresh" />
+      <el-button :icon="Refresh" circle :aria-label="$t('common.refresh')" @click="handleRefresh" />
     </PageHeader>
     <el-divider class="header-divider" />
     <ListShell
@@ -120,7 +120,8 @@ onBeforeUnmount(() => {
       <el-table :data="state.employeeList" v-loading="loading" style="width: 100%" stripe table-layout="auto">
         <el-table-column :label="$t('employeeMgmt.photo')" width="80" align="center" fixed>
           <template #default="scope">
-            <el-avatar :size="40" :src="scope.row.photo"><el-icon><UserIcon /></el-icon></el-avatar>
+            <!-- axe image-alt：头像补可访问名，优先员工姓名，缺失时退回“照片”列名 -->
+            <el-avatar :size="40" :src="scope.row.photo" :alt="scope.row.name || $t('employeeMgmt.photo')"><el-icon><UserIcon /></el-icon></el-avatar>
           </template>
         </el-table-column>
         <el-table-column prop="employee_number" :label="$t('employeeMgmt.employeeNumber')" width="180" sortable />

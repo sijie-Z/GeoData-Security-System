@@ -146,7 +146,7 @@
           <span>{{ $t('rasterWmExtract.recoveredOriginal') }}</span>
         </div>
         <div class="watermark-content">
-          <WatermarkImage :src="`data:image/png;base64,${recoveredBase64}`" fit="contain" class="watermark-image" />
+          <WatermarkImage :src="`data:image/png;base64,${recoveredBase64}`" :alt="$t('rasterWmExtract.recoveredOriginal')" fit="contain" class="watermark-image" />
         </div>
       </div>
     </el-card>

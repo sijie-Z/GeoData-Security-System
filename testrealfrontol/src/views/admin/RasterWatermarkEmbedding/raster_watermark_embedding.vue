@@ -41,6 +41,7 @@
             <div class="qr-image-wrapper">
               <WatermarkImage class="qr-code-image"
                 :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
+                :alt="$t('rasterWmEmbed.colWatermark')"
                 fit="cover"
                 style="width: 72px; height: 72px;"
               />
@@ -81,6 +82,7 @@
             <div v-if="selectedData.preview_base64" class="preview-image-wrapper">
               <WatermarkImage
                 :src="`data:image/png;base64,${selectedData.preview_base64}`"
+                :alt="$t('rasterWmEmbed.rasterPreviewDialogTitle')"
                 fit="contain"
                 style="width: 100%; height: 320px; border-radius: 12px;"
               />
@@ -133,7 +135,7 @@
           </div>
         </el-form-item>
         <el-form-item :label="$t('rasterWmEmbed.embeddedThumbnail')" v-if="crmarkResult.stego_preview_base64">
-          <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" fit="contain" style="width: 100%;" />
+          <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" :alt="$t('rasterWmEmbed.embeddedThumbnail')" fit="contain" style="width: 100%;" />
         </el-form-item>
         <el-form-item :label="$t('rasterWmEmbed.compareLabel')" v-if="crmarkResult.stego_preview_base64">
           <ImageCompare

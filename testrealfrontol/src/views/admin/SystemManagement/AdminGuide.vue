@@ -251,4 +251,42 @@ const goToChat = () => router.push('/admin/system/chat')
   gap: 12px;
   flex-wrap: wrap;
 }
+
+/* axe color-contrast：EP 实心 success/warning/info 白字于本色底仅 2.2~3.1:1。
+   改着色式按钮（tint 底 + color-mix 深字，与全站 danger 着色按钮 / el-tag 同一纪律）。 */
+.shortcuts :deep(.el-button--success) {
+  --el-button-bg-color: var(--tint-success-bg);
+  --el-button-border-color: transparent;
+  --el-button-text-color: color-mix(in srgb, var(--tint-success-text) 82%, var(--text-1));
+  --el-button-hover-bg-color: var(--tint-success-border);
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: color-mix(in srgb, var(--tint-success-text) 70%, var(--text-1));
+  --el-button-active-bg-color: var(--tint-success-border);
+  --el-button-active-border-color: transparent;
+  --el-button-active-text-color: color-mix(in srgb, var(--tint-success-text) 70%, var(--text-1));
+}
+
+.shortcuts :deep(.el-button--warning) {
+  --el-button-bg-color: var(--tint-warning-bg);
+  --el-button-border-color: transparent;
+  --el-button-text-color: color-mix(in srgb, var(--tint-warning-text) 82%, var(--text-1));
+  --el-button-hover-bg-color: var(--tint-warning-border);
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: color-mix(in srgb, var(--tint-warning-text) 70%, var(--text-1));
+  --el-button-active-bg-color: var(--tint-warning-border);
+  --el-button-active-border-color: transparent;
+  --el-button-active-text-color: color-mix(in srgb, var(--tint-warning-text) 70%, var(--text-1));
+}
+
+.shortcuts :deep(.el-button--info) {
+  --el-button-bg-color: var(--tint-info-bg);
+  --el-button-border-color: transparent;
+  --el-button-text-color: color-mix(in srgb, var(--tint-info-text) 82%, var(--text-1));
+  --el-button-hover-bg-color: var(--tint-info-border);
+  --el-button-hover-border-color: transparent;
+  --el-button-hover-text-color: color-mix(in srgb, var(--tint-info-text) 70%, var(--text-1));
+  --el-button-active-bg-color: var(--tint-info-border);
+  --el-button-active-border-color: transparent;
+  --el-button-active-text-color: color-mix(in srgb, var(--tint-info-text) 70%, var(--text-1));
+}
 </style>

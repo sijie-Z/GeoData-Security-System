@@ -146,6 +146,8 @@ onMounted(() => {
             v-model:file-list="photoFileList" action="#" list-type="picture-card"
             :limit="1" :auto-upload="false" :on-change="handleFileChange" :on-remove="handleRemove">
             <el-icon><PlusIcon /></el-icon>
+            <!-- axe aria-command-name：图标触发区补屏幕阅读器可读文本（视觉隐藏） -->
+            <span class="sr-only">{{ $t('employeeMgmt.updatePhoto') }}</span>
             <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.updatePhotoTip') }}</div></template>
           </el-upload>
         </el-form-item>

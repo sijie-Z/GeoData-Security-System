@@ -10,14 +10,14 @@
         <div v-if="eligibility.eligible" class="eligible">
           <el-icon class="success-icon"><CircleCheckFilled /></el-icon>
           <div class="eligibility-text">
-            <h3>{{ $t('empAdminApp.eligible') }}</h3>
+            <h2>{{ $t('empAdminApp.eligible') }}</h2>
             <p>{{ $t('empAdminApp.daysRegistered', { days: eligibility.days_registered }) }}</p>
           </div>
         </div>
         <div v-else class="not-eligible">
           <el-icon class="warning-icon"><WarningFilled /></el-icon>
           <div class="eligibility-text">
-            <h3>{{ $t('empAdminApp.notEligible') }}</h3>
+            <h2>{{ $t('empAdminApp.notEligible') }}</h2>
             <p>{{ eligibility.reason }}</p>
             <p v-if="eligibility.days_needed">{{ $t('empAdminApp.daysNeeded', { days: eligibility.days_needed }) }}</p>
           </div>
@@ -166,6 +166,6 @@ onMounted(() => {
 .eligible, .not-eligible { display: flex; align-items: center; gap: 16px; }
 .success-icon { font-size: 48px; color: var(--tint-success-text); }
 .warning-icon { font-size: 48px; color: var(--tint-warning-text); }
-.eligibility-text h3 { margin: 0 0 8px; font-size: 18px; }
+.eligibility-text h2 { margin: 0 0 8px; font-size: 18px; }
 .eligibility-text p { margin: 0; color: var(--text-3); }
 </style>

@@ -54,6 +54,7 @@
           <div class="qr-image-wrapper">
             <WatermarkImage class="qr-code-image"
               :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
+              :alt="$t('wmEmbed.colWatermark')"
               fit="cover"
               style="width: 72px; height: 72px;"
             />

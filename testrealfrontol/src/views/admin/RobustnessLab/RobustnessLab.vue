@@ -85,7 +85,7 @@
     <!-- ③ 发起实验 + 历史运行 -->
     <div class="control-grid">
       <el-card id="lab-run" shadow="never" class="lab-card run-card">
-        <h4 class="card-title">{{ $t('robustnessLab.runTitle') }}</h4>
+        <h2 class="card-title">{{ $t('robustnessLab.runTitle') }}</h2>
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.kindLabel') }}</label>
@@ -116,6 +116,7 @@
               class="data-select"
               filterable
               clearable
+              :aria-label="$t('robustnessLab.dataLabel')"
               :loading="dataLoading"
               :placeholder="$t('robustnessLab.dataPlaceholder')"
             >
@@ -163,7 +164,7 @@
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.trialsLabel') }}</label>
-          <el-select v-model="selectedTrials" class="trials-select">
+          <el-select v-model="selectedTrials" class="trials-select" :aria-label="$t('robustnessLab.trialsLabel')">
             <el-option v-for="n in trialOptions" :key="n" :label="String(n)" :value="n" />
           </el-select>
         </div>
@@ -181,7 +182,7 @@
       </el-card>
 
       <el-card id="lab-history" shadow="never" class="lab-card history-card">
-        <h4 class="card-title">{{ $t('robustnessLab.historyTitle') }}</h4>
+        <h2 class="card-title">{{ $t('robustnessLab.historyTitle') }}</h2>
         <el-table
           v-loading="runsLoading"
           :data="runs"
@@ -242,7 +243,7 @@
     <!-- ④ 实验是怎么做的（四步流程图解 + 实验设置 checklist） -->
     <el-card id="lab-how" shadow="never" class="lab-card how-card">
       <div class="panel-head">
-        <h4 class="card-title inline-title">{{ $t('robustnessLab.howTitle') }}</h4>
+        <h2 class="card-title inline-title">{{ $t('robustnessLab.howTitle') }}</h2>
         <span class="head-note">{{ $t('robustnessLab.howSubtitle') }}</span>
       </div>
       <div class="flow">
@@ -273,9 +274,9 @@
       <template v-if="runMeta">
         <div class="matrix-head">
           <div class="matrix-meta">
-            <h4 class="card-title inline-title">
+            <h2 class="card-title inline-title">
               {{ isSweepRun ? $t('robustnessLab.sweepTitle') : $t('robustnessLab.matrixTitle') }}
-            </h4>
+            </h2>
             <HashText :value="runMeta.run_id" :head="8" :tail="4" />
             <span class="meta-sep">·</span>
             <span class="mono-text">{{ runMeta.data_ref }}</span>
@@ -322,7 +323,7 @@
             <div class="verdict-main">
               <span class="verdict-icon"><el-icon :size="18"><TrendCharts /></el-icon></span>
               <div class="verdict-text">
-                <h4 class="verdict-title">{{ $t('robustnessLab.collapseTitle') }}</h4>
+                <h3 class="verdict-title">{{ $t('robustnessLab.collapseTitle') }}</h3>
                 <template v-if="matrixDone">
                   <div v-for="line in collapseLines" :key="line.scheme" class="collapse-line">
                     <p class="verdict-line">
@@ -497,7 +498,7 @@
           <div class="verdict-main">
             <span class="verdict-icon"><el-icon :size="18"><Medal /></el-icon></span>
             <div class="verdict-text">
-              <h4 class="verdict-title">{{ $t('robustnessLab.verdictTitle') }}</h4>
+              <h3 class="verdict-title">{{ $t('robustnessLab.verdictTitle') }}</h3>
               <template v-if="verdictReady">
                 <p v-for="(sentence, i) in verdictSentences" :key="i" class="verdict-line">{{ sentence }}</p>
               </template>
@@ -610,6 +611,7 @@ import VChart from 'vue-echarts'
 
 import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import { patchElTourOverlay } from '@/utils/a11yPatches'
 import { useTheme } from '@/composables/useTheme.js'
 import AttackCodeViewer from './AttackCodeViewer.vue'
 import MetricGlossary from './MetricGlossary.vue'
@@ -1776,7 +1778,10 @@ const closeTour = () => {
 }
 
 watch(tourOpen, (open) => {
-  if (!open) markTourSeen()
+  // EP 上游补丁：引导打开后修正 el-tour 弹层的 banner 地标 / aria-level 缺陷
+  // （axe: landmark-no-duplicate-banner / landmark-unique / aria-required-attr，详见 utils/a11yPatches.js）
+  if (open) patchElTourOverlay()
+  else markTourSeen()
 })
 
 // ──────────────────────────────────────

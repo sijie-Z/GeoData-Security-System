@@ -1392,3 +1392,16 @@ html.theme-switching .header {
     scroll-behavior: auto;
   }
 }
+
+/* 视觉隐藏但保留给辅助技术（axe：图标按钮 / 上传触发区的可访问名） */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

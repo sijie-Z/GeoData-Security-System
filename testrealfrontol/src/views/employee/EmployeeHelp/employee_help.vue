@@ -10,26 +10,26 @@
         <h1>{{ $t('empHelp.welcome') }}</h1>
         <p>{{ $t('empHelp.intro') }}</p>
 
-        <h3>{{ $t('empHelp.dataCatalog') }}</h3>
+        <h2>{{ $t('empHelp.dataCatalog') }}</h2>
         <p>{{ $t('empHelp.dataCatalogDesc') }}</p>
         <p>{{ $t('empHelp.dataCatalogDetail') }}</p>
 
-        <h3>{{ $t('empHelp.myApplications') }}</h3>
+        <h2>{{ $t('empHelp.myApplications') }}</h2>
         <p>{{ $t('empHelp.myApplicationsDesc') }}</p>
 
-        <h3>{{ $t('empHelp.myDownloads') }}</h3>
+        <h2>{{ $t('empHelp.myDownloads') }}</h2>
         <p>{{ $t('empHelp.myDownloadsDesc') }}</p>
 
-        <h3>{{ $t('empHelp.operationHistory') }}</h3>
+        <h2>{{ $t('empHelp.operationHistory') }}</h2>
         <p>{{ $t('empHelp.operationHistoryDesc') }}</p>
 
-        <h3>{{ $t('empHelp.myNotifications') }}</h3>
+        <h2>{{ $t('empHelp.myNotifications') }}</h2>
         <p>{{ $t('empHelp.myNotificationsDesc') }}</p>
 
-        <h3>{{ $t('empHelp.personalCenter') }}</h3>
+        <h2>{{ $t('empHelp.personalCenter') }}</h2>
         <p>{{ $t('empHelp.personalCenterDesc') }}</p>
 
-        <h3>{{ $t('empHelp.aboutSystem') }}</h3>
+        <h2>{{ $t('empHelp.aboutSystem') }}</h2>
         <p>{{ $t('empHelp.aboutSystemDesc') }}</p>
 
         <el-divider />
@@ -76,7 +76,7 @@ const { t } = useI18n();
   color: var(--text-2);
 }
 
-.help-content h1, .help-content h3 {
+.help-content h1, .help-content h2 {
   color: var(--text-1);
   margin-top: 25px;
   margin-bottom: 15px;
@@ -87,7 +87,7 @@ const { t } = useI18n();
   font-weight: 700;
 }
 
-.help-content h3 {
+.help-content h2 {
   font-size: 18px;
   font-weight: 600;
   border-bottom: 1px solid var(--border-subtle);

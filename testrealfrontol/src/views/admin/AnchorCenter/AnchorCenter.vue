@@ -57,7 +57,7 @@
 
     <!-- 批次台账 -->
     <el-card shadow="never" class="ledger-card">
-      <h4 class="ledger-title">{{ $t('anchorCenter.ledgerTitle') }}</h4>
+      <h2 class="ledger-title">{{ $t('anchorCenter.ledgerTitle') }}</h2>
       <el-table
         v-loading="loading"
         :data="anchors"
@@ -137,6 +137,7 @@
 
       <div class="pagination-wrap">
         <el-pagination
+          ref="paginationRef"
           v-model:current-page="page"
           v-model:page-size="pageSize"
           :total="total"
@@ -204,7 +205,7 @@
             </div>
           </section>
 
-          <h4 class="detail-section-title">{{ $t('anchorCenter.timelineTitle') }}</h4>
+          <h3 class="detail-section-title">{{ $t('anchorCenter.timelineTitle') }}</h3>
           <div class="time-axis">
             <span class="time-chip">
               <span class="time-chip-label">{{ $t('anchorCenter.fieldCreatedAt') }}</span>
@@ -217,7 +218,7 @@
             </span>
           </div>
 
-          <h4 class="detail-section-title">{{ $t('anchorCenter.digestTitle') }}</h4>
+          <h3 class="detail-section-title">{{ $t('anchorCenter.digestTitle') }}</h3>
           <p class="digest-note">{{ $t('anchorCenter.digestSemantics') }}</p>
           <div class="summary-item">
             <span class="summary-label">{{ $t('anchorCenter.digestIncluded') }}</span>
@@ -225,7 +226,7 @@
           </div>
 
           <template v-if="detail.proof_sha256">
-            <h4 class="detail-section-title">{{ $t('anchorCenter.fieldProofSha') }}</h4>
+            <h3 class="detail-section-title">{{ $t('anchorCenter.fieldProofSha') }}</h3>
             <HashText :value="detail.proof_sha256" />
           </template>
 
@@ -258,7 +259,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { Plus, Download, Refresh, Link } from '@element-plus/icons-vue'
@@ -266,8 +267,10 @@ import HashText from '@/components/common/HashText.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import PageHeader from '@/components/common/PageHeader.vue'
 import { getAnchors, getAnchorDetail, buildAnchorBatch, downloadAnchorProof } from '@/api/forensics'
+import { patchPaginationSizeLabel } from '@/utils/a11yPatches'
 
 const { t } = useI18n()
+const paginationRef = ref(null)
 
 // ── 台账列表 ──
 const anchors = ref([])
@@ -436,7 +439,11 @@ const downloadProof = async (row) => {
   }
 }
 
-onMounted(fetchAnchors)
+onMounted(() => {
+  fetchAnchors()
+  // EP 上游补丁：分页「每页条数」选择器补可访问名（详见 utils/a11yPatches.js）
+  nextTick(() => patchPaginationSizeLabel(paginationRef.value?.$el, t('common.pageSize')))
+})
 </script>
 
 <style scoped>

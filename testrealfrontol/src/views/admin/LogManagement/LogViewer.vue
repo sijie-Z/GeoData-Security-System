@@ -16,6 +16,7 @@
       </template>
 
       <ListShell
+        ref="listShellRef"
         :empty="!loading && logList.length === 0"
         :empty-variant="hasActiveFilters ? 'filtered' : 'never'"
         :empty-title="$t('adminLogViewer.noLogs')"
@@ -54,6 +55,7 @@
           <el-select
             v-model="filters.action"
             :placeholder="$t('adminLogViewer.actionType')"
+            :aria-label="$t('adminLogViewer.actionType')"
             clearable
             class="filter-select"
             style="width: 200px;"
@@ -108,15 +110,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Search, RefreshRight, RefreshLeft, Download, User, UserFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getSystemLogs, exportSystemLogs } from '@/api/admin'
 import PageHeader from '@/components/common/PageHeader.vue'
 import ListShell from '@/components/common/ListShell.vue'
+import { patchPaginationSizeLabel } from '@/utils/a11yPatches'
 
 const { t } = useI18n()
+const listShellRef = ref(null)
 
 const loading = ref(false)
 const exporting = ref(false)
@@ -227,6 +231,9 @@ const exportLogs = async () => {
 };
 
 onMounted(() => fetchLogs());
+
+// EP 上游补丁：分页「每页条数」选择器补可访问名（分页 v-if 出现后再补，详见 utils/a11yPatches.js）
+watch(total, () => nextTick(() => patchPaginationSizeLabel(listShellRef.value?.$el, t('common.pageSize'))));
 </script>
 
 <style scoped>

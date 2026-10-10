@@ -137,4 +137,7 @@ onMounted(loadEmployees)
 .admin-notify-page { padding: 24px; max-width: 980px; margin: 0 auto; }
 .notify-card { border-radius: 12px; }
 .notify-form { max-width: 860px; }
+/* axe color-contrast：字数统计（el-input__count-inner）EP 默认 #909399 于白底仅 3.07:1，
+   改用语义 token（默认 --text-3，双模式自适应） */
+.notify-form :deep(.el-input__count-inner) { color: var(--text-3); }
 </style>

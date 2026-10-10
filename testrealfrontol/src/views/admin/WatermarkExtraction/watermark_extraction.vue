@@ -19,6 +19,7 @@
       <div v-if="extractedWatermarkBase64" class="watermark-image-wrapper">
         <WatermarkImage
           :src="`data:image/png;base64,${extractedWatermarkBase64}`"
+          :alt="$t('wmExtract.extractedWatermarkTitle')"
           fit="contain"
           class="watermark-image"
         />
@@ -37,6 +38,7 @@
       <div class="watermark-image-wrapper">
         <WatermarkImage
           :src="`data:image/png;base64,${recoveredBase64}`"
+          :alt="$t('wmExtract.recoveredTitle')"
           fit="contain"
           class="watermark-image"
         />

@@ -13,10 +13,10 @@
 
         <el-divider />
 
-        <h3>{{ $t('empAbout.systemIntro') }}</h3>
+        <h2>{{ $t('empAbout.systemIntro') }}</h2>
         <p>{{ $t('empAbout.systemDescription') }}</p>
 
-        <h3>{{ $t('empAbout.mainFeatures') }}</h3>
+        <h2>{{ $t('empAbout.mainFeatures') }}</h2>
         <ul>
           <li><strong>{{ $t('empAbout.featureDataCatalog') }}</strong> {{ $t('empAbout.featureDataCatalogDesc') }}</li>
           <li><strong>{{ $t('empAbout.featureDataApplication') }}</strong> {{ $t('empAbout.featureDataApplicationDesc') }}</li>
@@ -27,7 +27,7 @@
           <li><strong>{{ $t('empAbout.featureProfile') }}</strong> {{ $t('empAbout.featureProfileDesc') }}</li>
         </ul>
 
-        <h3>{{ $t('empAbout.techDescription') }}</h3>
+        <h2>{{ $t('empAbout.techDescription') }}</h2>
         <p>{{ $t('empAbout.techDetails') }}</p>
 
         <el-divider />
@@ -82,7 +82,7 @@ const { t } = useI18n();
   margin-bottom: 20px;
 }
 
-.about-content h3 {
+.about-content h2 {
   font-size: 18px;
   font-weight: 600;
   color: var(--text-1);

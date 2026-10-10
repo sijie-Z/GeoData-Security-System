@@ -294,7 +294,7 @@ const resetForm = () => {
         label-width="100px"
         style="max-width: 700px;"
       >
-        <h3 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h3>
+        <h2 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h2>
         <el-row :gutter="20">
           <el-col :span="12">
             <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
@@ -326,18 +326,20 @@ const resetForm = () => {
           <el-input v-model="formData.address" type="textarea" :rows="2" :placeholder="$t('employeeMgmt.addressPlaceholder')" />
         </el-form-item>
 
-        <h3 class="form-section-title">{{ $t('employeeMgmt.accountAndSecurity') }}</h3>
+        <h2 class="form-section-title">{{ $t('employeeMgmt.accountAndSecurity') }}</h2>
         <el-form-item :label="$t('employeeMgmt.initialPassword')" prop="password">
           <el-input v-model="formData.password" type="password" show-password :placeholder="$t('employeeMgmt.passwordPlaceholder')" />
         </el-form-item>
 
-        <h3 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h3>
+        <h2 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h2>
         <el-form-item :label="$t('employeeMgmt.uploadPhoto')" prop="photo">
           <el-upload
             v-model:file-list="photoFileList" action="#" list-type="picture-card"
             :limit="1" :auto-upload="false" :on-change="handleFileChange"
             :on-remove="handleRemove" @exceed="handleExceed">
             <el-icon><PlusIcon /></el-icon>
+            <!-- axe aria-command-name：图标触发区补屏幕阅读器可读文本（视觉隐藏） -->
+            <span class="sr-only">{{ $t('employeeMgmt.uploadPhoto') }}</span>
             <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.uploadPhotoTip') }}</div></template>
           </el-upload>
         </el-form-item>

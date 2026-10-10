@@ -78,6 +78,9 @@ defineEmits(['cta'])
 
 .empty-2col__cta {
   margin-top: 2px;
+  /* axe color-contrast：EP plain 主按钮默认 #0070f3 于 light-9 浅底仅 3.98:1；
+     按 design-system el-tag 同款 color-mix 压深文字色（--text-1 参与混合，双模式自适应） */
+  --el-button-text-color: color-mix(in srgb, var(--tint-info-text) 82%, var(--text-1));
 }
 
 .empty-2col__art {

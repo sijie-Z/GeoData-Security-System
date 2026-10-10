@@ -14,6 +14,7 @@
   <el-image
     class="wm-preview-image"
     :src="src"
+    :alt="alt"
     :preview-src-list="previewSrc ? [previewSrc] : []"
     preview-teleported
     :hide-on-click-modal="true"
@@ -38,7 +39,9 @@ const props = defineProps({
   // 同 el-image 的 fit（cover / contain / fill 等）
   fit: { type: String, default: 'cover' },
   // 透传给 el-image 容器的尺寸样式，例如 style="width: 50px; height: 50px;"
-  style: { type: [String, Object], default: '' }
+  style: { type: [String, Object], default: '' },
+  // 替代文本（axe image-alt）：由调用方按场景传入（二维码缩略图/数据预览图等）
+  alt: { type: String, default: '' }
 })
 
 // 预览专用地址：小图经最近邻超采样后的 PNG data URI；thumbnail 的 :src 仍用原图

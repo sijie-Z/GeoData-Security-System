@@ -4,7 +4,7 @@
 
     <el-card class="filter-card" shadow="hover">
       <div class="filter-row">
-        <el-select v-model="statusFilter" :placeholder="$t('recall.statusFilter')" clearable style="width: 150px" @change="onStatusFilterChange">
+        <el-select v-model="statusFilter" :placeholder="$t('recall.statusFilter')" :aria-label="$t('recall.statusFilter')" clearable style="width: 150px" @change="onStatusFilterChange">
           <el-option :label="$t('recall.voting')" value="voting" />
           <el-option :label="$t('recall.approved')" value="approved" />
           <el-option :label="$t('recall.rejected')" value="rejected" />

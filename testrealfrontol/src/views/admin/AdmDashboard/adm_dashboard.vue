@@ -275,8 +275,8 @@
 
         <div class="dl-stats-tables">
           <div class="dl-stats-table">
-            <h4 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopUsers') }}</h4>
-            <el-table :data="dlStats.top_users" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
+            <h3 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopUsers') }}</h3>
+            <el-table ref="dlTopUsersTable" :data="dlStats.top_users" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
               <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
                 <template #default="{ $index }">
                   <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
@@ -294,8 +294,8 @@
             </el-table>
           </div>
           <div class="dl-stats-table">
-            <h4 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopData') }}</h4>
-            <el-table :data="dlStats.top_data" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
+            <h3 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopData') }}</h3>
+            <el-table ref="dlTopDataTable" :data="dlStats.top_data" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
               <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
                 <template #default="{ $index }">
                   <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
@@ -362,7 +362,8 @@
 
       <el-card shadow="hover">
         <template #header><span>{{ $t('adminDashboard.hotDataTop5') }}</span></template>
-        <div class="hot-list">
+        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+        <div class="hot-list" tabindex="0" :aria-label="$t('adminDashboard.hotDataTop5')">
           <div v-for="(item, idx) in hotData.slice(0, 5)" :key="idx" class="hot-item">
             <span class="rank" :class="{ top: idx < 3 }">{{ idx + 1 }}</span>
             <span class="name">{{ item.name || $t('adminDashboard.untitled') }}</span>
@@ -382,7 +383,8 @@
             <el-button text type="primary" size="small" @click="goTo('/admin/logs')">{{ $t('adminDashboard.viewAll') }}</el-button>
           </div>
         </template>
-        <div class="log-list">
+        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+        <div class="log-list" tabindex="0" :aria-label="$t('adminDashboard.recentLogs')">
           <div v-for="(log, idx) in recentLogs" :key="idx" class="log-item">
             <el-tag size="small" :type="getLogType(log.action)">{{ log.action }}</el-tag>
             <span class="log-user">{{ log.username }}</span>
@@ -419,6 +421,7 @@ import {
 import VChart from 'vue-echarts';
 import DataFlowGlobe from '@/components/admin/home/DataFlowGlobe.vue';
 import EmptyState from '@/components/common/EmptyState.vue';
+import { focusTableScrollWraps } from '@/utils/a11yPatches';
 
 // ── ECharts 按需注册：仅本页用到的渲染器 / 图表 / 组件 ──
 use([
@@ -455,6 +458,9 @@ const dlStatsDays = ref(7);
 const dlStatsLoading = ref(false);
 const dlStatsExporting = ref(false);
 const dlStats = ref({ daily: [], top_users: [], top_data: [] });
+// axe scrollable-region-focusable：max-height 表格的内部滚动包裹需可聚焦（EP 上游补丁）
+const dlTopUsersTable = ref(null);
+const dlTopDataTable = ref(null);
 const dlComparison = ref({
   this_week_downloads: 0,
   last_week_downloads: 0,
@@ -1115,6 +1121,9 @@ onMounted(async () => {
     fetchDashboard();
     fetchDownloadStats();
   }, 60000);
+  // EP 上游补丁：max-height 表格的内部滚动包裹补 tabindex/aria-label（详见 utils/a11yPatches.js）
+  focusTableScrollWraps(dlTopUsersTable.value?.$el, t('adminDashboard.dlStatsTopUsers'));
+  focusTableScrollWraps(dlTopDataTable.value?.$el, t('adminDashboard.dlStatsTopData'));
 });
 onActivated(async () => {
   await Promise.all([fetchDashboard(), fetchDownloadStats()]);

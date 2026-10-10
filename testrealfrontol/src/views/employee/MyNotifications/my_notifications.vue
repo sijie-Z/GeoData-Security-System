@@ -35,6 +35,7 @@
 
       <div class="pagination-wrap">
         <el-pagination
+          ref="paginationRef"
           background
           layout="total, sizes, prev, pager, next"
           :total="total"
@@ -59,13 +60,15 @@
 
 <script setup>
 defineOptions({ name: 'EmployeeNotifications' });
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RefreshRight } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';
 import { getNotifications, markNotificationRead as markNotificationReadApi } from '@/api/employee';
+import { patchPaginationSizeLabel } from '@/utils/a11yPatches';
 
 const { t } = useI18n();
+const paginationRef = ref(null);
 
 const loading = ref(false);
 const list = ref([]);
@@ -115,7 +118,11 @@ const openDetail = (row) => {
   detailVisible.value = true;
 };
 
-onMounted(fetchList);
+onMounted(() => {
+  fetchList();
+  // EP 上游补丁：分页「每页条数」选择器补可访问名（详见 utils/a11yPatches.js）
+  nextTick(() => patchPaginationSizeLabel(paginationRef.value?.$el, t('common.pageSize')));
+});
 </script>
 
 <style scoped>
