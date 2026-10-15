@@ -6,12 +6,14 @@
     :class="{ collapsed: isCollapse }"
   >
     <el-menu
+      ref="menuRef"
       router
-      unique-opened
+      :unique-opened="uniqueOpened"
       :popper-offset="0"
       :default-active="$route.path"
       :collapse="isCollapse"
       class="sidebar-menu"
+      @open="onMenuOpen"
     >
       <el-menu-item index="/admin">
         <el-icon><HomeFilled /></el-icon>
@@ -117,7 +119,7 @@ import {
   Picture, Folder, Aim, DataAnalysis, Search, Stamp, Cpu
 } from '@element-plus/icons-vue'
 
-defineProps({
+const props = defineProps({
   isCollapse: {
     type: Boolean,
     default: false
@@ -126,7 +128,60 @@ defineProps({
 
 const route = useRoute()
 const navRef = ref(null)
+const menuRef = ref(null)
+// unique-opened 常态为 true；仅在「豁免重开激活链」的同一批微任务内临时置 false（见 onMenuOpen）
+const uniqueOpened = ref(true)
 let scrollTimers = []
+let exempting = false
+
+// 路由前缀 → 激活项所在子菜单链的「最内层父菜单」index（与上方模板菜单结构一一对应）。
+// unique-opened 会在打开其它菜单时关闭激活项所在的整条链；打开 menuRef.open(链尾) 时
+// EP 会按 indexPath 逐级重开该链，激活项因此保持可见。无匹配路由（如仪表盘）时
+// 维持 unique-opened 原生单开语义。
+const ACTIVE_PARENT_PREFIXES = [
+  ['/admin/approve_application', 'approval'],
+  ['/admin/recall', 'approval'],
+  ['/admin/admin-application', 'approval'],
+  ['/admin/watermark_generation', 'vector-wm'],
+  ['/admin/watermark_embedding', 'vector-wm'],
+  ['/admin/watermark_extraction', 'vector-wm'],
+  ['/admin/raster_watermark_generation', 'raster-wm'],
+  ['/admin/raster_watermark_embedding', 'raster-wm'],
+  ['/admin/raster_watermark_extraction', 'raster-wm'],
+  ['/admin/data', 'data'],
+  ['/admin/employee_management', 'employee'],
+  ['/admin/system/chat', 'employee'],
+  ['/admin/logs', 'system'],
+  ['/admin/system/announcements', 'system'],
+  ['/admin/system/notifications', 'system'],
+  ['/admin/guide', 'system']
+]
+
+const findActiveParent = (path) => {
+  let best = null
+  for (const [prefix, index] of ACTIVE_PARENT_PREFIXES) {
+    if (path.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) {
+      best = { prefix, index }
+    }
+  }
+  return best ? best.index : null
+}
+
+// unique-opened 豁免：打开 B 时若 A 是当前激活项的祖先 → 把 A 重新展开（允许两菜单同开）。
+// 注意 menuRef.open() 内部仍会再走一遍 unique 过滤（那样会把刚打开的 B 关掉），因此先
+// 临时解除 unique-opened、重开激活链后再恢复；整个过程在同一批微任务内完成，
+// 浏览器不会在中间绘制，无视觉闪烁。exempting 防止重开动作自身触发的 @open 递归。
+const onMenuOpen = async (index) => {
+  if (exempting || props.isCollapse) return
+  const activeParent = findActiveParent(route.path)
+  if (!activeParent || activeParent === index) return
+  exempting = true
+  uniqueOpened.value = false
+  await nextTick()
+  menuRef.value?.open(activeParent)
+  uniqueOpened.value = true
+  exempting = false
+}
 
 // 激活项滚入侧栏可视区（block: 'nearest' 语义；只调整侧栏自身滚动容器，绝不滚动外层壳）
 const scrollActiveIntoView = () => {

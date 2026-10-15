@@ -6,11 +6,13 @@
     :class="{ collapsed: isCollapse }"
   >
     <el-menu
+      ref="menuRef"
       router
-      unique-opened
+      :unique-opened="uniqueOpened"
       :default-active="$route.path"
       :collapse="isCollapse"
       class="sidebar-menu"
+      @open="onMenuOpen"
     >
       <el-menu-item index="/employee">
         <el-icon><HomeFilled /></el-icon>
@@ -62,7 +64,7 @@ import {
   HomeFilled, View, EditPen, Download, Clock, Bell, ChatDotRound, UserFilled
 } from '@element-plus/icons-vue'
 
-defineProps({
+const props = defineProps({
   isCollapse: {
     type: Boolean,
     default: false
@@ -71,7 +73,44 @@ defineProps({
 
 const route = useRoute()
 const navRef = ref(null)
+const menuRef = ref(null)
+// unique-opened 常态为 true；仅在「豁免重开激活链」的同一批微任务内临时置 false（见 onMenuOpen）
+const uniqueOpened = ref(true)
 let scrollTimers = []
+let exempting = false
+
+// 路由前缀 → 激活项所在子菜单链的「最内层父菜单」index（与上方模板菜单结构一一对应）。
+// 员工侧栏当前为平铺菜单（无 el-sub-menu），此表为空、机制不生效；保留与 admin 壳
+// 一致的结构，供后续新增子菜单时登记。无匹配路由时维持 unique-opened 原生单开语义。
+const ACTIVE_PARENT_PREFIXES = [
+  // 例如：['/employee/xxx', 'subMenuIndex'],
+]
+
+const findActiveParent = (path) => {
+  let best = null
+  for (const [prefix, index] of ACTIVE_PARENT_PREFIXES) {
+    if (path.startsWith(prefix) && (!best || prefix.length > best.prefix.length)) {
+      best = { prefix, index }
+    }
+  }
+  return best ? best.index : null
+}
+
+// unique-opened 豁免：打开 B 时若 A 是当前激活项的祖先 → 把 A 重新展开（允许两菜单同开）。
+// 注意 menuRef.open() 内部仍会再走一遍 unique 过滤（那样会把刚打开的 B 关掉），因此先
+// 临时解除 unique-opened、重开激活链后再恢复；整个过程在同一批微任务内完成，
+// 浏览器不会在中间绘制，无视觉闪烁。exempting 防止重开动作自身触发的 @open 递归。
+const onMenuOpen = async (index) => {
+  if (exempting || props.isCollapse) return
+  const activeParent = findActiveParent(route.path)
+  if (!activeParent || activeParent === index) return
+  exempting = true
+  uniqueOpened.value = false
+  await nextTick()
+  menuRef.value?.open(activeParent)
+  uniqueOpened.value = true
+  exempting = false
+}
 
 // 激活项滚入侧栏可视区（block: 'nearest' 语义；只调整侧栏自身滚动容器，绝不滚动外层壳）
 const scrollActiveIntoView = () => {
