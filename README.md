@@ -4,6 +4,7 @@
 
 ![Version](https://img.shields.io/badge/version-v3.0-blue?style=flat-square)
 ![CI](https://img.shields.io/github/actions/workflow/status/sijie-Z/GeoData-Security-System/ci.yml?branch=main&style=flat-square&label=CI)
+![a11y](https://img.shields.io/badge/a11y-axe--core%20audited-3fb950?style=flat-square)
 ![Vue 3](https://img.shields.io/badge/Vue-3-42b883?style=flat-square&logo=vue.js)
 ![Flask](https://img.shields.io/badge/Flask-3.x-000000?style=flat-square&logo=flask)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat-square&logo=mysql)
@@ -91,7 +92,7 @@
 | **批量嵌入作业** | 管理端多选申请发起后台批量嵌入（≤50 项/作业，单一活动作业），真实进度轮询、失败项一键重跑、僵尸作业自动清扫 |
 | **下载统计看板** | 管理端仪表盘内置：7/30/90 天窗口（API 亦接受 14）、逐日趋势、Top10 用户 / 数据、周环比，支持 CSV 导出 |
 | **数据看板** | 管理员/员工双视角仪表盘，ECharts 可视化 |
-| **中英双语** | 44 个路由页面、2600+ 翻译键，中英键集完全对齐，运行时一键切换 |
+| **中英双语** | 42 个路由页面、2600+ 翻译键，中英键集完全对齐，运行时一键切换 |
 | **Grafana 监控** | 自动配置 2 块仪表盘（业务概览 11 面板 + 日志 5 面板）与告警规则 |
 | **日志聚合** | Loki + Promtail 集中日志查看 |
 
@@ -103,6 +104,11 @@
 | **设计令牌** | L1 色阶 + L2 语义映射的双值架构，一套 token 驱动两种模式；Element Plus 暗色变量品牌化覆写 |
 | **动效纪律** | 主题切换过渡窗口、逐组件 reduced-motion 降级（循环动画关闭、骨架屏降频） |
 | **辅助体系** | 指标词典（阈值口径解释 + 文档抽屉）、质量看板与鲁棒性实验室首访引导（ElTour）、哈希文本组件、水印图放大预览 |
+| **响应式布局** | 全站 42 条路由 390px 移动端可用（侧栏抽屉 / 顶栏可达 / 无静默裁切），桌面端零回归（像素对照） |
+| **统一页面骨架** | 共享 PageHeader / ListShell 组件（16 页头部 + 5 页列表壳统一：筛选 / 分页 / 空态） |
+| **加载骨架** | 仪表盘高保真骨架屏（几何与真实布局对齐）；骨架即加载态（无遮挡遮罩） |
+| **无障碍** | axe-core 全站 40 路由审计（main+nav 地标 / 图标钮可访问名 / AA 对比度 / 恰一 h1）；EP 上游缺陷采用页内补丁（整体可移除式设计），残余留档项逐条附证据 |
+| **侧栏体验** | 折叠丝滑（修复 EP 折叠换装 301ms 兜底卡顿）、激活项自动滚入、折叠态弹出菜单贴齐、折叠状态记忆、菜单联动豁免激活链（打开其它菜单时激活项不移出视野） |
 
 ### 技术亮点
 
@@ -114,6 +120,7 @@
 - **可验证证据链** — canonical CBOR + Ed25519 + Hash Chain + Merkle + OpenTimestamps 外部锚定
 - **请求拦截器** — Axios 拦截器自动注入 Token、401 自动刷新
 - **路由懒加载** — Dynamic Import 实现代码分割，优化首屏加载
+- **构建分块** — vendor 手动分块（element-plus / echarts / vue 独立 chunk），入口包 ≈1.5 MB → 248 kB（gzip 483 → 80 kB）
 - **3D 可视化** — Three.js 粒子首屏 + 管理端数据流 3D 地球（three-globe，投递弧线实时来自交付统计）
 
 ---
@@ -286,7 +293,7 @@ GeoData-Security-System/
 │   ├── resource/                       # API 资源（含 forensics / batch_embed / 日志与统计导出）
 │   ├── algorithm/                      # 水印算法（矢量 D-QIM/legacy；栅格 5 种；鲁棒性实验引擎）
 │   ├── utils/                          # 缓存 / 指标 / WebSocket / 限流 / 审计日志工具
-│   ├── tests/                          # Pytest 测试套件（43 个 test_*.py / 460+ 测试函数）
+│   ├── tests/                          # Pytest 测试套件（46 个 test_*.py / 583 个用例）
 │   └── Dockerfile
 │
 ├── testrealfrontol/                    # Vue 3 前端
@@ -296,7 +303,7 @@ GeoData-Security-System/
 │   │   ├── composables/useTheme.js     # 主题切换与本地持久化
 │   │   ├── locales/                    # i18n（zh-CN / en-US，2600+ 键，完全对齐）
 │   │   ├── router/index.js             # 路由定义 + 守卫
-│   │   ├── views/                      # 视图组件（48 个，44 条路由）
+│   │   ├── views/                      # 路由视图（42 条路由，含 404 兜底）
 │   │   ├── components/                 # 通用组件（哈希文本 / 通知中心 / 交付链 / 图像对比…）
 │   │   └── api/                        # API 服务层（10 个模块）
 │   └── Dockerfile
@@ -397,15 +404,17 @@ GeoData-Security-System/
 
 ## 质量保障
 
-- **后端测试**：`testrealend/tests/` 460+ 个测试函数（43 个 `test_*.py`；pytest 合计 540+ 用例；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
+- **后端测试**：`testrealend/tests/` 583 个用例（46 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
 
   ```bash
   cd testrealend
   python -m pytest
   ```
 
-- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest）、`frontend`（ESLint + 构建）、`docker`（镜像构建）三个 job
-- **安全扫描**：CodeQL（Python / JavaScript / TypeScript）+ gitleaks 密钥扫描
+- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest 硬门禁，失败即红）、`frontend`（ESLint + 构建）、`docker`（镜像构建 + 容器冒烟：app factory 路由装配 / gunicorn `/api/health` / `nginx -t`）三个 job
+- **安全扫描**：CodeQL（Python / JavaScript / TypeScript）+ gitleaks 密钥扫描 + OpenSSF Scorecard
+- **无障碍审计**：axe-core 全站 40 路由自动化审计（main+nav 地标 / 图标钮可访问名 / AA 对比度 / 恰一 h1）；critical 清零，全站仅余 1 处带证据链的留档项（`information_add` 上传列表，EP 上游 DOM 结构缺陷）
+- **视觉与动效验证方法学**：像素级 diff / rAF 帧剖面 / 几何断言——骨架屏、侧栏、主题令牌升级均按此验证
 - **规范与钩子**：Ruff（lint + format）、ESLint、pre-commit hooks
 
 ---

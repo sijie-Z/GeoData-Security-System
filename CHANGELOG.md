@@ -27,8 +27,8 @@ commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`
 - **对比度 6 处**：login 角色未选中 `#5b6b7d`（4.34→4.99:1）、employee chat append 按钮恢复正常字色、EmptyState CTA（plain 主按钮 3.98→≥4.5）、AdminGuide 三色快捷按钮改 tint 着色式、AdminNotifications 字数统计改语义 token。
 - **可滚动区可聚焦**：hot-list / log-list / announcement-list 补 `tabindex=0 + aria-label`；el-table max-height 内部 `.el-scrollbar__wrap` 经补丁补 `tabindex/aria-label`。
 - **heading-order 10 页清零**（9 页修复 + 1 页留档）：h1→h4 跳级改 h2（WQ/robustness/anchors 台账）、h1→h3 跳级改 h2（information_add/apply_admin/profile/help/about 等）；同步 scoped 样式选择器；H1 计数不变。
-- **留档（含理由）**：`approve_application/dual_channel` 的 label×2 / heading-order×1 / empty-table-header×1（红线冻结 `DualChannelApproval.vue`）；`information_add` `.el-upload-list` 的 list×1（EP 将 `div[role=button]` 触发区直渲进 `<ul>`；DOM 重排实测触发 Vue `insertBefore` 崩溃，证据留档）。
-- **构建分块**（`3131d5c`）：`vite manualChunks` 拆 `vendor-element`（1,061.60 kB）/ `vendor-echarts`（587.30 kB）/ `vendor-vue`（191.24 kB），入口 index **1,502.81 kB → 247.93 kB**（gzip 483.44 → 80.13 kB）。
+- **留档（含理由）**：`information_add` `.el-upload-list` 的 list×1（EP 将 `div[role=button]` 触发区直渲进 `<ul>`；DOM 重排实测触发 Vue `insertBefore` 崩溃，证据留档）；`approve_application/dual_channel` 的 label×2 / heading-order×1 / empty-table-header×1 已由收尾轮修复清零（`b0484f7`，fix/final-polish）。
+- **构建分块**（`3131d5c`）：`vite manualChunks` 拆 `vendor-element`（1,061.60 kB）/ `vendor-echarts`（587.30 kB）/ `vendor-vue`（191.24 kB），入口 index **1,502.81 kB → 247.99 kB**（gzip 483.44 → 80.14 kB）。
 
 ---
 
