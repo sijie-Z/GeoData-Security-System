@@ -1062,6 +1062,7 @@ export default {
     reviewStatus: 'Review Status',
     all: 'All',
     reviewList: 'Review List',
+    expandRow: 'Expand',
     refresh: 'Refresh',
     applyTime: 'Application Time',
     dataType: 'Data Type',

@@ -50,7 +50,7 @@
             </template>
           </el-input>
 
-          <el-select v-model="statusFilter" :placeholder="$t('approval.reviewStatus')" style="width: 120px">
+          <el-select v-model="statusFilter" :placeholder="$t('approval.reviewStatus')" :aria-label="$t('approval.reviewStatus')" style="width: 120px">
             <el-option :label="$t('approval.all')" value="" />
             <el-option :label="$t('approval.pendingFirst')" value="pending_first" />
             <el-option :label="$t('approval.pendingSecond')" value="pending_second" />
@@ -65,10 +65,10 @@
     <el-card class="data-list-card" shadow="hover">
       <template #header>
         <div class="card-header">
-          <h3 class="card-title">
+          <h2 class="card-title">
             <el-icon><component :is="activeDataType === 'vector' ? 'Location' : 'Picture'" /></el-icon>
             {{ activeDataType === 'vector' ? $t('approval.vectorData') : $t('approval.rasterData') }} {{ $t('approval.reviewList') }}
-          </h3>
+          </h2>
           <div class="header-actions">
             <el-button type="primary" :icon="Refresh" @click="refreshData">{{ $t('approval.refresh') }}</el-button>
           </div>
@@ -82,6 +82,10 @@
         v-loading="loading"
       >
         <el-table-column type="expand">
+          <!-- 展开列表头仅对辅助技术可见（axe: empty-table-header；sr-only 零视觉） -->
+          <template #header>
+            <span class="sr-only">{{ $t('approval.expandRow') }}</span>
+          </template>
           <template #default="props">
             <div class="application-detail">
               <el-descriptions :column="2" border>
@@ -229,6 +233,7 @@
       <!-- 分页（is-background 胶囊样式，与存证中心卡内分页同貌） -->
       <div class="pagination-container">
         <el-pagination
+          ref="paginationRef"
           v-model:current-page="currentPage"
           v-model:page-size="pageSize"
           :total="totalCount"
@@ -257,7 +262,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, h } from 'vue'
+import { ref, computed, onMounted, watch, h, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
@@ -271,11 +276,13 @@ import { useUserStore } from '@/stores/userStore.js'
 import { useRouter } from 'vue-router'
 import { Location, Picture, Search, Check, Close, View, Refresh, ChatDotSquare, ChatLineSquare } from '@element-plus/icons-vue'
 import ApplicationLifecycle from '@/components/common/ApplicationLifecycle.vue'
+import { patchPaginationSizeLabel } from '@/utils/a11yPatches'
 
 const { t } = useI18n()
 const router = useRouter()
 
 const userStore = useUserStore()
+const paginationRef = ref(null)
 
 // 数据状态
 const loading = ref(false)
@@ -703,6 +710,8 @@ watch(activeDataType, () => {
 // 生命周期
 onMounted(() => {
   refreshData()
+  // EP 上游补丁：分页「每页条数」选择器补可访问名（详见 utils/a11yPatches.js）
+  nextTick(() => patchPaginationSizeLabel(paginationRef.value?.$el, t('common.pageSize')))
 })
 </script>
 

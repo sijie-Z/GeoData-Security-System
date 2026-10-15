@@ -1062,6 +1062,7 @@ export default {
     reviewStatus: '审核状态',
     all: '全部',
     reviewList: '审核列表',
+    expandRow: '展开',
     refresh: '刷新',
     applyTime: '申请时间',
     dataType: '数据类型',
