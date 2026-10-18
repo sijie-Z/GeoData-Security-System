@@ -11,7 +11,7 @@ from model.Application import Application
 from utils.cache import invalidate_prefix
 from utils.log_helper import log_action
 from utils.metrics import record_application, record_approval
-from utils.required import admin_required, admin_role_required
+from utils.required import admin_required, admin_role_required, ensure_owner_or_admin, has_admin_role
 from utils.user_limiter import normal_limit, relaxed_limit
 from utils.websocket import notify_application_update, notify_new_application
 
@@ -420,6 +420,10 @@ class BatchReviewResource(Resource):
             return {"status": False, "msg": "无效审核阶段"}, 400
         if action not in ("pass", "fail"):
             return {"status": False, "msg": "无效审核动作"}, 400
+        # Stage-scoped sub-role isolation: adm1 reviews first stage, adm2 second.
+        required_role = {"adm1": "admin1", "adm2": "admin2"}[stage]
+        if not has_admin_role(required_role):
+            return {"status": False, "msg": f"无权执行 {stage} 阶段批量审核"}, 403
         if not isinstance(ids, list) or not ids:
             return {"status": False, "msg": "缺少有效申请编号列表"}, 400
         apps = Application.query.filter(Application.id.in_(ids)).all()
@@ -455,7 +459,7 @@ class BatchReviewResource(Resource):
 
 
 class ReReviewResource(Resource):
-    @admin_required
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         app_id = data.get("id") or data.get("application_id")
@@ -534,6 +538,9 @@ class ApplicationQRCodeResource(Resource):
         item = db.session.get(Application, application_id)
         if not item:
             return {"status": False, "msg": "申请不存在"}, 404
+        denial = ensure_owner_or_admin(item)
+        if denial:
+            return denial
 
         qr_base64 = Application._normalize_qrcode(item.qrcode)
         if not qr_base64:
@@ -563,6 +570,9 @@ class ApplicationQRCodeImageResource(Resource):
         item = db.session.get(Application, application_id)
         if not item:
             return {"status": False, "msg": "申请不存在"}, 404
+        denial = ensure_owner_or_admin(item)
+        if denial:
+            return denial
 
         qr_base64 = Application._normalize_qrcode(item.qrcode)
         if not qr_base64:
@@ -591,6 +601,9 @@ class ApplicationDetailResource(Resource):
         item = db.session.get(Application, application_id)
         if not item:
             return {"status": False, "msg": "申请不存在"}, 404
+        denial = ensure_owner_or_admin(item)
+        if denial:
+            return denial
 
         data = item.to_dict()
 

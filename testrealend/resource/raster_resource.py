@@ -27,7 +27,7 @@ from extension.extension import db
 from model.Application import Application
 from model.Raster_Data import RasterData
 from resource.watermark_utils import build_qr_text, get_qr_version, render_compact_qr
-from utils.required import admin_required, admin_role_required
+from utils.required import admin_role_required
 
 
 def _ensure_proj_data_env():
@@ -237,6 +237,42 @@ def _is_within_preview_roots(path):
         if value:
             roots.append(os.path.normcase(os.path.realpath(value)))
     return any(candidate == root or candidate.startswith(root + os.sep) for root in roots)
+
+
+def _is_within_roots(path, roots):
+    """True when *path* (after realpath) equals or lives under one of *roots*."""
+    try:
+        candidate = os.path.normcase(os.path.realpath(path))
+    except OSError:
+        return False
+    for root in roots:
+        normalized = os.path.normcase(os.path.realpath(root))
+        if candidate == normalized or candidate.startswith(normalized + os.sep):
+            return True
+    return False
+
+
+def _crmark_allowed_roots():
+    """Server-owned roots CRMark recover/decode may read caller-supplied paths from.
+
+    Embed writes its stego/meta/map artifacts under ``runtime/crmark``; uploaded
+    and original/extracted watermark files live under the configured storage
+    folders.  Anything else (``C:\\Windows\\...``, ``/etc/...``, another
+    application's files) is rejected as a non-existent path so these endpoints
+    cannot be abused as arbitrary file readers.
+    """
+    roots = [os.path.realpath(os.path.join(current_app.root_path, "runtime", "crmark"))]
+    for key in ("UPLOAD_FOLDER", "WATERMARK_FOLDER", "EXTRACTED_FOLDER"):
+        value = current_app.config.get(key)
+        if value:
+            roots.append(os.path.realpath(value))
+    return roots
+
+
+def _crmark_paths_allowed(*paths):
+    """True when every non-empty path is inside the CRMark data roots."""
+    roots = _crmark_allowed_roots()
+    return all(not path or _is_within_roots(path, roots) for path in paths)
 
 
 class RasterPreviewResource(Resource):
@@ -456,7 +492,7 @@ class CRMarkEmbedResource(Resource):
             logging.error(str(e))
             return {"status": False, "message": "操作失败，请稍后重试"}, 500
 
-    @admin_required
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         app_id = data.get("application_id")
@@ -467,7 +503,7 @@ class CRMarkEmbedResource(Resource):
 
 
 class CRMarkRecoverResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         stego_path = _resolve_existing_path(data.get("stego_path"))
@@ -477,6 +513,8 @@ class CRMarkRecoverResource(Resource):
             return {"status": False, "message": "缺少有效的 stego_path"}, 400
         if not wm_meta_path:
             return {"status": False, "message": "缺少有效的 wm_meta_path"}, 400
+        if not _crmark_paths_allowed(stego_path, wm_map_path, wm_meta_path):
+            return {"status": False, "message": "文件不存在或路径无效"}, 404
 
         # Detect algorithm from metadata
         algo = "lsb"
@@ -493,6 +531,8 @@ class CRMarkRecoverResource(Resource):
             wm_map_path = guessed_meta if os.path.exists(guessed_meta) else None
             if not wm_map_path:
                 return {"status": False, "message": "缺少有效的 wm_map_path"}, 400
+        if wm_map_path and not _crmark_paths_allowed(wm_map_path):
+            return {"status": False, "message": "文件不存在或路径无效"}, 404
         try:
             output_dir = _runtime_dir("crmark", "recovered")
             out_name = f"recovered_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
@@ -510,13 +550,15 @@ class CRMarkRecoverResource(Resource):
 
 
 class CRMarkDecodeResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         stego_path = _resolve_existing_path(data.get("stego_path"))
         wm_meta_path = _resolve_existing_path(data.get("wm_meta_path"))
         if not stego_path or not wm_meta_path:
             return {"status": False, "message": "缺少有效的 stego_path 或 wm_meta_path"}, 400
+        if not _crmark_paths_allowed(stego_path, wm_meta_path):
+            return {"status": False, "message": "文件不存在或路径无效"}, 404
 
         # Detect algorithm from metadata
         algo = "lsb"

@@ -22,13 +22,40 @@ class TestDownload:
         resp = client.post("/api/record_download_file", json={})
         assert resp.status_code in (401, 422)
 
-    def test_record_download(self, client, employee_headers):
+    def test_record_download(self, client, db, employee_headers):
+        """The applicant's own download is recorded with the authoritative fields."""
+        from model.Application import Application
+        from model.Download_Record import DownloadRecord
+
+        item = Application(
+            data_id=1,
+            data_name="record-download",
+            data_alias="record-download",
+            data_type="vector",
+            applicant_name="员工1",
+            applicant_user_number="E001",
+            reason="record download test",
+            adm1_statu=True,
+            adm2_statu=True,
+            # Keep this row outside dashboard aggregation windows (same reason
+            # as the other seeded applications in the suite).
+            application_submission_time=datetime.now(UTC) - timedelta(days=30),
+        )
+        db.session.add(item)
+        db.session.commit()
+
         resp = client.post(
             "/api/record_download_file",
             headers=employee_headers,
-            json={"application_id": 1, "applicant_user_number": "E001", "download_user_number": "E001"},
+            json={"application_id": item.id, "data_id": 1, "fileName": "record.zip"},
         )
-        assert resp.status_code in (200, 201, 400, 404, 500)
+        assert resp.status_code == 200, resp.get_data(as_text=True)
+
+        record = DownloadRecord.query.filter_by(application_id=item.id).order_by(DownloadRecord.id.desc()).first()
+        assert record is not None
+        assert record.download_user_number == "E001"
+        assert record.applicant_user_number == "E001"
+        assert record.filename == "record.zip"
 
 
 class TestTokenDownloadFlow:

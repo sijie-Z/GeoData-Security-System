@@ -1,4 +1,6 @@
+import logging
 import os
+import secrets
 
 # Resolve the project root (parent of this config file)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -6,11 +8,37 @@ PROJECT_ROOT = os.path.dirname(BASE_DIR)
 DATA_DIR = os.path.join(PROJECT_ROOT, "test")
 
 
+def _resolve_secret(name):
+    """Return ``(value, from_env)``; an unset secret gets a random per-process value.
+
+    The old public defaults (``dev-only-key-replace-in-production``) let anyone
+    forge session cookies / JWTs on a deployment that forgot to configure the
+    environment.  Generating a throwaway key keeps local development working
+    (tokens simply die on restart) while removing the known-secret footgun.
+    """
+    value = os.environ.get(name)
+    if value:
+        return value, True
+    return secrets.token_hex(32), False
+
+
+_SECRET_KEY_VALUE, _SECRET_KEY_FROM_ENV = _resolve_secret("SECRET_KEY")
+_JWT_SECRET_KEY_VALUE, _JWT_SECRET_KEY_FROM_ENV = _resolve_secret("JWT_SECRET_KEY")
+_SECRETS_FROM_ENV = _SECRET_KEY_FROM_ENV and _JWT_SECRET_KEY_FROM_ENV
+_APP_ENV = os.environ.get("FLASK_ENV", "development")
+
+if not _SECRETS_FROM_ENV and _APP_ENV not in ("testing", "production"):
+    logging.getLogger(__name__).warning(
+        "SECRET_KEY/JWT_SECRET_KEY 未通过环境变量配置：本次启动已生成临时随机密钥，"
+        "重启后所有已签发的会话/令牌都会失效。本地开发可接受；生产环境必须设置这两个变量。"
+    )
+
+
 class Config:
     """Base configuration. All sensitive values must be set via environment variables."""
 
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-only-key-replace-in-production")
-    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "dev-only-jwt-key-replace-in-production")
+    SECRET_KEY = _SECRET_KEY_VALUE
+    JWT_SECRET_KEY = _JWT_SECRET_KEY_VALUE
 
     # File storage
     UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.join(DATA_DIR, "upload_folder"))
@@ -88,28 +116,23 @@ class Config:
 class DevelopmentConfig(Config):
     DEBUG = True
 
-    def __init__(self):
-        super().__init__()
-        insecure = {"dev-only-key-replace-in-production", "dev-only-jwt-key-replace-in-production"}
-        if self.SECRET_KEY in insecure or self.JWT_SECRET_KEY in insecure:
-            import logging
-
-            logging.warning("Using insecure dev keys — set SECRET_KEY and JWT_SECRET_KEY env vars for production")
-
 
 class ProductionConfig(Config):
     DEBUG = False
 
     def __init__(self):
         super().__init__()
-        insecure = {"dev-only-key-replace-in-production", "dev-only-jwt-key-replace-in-production"}
-        if self.SECRET_KEY in insecure or self.JWT_SECRET_KEY in insecure:
+        if not _SECRETS_FROM_ENV:
             raise RuntimeError("Production requires SECRET_KEY and JWT_SECRET_KEY environment variables")
 
 
 class TestingConfig(Config):
     TESTING = True
     DEBUG = True
+    # Deterministic fallback keeps tests hermetic when no env vars are set;
+    # conftest.py sets explicit test keys, so this only covers other runners.
+    SECRET_KEY = os.environ.get("SECRET_KEY") or "test-secret-key"
+    JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY") or "test-jwt-secret-key"
     # Tests must stay hermetic: point the default engine at SQLite too, so a
     # query whose bind cannot be resolved (e.g. aggregate Selects without a
     # mapped entity) lands on the same test DB instead of the default MySQL
@@ -131,4 +154,10 @@ def get_config():
     env = os.environ.get("FLASK_ENV", "development")
     if env == "testing":
         return TestingConfig
-    return ProductionConfig if env == "production" else DevelopmentConfig
+    if env == "production":
+        # ``from_object`` never instantiates the class, so ProductionConfig's
+        # __init__ guard alone would not fire here — enforce it explicitly.
+        if not _SECRETS_FROM_ENV:
+            raise RuntimeError("Production requires SECRET_KEY and JWT_SECRET_KEY environment variables")
+        return ProductionConfig
+    return DevelopmentConfig

@@ -67,6 +67,7 @@ services:
       FLASK_ENV: production
       SECRET_KEY: ${SECRET_KEY:?请复制 .env.example 为 .env 并设置 SECRET_KEY}
       JWT_SECRET_KEY: ${JWT_SECRET_KEY:?请复制 .env.example 为 .env 并设置 JWT_SECRET_KEY}
+      QR_SECRET_KEY: ${QR_SECRET_KEY:?请复制 .env.example 为 .env 并设置 QR_SECRET_KEY}
       MYSQL_URI: "mysql+mysqldb://root:${MYSQL_ROOT_PASSWORD:?请复制 .env.example 为 .env 并设置 MYSQL_ROOT_PASSWORD}@mysql/${MYSQL_DATABASE:-esri_test}"
       POSTGRES_URI: "postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?请复制 .env.example 为 .env 并设置 POSTGRES_PASSWORD}@postgres/${POSTGRES_DB:-esri_test}"
       REDIS_URL: "redis://redis:6379/0"

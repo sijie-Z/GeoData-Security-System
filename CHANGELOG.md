@@ -36,6 +36,21 @@ commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`
 - **CI axe 持续门禁（`a11y` job）**：`testrealfrontol/scripts/a11y-smoke.mjs`（playwright + `@axe-core/playwright`，固定版本 `playwright@1.64.1` / `@axe-core/playwright@4.14.0`）扫描公开页 `/login` `/register` `/first_home` 与认证页（`/admin`、`/admin/employee_management/information_list`、`/admin/watermark-quality`、`/employee`、`/employee/data_viewing`、`/employee/chat`）；`critical`/`serious` 违规即红（moderate/minor 仅打印）。CI 以 `FLASK_ENV=testing` SQLite + `testrealend/scripts/ci_seed.py` 种子用户（admin/admin123、TEST001/test123456）起后端，vite dev server（:4173）代理到 :5003；报告 `a11y-report.json` 作为 artifact 上传。门禁首跑即抓出 `/register` 两处对比度 serious（头像占位文字 `#94a3b8` 2.45:1、EP info 提示 `#909399` 3.07:1），本轮已修复为 `#5b6b7d`（5.22/5.46:1）。
 - **门禁留档**：`information_add` 不纳入默认扫描 —— `.el-upload-list` 的 axe `list`（serious）为 EP 上游渲染缺陷（`div[role=button]` 直渲进 `<ul>`），DOM 重排实测触发 Vue `insertBefore` 崩溃；解除条件见 `a11y-smoke.mjs` 顶注。
 
+### 波 4 · 安全加固（`fix/authz-round2`，本地分支，2026-10-18）
+
+commits：`2a9d833`（主体）+ `446dc21`（对抗评审收口：CRMark recover/decode 限 admin2、QR_SECRET_KEY 生产 fail-closed、test_download 断言恢复）。依据只读安全审计（二审）修复 **4 高危 + 19 中危**，并收紧会话与密钥默认值：
+
+- **高危 IDOR/越权**：`emp_download_zip` / `request_download_token` 增加 owner-or-admin（JWT number 比对申请人，杜绝枚举 `application_id` 下载他人已批数据）；申请详情与二维码三端点（`/api/applications/<id>`、`/qrcode`、`/qrcode/image`）PII 仅申请人或 admin 可读；`DELETE /api/data/<type>/<id>/delete` 加 admin 门，破坏性删除 + GeoServer 图层删除不再对任意登录用户开放。
+- **数据管理写端点**：PUT 数据元信息、SHP/栅格上传、GeoServer 手动发布统一 `@admin_required`（前端均为 admin 路由）。
+- **水印取证写面**：verification_records 与原始/提取/比对水印上传加 admin 门；`get_original_watermark` 改 owner-or-admin；`record_download_file` 禁止为他人申请伪造下载审计。
+- **CRMark 任意路径**：recover/decode 解析后的 realpath 必须位于 `runtime/crmark` 与 UPLOAD/WATERMARK/EXTRACTED 根之下，越界 404；两端点同时限 `admin2`（与调用页 RasterWatermarkEmbedding 一致，避免跨租户取回/解码 stego 与原图）；正常 embed → decode/recover 流程回归通过。
+- **审核子角色隔离**：`batch_review` 按 stage 映射 adm1→admin1 / adm2→admin2；`re_review`、`crmark/embed`、`watermark/batch_embed` 限 admin2；`watermark/batch_generate` 限 admin1；superadmin 始终放行。
+- **跨角色信息暴露**：`/api/admin/nav/tree`、`/api/admin/nav/list` 仅 admin（employee 同名路径不受影响）。
+- **会话**：logout 同时撤销 refresh token（显式 jti + 每身份登出标记，兼容前端无 body 的 logout），refresh 端点两条路径均校验；新签发 refresh 带亚秒级 `iat_ts`。
+- **JWT role claim 收紧**：role claim 显式非 admin* 时直接 403，不再回退 `AdmAccount`（工号撞 `adm_number` 不再越权）；仅无 role claim 的 legacy token 保留 DB 兜底。
+- **密钥默认值**：未配置 `SECRET_KEY` / `JWT_SECRET_KEY` 时每次启动生成 `secrets.token_hex` 临时密钥并打印 WARNING；Production 仍 fail-closed，TestingConfig 不受影响。`QR_SECRET_KEY` 同类处置：生产缺失或等于旧公开常量时启动 raise，dev/testing 可临时随机且 QR 往返回归通过；`docker-compose.yml` 与 `.env.example` 同步补为必填。
+- **测试**：新增 `tests/test_authz_round2.py` **81** 个安全回归用例（含参数化的员工/adm1/adm3 拒绝用例；每个修复端点"越权拒绝 + 合法放行"双用例；`test_download` 成功路径恢复为 200 + 实体内容断言）；全量 **664 passed / 0 failed**；`ruff check` + `ruff format --check` 双绿。
+
 ---
 
 ## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)

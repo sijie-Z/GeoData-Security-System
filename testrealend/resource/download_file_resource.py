@@ -18,6 +18,7 @@ from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
 from utils.metrics import record_download
+from utils.required import ensure_owner_or_admin
 from utils.time_fmt import utc_iso_z
 
 
@@ -156,6 +157,9 @@ class EmpDownloadZipResource(Resource):
         app = db.session.get(Application, app_id)
         if not app or app.adm1_statu != True or app.adm2_statu != True:
             return {"status": False, "msg": "无下载权限"}, 403
+        denial = ensure_owner_or_admin(app)
+        if denial:
+            return denial
 
         # Check if data has been recalled
         if app.is_recalled:
@@ -183,15 +187,26 @@ class RecordDownloadResource(Resource):
     def post(self):
         data = request.get_json() or {}
         identity = get_jwt_identity() or {}
-        user_number = identity.get("number", "")
+        user_number = identity.get("number", "") if isinstance(identity, dict) else str(identity)
+        app_id = data.get("application_id")
+        if not app_id:
+            return {"status": False, "msg": "缺少申请编号"}, 400
+        app = db.session.get(Application, app_id)
+        if not app:
+            return {"status": False, "msg": "申请不存在"}, 404
+        # A client must not be able to forge audit rows for someone else's
+        # application by passing its id.
+        denial = ensure_owner_or_admin(app)
+        if denial:
+            return denial
         new_record = DownloadRecord(
-            application_id=data.get("application_id"),
+            application_id=app.id,
             data_id=data.get("data_id"),
             data_name=data.get("dataName", data.get("fileName") or f"data_{data.get('data_id')}"),
             download_user_number=user_number,
             download_time=datetime.now(UTC),
             download_ip=request.remote_addr,
-            applicant_user_number=user_number,
+            applicant_user_number=app.applicant_user_number,
             filename=data.get("fileName") or f"data_{data.get('data_id')}",
             timestamp=datetime.now(UTC),
         )
@@ -235,6 +250,9 @@ class RequestDownloadTokenResource(Resource):
         app = db.session.get(Application, app_id)
         if not app:
             return {"status": False, "msg": "申请不存在"}, 404
+        denial = ensure_owner_or_admin(app)
+        if denial:
+            return denial
         if app.adm1_statu is not True or app.adm2_statu is not True:
             return {"status": False, "msg": "该申请尚未通过审批"}, 403
         if app.is_recalled:
