@@ -503,7 +503,7 @@ class CRMarkEmbedResource(Resource):
 
 
 class CRMarkRecoverResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         stego_path = _resolve_existing_path(data.get("stego_path"))
@@ -550,7 +550,7 @@ class CRMarkRecoverResource(Resource):
 
 
 class CRMarkDecodeResource(Resource):
-    @jwt_required()
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         stego_path = _resolve_existing_path(data.get("stego_path"))

@@ -4,10 +4,49 @@ import hashlib
 import hmac
 import logging
 import os
+import secrets
 from datetime import UTC, datetime
 
 import qrcode
 from PIL import Image
+
+# Public defaults that must never be used to sign production QR codes.
+LEGACY_QR_SECRET_KEYS = {
+    "dev-only-qr-key-replace-in-production",
+    "INSECURE-PRODUCTION-FALLBACK-SET-ENV-VAR",
+}
+
+
+def _resolve_qr_secret():
+    """Resolve the QR HMAC key with production fail-closed semantics.
+
+    * production + missing/public default -> RuntimeError at startup;
+    * development/testing + missing -> per-process random key (existing QR
+      signatures stop verifying after a restart, acceptable outside prod);
+    * an explicitly configured strong key is always used.
+    """
+    value = os.environ.get("QR_SECRET_KEY")
+    flask_env = os.environ.get("FLASK_ENV", "development")
+    if value and value not in LEGACY_QR_SECRET_KEYS:
+        return value
+    if flask_env == "production":
+        raise RuntimeError(
+            "Production requires a strong QR_SECRET_KEY environment variable "
+            "(missing or public default value is not allowed)"
+        )
+    if not value:
+        if flask_env != "testing":
+            logging.warning(
+                "QR_SECRET_KEY 未配置：本次启动使用临时随机密钥，重启后既有二维码签名将无法验证。"
+                " 生产环境必须设置该变量。"
+            )
+        return secrets.token_hex(32)
+    logging.warning("QR_SECRET_KEY 使用了公开默认值——生产环境会拒绝启动，请尽快更换强密钥")
+    return value
+
+
+# Secret key for QR signature
+QR_SECRET_KEY = _resolve_qr_secret()
 
 
 def safe_extract_zip(zip_ref, extract_dir):
@@ -17,17 +56,6 @@ def safe_extract_zip(zip_ref, extract_dir):
         if not target.startswith(os.path.realpath(extract_dir)):
             raise ValueError(f"非法文件路径: {member}")
     zip_ref.extractall(extract_dir)
-
-
-# Secret key for QR signature
-QR_SECRET_KEY = os.environ.get("QR_SECRET_KEY")
-if not QR_SECRET_KEY:
-    if os.environ.get("FLASK_DEBUG", "").lower() in ("1", "true", "yes"):
-        logging.warning("QR_SECRET_KEY not set — using dev fallback. Set this env var in production.")
-        QR_SECRET_KEY = "dev-only-qr-key-replace-in-production"
-    else:
-        logging.error("QR_SECRET_KEY not set in production! QR signatures will be insecure.")
-        QR_SECRET_KEY = "INSECURE-PRODUCTION-FALLBACK-SET-ENV-VAR"
 
 
 def _module_majority_images(img):

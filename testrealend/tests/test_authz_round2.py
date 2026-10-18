@@ -534,6 +534,26 @@ class TestCRMarkPathConfinement:
         assert resp.status_code == 200, resp.get_data(as_text=True)
 
 
+class TestCRMarkRoleGate:
+    """CRMark recover/decode expose tenant stego/meta/original artifacts, so they
+    carry the same adm2 gate as the embedding page that calls them
+    (RasterWatermarkEmbedding, router adminRole 'adm2')."""
+
+    DENIED_ROLE_FIXTURES = ("employee_headers", "auth_headers", "adm3_headers")
+
+    @pytest.mark.parametrize("fixture_name", DENIED_ROLE_FIXTURES)
+    def test_recover_requires_adm2(self, client, db, request, fixture_name):
+        headers = request.getfixturevalue(fixture_name)
+        resp = client.post("/api/crmark/recover", json={}, headers=headers)
+        assert resp.status_code == 403, resp.get_data(as_text=True)
+
+    @pytest.mark.parametrize("fixture_name", DENIED_ROLE_FIXTURES)
+    def test_decode_requires_adm2(self, client, db, request, fixture_name):
+        headers = request.getfixturevalue(fixture_name)
+        resp = client.post("/api/crmark/decode", json={}, headers=headers)
+        assert resp.status_code == 403, resp.get_data(as_text=True)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # §0.2 — review sub-role isolation
 # ─────────────────────────────────────────────────────────────────────────────
@@ -870,7 +890,7 @@ class TestRoleClaimStrictness:
 
 
 def _run_python(code, extra_env):
-    env = {k: v for k, v in os.environ.items() if k not in ("SECRET_KEY", "JWT_SECRET_KEY")}
+    env = {k: v for k, v in os.environ.items() if k not in ("SECRET_KEY", "JWT_SECRET_KEY", "QR_SECRET_KEY")}
     env.update(extra_env)
     return subprocess.run(
         [sys.executable, "-c", code],
@@ -902,3 +922,52 @@ class TestSecretFallback:
         result = _run_python(code, {"FLASK_ENV": "production"})
         assert result.returncode == 0, result.stderr
         assert result.stdout.strip() == "RAISED"
+
+
+class TestQRSecretFallback:
+    """QR signatures use their own HMAC key; it must fail closed in production
+    just like SECRET_KEY/JWT_SECRET_KEY, while dev/testing keeps working."""
+
+    def test_production_requires_qr_secret(self):
+        result = _run_python("import resource.watermark_utils", {"FLASK_ENV": "production"})
+        assert result.returncode != 0
+        assert "QR_SECRET_KEY" in result.stderr
+
+    def test_production_rejects_public_default_qr_secret(self):
+        result = _run_python(
+            "import resource.watermark_utils",
+            {"FLASK_ENV": "production", "QR_SECRET_KEY": "dev-only-qr-key-replace-in-production"},
+        )
+        assert result.returncode != 0
+        assert "QR_SECRET_KEY" in result.stderr
+
+    def test_testing_qr_secret_is_not_public_and_roundtrips(self):
+        import hashlib
+        import hmac
+        from types import SimpleNamespace
+
+        from resource.watermark_utils import LEGACY_QR_SECRET_KEYS, QR_SECRET_KEY, build_qr_text
+
+        assert QR_SECRET_KEY not in LEGACY_QR_SECRET_KEYS
+        item = SimpleNamespace(
+            id=1,
+            data_alias="qr-roundtrip",
+            data_id=1,
+            data_type="vector",
+            applicant_name="员工1",
+            applicant_user_number="E001",
+            application_submission_time=None,
+            adm1_statu=True,
+            adm2_statu=True,
+            adm1_name=None,
+            adm1_user_number=None,
+            adm1_approval_time=None,
+            adm2_name=None,
+            adm2_user_number=None,
+            adm2_approval_time=None,
+        )
+        text, signature = build_qr_text(item, {})
+        content_to_sign = text.split("\nSignature: ")[0]
+        expected = hmac.new(QR_SECRET_KEY.encode(), content_to_sign.encode(), hashlib.sha256).hexdigest()[:16]
+        assert signature == expected
+        assert f"Signature: {signature}" in text
