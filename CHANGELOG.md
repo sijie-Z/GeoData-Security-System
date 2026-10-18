@@ -30,6 +30,21 @@ commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`
 - **留档（含理由）**：`information_add` `.el-upload-list` 的 list×1（EP 将 `div[role=button]` 触发区直渲进 `<ul>`；DOM 重排实测触发 Vue `insertBefore` 崩溃，证据留档）；`approve_application/dual_channel` 的 label×2 / heading-order×1 / empty-table-header×1 已由收尾轮修复清零（`b0484f7`，fix/final-polish）。
 - **构建分块**（`3131d5c`）：`vite manualChunks` 拆 `vendor-element`（1,061.60 kB）/ `vendor-echarts`（587.30 kB）/ `vendor-vue`（191.24 kB），入口 index **1,502.81 kB → 247.99 kB**（gzip 483.44 → 80.14 kB）。
 
+### 波 4 · 安全加固（`fix/authz-round2`，本地分支，2026-10-18）
+
+commit：`2a9d833`。依据只读安全审计（二审）修复 **4 高危 + 19 中危**，并收紧会话与密钥默认值：
+
+- **高危 IDOR/越权**：`emp_download_zip` / `request_download_token` 增加 owner-or-admin（JWT number 比对申请人，杜绝枚举 `application_id` 下载他人已批数据）；申请详情与二维码三端点（`/api/applications/<id>`、`/qrcode`、`/qrcode/image`）PII 仅申请人或 admin 可读；`DELETE /api/data/<type>/<id>/delete` 加 admin 门，破坏性删除 + GeoServer 图层删除不再对任意登录用户开放。
+- **数据管理写端点**：PUT 数据元信息、SHP/栅格上传、GeoServer 手动发布统一 `@admin_required`（前端均为 admin 路由）。
+- **水印取证写面**：verification_records 与原始/提取/比对水印上传加 admin 门；`get_original_watermark` 改 owner-or-admin；`record_download_file` 禁止为他人申请伪造下载审计。
+- **CRMark 任意路径**：recover/decode 解析后的 realpath 必须位于 `runtime/crmark` 与 UPLOAD/WATERMARK/EXTRACTED 根之下，越界 404；正常 embed → decode/recover 流程回归通过。
+- **审核子角色隔离**：`batch_review` 按 stage 映射 adm1→admin1 / adm2→admin2；`re_review`、`crmark/embed`、`watermark/batch_embed` 限 admin2；`watermark/batch_generate` 限 admin1；superadmin 始终放行。
+- **跨角色信息暴露**：`/api/admin/nav/tree`、`/api/admin/nav/list` 仅 admin（employee 同名路径不受影响）。
+- **会话**：logout 同时撤销 refresh token（显式 jti + 每身份登出标记，兼容前端无 body 的 logout），refresh 端点两条路径均校验；新签发 refresh 带亚秒级 `iat_ts`。
+- **JWT role claim 收紧**：role claim 显式非 admin* 时直接 403，不再回退 `AdmAccount`（工号撞 `adm_number` 不再越权）；仅无 role claim 的 legacy token 保留 DB 兜底。
+- **密钥默认值**：未配置 `SECRET_KEY` / `JWT_SECRET_KEY` 时每次启动生成 `secrets.token_hex` 临时密钥并打印 WARNING；Production 仍 fail-closed，TestingConfig 不受影响。
+- **测试**：新增 `tests/test_authz_round2.py` **72** 个安全回归用例（每个修复端点"越权拒绝 + 合法放行"双用例）；全量 **655 passed / 0 failed**；`ruff check` + `ruff format --check` 双绿。
+
 ---
 
 ## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)
