@@ -80,7 +80,8 @@
 
           <div class="auth-card-footer">
             <span>{{ $t('login.noAccount') }}</span>
-            <el-link type="primary" @click="register" :underline="false" class="auth-link">
+            <!-- href 保留可爬锚点（Lighthouse crawlable-anchors）；左键普通点击在 register() 内拦截默认行为，仍走 SPA -->
+            <el-link type="primary" href="/register" @click="register" :underline="false" class="auth-link">
               {{ $t('login.registerNow') }}
             </el-link>
           </div>
@@ -172,7 +173,13 @@ const login = async () => {
   }
 };
 
-const register = () => { router.push('/register'); };
+const register = (e) => {
+  // 带 href 的锚点需保留原生语义；普通左键点击拦截默认导航，改由 router 完成 SPA 跳转，
+  // 修饰键点击（Ctrl/Cmd/Shift/Alt）放行，保留浏览器“新标签页打开”等原生行为
+  if (e && ((typeof e.button === 'number' && e.button !== 0) || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey)) return;
+  e?.preventDefault?.();
+  router.push('/register');
+};
 
 // 胶囊滑块动画逻辑
 const capsuleStyle = computed(() => ({
