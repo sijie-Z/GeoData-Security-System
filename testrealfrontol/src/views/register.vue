@@ -446,7 +446,10 @@ const login = () => { router.push('/login'); };
   justify-content: center;
   height: 100%;
   gap: 4px;
-  color: #94a3b8;
+  /* axe color-contrast: #94a3b8 on #f8fafc = 2.45:1; #5b6b7d = 5.22:1.
+     Fixed color (not var(--text-3)) because this page's surfaces are hardcoded
+     light and --text-3 flips to a light value under html.dark. */
+  color: #5b6b7d;
 }
 
 .avatar-text {
@@ -477,6 +480,12 @@ const login = () => { router.push('/login'); };
 
 .avatar-tips {
   text-align: center;
+}
+
+/* axe color-contrast: EP info text #909399 on white = 3.07:1; #5b6b7d = 5.46:1.
+   Fixed color for the same hardcoded-light-surface reason as .avatar-placeholder. */
+.avatar-tips :deep(.el-text) {
+  color: #5b6b7d;
 }
 
 /* ---------- 提交按钮 ---------- */

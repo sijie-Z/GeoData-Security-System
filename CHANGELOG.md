@@ -30,6 +30,12 @@ commits：`3e1b639`（地标骨架）、`f6789cf`（axe 修复波）、`3131d5c`
 - **留档（含理由）**：`information_add` `.el-upload-list` 的 list×1（EP 将 `div[role=button]` 触发区直渲进 `<ul>`；DOM 重排实测触发 Vue `insertBefore` 崩溃，证据留档）；`approve_application/dual_channel` 的 label×2 / heading-order×1 / empty-table-header×1 已由收尾轮修复清零（`b0484f7`，fix/final-polish）。
 - **构建分块**（`3131d5c`）：`vite manualChunks` 拆 `vendor-element`（1,061.60 kB）/ `vendor-echarts`（587.30 kB）/ `vendor-vue`（191.24 kB），入口 index **1,502.81 kB → 247.99 kB**（gzip 483.44 → 80.14 kB）。
 
+### 波 3 · 工程收尾与 CI 无障碍门禁（2026-10-18，fix/final-polish + fix/ci-a11y，本地分支）
+
+- **fix/final-polish 侧栏与审批页收尾**：侧栏 S1–S5（高度填满/自身滚动/激活项滚入/过渡与折叠持久化、折叠态弹出菜单贴齐、`unique-opened` 豁免激活项父菜单，`f5ed885`）；S2 性能（图表 `autoresize` 加 `throttle:160`、取消 EP 折叠换装 301ms 兜底等待，`512622f`/`7559bc3`）；DualChannel 审批页 axe 清零（`b0484f7`）。
+- **CI axe 持续门禁（`a11y` job）**：`testrealfrontol/scripts/a11y-smoke.mjs`（playwright + `@axe-core/playwright`，固定版本 `playwright@1.64.1` / `@axe-core/playwright@4.14.0`）扫描公开页 `/login` `/register` `/first_home` 与认证页（`/admin`、`/admin/employee_management/information_list`、`/admin/watermark-quality`、`/employee`、`/employee/data_viewing`、`/employee/chat`）；`critical`/`serious` 违规即红（moderate/minor 仅打印）。CI 以 `FLASK_ENV=testing` SQLite + `testrealend/scripts/ci_seed.py` 种子用户（admin/admin123、TEST001/test123456）起后端，vite dev server（:4173）代理到 :5003；报告 `a11y-report.json` 作为 artifact 上传。门禁首跑即抓出 `/register` 两处对比度 serious（头像占位文字 `#94a3b8` 2.45:1、EP info 提示 `#909399` 3.07:1），本轮已修复为 `#5b6b7d`（5.22/5.46:1）。
+- **门禁留档**：`information_add` 不纳入默认扫描 —— `.el-upload-list` 的 axe `list`（serious）为 EP 上游渲染缺陷（`div[role=button]` 直渲进 `<ul>`），DOM 重排实测触发 Vue `insertBefore` 崩溃；解除条件见 `a11y-smoke.mjs` 顶注。
+
 ---
 
 ## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)
