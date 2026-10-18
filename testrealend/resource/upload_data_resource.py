@@ -14,6 +14,7 @@ from extension.extension import db, limiter
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.ai_config import _chat_completions_url, _get_ai_config, _get_ai_timeout
+from utils.required import admin_required
 
 
 def _bg_publish_geoserver(file_path, layer_name, data_type, record_id, model_class, app):
@@ -176,7 +177,7 @@ def _cleanup_upload_artifacts(save_path, extract_dir):
 
 
 class ShpDataUploadResource(Resource):
-    @jwt_required()
+    @admin_required
     @limiter.limit("10 per minute")
     def post(self):
         data_alias = (request.form.get("data_alias") or "").strip()
@@ -298,7 +299,7 @@ class ShpDataUploadResource(Resource):
 
 
 class RasterDataUploadResource(Resource):
-    @jwt_required()
+    @admin_required
     @limiter.limit("10 per minute")
     def post(self):
         data_alias = (request.form.get("data_alias") or "").strip()
@@ -382,7 +383,7 @@ class RasterDataUploadResource(Resource):
 class GeoServerPublishResource(Resource):
     """手动触发将已上传的数据发布到 GeoServer（用于 GeoServer 未运行时上传的数据）"""
 
-    @jwt_required()
+    @admin_required
     def post(self):
         data = request.get_json() or {}
         data_type = data.get("data_type")  # "vector" or "raster"
@@ -472,7 +473,7 @@ class GeoServerStatusResource(Resource):
 class DataEditResource(Resource):
     """编辑数据记录的元信息（简介、分类、别名）"""
 
-    @jwt_required()
+    @admin_required
     def put(self, data_type, data_id):
         """Update metadata for a vector or raster record."""
         data = request.get_json() or {}
@@ -576,7 +577,7 @@ class DataListResource(Resource):
 class DataDeleteResource(Resource):
     """删除数据记录"""
 
-    @jwt_required()
+    @admin_required
     def delete(self, data_type, data_id):
         try:
             if data_type == "vector":

@@ -29,7 +29,7 @@ from resource.watermark_utils import (
 )
 from utils.log_helper import log_action
 from utils.metrics import record_watermark
-from utils.required import admin_required
+from utils.required import admin_required, admin_role_required, ensure_owner_or_admin
 
 
 def _optional_form(name, max_len):
@@ -56,7 +56,7 @@ def _parse_iso_dt(raw):
 class UploadOriginalWatermarkResource(Resource):
     """Upload original watermark image for a specific application."""
 
-    @jwt_required()
+    @admin_required
     def post(self):
         if "file" not in request.files:
             return {"status": False, "msg": "没有上传文件"}, 400
@@ -98,7 +98,7 @@ class UploadOriginalWatermarkResource(Resource):
 class UploadExtractedWatermarkResource(Resource):
     """Upload extracted watermark image and compute NC against original."""
 
-    @jwt_required()
+    @admin_required
     def post(self):
         if "file" not in request.files:
             return {"status": False, "msg": "没有上传文件"}, 400
@@ -208,7 +208,7 @@ class UploadOriAndExtWatermarkResource(Resource):
       400: {description: 缺少文件}
     """
 
-    @jwt_required()
+    @admin_required
     def post(self):
         original_file = request.files.get("originalFile")
         extracted_file = request.files.get("extractedFile")
@@ -291,7 +291,12 @@ class GetOriginalWatermarkResource(Resource):
         data = request.get_json() or {}
         app_id = data.get("number")
         item = db.session.get(Application, app_id)
-        if not item or not item.qrcode:
+        if not item:
+            return {"status": False, "msg": "未找到对应水印"}, 404
+        denial = ensure_owner_or_admin(item)
+        if denial:
+            return denial
+        if not item.qrcode:
             return {"status": False, "msg": "未找到对应水印"}, 404
         return {"status": True, "original_watermark": item.qrcode}, 200
 
@@ -301,7 +306,7 @@ class WatermarkVerificationRecordsResource(Resource):
     Supports ?data_type=vector|raster filter, ?sort=nc_value query and an
     optional ?from / ?to ISO-date (or ISO-datetime) verified_at window."""
 
-    @jwt_required()
+    @admin_required
     def get(self):
         page = request.args.get("page", 1, type=int)
         page_size = min(request.args.get("pageSize", 20, type=int), 100)
@@ -643,7 +648,7 @@ class BatchGenerateWatermarkResource(Resource):
       400: {description: 参数错误}
     """
 
-    @admin_required
+    @admin_role_required("admin1")
     def post(self):
         data = request.get_json() or {}
         app_ids = data.get("application_ids")
@@ -751,7 +756,7 @@ class BatchEmbedWatermarkResource(Resource):
       400: {description: 参数错误}
     """
 
-    @admin_required
+    @admin_role_required("admin2")
     def post(self):
         data = request.get_json() or {}
         app_ids = data.get("application_ids")

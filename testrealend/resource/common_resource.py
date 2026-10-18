@@ -1,6 +1,8 @@
+import hashlib
 import json
 import logging
 import os
+import time
 from datetime import UTC, datetime
 
 from flask import request
@@ -103,7 +105,8 @@ class LoginResource(Resource):
                             "name": display_name,
                             "role": user.role,
                             "number": user.adm_number,
-                        }
+                        },
+                        additional_claims={"iat_ts": time.time()},
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)
@@ -159,7 +162,8 @@ class LoginResource(Resource):
                             "name": display_name,
                             "role": "employee",
                             "number": user.employee_number,
-                        }
+                        },
+                        additional_claims={"iat_ts": time.time()},
                     )
 
                     # Update last login (non-fatal — login succeeds even if this write fails)
@@ -306,6 +310,46 @@ class RegisterResource(Resource):
             return {"status": False, "msg": "操作失败，请稍后重试", "message": "操作失败，请稍后重试"}, 500
 
 
+def _logout_marker_jti(number):
+    """Synthetic blacklist key holding the last logout time of one identity.
+
+    Length is exactly 36 chars (the ``token_blacklist.jti`` column width):
+    ``LOGOUT:`` + 29 hex chars of the number's SHA-256.
+    """
+    digest = hashlib.sha256(str(number).encode("utf-8")).hexdigest()[:29]
+    return f"LOGOUT:{digest}"
+
+
+def _refresh_token_revoked(payload):
+    """True when a refresh token is blacklisted or predates a logout.
+
+    ``jti`` covers explicit revocation (logout with the refresh token in the
+    body).  The per-identity marker covers the current frontend, which posts
+    ``/api/logout`` without its refresh token — any refresh token issued
+    before that logout instant is rejected.  ``iat_ts`` (float, set on every
+    token minted here) keeps the comparison sub-second precise; legacy tokens
+    fall back to the whole-second ``iat`` claim.
+    """
+    from model.TokenBlacklist import TokenBlacklist
+
+    jti = payload.get("jti")
+    if jti and TokenBlacklist.query.filter_by(jti=jti).first() is not None:
+        return True
+    identity = payload.get("sub")
+    number = identity.get("number") if isinstance(identity, dict) else identity
+    issued = payload.get("iat_ts", payload.get("iat"))
+    if not number or issued is None:
+        return False
+    marker = TokenBlacklist.query.filter_by(jti=_logout_marker_jti(number)).first()
+    if marker is None or marker.created_at is None:
+        return False
+    created = marker.created_at
+    if created.tzinfo is None:
+        # DATETIME columns store UTC wall time without tzinfo (project convention).
+        created = created.replace(tzinfo=UTC)
+    return float(issued) < created.timestamp()
+
+
 class LogoutResource(Resource):
     @jwt_required()
     def post(self):
@@ -313,10 +357,39 @@ class LogoutResource(Resource):
 
         from model.TokenBlacklist import TokenBlacklist
 
-        jti = get_jwt().get("jti")
-        if jti:
-            db.session.add(TokenBlacklist(jti=jti))
-            db.session.commit()
+        payload = get_jwt()
+        identity = get_jwt_identity()
+        jti = payload.get("jti")
+
+        # 1) Explicit refresh token (optional, backwards compatible): the
+        #    frontend may start sending it without any server change.
+        body = request.get_json(silent=True) or {}
+        refresh_token = body.get("refresh_token")
+        refresh_jti = None
+        if refresh_token:
+            try:
+                decoded = decode_token(refresh_token)
+                if decoded.get("type") == "refresh" and decoded.get("sub") == identity:
+                    refresh_jti = decoded.get("jti")
+            except Exception:
+                logging.warning("logout: invalid refresh_token ignored")
+
+        for value in (jti, refresh_jti):
+            if value and TokenBlacklist.query.filter_by(jti=value).first() is None:
+                db.session.add(TokenBlacklist(jti=value))
+
+        # 2) Per-identity logout marker so refresh tokens are revoked even when
+        #    the client does not send one (the current frontend posts no body).
+        number = identity.get("number") if isinstance(identity, dict) else identity
+        if number:
+            marker_jti = _logout_marker_jti(number)
+            marker = TokenBlacklist.query.filter_by(jti=marker_jti).first()
+            now = datetime.now(UTC)
+            if marker is None:
+                db.session.add(TokenBlacklist(jti=marker_jti, created_at=now))
+            else:
+                marker.created_at = now
+        db.session.commit()
         return {"status": True, "msg": "登出成功"}, 200
 
 
@@ -338,7 +411,14 @@ class RefreshTokenResource(Resource):
     """
 
     def post(self):
+        from flask_jwt_extended import get_jwt
+
         identity = None
+        revoked = {
+            "status": False,
+            "msg": "refresh_token 已被撤销",
+            "message": "refresh_token 已被撤销",
+        }
 
         # 兼容两种刷新方式：
         # 1) Authorization: Bearer <refresh_token>
@@ -346,6 +426,9 @@ class RefreshTokenResource(Resource):
         try:
             verify_jwt_in_request(refresh=True)
             identity = get_jwt_identity()
+            payload = get_jwt()
+            if _refresh_token_revoked(payload):
+                return revoked, 401
         except Exception:
             data = request.get_json(silent=True) or {}
             refresh_token = data.get("refresh_token")
@@ -355,6 +438,8 @@ class RefreshTokenResource(Resource):
                 decoded = decode_token(refresh_token)
                 if decoded.get("type") != "refresh":
                     return {"status": False, "msg": "refresh_token 无效", "message": "refresh_token 无效"}, 401
+                if _refresh_token_revoked(decoded):
+                    return revoked, 401
                 identity = decoded.get("sub")
             except Exception:
                 return {
@@ -367,7 +452,7 @@ class RefreshTokenResource(Resource):
             return {"status": False, "msg": "无法解析用户身份", "message": "无法解析用户身份"}, 401
 
         access_token = create_access_token(identity=identity)
-        refresh_token = create_refresh_token(identity=identity)
+        refresh_token = create_refresh_token(identity=identity, additional_claims={"iat_ts": time.time()})
         return {
             "status": True,
             "access_token": access_token,

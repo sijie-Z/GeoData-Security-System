@@ -11,12 +11,22 @@ def is_admin_role(role):
 
 
 def _get_admin_role(identity):
-    """Extract admin sub-role from JWT identity or database."""
+    """Extract admin sub-role from JWT identity or database.
+
+    The JWT ``role`` claim is authoritative whenever it is present: an explicit
+    non-admin role (e.g. ``employee``) must never fall back to ``AdmAccount``,
+    otherwise an employee whose number collides with an admin's ``adm_number``
+    would inherit admin rights.  Only legacy tokens that carry no ``role``
+    claim at all may use the database fallback.
+    """
     if isinstance(identity, dict):
         number = identity.get("number")
-        # JWT carries 'role' = 'admin1'/'admin2'/'admin3' for admins
-        sub_role = identity.get("admin_sub_role") or identity.get("role")
-        if sub_role and sub_role.startswith("admin"):
+        if "role" in identity:
+            role = identity.get("role")
+            return role if is_admin_role(role) else None
+        # Legacy token shape: no role claim, but possibly an admin_sub_role.
+        sub_role = identity.get("admin_sub_role")
+        if sub_role and str(sub_role).startswith("admin"):
             return sub_role
     else:
         number = identity
@@ -30,26 +40,66 @@ def _get_admin_role(identity):
     return None
 
 
+def current_identity():
+    """Return ``(number, username, role)`` for the current JWT identity.
+
+    Legacy tokens may carry a plain string identity — only ``number`` is
+    meaningful in that case (``username``/``role`` are None).
+    """
+    identity = get_jwt_identity()
+    if isinstance(identity, dict):
+        return identity.get("number"), identity.get("username"), identity.get("role")
+    return identity, None, None
+
+
+def is_admin_identity():
+    """True when the current identity is an admin (admin1/admin2/admin3 or
+    legacy ``admin``), honouring the strict role-claim rule in ``_get_admin_role``.
+    """
+    return is_admin_role(_get_admin_role(get_jwt_identity()))
+
+
+def current_admin_role():
+    """Admin sub-role of the current identity, or None for non-admins."""
+    return _get_admin_role(get_jwt_identity())
+
+
+def has_admin_role(*required_roles):
+    """True when the current admin sub-role is one of ``required_roles``.
+
+    Mirrors ``admin_role_required``: the super-admin (``admin`` or ``ADM*``)
+    always passes.
+    """
+    sub_role = current_admin_role()
+    if sub_role == "admin" or (sub_role and str(sub_role).startswith("ADM")):
+        return True
+    return sub_role in required_roles
+
+
+def ensure_owner_or_admin(application):
+    """Return a 403 response tuple unless the caller owns *application* or is admin.
+
+    Ownership is derived from the JWT identity number — never from query/body
+    parameters — and compared with ``application.applicant_user_number``.
+    Callers must reject a missing row (404) before calling this helper.
+    """
+    if is_admin_identity():
+        return None
+    number, _username, _role = current_identity()
+    applicant = getattr(application, "applicant_user_number", None)
+    if number and applicant is not None and str(applicant) == str(number):
+        return None
+    return {"status": False, "msg": "无权访问该申请"}, 403
+
+
 def admin_required(func):
     @wraps(func)
     @jwt_required()
     def wrapper(*args, **kwargs):
-        identity = get_jwt_identity()
-        if isinstance(identity, dict):
-            number = identity.get("number")
-            role = identity.get("role")
-        else:
-            number = identity
-            role = None
-
-        # Accept 'admin' (legacy) or 'admin1'/'admin2'/'admin3' (sub-roles)
-        if not (role and str(role).startswith("admin")):
-            try:
-                user = AdmAccount.query.filter_by(adm_number=number).first()
-                if not user:
-                    return {"status": False, "msg": "需要管理员权限"}, 403
-            except Exception:
-                return {"status": False, "msg": "需要管理员权限"}, 403
+        # Role claim present and non-admin -> 403; DB fallback only for
+        # legacy tokens without a role claim (see _get_admin_role).
+        if not is_admin_identity():
+            return {"status": False, "msg": "需要管理员权限"}, 403
         return func(*args, **kwargs)
 
     return wrapper

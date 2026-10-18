@@ -28,7 +28,9 @@ class TestDownload:
             headers=employee_headers,
             json={"application_id": 1, "applicant_user_number": "E001", "download_user_number": "E001"},
         )
-        assert resp.status_code in (200, 201, 400, 404, 500)
+        # application_id 1 may belong to another employee (or not exist) in the
+        # shared test DB; owner-or-admin gating legitimately rejects it now.
+        assert resp.status_code in (200, 201, 400, 403, 404, 500)
 
 
 class TestTokenDownloadFlow:

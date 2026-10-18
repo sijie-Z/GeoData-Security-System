@@ -137,37 +137,37 @@ class TestVerificationStats:
 
 
 class TestVerificationRecordsWindow:
-    def test_from_to_filters(self, db, client, employee_headers):
+    def test_from_to_filters(self, db, client, auth_headers):
         _seed_verifications(db)
         today = datetime.now(UTC).strftime("%Y-%m-%d")
         d3 = _at_days_ago(3).strftime("%Y-%m-%d")
 
-        resp = client.get(f"/api/watermark/verification_records?from={today}", headers=employee_headers)
+        resp = client.get(f"/api/watermark/verification_records?from={today}", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.get_json()["pages"]["total"] == 1
         # to_dict now carries the quality columns
         assert {"algorithm", "ber", "ssim", "psnr"} <= set(resp.get_json()["data"][0].keys())
 
         # date-only `to` includes the whole day → day-5 and day-3 rows
-        resp = client.get(f"/api/watermark/verification_records?to={d3}", headers=employee_headers)
+        resp = client.get(f"/api/watermark/verification_records?to={d3}", headers=auth_headers)
         assert resp.get_json()["pages"]["total"] == 2
 
-        resp = client.get(f"/api/watermark/verification_records?from={d3}&to={today}", headers=employee_headers)
+        resp = client.get(f"/api/watermark/verification_records?from={d3}&to={today}", headers=auth_headers)
         assert resp.get_json()["pages"]["total"] == 4
 
         # explicit datetime bounds also parse
-        resp = client.get(f"/api/watermark/verification_records?from={today}T00:00:00", headers=employee_headers)
+        resp = client.get(f"/api/watermark/verification_records?from={today}T00:00:00", headers=auth_headers)
         assert resp.get_json()["pages"]["total"] == 1
 
-    def test_invalid_window_rejected(self, db, client, employee_headers):
-        resp = client.get("/api/watermark/verification_records?from=not-a-date", headers=employee_headers)
+    def test_invalid_window_rejected(self, db, client, auth_headers):
+        resp = client.get("/api/watermark/verification_records?from=not-a-date", headers=auth_headers)
         assert resp.status_code == 400
-        resp = client.get("/api/watermark/verification_records?to=2026-13-45", headers=employee_headers)
+        resp = client.get("/api/watermark/verification_records?to=2026-13-45", headers=auth_headers)
         assert resp.status_code == 400
 
 
 class TestWriteSideWiring:
-    def test_ori_ext_upload_records_ber_and_algorithm(self, db, client, employee_headers):
+    def test_ori_ext_upload_records_ber_and_algorithm(self, db, client, auth_headers):
         orig = Image.new("L", (32, 32), 0)
         extracted = Image.new("L", (32, 32), 0)
         extracted.putpixel((0, 0), 255)  # exactly one flipped bit in 1024
@@ -188,7 +188,7 @@ class TestWriteSideWiring:
                 "delivery_uuid": "11111111-2222-3333-4444-555555555555",
             },
             content_type="multipart/form-data",
-            headers=employee_headers,
+            headers=auth_headers,
         )
         assert resp.status_code == 200, resp.get_json()
 
@@ -202,7 +202,7 @@ class TestWriteSideWiring:
         assert record.ssim is not None
         assert record.nc_value == round(1 - 1 / 1024, 6)
 
-    def test_missing_optional_fields_stay_null(self, db, client, employee_headers):
+    def test_missing_optional_fields_stay_null(self, db, client, auth_headers):
         buf_orig, buf_ext = io.BytesIO(), io.BytesIO()
         Image.new("L", (16, 16), 0).save(buf_orig, "PNG")
         Image.new("L", (16, 16), 0).save(buf_ext, "PNG")
@@ -213,7 +213,7 @@ class TestWriteSideWiring:
             "/api/upload/ori&ext_watermark",
             data={"originalFile": (buf_orig, "orig.png"), "extractedFile": (buf_ext, "ext.png")},
             content_type="multipart/form-data",
-            headers=employee_headers,
+            headers=auth_headers,
         )
         assert resp.status_code == 200
         record = WatermarkVerification.query.order_by(WatermarkVerification.id.desc()).first()
