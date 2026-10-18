@@ -29,33 +29,33 @@
           <div class="feature-icon">
             <el-icon><Lock /></el-icon>
           </div>
-          <h4>{{ $t('firstHome.featureSecurity') }}</h4>
+          <h2>{{ $t('firstHome.featureSecurity') }}</h2>
           <p>{{ $t('firstHome.featureSecurityDesc') }}</p>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <el-icon><Compass /></el-icon>
           </div>
-          <h4>{{ $t('firstHome.featureApproval') }}</h4>
+          <h2>{{ $t('firstHome.featureApproval') }}</h2>
           <p>{{ $t('firstHome.featureApprovalDesc') }}</p>
         </div>
         <div class="feature-item">
           <div class="feature-icon">
             <el-icon><TrendCharts /></el-icon>
           </div>
-          <h4>{{ $t('firstHome.featureTracing') }}</h4>
+          <h2>{{ $t('firstHome.featureTracing') }}</h2>
           <p>{{ $t('firstHome.featureTracingDesc') }}</p>
         </div>
       </div>
 
       <!-- 工作流程引导 -->
       <div class="workflow-section">
-        <h3 class="workflow-title">{{ $t('firstHome.workflowTitle') }}</h3>
+        <h2 class="workflow-title">{{ $t('firstHome.workflowTitle') }}</h2>
         <div class="workflow-steps">
           <div v-for="(step, idx) in workflowSteps" :key="idx" class="workflow-step">
             <div class="step-number">{{ idx + 1 }}</div>
             <div class="step-connector" v-if="idx < workflowSteps.length - 1"></div>
-            <h4>{{ step.title }}</h4>
+            <h3>{{ step.title }}</h3>
             <p>{{ step.desc }}</p>
           </div>
         </div>
@@ -370,7 +370,7 @@ const register_button = () => router.push('/register');
   border-color: rgba(147, 197, 253, 0.5);
 }
 
-.feature-item h4 {
+.feature-item h2 {
   font-size: 18px;
   font-weight: 600;
   color: #fff;
@@ -519,7 +519,7 @@ const register_button = () => router.push('/register');
   z-index: 1;
 }
 
-.workflow-step h4 {
+.workflow-step h3 {
   font-size: 13px;
   color: #fff;
   margin: 0 0 4px;
