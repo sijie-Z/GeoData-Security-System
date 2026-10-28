@@ -105,9 +105,8 @@
 
 <script setup>
 import { useRouter } from 'vue-router';
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
-import * as THREE from 'three';
 import { Plus, Key, Lock, Compass, TrendCharts } from '@element-plus/icons-vue';
 import LanguageSwitcher from '@/components/common/LanguageSwitcher.vue';
 
@@ -123,13 +122,54 @@ const workflowSteps = computed(() => [
 ]);
 const bgCanvas = ref(null);
 let renderer, scene, camera, particles;
+let rings = [];
 let animationId = null;
+let disposed = false;
+let bgInitToken = 0;
 
 /**
- * 初始化3D背景
+ * 释放 3D 背景占用的 GPU/CPU 资源（幂等，可在加载中途调用）
  */
-const initBg = () => {
-  if (!bgCanvas.value) return;
+const disposeBg = () => {
+  if (animationId) {
+    cancelAnimationFrame(animationId);
+    animationId = null;
+  }
+  if (scene) {
+    scene.traverse((obj) => {
+      if (obj.geometry) obj.geometry.dispose();
+      if (obj.material) {
+        const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
+        materials.forEach((m) => m.dispose());
+      }
+    });
+  }
+  if (renderer) {
+    renderer.dispose();
+    renderer = null;
+  }
+  scene = null;
+  camera = null;
+  particles = null;
+  rings = [];
+};
+
+/**
+ * 初始化3D背景（three 动态加载：装饰性背景不阻塞首屏，加载失败/慢网时页面照常可用）
+ */
+const initBg = async () => {
+  if (!bgCanvas.value || disposed) return;
+  const token = ++bgInitToken;
+  let THREE;
+  try {
+    THREE = await import('three');
+  } catch (err) {
+    // 纯装饰背景：chunk 拉取失败时静默降级为纯 CSS 渐变，不打扰用户
+    console.warn('three background failed to load, skipping decorative canvas', err);
+    return;
+  }
+  if (disposed || token !== bgInitToken || !bgCanvas.value) return;
+
   scene = new THREE.Scene();
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
   camera.position.z = 35;
@@ -149,7 +189,7 @@ const initBg = () => {
   scene.add(particles);
 
   // 轨道环 - 简洁的科技感
-  const rings = [];
+  rings = [];
   for (let i = 0; i < 3; i++) {
     const rGeo = new THREE.TorusGeometry(3 + i * 0.8, 0.03, 16, 200);
     const rMat = new THREE.MeshBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.4 });
@@ -200,14 +240,11 @@ onMounted(() => {
   window.addEventListener('resize', handleResize);
 });
 
-onUnmounted(() => {
+onBeforeUnmount(() => {
+  disposed = true;
+  bgInitToken += 1; // 使尚未完成的动态 import 回调失效
   window.removeEventListener('resize', handleResize);
-  if (animationId) cancelAnimationFrame(animationId);
-  if (particles) {
-    particles.geometry?.dispose();
-    particles.material?.dispose();
-  }
-  if (renderer) renderer.dispose();
+  disposeBg();
 });
 
 const login_button = () => router.push('/login');
