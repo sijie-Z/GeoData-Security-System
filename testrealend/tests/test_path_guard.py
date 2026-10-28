@@ -11,6 +11,7 @@ is genuinely outside the application's data roots, exactly like an attacker's
 import base64
 import os
 import subprocess
+import tempfile
 import uuid
 import zipfile
 
@@ -126,6 +127,20 @@ def _remove_link(link):
         os.unlink(link)
 
 
+def _windows_short_path(path):
+    """8.3 short form of *path*, or None when the volume does not generate one."""
+    if os.name != "nt":
+        return None
+    import ctypes
+
+    buffer = ctypes.create_unicode_buffer(32768)
+    length = ctypes.windll.kernel32.GetShortPathNameW(str(path), buffer, len(buffer))
+    if not length:
+        return None
+    short = buffer.value
+    return None if os.path.normcase(short) == os.path.normcase(str(path)) else short
+
+
 # --------------------------------------------------------------------------- #
 # unit: allowed_roots / is_within / resolve_within_roots
 # --------------------------------------------------------------------------- #
@@ -134,12 +149,16 @@ def _remove_link(link):
 class TestAllowedRoots:
     def test_roots_are_config_driven_and_exclude_instance(self, app):
         with app.app_context():
-            roots = {_norm(root) for root in allowed_roots()}
-        for key in ("UPLOAD_FOLDER", "WATERMARK_FOLDER", "EXTRACTED_FOLDER", "DELIVERY_FOLDER"):
-            assert _norm(app.config[key]) in roots, f"{key} must be an allowed root"
-        assert _norm(os.path.join(app.root_path, "runtime")) in roots
-        # instance/ holds signing keys (e.g. instance/keys/evm_sepolia.key)
-        assert _norm(app.instance_path) not in roots
+            roots = allowed_roots()
+            for key in ("UPLOAD_FOLDER", "WATERMARK_FOLDER", "EXTRACTED_FOLDER", "DELIVERY_FOLDER"):
+                assert any(is_within(app.config[key], root) for root in roots), f"{key} must be an allowed root"
+            assert any(is_within(os.path.join(app.root_path, "runtime"), root) for root in roots)
+            # instance/ holds signing keys (e.g. instance/keys/evm_sepolia.key).
+            # Containment — not mere inequality — must be checked: instance/ is
+            # safe only when it is below *no* allowed root's subtree.
+            assert all(not is_within(app.instance_path, root) for root in roots), (
+                f"instance_path {app.instance_path} must not be inside any allowed root"
+            )
 
 
 class TestResolveWithinRoots:
@@ -214,6 +233,59 @@ class TestResolveWithinRoots:
         with app.app_context():
             assert is_within(r"\\server\share\evil.txt", app.config["UPLOAD_FOLDER"]) is False
             assert resolve_within_roots(r"\\server\share\evil.txt") is None
+
+    @pytest.mark.skipif(os.name != "nt", reason="extended-length device paths are Windows-only")
+    def test_device_path_escape_is_rejected(self, app, tmp_path):
+        outside = _write_outside(tmp_path)
+        device = "\\\\?\\" + str(outside)  # \\?\C:\...
+        with app.app_context():
+            assert is_within(device, app.config["UPLOAD_FOLDER"]) is False
+            assert resolve_within_roots(device) is None
+
+    @pytest.mark.skipif(os.name != "nt", reason="8.3 short names are Windows-only")
+    def test_short_name_escape_is_rejected(self, app):
+        # pytest's --basetemp lives on the repo volume, where 8.3 generation may
+        # be disabled; the system temp volume normally has it enabled. The
+        # TemporaryDirectory is removed by the context manager.
+        with tempfile.TemporaryDirectory(prefix="pg_guard_shortname_") as tmpdir:
+            outside = os.path.join(tmpdir, "pg_long_file_name_probe_abcdefghij.bin")
+            with open(outside, "wb") as fh:
+                fh.write(b"SHORT-NAME-SECRET")
+            short = _windows_short_path(outside)
+            if short is None:
+                pytest.skip("8.3 short-name generation is disabled on this volume")
+            # Same bytes, different (short) spelling: the guard must resolve the
+            # real path and still see it outside the roots.
+            with app.app_context():
+                assert is_within(short, app.config["UPLOAD_FOLDER"]) is False
+                assert resolve_within_roots(short) is None
+
+    def test_alternate_data_stream_escape_is_rejected(self, app, tmp_path):
+        outside = _write_outside(tmp_path)
+        stream = f"{outside}:pg_secret_stream"
+        try:
+            with open(stream, "w", encoding="utf-8") as fh:
+                fh.write("ADS-SECRET")
+        except OSError:
+            pytest.skip("filesystem does not support alternate data streams")
+        assert os.path.exists(stream)
+        with app.app_context():
+            assert resolve_within_roots(stream) is None
+
+    @pytest.mark.skipif(os.name != "nt", reason="drive-relative paths are Windows-only")
+    def test_drive_relative_escape_is_rejected(self, app, tmp_path):
+        outside = _write_outside(tmp_path)
+        drive, _ = os.path.splitdrive(str(outside))
+        if drive.lower() != os.path.splitdrive(os.getcwd())[0].lower():
+            pytest.skip("pytest temp dir is on a different drive than the process CWD")
+        try:
+            rel = os.path.relpath(str(outside), os.getcwd())
+        except ValueError:
+            pytest.skip("pytest temp dir is on a different drive than the process CWD")
+        drive_relative = f"{drive}{rel}"  # "D:..\.scratch\..." — no separator: per-drive CWD
+        assert os.path.exists(drive_relative)
+        with app.app_context():
+            assert resolve_within_roots(drive_relative) is None
 
 
 class TestIsWithin:

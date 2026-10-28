@@ -164,7 +164,12 @@ class SubmitApplicationResource(Resource):
             return {"status": False, "msg": "无效的数据类型"}, 400
         try:
             data_id = int(data.get("data_id"))
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
+            # JSON Infinity/NaN (float('inf')) raises OverflowError/ValueError;
+            # both are client input errors, not server faults.
+            return {"status": False, "msg": "数据不存在"}, 400
+        if data_id <= 0 or data_id > 2**63 - 1:
+            # int() accepts arbitrarily large JSON integers; the DB drivers do not.
             return {"status": False, "msg": "数据不存在"}, 400
 
         # Never trust the client's data_url/data_name: an applicant used to be able
