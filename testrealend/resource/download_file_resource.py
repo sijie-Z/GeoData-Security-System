@@ -18,26 +18,19 @@ from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.log_helper import log_action
 from utils.metrics import record_download
+from utils.path_guard import resolve_within_roots
 from utils.required import ensure_owner_or_admin
 from utils.time_fmt import utc_iso_z
 
 
 def _resolve_existing_path(path_value):
-    if not path_value:
-        return None
-    candidate = str(path_value).replace("\\", "/").strip()
-    if candidate.startswith("file://"):
-        candidate = candidate[7:]
-    if os.path.exists(candidate):
-        return os.path.abspath(candidate)
-    if candidate.startswith("/"):
-        local = os.path.join(os.path.dirname(current_app.root_path), candidate.lstrip("/"))
-        if os.path.exists(local):
-            return os.path.abspath(local)
-    local = os.path.join(current_app.root_path, candidate.lstrip("/"))
-    if os.path.exists(local):
-        return os.path.abspath(local)
-    return None
+    """Resolve a stored path only when it lives inside an allowed data root.
+
+    The candidates can include a client-influenced ``Application.data_url`` and
+    old rows written while it was fully caller-controlled; the shared guard makes
+    an escape resolve to ``None`` exactly like a missing file.
+    """
+    return resolve_within_roots(path_value)
 
 
 def _cleanup_old_cache(cache_dir, max_age_hours=1):

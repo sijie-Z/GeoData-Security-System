@@ -47,6 +47,9 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --tb=short"
+markers = [
+    "strict_path_roots: do not inject the pytest temp tree into utils.path_guard.allowed_roots (path-confinement tests)",
+]
 
 [tool.coverage.run]
 source = ["resource", "model", "utils"]

@@ -27,6 +27,7 @@ from extension.extension import db
 from model.Application import Application
 from model.Raster_Data import RasterData
 from resource.watermark_utils import build_qr_text, get_qr_version, render_compact_qr
+from utils.path_guard import resolve_within_roots
 from utils.required import admin_role_required
 
 
@@ -157,21 +158,14 @@ class RasterGenerateTilesResource(Resource):
 
 
 def _resolve_existing_path(path_value):
-    if not path_value:
-        return None
-    candidate = str(path_value).replace("\\", "/").strip()
-    if candidate.startswith("file://"):
-        candidate = candidate[7:]
-    if os.path.exists(candidate):
-        return os.path.abspath(candidate)
-    if candidate.startswith("/"):
-        local = os.path.join(os.path.dirname(current_app.root_path), candidate.lstrip("/"))
-        if os.path.exists(local):
-            return os.path.abspath(local)
-    local = os.path.join(current_app.root_path, candidate.lstrip("/"))
-    if os.path.exists(local):
-        return os.path.abspath(local)
-    return None
+    """Resolve a stored/caller-supplied raster path inside the allowed data roots.
+
+    Preview, tiles, CRMark recover/decode and embed all read through this helper;
+    the shared guard keeps every one of them from opening arbitrary server files
+    (the raster-side preview roots are a subset of the new root set, so this is
+    not wider than the previous preview-only check).
+    """
+    return resolve_within_roots(path_value)
 
 
 def _create_qrcode_base64(item):

@@ -168,6 +168,7 @@ class TestRasterPreview:
         decoded = base64.b64decode(resp.get_json()["base64"])
         assert decoded[:8] == b"\x89PNG\r\n\x1a\n"
 
+    @pytest.mark.strict_path_roots
     def test_preview_outside_roots_returns_404(self, client, employee_headers, tmp_path):
         from PIL import Image as PILImage
 
