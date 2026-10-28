@@ -53,12 +53,36 @@ commits：`2a9d833`（主体）+ `446dc21`（对抗评审收口：CRMark recover
 
 ### 波 5 · 前端工程化清理（`fix/frontend-cleanup`，本地分支，2026-10-28）
 
-- **lint 4925 → 0**：`eslint --fix` 自动修复 **4821** 条（vue/max-attributes-per-line 2109、singleline-content-newline 1312、html-indent 1080 等），人工修 **104** 条残留（no-unused-vars×20、no-empty×5、prefer-const、vue/no-template-shadow、vue/no-v-html 单点豁免）；`no-console` 调整为 allow `[error, warn]`（实测 0 条 log/info/debug 调试残留）。`npm run lint` 改为 `--max-warnings 0` 硬门禁，CI `frontend` job 自动继承。
-- **首屏减重**：`first_home.vue` 的静态 `import * as THREE` 改为挂载后动态 `import('three')`。构建产物中 `first_home` chunk 由静态依赖 `three.module`（699.49 kB）改为动态 `import()`；生产预览实测 three 请求由"与 first_home chunk 并行（4457ms，DCL 4458ms 之前）"变为"挂载后 860ms（DCL 613ms 之后）"。阻断 three 加载时旧版整页白屏，新版页面完整渲染、仅背景降级。
-- **全局错误兜底修复**：`main.js` 移除浏览器 ESM 不存在的 `require('element-plus')`（原用户提示被 try/catch 静默吞掉、永不显示）；改为静态 `ElMessage` + i18n 键 + DOM alert banner 兜底。探针实测：旧版无提示，新版正确弹出「页面渲染出错，请刷新重试」。
-- **未使用依赖清理**：移除 `@tweenjs/tween.js` / `jsonp` / `jwt-decode` / `screenfull` / `typewriter-effect` / `uuid`（全仓 grep 0 引用）；lock 经 `npm install --package-lock-only` 更新，未触碰共享 `node_modules` junction。
-- **硬编码中文 i18n**：10 处活动 UI 文案改 `$t()`（adm_home 错误边界×4、MyNotifications/OperationHistory 刷新 title、register/员工 HomeHeader 头像 alt、employee_chat 流式中断/失败提示×2），新增 8 个 zh/en 成对键；键总量 2690/2690 对齐。
-- **验证**：`npm run build` 绿；3 页浅/深 1600×1000 像素对照，`information_list` 两主题 0 差异，其余差异仅落在秒级时钟/地球弧线动画区域（同代码重复截图噪声同量级；掩掉动态区域后全 0）；axe 快扫 `/login` `/register` `/first_home` `/admin` 与基线完全一致（无新增，仅 first_home 既有 2 条 moderate）；console 0 error。
+- **lint 4925 → 0**：`eslint --fix` 自动修复 4821 条，人工修 104 条残留（no-unused-vars×20、no-empty×5 等）；`no-console` 调整为 allow `[error, warn]`；`npm run lint` 改为 `--max-warnings 0` 硬门禁，CI `frontend` job 自动继承。
+- **首屏减重**：`first_home.vue` 的静态 `import * as THREE` 改为挂载后动态 `import('three')`（699.49 kB 移出首访关键路径）；阻断 three 加载时页面完整渲染、仅背景降级。
+- **全局错误兜底修复**：`main.js` 移除浏览器 ESM 不存在的 `require('element-plus')`，改为静态 `ElMessage` + i18n 键 + DOM alert banner 兜底（旧版用户提示永不显示，新版探针实测可弹）。
+- **未使用依赖清理**：移除 6 个 0 引用依赖；lock 经 `npm install --package-lock-only` 更新。
+- **硬编码中文 i18n**：10 处活动 UI 文案改 `$t()`，新增 8 个 zh/en 成对键（2690/2690 对齐）。
+- **验证**：build 绿；3 页浅/深像素对照（掩掉时钟/动画后全 0）；axe 与基线一致；console 0。
+
+### 波 6 · 后端性能与运维加固（`fix/backend-perf`，本地分支，2026-10-28）
+
+commits：`7e27f5a`（依赖上限 + 索引/迁移）、`4323ef3`（N+1 批量化）、`23d3bc6` + `de32e53` + `8733f76`（watermark 批量预取）、`fe09b30`（异常口径 + 安全小修 + 回归测试）。
+
+- **依赖防漂移**：`openai>=2.44.0,<3`、`pandas>=3.0.6,<3.1`、`numpy<3`、`pillow<14`（防 CI 自动跳未验证版本）。
+- **索引**：`download_record` 四索引 + `download_token`/`embed_file_record`/`send_file_record` 各 application_id 索引；`migrate_add_columns.py` 幂等 CREATE INDEX。
+- **N+1**：取证交付列表 200 条实测 **1002 → 6 SELECT**；`batch_generate` 5 → 1；批量端点一次 IN 预取。
+- **异常口径**：公告 DB 异常 → 503；密码哈希校验失败关闭（legacy 明文仍可登录一次并升级）。
+- **安全小修**：注册预检管理号牌/工号/账号名冲突；refresh 回查账号存在与角色；旧 `emp_download_zip` 补写 DownloadRecord；`record_download_file` 服务端字段；并发 logout 幂等；`re_review`/`adm3_additional_review` 严格布尔。
+- **测试**：新增 `test_backend_perf.py` 26 例；全量 690 passed；ruff 双绿。
+
+### 波 7 · 下载/交付路径越界封堵（`fix/path-guard`，本地分支，2026-10-28）
+
+commits：`9b75071`（路径守卫主体）+ `c6a29fd`（评审收口：admin3 提取接口加固）。
+
+- **封堵的漏洞链**：申请 `data_url` 客户端可控 + 下载/交付路径解析无根约束 → 员工提交指向服务器任意文件的"申请"，两级审批后即可下载（或经个性化交付复制下发）。
+- **统一路径守卫**（`utils/path_guard.py`）：允许根来自配置（UPLOAD/WATERMARK/EXTRACTED/DELIVERY/runtime；`instance/` 明确排除），`realpath + normcase + commonpath`；越界与不存在统一 None（不泄露存在性）；替换 3 份历史拷贝。
+- **申请数据权威化**：忽略客户端 `data_url`/`data_name`，按 `data_id + data_type` 反查 `Shp`/`RasterData`；不存在/非法 → 400。前端契约无影响。
+- **交付链**：越界基底 → FAILED、不复制、不烧 token、清理半成品。
+- **zip-slip**：两处前缀判断补齐分隔符语义。
+- **评审挖出的预存高危已修**：`watermark_extract` 的 admin3 `application_id` 原始字符串拼路径 + `finally` 递归删目录（MySQL 隐式转换下可任意目录写/删）→ 入口整数化+范围校验、路径仅用 DB 整数、文件系统操作前 realpath 包含检查。
+- **测试**：新增 `tests/test_path_guard.py` 31 例（UNC/`\?\`/8.3/ADS/盘符相对/junction/大小写矩阵、申请权威化、旧行越界拒绝、交付链、zip-slip、提取零副作用）；合并后全量 721 passed；ruff 双绿。
+- **对抗评审**：路径矩阵实测全拒、8 个抽样用例分层回退必红、核心全 CONFIRMED 不可绕。
 
 ---
 

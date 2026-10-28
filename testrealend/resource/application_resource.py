@@ -465,6 +465,8 @@ class ReReviewResource(Resource):
         app_id = data.get("id") or data.get("application_id")
         stage = data.get("stage")
         statu = data.get("statu")
+        if type(statu) is not bool:
+            return {"status": False, "msg": "statu 必须为布尔值"}, 400
         user_name, user_number = _review_actor()
         item = db.session.get(Application, app_id)
         if item:
@@ -486,6 +488,8 @@ class Adm3AdditionalReviewResource(Resource):
         data = request.get_json() or {}
         app_id = data.get("id") or data.get("application_id")
         statu = data.get("statu", False)
+        if type(statu) is not bool:
+            return {"status": False, "msg": "statu 必须为布尔值"}, 400
         reason = data.get("reason")
         user_name, user_number = _review_actor()
 

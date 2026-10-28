@@ -73,6 +73,18 @@ MYSQL_ALTERS = [
     # name is skipped like a duplicate column (see run()).
     "CREATE INDEX idx_wmv_data_type_time ON watermark_verification (data_type, verified_at)",
     "CREATE INDEX idx_wmv_algorithm_time ON watermark_verification (algorithm, verified_at)",
+    # 波 6 · backend-perf: indexes for the high-traffic download/audit filters
+    # (dashboard date windows, per-application lookups, per-user statistics).
+    # New databases get them from the models' index=True via create_all; this
+    # block upgrades existing MySQL databases. Names match SQLAlchemy's default
+    # ix_<table>_<column> convention so both paths converge.
+    "CREATE INDEX ix_download_record_timestamp ON download_record (timestamp)",
+    "CREATE INDEX ix_download_record_application_id ON download_record (application_id)",
+    "CREATE INDEX ix_download_record_download_user_number ON download_record (download_user_number)",
+    "CREATE INDEX ix_download_record_data_id ON download_record (data_id)",
+    "CREATE INDEX ix_download_token_application_id ON download_token (application_id)",
+    "CREATE INDEX ix_embed_file_record_application_id ON embed_file_record (application_id)",
+    "CREATE INDEX ix_send_file_record_application_id ON send_file_record (application_id)",
 ]
 
 
@@ -94,9 +106,10 @@ def run():
                 except Exception as e:
                     conn.rollback()
                     err = str(e)
-                    # Idempotent re-run: columns ("Duplicate column") and indexes
-                    # ("Duplicate key name") that already exist are not failures.
-                    if "Duplicate column" in err or "Duplicate key name" in err:
+                    # Idempotent re-run: columns ("Duplicate column"), MySQL
+                    # indexes ("Duplicate key name") and SQLite indexes
+                    # ("index ... already exists") are not failures.
+                    if "Duplicate column" in err or "Duplicate key name" in err or "already exists" in err.lower():
                         skip += 1
                         print("  [SKIP] already exists")
                     else:

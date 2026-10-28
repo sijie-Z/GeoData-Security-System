@@ -99,21 +99,23 @@ def _resolve_download_file(app):
     return None
 
 
-def _write_download_record(app, token_record, filename):
-    """Server-side DownloadRecord for a completed token download (v3 audit trail).
+def _write_download_record_for(app, user_number, filename, delivery_id=None):
+    """Server-side DownloadRecord for a completed download (audit trail).
 
-    Best effort only: a failed audit write must never burn the token and answer
-    500 for a download whose file was already validated — same discipline as
-    ``_log_event`` ("evidence never blocks business"). The rollback keeps the
-    session usable for the caller's subsequent commits.
+    Shared by the token download flow (v3 and legacy) and the older
+    ``emp_download_zip`` endpoint. Best effort only: a failed audit write must
+    never burn a token or answer 500 for a download whose file was already
+    validated — same discipline as ``_log_event`` ("evidence never blocks
+    business"). The rollback keeps the session usable for the caller's
+    subsequent commits.
     """
     try:
         record = DownloadRecord(
             application_id=app.id,
-            delivery_id=token_record.delivery_id,
+            delivery_id=delivery_id,
             data_id=app.data_id,
             data_name=app.data_name or "",
-            download_user_number=token_record.user_number,
+            download_user_number=user_number,
             download_time=datetime.now(UTC),
             download_ip=request.remote_addr,
             applicant_user_number=app.applicant_user_number,
@@ -125,6 +127,11 @@ def _write_download_record(app, token_record, filename):
     except Exception:
         db.session.rollback()
         logging.warning("download record write failed for application %s", app.id, exc_info=True)
+
+
+def _write_download_record(app, token_record, filename):
+    """Token-flow wrapper around :func:`_write_download_record_for`."""
+    _write_download_record_for(app, token_record.user_number, filename, token_record.delivery_id)
 
 
 class EmpDownloadZipResource(Resource):
@@ -177,6 +184,9 @@ class EmpDownloadZipResource(Resource):
                 "成功",
                 f"app_id={app.id} data_alias={app.data_alias} file={download_name}",
             )
+            identity = get_jwt_identity() or {}
+            user_number = identity.get("number", "") if isinstance(identity, dict) else str(identity)
+            _write_download_record_for(app, user_number, download_name)
             record_download()
             return send_file(file_path, as_attachment=True, download_name=download_name)
         return {"status": False, "msg": "文件不存在"}, 404
@@ -199,15 +209,18 @@ class RecordDownloadResource(Resource):
         denial = ensure_owner_or_admin(app)
         if denial:
             return denial
+        # Client-supplied data_id/dataName are not authoritative: audit fields
+        # come from the application row so a forged body cannot misattribute
+        # the download (only the display filename may be client-provided).
         new_record = DownloadRecord(
             application_id=app.id,
-            data_id=data.get("data_id"),
-            data_name=data.get("dataName", data.get("fileName") or f"data_{data.get('data_id')}"),
+            data_id=app.data_id,
+            data_name=app.data_name or "",
             download_user_number=user_number,
             download_time=datetime.now(UTC),
             download_ip=request.remote_addr,
             applicant_user_number=app.applicant_user_number,
-            filename=data.get("fileName") or f"data_{data.get('data_id')}",
+            filename=data.get("fileName") or app.data_name or f"data_{app.data_id}",
             timestamp=datetime.now(UTC),
         )
         db.session.add(new_record)

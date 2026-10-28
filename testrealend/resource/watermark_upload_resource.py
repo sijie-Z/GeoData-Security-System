@@ -53,6 +53,19 @@ def _parse_iso_dt(raw):
     return dt
 
 
+_APP_PRELOAD_CHUNK = 500
+
+
+def _preload_applications(app_ids):
+    """One IN query per 500 ids → ``{id: Application}`` (keeps SQLite/MySQL
+    parameter limits safe for unusually large batches)."""
+    app_map = {}
+    for start in range(0, len(app_ids), _APP_PRELOAD_CHUNK):
+        chunk = app_ids[start : start + _APP_PRELOAD_CHUNK]
+        app_map.update({row.id: row for row in Application.query.filter(Application.id.in_(chunk)).all()})
+    return app_map
+
+
 class UploadOriginalWatermarkResource(Resource):
     """Upload original watermark image for a specific application."""
 
@@ -660,9 +673,24 @@ class BatchGenerateWatermarkResource(Resource):
         success_count = 0
         fail_count = 0
 
+        # One IN query for the whole batch; missing ids keep the same
+        # "申请不存在" per-item result as the former session.get loop.
+        preload_ids = [value for value in app_ids if isinstance(value, int)]
+        app_map = _preload_applications(preload_ids)
+        # The preloaded rows must survive the per-item commits: with the
+        # default expire_on_commit each commit would expire them and the next
+        # iteration would reload one row anyway (the IN query would save
+        # nothing). Rollback still expires the failed row, so error handling
+        # keeps seeing database state. Restored before returning.
+        session_impl = db.session()
+        previous_expire_on_commit = session_impl.expire_on_commit
+        session_impl.expire_on_commit = False
+
         for app_id in app_ids:
             try:
-                item = db.session.get(Application, app_id)
+                # Normal integer ids come from the batched map; anything else
+                # keeps the original per-item lookup semantics.
+                item = app_map.get(app_id) if isinstance(app_id, int) else db.session.get(Application, app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1
@@ -727,6 +755,7 @@ class BatchGenerateWatermarkResource(Resource):
                 results.append({"id": app_id, "success": False, "error": str(e)})
                 fail_count += 1
 
+        session_impl.expire_on_commit = previous_expire_on_commit
         return {
             "status": True,
             "results": results,
@@ -768,9 +797,24 @@ class BatchEmbedWatermarkResource(Resource):
         success_count = 0
         fail_count = 0
 
+        # One IN query for the whole batch; missing ids keep the same
+        # "申请不存在" per-item result as the former session.get loop.
+        preload_ids = [value for value in app_ids if isinstance(value, int)]
+        app_map = _preload_applications(preload_ids)
+        # The preloaded rows must survive the per-item commits: with the
+        # default expire_on_commit each commit would expire them and the next
+        # iteration would reload one row anyway (the IN query would save
+        # nothing). Rollback still expires the failed row, so error handling
+        # keeps seeing database state. Restored before returning.
+        session_impl = db.session()
+        previous_expire_on_commit = session_impl.expire_on_commit
+        session_impl.expire_on_commit = False
+
         for app_id in app_ids:
             try:
-                item = db.session.get(Application, app_id)
+                # Normal integer ids come from the batched map; anything else
+                # keeps the original per-item lookup semantics.
+                item = app_map.get(app_id) if isinstance(app_id, int) else db.session.get(Application, app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1
@@ -797,6 +841,7 @@ class BatchEmbedWatermarkResource(Resource):
                 results.append({"id": app_id, "success": False, "error": str(e)})
                 fail_count += 1
 
+        session_impl.expire_on_commit = previous_expire_on_commit
         return {
             "status": True,
             "results": results,

@@ -28,14 +28,9 @@ class AnnouncementResource(Resource):
         except SQLAlchemyError as e:
             db.session.rollback()
             logging.error(str(e))
-            return {
-                "status": True,
-                "data": {
-                    "list": [],
-                    "total": 0,
-                    "pages": {"page": page, "pageSize": page_size, "total": 0, "pages": 0},
-                },
-            }, 200
+            # A database outage is a service-availability failure, never a
+            # silent empty feed (the old 200 + [] made outages invisible).
+            return {"status": False, "msg": "公告服务不可用，请检查数据库配置"}, 503
 
         items = [
             {
@@ -78,4 +73,4 @@ class AnnouncementResource(Resource):
         except SQLAlchemyError as e:
             db.session.rollback()
             logging.error(str(e))
-            return {"status": False, "msg": "公告服务不可用，请检查数据库配置"}, 500
+            return {"status": False, "msg": "公告服务不可用，请检查数据库配置"}, 503

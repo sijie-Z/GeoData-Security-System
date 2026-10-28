@@ -6,7 +6,7 @@ class SendFileRecord(db.Model):
     __tablename__ = "send_file_record"
     id = db.Column(db.Integer, primary_key=True)
     data_id = db.Column(db.Integer, unique=False, nullable=False)
-    application_id = db.Column(db.Integer, unique=False, nullable=False)
+    application_id = db.Column(db.Integer, unique=False, nullable=False, index=True)
     file_path = db.Column(db.String(255), unique=True, nullable=False)
     filename = db.Column(db.String(255), unique=True, nullable=False)
     send_person = db.Column(db.String(255), unique=False, nullable=False)

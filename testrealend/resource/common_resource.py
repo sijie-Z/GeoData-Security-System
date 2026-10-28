@@ -16,6 +16,7 @@ from flask_jwt_extended import (
 )
 from flask_restful import Resource
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from config import BASE_DIR
@@ -31,21 +32,25 @@ from utils.required import admin_required
 
 def _password_matches(stored_password, input_password):
     """Check password. Returns (ok, new_hash_or_none) where new_hash is set
-    when a legacy plaintext password needs upgrading."""
+    when a legacy plaintext password needs upgrading.
+
+    Fail closed: a structured hash (anything carrying the ``$`` separator)
+    that cannot be verified — malformed, unknown algorithm, verifier exception
+    — is never compared against the submitted password as if it were legacy
+    plaintext. Only a value with no hash separator (the old plaintext form)
+    may authenticate verbatim and be upgraded.
+    """
     if not stored_password or not input_password:
+        return False, None
+    if "$" not in stored_password:
+        if stored_password == input_password:
+            return True, generate_password_hash(input_password)
         return False, None
     try:
         if check_password_hash(stored_password, input_password):
             return True, None
     except Exception:
-        pass
-    # Auto-upgrade legacy plaintext passwords
-    if not stored_password.startswith(("pbkdf2:", "sha$", "$2b$", "$2a$")):
-        if stored_password == input_password:
-            from werkzeug.security import generate_password_hash
-
-            return True, generate_password_hash(input_password)
-        return False, None
+        logging.warning("password hash verification failed; refusing login", exc_info=True)
     return False, None
 
 
@@ -232,7 +237,7 @@ class RegisterResource(Resource):
         description: 头像
     responses:
       201: {description: 注册成功}
-      400: {description: 员工编号已存在 / 身份证号或手机号已被注册 / 缺少必填字段}
+      400: {description: 员工编号/工号/账号名已存在、编号被管理员占用、身份证号或手机号已被注册、缺少必填字段}
     """
 
     @limiter.limit("5 per minute")
@@ -271,6 +276,19 @@ class RegisterResource(Resource):
         # Unique-column pre-checks, naming the conflicting field
         if EmployeeInfo.query.filter_by(employee_number=employee_id).first():
             return {"status": False, "msg": "员工编号已存在"}, 400
+        if EmployeeInfo.query.filter_by(job_number=employee_id).first():
+            return {"status": False, "msg": "工号已被占用"}, 400
+        # The identity namespace is shared with admins at the application layer:
+        # an employee number that equals an admin number makes identity lookups
+        # ambiguous (and used to die as an IntegrityError -> 500 downstream).
+        if (
+            AdmInfo.query.filter_by(adm_number=employee_id).first()
+            or AdmAccount.query.filter_by(adm_number=employee_id).first()
+        ):
+            return {"status": False, "msg": "该编号已被管理员账号占用"}, 400
+        # Registration creates the account with employeeId as its login name.
+        if EmployeeAccount.query.filter_by(employee_user_name=employee_id).first():
+            return {"status": False, "msg": "账号名已被占用"}, 400
         if EmployeeInfo.query.filter_by(id_number=id_number).first():
             msg = "身份证号已被注册"
             return {"status": False, "msg": msg, "message": msg}, 400
@@ -389,8 +407,42 @@ class LogoutResource(Resource):
                 db.session.add(TokenBlacklist(jti=marker_jti, created_at=now))
             else:
                 marker.created_at = now
-        db.session.commit()
+        try:
+            db.session.commit()
+        except IntegrityError:
+            # Two concurrent logouts can both miss the marker and race the
+            # INSERT. The loser rolls back and treats the row as already
+            # present — logout stays idempotent instead of returning 500.
+            db.session.rollback()
+            logging.info("logout blacklist insert raced with a concurrent logout; treated as already present")
         return {"status": True, "msg": "登出成功"}, 200
+
+
+def _refresh_identity_account_valid(identity):
+    """Re-check a role-bearing refresh identity against the account tables.
+
+    Rotation must not outlive the account it was minted for: a deleted account
+    or a role/number change since issuance fails closed (401, re-login). Legacy
+    tokens without a role claim (and plain-string identities) keep the old
+    behaviour — the check is skipped.
+    """
+    if not isinstance(identity, dict):
+        return True
+    role = identity.get("role")
+    if not role:
+        return True
+    username = identity.get("username")
+    number = identity.get("number")
+    if not username or not number:
+        return False
+    role = str(role)
+    if role.startswith("admin"):
+        account = AdmAccount.query.filter_by(adm_user_name=username, adm_number=number, role=role).first()
+    else:
+        account = EmployeeAccount.query.filter_by(
+            employee_user_name=username, employee_number=number, role=role
+        ).first()
+    return account is not None
 
 
 class RefreshTokenResource(Resource):
@@ -450,6 +502,9 @@ class RefreshTokenResource(Resource):
 
         if not identity:
             return {"status": False, "msg": "无法解析用户身份", "message": "无法解析用户身份"}, 401
+        if not _refresh_identity_account_valid(identity):
+            msg = "账号不存在或角色已变更，请重新登录"
+            return {"status": False, "msg": msg, "message": msg}, 401
 
         access_token = create_access_token(identity=identity)
         refresh_token = create_refresh_token(identity=identity, additional_claims={"iat_ts": time.time()})

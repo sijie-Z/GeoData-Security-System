@@ -11,7 +11,7 @@ class DownloadToken(db.Model):
     __tablename__ = "download_token"
 
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    application_id = db.Column(db.Integer, nullable=False)
+    application_id = db.Column(db.Integer, nullable=False, index=True)
     delivery_id = db.Column(db.Integer, nullable=True)
     token = db.Column(db.String(64), unique=True, nullable=False, default=lambda: secrets.token_urlsafe(32))
     user_number = db.Column(db.String(255), nullable=False)

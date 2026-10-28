@@ -293,7 +293,7 @@ GeoData-Security-System/
 │   ├── resource/                       # API 资源（含 forensics / batch_embed / 日志与统计导出）
 │   ├── algorithm/                      # 水印算法（矢量 D-QIM/legacy；栅格 5 种；鲁棒性实验引擎）
 │   ├── utils/                          # 缓存 / 指标 / WebSocket / 限流 / 审计日志工具
-│   ├── tests/                          # Pytest 测试套件（47 个 test_*.py / 664 个用例）
+│   ├── tests/                          # Pytest 测试套件（49 个 test_*.py / 721 个用例）
 │   └── Dockerfile
 │
 ├── testrealfrontol/                    # Vue 3 前端
@@ -404,14 +404,14 @@ GeoData-Security-System/
 
 ## 质量保障
 
-- **后端测试**：`testrealend/tests/` 664 个用例（47 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
+- **后端测试**：`testrealend/tests/` 721 个用例（49 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
 
   ```bash
   cd testrealend
   python -m pytest
   ```
 
-- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest 硬门禁，失败即红）、`frontend`（ESLint `--max-warnings 0` 硬门禁 + 构建）、`docker`（镜像构建 + 容器冒烟：app factory 路由装配 / gunicorn `/api/health` / `nginx -t`）、`a11y`（axe-core 无障碍冒烟）四个 job
+- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest 硬门禁，失败即红）、`frontend`（ESLint `--max-warnings 0` 硬门禁 + 构建）、`docker`（镜像构建 + 容器冒烟：app factory 路由装配 / gunicorn `/api/health` / `nginx -t`）、`a11y`（Playwright + axe-core 无障碍门禁，critical/serious 违规即红）四个 job
 - **安全扫描**：CodeQL（Python / JavaScript / TypeScript）+ gitleaks 密钥扫描 + OpenSSF Scorecard
 - **无障碍审计**：axe-core 全站 40 路由自动化审计（main+nav 地标 / 图标钮可访问名 / AA 对比度 / 恰一 h1）；critical 清零，全站仅余 1 处带证据链的留档项（`information_add` 上传列表，EP 上游 DOM 结构缺陷）
 - **视觉与动效验证方法学**：像素级 diff / rAF 帧剖面 / 几何断言——骨架屏、侧栏、主题令牌升级均按此验证
