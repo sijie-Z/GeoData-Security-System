@@ -667,7 +667,9 @@ class BatchGenerateWatermarkResource(Resource):
 
         for app_id in app_ids:
             try:
-                item = app_map.get(app_id)
+                # Normal integer ids come from the batched map; anything else
+                # keeps the original per-item lookup semantics.
+                item = app_map.get(app_id) if isinstance(app_id, int) else db.session.get(Application, app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1
@@ -780,7 +782,9 @@ class BatchEmbedWatermarkResource(Resource):
 
         for app_id in app_ids:
             try:
-                item = app_map.get(app_id)
+                # Normal integer ids come from the batched map; anything else
+                # keeps the original per-item lookup semantics.
+                item = app_map.get(app_id) if isinstance(app_id, int) else db.session.get(Application, app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1
