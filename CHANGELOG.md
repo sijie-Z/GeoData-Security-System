@@ -81,7 +81,7 @@ commits：`9b75071`（路径守卫主体）+ `c6a29fd`（评审收口：admin3 �
 - **交付链**：越界基底 → FAILED、不复制、不烧 token、清理半成品。
 - **zip-slip**：两处前缀判断补齐分隔符语义。
 - **评审挖出的预存高危已修**：`watermark_extract` 的 admin3 `application_id` 原始字符串拼路径 + `finally` 递归删目录（MySQL 隐式转换下可任意目录写/删）→ 入口整数化+范围校验、路径仅用 DB 整数、文件系统操作前 realpath 包含检查。
-- **测试**：新增 `tests/test_path_guard.py` 31 例（UNC/`\?\`/8.3/ADS/盘符相对/junction/大小写矩阵、申请权威化、旧行越界拒绝、交付链、zip-slip、提取零副作用）；合并后全量 721 passed；ruff 双绿。
+- **测试**：新增 `tests/test_path_guard.py` 31 例（UNC/`\?\`/8.3/ADS/盘符相对/junction/大小写矩阵、申请权威化、旧行越界拒绝、交付链、zip-slip、提取零副作用）；合并后全量 739 passed；ruff 双绿。
 - **对抗评审**：路径矩阵实测全拒、8 个抽样用例分层回退必红、核心全 CONFIRMED 不可绕。
 
 ---

@@ -293,7 +293,7 @@ GeoData-Security-System/
 │   ├── resource/                       # API 资源（含 forensics / batch_embed / 日志与统计导出）
 │   ├── algorithm/                      # 水印算法（矢量 D-QIM/legacy；栅格 5 种；鲁棒性实验引擎）
 │   ├── utils/                          # 缓存 / 指标 / WebSocket / 限流 / 审计日志工具
-│   ├── tests/                          # Pytest 测试套件（49 个 test_*.py / 721 个用例）
+│   ├── tests/                          # Pytest 测试套件（49 个 test_*.py / 739 个用例）
 │   └── Dockerfile
 │
 ├── testrealfrontol/                    # Vue 3 前端
@@ -404,7 +404,7 @@ GeoData-Security-System/
 
 ## 质量保障
 
-- **后端测试**：`testrealend/tests/` 721 个用例（49 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
+- **后端测试**：`testrealend/tests/` 739 个用例（49 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
 
   ```bash
   cd testrealend
