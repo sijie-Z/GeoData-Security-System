@@ -5,10 +5,36 @@ import tempfile
 import uuid as _uuid
 
 
+def _ensure_shp_record(db, data_id, alias):
+    """Seed the Shp row the hardened submit endpoint resolves.
+
+    ``/api/submit_application`` no longer stores the client's ``data_url`` /
+    ``data_name``: it looks the dataset up by ``data_id`` + ``data_type``. These
+    workflow tests used to post invented ids, so the referenced row must exist.
+    """
+    from model.Shp_Data import Shp
+
+    record = db.session.get(Shp, data_id)
+    if record is None:
+        record = Shp(
+            id=data_id,
+            name=alias,
+            alias=alias,
+            geomtype="LineString",
+            introduction="integration fixture",
+            shp_file_path=f"/data/{alias}.shp",
+            url="",
+        )
+        db.session.add(record)
+        db.session.commit()
+    return record
+
+
 class TestApprovalWorkflow:
     """End-to-end: submit -> adm1 pass -> adm2 pass -> check status."""
 
     def test_full_approval_flow(self, client, auth_headers, adm2_headers, employee_headers, db):
+        _ensure_shp_record(db, 100, "integ_vec_100")
         # 1. Employee submits application
         resp = client.post(
             "/api/submit_application",
@@ -46,6 +72,7 @@ class TestApprovalWorkflow:
         assert data["application"]["status"] == "approved"
 
     def test_rejection_at_adm1(self, client, auth_headers, employee_headers, db):
+        _ensure_shp_record(db, 101, "integ_vec_101")
         resp = client.post(
             "/api/submit_application",
             json={
@@ -72,6 +99,7 @@ class TestApprovalWorkflow:
         assert resp.get_json()["application"]["first_statu"] is False
 
     def test_cannot_skip_adm1(self, client, auth_headers, adm2_headers, employee_headers, db):
+        _ensure_shp_record(db, 102, "integ_vec_102")
         resp = client.post(
             "/api/submit_application",
             json={
@@ -96,6 +124,7 @@ class TestApprovalWorkflow:
         assert resp.status_code == 400
 
     def test_cannot_double_approve(self, client, auth_headers, employee_headers, db):
+        _ensure_shp_record(db, 103, "integ_vec_103")
         resp = client.post(
             "/api/submit_application",
             json={

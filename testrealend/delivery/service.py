@@ -35,6 +35,7 @@ from model.download_delivery import DownloadDelivery
 from model.download_token import DownloadToken
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
+from utils.path_guard import resolve_within_roots
 
 TOKEN_TTL = timedelta(hours=1)
 
@@ -66,22 +67,14 @@ def _log_event(stream_id, event_type, payload):
 
 
 def _resolve_existing_path(path_value):
-    """Same resolution rules as resource.download_file_resource._resolve_existing_path."""
-    if not path_value:
-        return None
-    candidate = str(path_value).replace("\\", "/").strip()
-    if candidate.startswith("file://"):
-        candidate = candidate[7:]
-    if os.path.exists(candidate):
-        return os.path.abspath(candidate)
-    if candidate.startswith("/"):
-        local = os.path.join(os.path.dirname(current_app.root_path), candidate.lstrip("/"))
-        if os.path.exists(local):
-            return os.path.abspath(local)
-    local = os.path.join(current_app.root_path, candidate.lstrip("/"))
-    if os.path.exists(local):
-        return os.path.abspath(local)
-    return None
+    """Same resolution rules as the legacy download path, confined to data roots.
+
+    Every candidate (including ``application_row.data_url``, which used to be
+    client-controlled) must resolve inside an allowed root; out-of-root paths
+    answer ``None`` so a personalization base can never be an arbitrary server
+    file.
+    """
+    return resolve_within_roots(path_value)
 
 
 def resolve_base_file(application_row):

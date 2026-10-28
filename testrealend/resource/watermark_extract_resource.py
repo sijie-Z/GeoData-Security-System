@@ -29,6 +29,7 @@ from resource.watermark_utils import (
     parse_qr_text,
     safe_extract_zip,
 )
+from utils.path_guard import is_within
 from utils.required import admin_role_required
 from utils.user_limiter import normal_limit
 
@@ -37,9 +38,21 @@ class VectorExtractResource(Resource):
     @admin_role_required("admin3")
     @normal_limit
     def post(self):
-        app_id = request.form.get("application_id")
-        if not app_id:
+        raw_app_id = request.form.get("application_id")
+        if raw_app_id is None or not str(raw_app_id).strip():
             return {"status": False, "msg": "缺少申请编号"}, 400
+
+        # This id ends up in a temp directory name that is recursively deleted in
+        # ``finally`` below, so it must be an integer *before* it reaches any path
+        # expression. On MySQL an int column comparison coerces "1/../../.." to 1
+        # ("1abc" -> 1), which let an admin3 write into and then rmtree an
+        # attacker-chosen directory; parse strictly and bound the value instead.
+        try:
+            app_id = int(str(raw_app_id).strip())
+        except (TypeError, ValueError, OverflowError):
+            return {"status": False, "msg": "申请编号格式无效"}, 400
+        if app_id <= 0 or app_id > 2**63 - 1:
+            return {"status": False, "msg": "申请编号格式无效"}, 400
 
         if "file" not in request.files:
             return {"status": False, "msg": "没有上传文件"}, 400
@@ -75,10 +88,17 @@ class VectorExtractResource(Resource):
         elif not item.vr_data:
             return {"status": False, "msg": "该申请尚未完成水印嵌入，无法提取"}, 404
 
-        temp_dir = None
+        # Build the temp directory from the database integer (never the raw form
+        # value) and require it to sit directly inside the fixed temp root that
+        # the finally-block is allowed to delete.
+        extract_root = os.path.realpath(os.path.join(current_app.config["UPLOAD_FOLDER"], "temp"))
+        temp_dir = os.path.join(extract_root, f"extract_{item.id}")
+        if not is_within(temp_dir, extract_root):
+            return {"status": False, "msg": "临时目录无效"}, 400
+        temp_dir = os.path.realpath(temp_dir)
+
         try:
             filename = secure_filename(file.filename)
-            temp_dir = os.path.join(current_app.config["UPLOAD_FOLDER"], "temp", f"extract_{app_id}")
             os.makedirs(temp_dir, exist_ok=True)
             save_path = os.path.join(temp_dir, filename)
             file.save(save_path)

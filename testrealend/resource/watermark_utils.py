@@ -10,6 +10,8 @@ from datetime import UTC, datetime
 import qrcode
 from PIL import Image
 
+from utils.path_guard import is_within
+
 # Public defaults that must never be used to sign production QR codes.
 LEGACY_QR_SECRET_KEYS = {
     "dev-only-qr-key-replace-in-production",
@@ -53,7 +55,9 @@ def safe_extract_zip(zip_ref, extract_dir):
     """安全解压ZIP，防止路径穿越攻击"""
     for member in zip_ref.namelist():
         target = os.path.realpath(os.path.join(extract_dir, member))
-        if not target.startswith(os.path.realpath(extract_dir)):
+        # commonpath containment: ``startswith(dest)`` also accepts the sibling
+        # directory ``dest_evil`` (same prefix, different directory).
+        if not is_within(target, extract_dir):
             raise ValueError(f"非法文件路径: {member}")
     zip_ref.extractall(extract_dir)
 

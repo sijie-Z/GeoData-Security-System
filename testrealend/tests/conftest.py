@@ -80,6 +80,35 @@ def db(app):
         _db.session.rollback()
 
 
+@pytest.fixture(autouse=True)
+def _allow_pytest_temp_roots(tmp_path_factory, monkeypatch, request):
+    """Treat pytest's temp tree as an allowed data root for the test suite.
+
+    The download / personalized-delivery / raster layers now open files only
+    inside ``utils.path_guard.allowed_roots()`` (configured storage folders +
+    ``runtime/``). The long-standing fixtures build their source files under
+    pytest's temp directories instead of the configured folders, so the temp
+    tree is injected as an extra root here. Tests that assert real out-of-root
+    rejection opt out with ``@pytest.mark.strict_path_roots`` and keep observing
+    the production root set.
+    """
+    if request.node.get_closest_marker("strict_path_roots"):
+        return
+
+    from utils import path_guard
+
+    temp_root = str(tmp_path_factory.getbasetemp())
+    original_allowed_roots = path_guard.allowed_roots
+
+    def _roots_with_pytest_temp():
+        roots = list(original_allowed_roots())
+        if temp_root not in roots:
+            roots.append(temp_root)
+        return roots
+
+    monkeypatch.setattr(path_guard, "allowed_roots", _roots_with_pytest_temp)
+
+
 def _seed_test_data(db):
     """Seed minimal test data for auth-dependent tests."""
     from werkzeug.security import generate_password_hash

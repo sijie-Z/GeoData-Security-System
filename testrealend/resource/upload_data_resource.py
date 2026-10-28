@@ -14,6 +14,7 @@ from extension.extension import db, limiter
 from model.Raster_Data import RasterData
 from model.Shp_Data import Shp
 from utils.ai_config import _chat_completions_url, _get_ai_config, _get_ai_timeout
+from utils.path_guard import is_within
 from utils.required import admin_required
 
 
@@ -160,7 +161,9 @@ def _bg_generate_description(meta, layer_name, data_type, record_id, model_class
 def _safe_extract_zip(zip_ref, dest_dir):
     for member in zip_ref.namelist():
         target = os.path.realpath(os.path.join(dest_dir, member))
-        if not target.startswith(os.path.realpath(dest_dir)):
+        # commonpath-based containment: a bare ``startswith`` would accept a
+        # sibling ``dest_evil/`` directory that merely shares the prefix.
+        if not is_within(target, dest_dir):
             raise ValueError(f"非法文件路径: {member}")
     zip_ref.extractall(dest_dir)
 

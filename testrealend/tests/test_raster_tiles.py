@@ -91,10 +91,20 @@ def no_crs_tif(tmp_path_factory):
     folder then does not exist at its expected location), so generate an
     equivalent identity-transform, CRS-less TIFF when the repo file is absent
     instead of losing the no-CRS assertion.
+
+    The repo fixture is copied into the pytest temp tree before use: raster
+    files are now only read from ``utils.path_guard`` allowed roots, and the
+    repo-root ``test/test_raster/`` folder is not one of them. The file content
+    (and therefore the CRS-less condition under test) is unchanged.
     """
+    tmp_dir = tmp_path_factory.mktemp("no_crs")
     if os.path.exists(REPO_RASTER_FIXTURE):
-        return REPO_RASTER_FIXTURE
-    path = tmp_path_factory.mktemp("no_crs") / "no_crs.tif"
+        import shutil
+
+        target = tmp_dir / "no_crs_repo.tif"
+        shutil.copy2(REPO_RASTER_FIXTURE, target)
+        return target
+    path = tmp_dir / "no_crs.tif"
     rng = np.random.default_rng(7)
     data = (rng.random((64, 64)) * 255).astype("uint8")
     with rasterio.open(path, "w", driver="GTiff", width=64, height=64, count=1, dtype="uint8") as dst:

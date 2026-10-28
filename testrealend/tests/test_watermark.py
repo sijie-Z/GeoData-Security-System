@@ -44,6 +44,95 @@ class TestVectorExtract:
         assert resp.status_code in (400, 422)
 
 
+class TestVectorExtractApplicationIdHardening:
+    """The extract id used to be interpolated straight into the temp directory
+    name (``extract_{application_id}``) which is ``os.makedirs``-ed, written to
+    and then ``shutil.rmtree``-ed in ``finally``.
+
+    On MySQL an int-column comparison coerces ``"1/../../../../../.."`` to 1
+    (``"1abc" -> 1``), so the row for application 1 was found and the traversal
+    suffix still shaped the directory name: an admin3 could write files into,
+    and recursively delete, an attacker-chosen directory. SQLite has no such
+    implicit conversion, so the regression is asserted at the entry contract:
+    a non-integer id is rejected with 400 *before any filesystem operation*.
+    """
+
+    @staticmethod
+    def _record_filesystem_calls(monkeypatch):
+        calls = []
+        monkeypatch.setattr(
+            "resource.watermark_extract_resource.os.makedirs",
+            lambda *args, **kwargs: calls.append(("makedirs", args)),
+        )
+        monkeypatch.setattr("shutil.rmtree", lambda *args, **kwargs: calls.append(("rmtree", args)))
+        from werkzeug.datastructures import FileStorage
+
+        monkeypatch.setattr(
+            FileStorage,
+            "save",
+            lambda self, dst, *args, **kwargs: calls.append(("save", dst)),
+        )
+        return calls
+
+    @pytest.mark.parametrize(
+        "bad_id",
+        [
+            "abc",
+            "1/../../../../../..",
+            "../1",
+            "1;DROP TABLE application",
+            "Infinity",
+            "-Infinity",
+            "nan",
+            "1e309",
+            "9223372036854775808",
+            "9" * 64,
+        ],
+        ids=[
+            "non-numeric",
+            "mysql-prefix-traversal",
+            "leading-traversal",
+            "injection",
+            "infinity",
+            "-infinity",
+            "nan",
+            "float-literal",
+            "int64-overflow",
+            "huge-int",
+        ],
+    )
+    def test_rejects_non_integer_id_without_filesystem_side_effects(self, client, adm3_headers, monkeypatch, bad_id):
+        calls = self._record_filesystem_calls(monkeypatch)
+        resp = client.post(
+            "/api/vector/extract",
+            headers=adm3_headers,
+            data={"application_id": bad_id, "file": (io.BytesIO(b"not-a-zip"), "payload.zip")},
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400, resp.get_data(as_text=True)
+        assert resp.get_json()["msg"] == "申请编号格式无效"
+        assert calls == [], f"rejected id must not touch the filesystem, got {calls!r}"
+
+    def test_numeric_string_is_accepted_and_reaches_lookup(self, client, db, adm3_headers, monkeypatch):
+        """A plain numeric id (whitespace tolerated) still passes validation.
+
+        The full embed->extract roundtrip lives in
+        ``TestVectorWatermarkRoundtrip.test_embed_extract_roundtrip_decodes``;
+        this asserts the parsing layer accepts numeric form values and stops at
+        the normal lookup/404 path without side effects.
+        """
+        calls = self._record_filesystem_calls(monkeypatch)
+        resp = client.post(
+            "/api/vector/extract",
+            headers=adm3_headers,
+            data={"application_id": " 999999999 ", "file": (io.BytesIO(b"not-a-zip"), "payload.zip")},
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 404, resp.get_data(as_text=True)
+        assert resp.get_json()["msg"] == "未找到对应的申请记录"
+        assert calls == []
+
+
 class TestQRCodeDecode:
     """BUG-4 regression: the decode endpoint filtered every ``===`` line out of
     the signed content, but the generator signs all header/body lines including

@@ -8,6 +8,8 @@ from flask_restful import Resource
 
 from extension.extension import db, limiter
 from model.Application import Application
+from model.Raster_Data import RasterData
+from model.Shp_Data import Shp
 from utils.cache import invalidate_prefix
 from utils.log_helper import log_action
 from utils.metrics import record_application, record_approval
@@ -101,6 +103,13 @@ def _update_review_result(item, stage, passed, user_name, user_number, comment=N
     item.adm2_comment = comment
 
 
+def _authoritative_data_record(data_id, data_type):
+    """Server-side record a vector/raster application refers to, or ``None``."""
+    if data_type == "raster":
+        return db.session.get(RasterData, data_id)
+    return db.session.get(Shp, data_id)
+
+
 class SubmitApplicationResource(Resource):
     """
     提交数据申请
@@ -112,12 +121,12 @@ class SubmitApplicationResource(Resource):
         name: body
         schema:
           type: object
-          required: [data_id, data_name, data_alias, applicant_name, applicant_user_number]
+          required: [data_id, data_alias, applicant_name, applicant_user_number]
           properties:
             data_id: {type: integer, description: 数据ID}
-            data_name: {type: string, description: 数据名称}
-            data_alias: {type: string, description: 数据别名}
-            data_url: {type: string, description: 数据URL}
+            data_name: {type: string, description: 数据名称（服务端按 data_id 反查，忽略客户端值）}
+            data_alias: {type: string, description: 数据别名（展示用，≤100 字符）}
+            data_url: {type: string, description: 数据URL（服务端按 data_id 反查，忽略客户端值）}
             data_type: {type: string, enum: [vector, raster], description: 数据类型}
             applicant_name: {type: string, description: 申请人姓名}
             applicant_user_number: {type: string, description: 申请人工号}
@@ -130,7 +139,7 @@ class SubmitApplicationResource(Resource):
     @jwt_required()
     @limiter.limit("20 per minute")
     def post(self):
-        data = request.get_json()
+        data = request.get_json(silent=True) or {}
         # Get identity from JWT to prevent impersonation
         identity = get_jwt_identity()
         if isinstance(identity, dict):
@@ -149,12 +158,38 @@ class SubmitApplicationResource(Resource):
                     jwt_name = emp.name
             except Exception:
                 pass
+
+        data_type = str(data.get("data_type") or "vector").strip().lower()
+        if data_type not in ("vector", "raster"):
+            return {"status": False, "msg": "无效的数据类型"}, 400
+        try:
+            data_id = int(data.get("data_id"))
+        except (TypeError, ValueError, OverflowError):
+            # JSON Infinity/NaN (float('inf')) raises OverflowError/ValueError;
+            # both are client input errors, not server faults.
+            return {"status": False, "msg": "数据不存在"}, 400
+        if data_id <= 0 or data_id > 2**63 - 1:
+            # int() accepts arbitrarily large JSON integers; the DB drivers do not.
+            return {"status": False, "msg": "数据不存在"}, 400
+
+        # Never trust the client's data_url/data_name: an applicant used to be able
+        # to store any server path as data_url, which a two-stage approval then
+        # handed back through emp_download_zip / token download. Resolve the record
+        # named by (data_id, data_type) and persist only server-owned values; the
+        # download/delivery layers additionally confine resolution to allowed roots
+        # (defense in depth for pre-hardening rows).
+        record = _authoritative_data_record(data_id, data_type)
+        if record is None:
+            return {"status": False, "msg": "数据不存在"}, 400
+        authoritative_name = str(record.alias or record.name or "")[:255]
+        data_alias = str(data.get("data_alias") or "").strip()[:100]
+
         new_app = Application(
-            data_id=data.get("data_id"),
-            data_name=data.get("data_name"),
-            data_alias=data.get("data_alias"),
-            data_url=data.get("data_url"),
-            data_type=data.get("data_type", "vector").lower(),  # Default to vector
+            data_id=record.id,
+            data_name=authoritative_name,
+            data_alias=data_alias,
+            data_url=record.url or None,
+            data_type=data_type,  # Default to vector
             applicant_name=jwt_name,
             applicant_user_number=jwt_number,
             reason=data.get("reason"),
