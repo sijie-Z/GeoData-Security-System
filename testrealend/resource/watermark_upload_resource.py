@@ -53,6 +53,19 @@ def _parse_iso_dt(raw):
     return dt
 
 
+_APP_PRELOAD_CHUNK = 500
+
+
+def _preload_applications(app_ids):
+    """One IN query per 500 ids → ``{id: Application}`` (keeps SQLite/MySQL
+    parameter limits safe for unusually large batches)."""
+    app_map = {}
+    for start in range(0, len(app_ids), _APP_PRELOAD_CHUNK):
+        chunk = app_ids[start : start + _APP_PRELOAD_CHUNK]
+        app_map.update({row.id: row for row in Application.query.filter(Application.id.in_(chunk)).all()})
+    return app_map
+
+
 class UploadOriginalWatermarkResource(Resource):
     """Upload original watermark image for a specific application."""
 
@@ -663,7 +676,7 @@ class BatchGenerateWatermarkResource(Resource):
         # One IN query for the whole batch; missing ids keep the same
         # "申请不存在" per-item result as the former session.get loop.
         preload_ids = [value for value in app_ids if isinstance(value, int)]
-        app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+        app_map = _preload_applications(preload_ids)
         # The preloaded rows must survive the per-item commits: with the
         # default expire_on_commit each commit would expire them and the next
         # iteration would reload one row anyway (the IN query would save
@@ -787,7 +800,7 @@ class BatchEmbedWatermarkResource(Resource):
         # One IN query for the whole batch; missing ids keep the same
         # "申请不存在" per-item result as the former session.get loop.
         preload_ids = [value for value in app_ids if isinstance(value, int)]
-        app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+        app_map = _preload_applications(preload_ids)
         # The preloaded rows must survive the per-item commits: with the
         # default expire_on_commit each commit would expire them and the next
         # iteration would reload one row anyway (the IN query would save
