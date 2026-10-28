@@ -314,8 +314,11 @@ class BatchEmbedJobsResource(Resource):
             )
             db.session.add(job)
             db.session.flush()  # assign job.id for the item FKs
+            # One IN query instead of a session.get per id; missing ids keep
+            # their former semantics (item row with NULL data_id/data_type).
+            app_map = {row.id: row for row in Application.query.filter(Application.id.in_(normalized)).all()}
             for app_id in normalized:
-                app_row = db.session.get(Application, app_id)
+                app_row = app_map.get(app_id)
                 db.session.add(
                     BatchEmbedItem(
                         job_id=job.id,

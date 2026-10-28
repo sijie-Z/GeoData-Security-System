@@ -162,12 +162,17 @@ def verify_stream(stream_id: str) -> dict:
     return verify_events(get_events(stream_id))
 
 
-def verify_events(events: list[EvidenceEvent]) -> dict:
+def verify_events(events: list[EvidenceEvent], public_keys: dict | None = None) -> dict:
     """``verify_stream``'s core over a preloaded, ascending-seq event list.
 
     Batch-friendly variant (same semantics, same return shape) for callers that
     fetch many streams' events in one query — e.g. the forensics deliveries
-    stats endpoint — instead of one ``get_events`` round-trip per stream.
+    stats/list endpoints — instead of one ``get_events`` round-trip per stream.
+
+    ``public_keys`` optionally preloads the kid → Ed25519 public key map (one
+    ``IN`` query for the whole page); a missing kid keeps
+    ``get_public_key_by_kid``'s KeyError semantics (broken chain, not an
+    exception escaping the verifier).
     """
     prev_hash = GENESIS_HASH
     expected_seq = 1
@@ -188,7 +193,10 @@ def verify_events(events: list[EvidenceEvent]) -> dict:
         if recomputed != event.event_hash:
             return _broken(len(events), position, "event_hash mismatch (payload tampered?)")
         try:
-            public_key = get_public_key_by_kid(event.kid)
+            if public_keys is None:
+                public_key = get_public_key_by_kid(event.kid)
+            else:
+                public_key = public_keys[event.kid]
             public_key.verify(bytes(event.signature), bytes.fromhex(event.event_hash))
         except KeyError as e:
             return _broken(len(events), position, str(e))

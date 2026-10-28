@@ -660,9 +660,14 @@ class BatchGenerateWatermarkResource(Resource):
         success_count = 0
         fail_count = 0
 
+        # One IN query for the whole batch; missing ids keep the same
+        # "申请不存在" per-item result as the former session.get loop.
+        preload_ids = [value for value in app_ids if isinstance(value, int)]
+        app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+
         for app_id in app_ids:
             try:
-                item = db.session.get(Application, app_id)
+                item = app_map.get(app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1
@@ -768,9 +773,14 @@ class BatchEmbedWatermarkResource(Resource):
         success_count = 0
         fail_count = 0
 
+        # One IN query for the whole batch; missing ids keep the same
+        # "申请不存在" per-item result as the former session.get loop.
+        preload_ids = [value for value in app_ids if isinstance(value, int)]
+        app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+
         for app_id in app_ids:
             try:
-                item = db.session.get(Application, app_id)
+                item = app_map.get(app_id)
                 if not item:
                     results.append({"id": app_id, "success": False, "error": "申请不存在"})
                     fail_count += 1

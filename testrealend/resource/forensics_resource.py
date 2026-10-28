@@ -38,7 +38,7 @@ from algorithm.raster_histogram_watermark import extract_histogram
 from algorithm.raster_reversible_watermark import decode_reversible
 from algorithm.vector_dqim import SCHEME as DQIM_SCHEME
 from algorithm.vector_dqim import extract_dqim as vector_extract_dqim
-from crypto.keys import ensure_active_key
+from crypto.keys import ensure_active_key, get_public_keys_by_kids
 from crypto.keys import keyinfo as crypto_keyinfo
 from crypto.payload import is_v2_text, parse_qr_text
 from delivery.artifact import file_root, shp_component_root
@@ -176,6 +176,16 @@ def _chain_summary(stream_id):
         return {"valid": False, "length": 0}
 
 
+def _chain_summary_events(events, public_keys):
+    """``_chain_summary`` over preloaded events (same shape, batched DB reads)."""
+    try:
+        summary = verify_events(events, public_keys=public_keys)
+        return {"valid": bool(summary["valid"]), "length": int(summary["length"])}
+    except Exception:
+        logging.warning("chain verify failed for preloaded stream", exc_info=True)
+        return {"valid": False, "length": 0}
+
+
 def _chain_full(stream_id):
     try:
         summary = verify_stream(stream_id)
@@ -199,6 +209,47 @@ def _anchor_for(delivery):
         .order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc())
         .first()
     )
+
+
+def _anchors_for_deliveries(deliveries):
+    """Batch equivalent of ``_anchor_for`` — one query for the whole page.
+
+    ``{delivery_id: latest AnchorRecord with created_at >= ready_at}``. The SQL
+    filter is the earliest ready_at of the page (a superset), then the exact
+    per-delivery pick runs in Python over the same created_at/id ordering.
+    Deliveries without ``ready_at`` stay absent (``_anchor_for`` returns None).
+    """
+    ready_times = {}
+    for delivery in deliveries:
+        if delivery.ready_at is not None:
+            ready_times[delivery.delivery_id] = _as_utc(delivery.ready_at).replace(tzinfo=None)
+    if not ready_times:
+        return {}
+    anchors = (
+        AnchorRecord.query.filter(AnchorRecord.created_at >= min(ready_times.values()))
+        .order_by(AnchorRecord.created_at.desc(), AnchorRecord.id.desc())
+        .all()
+    )
+    anchor_map = {}
+    for delivery_id, ready_naive in ready_times.items():
+        for anchor in anchors:
+            if anchor.created_at is not None and anchor.created_at >= ready_naive:
+                anchor_map[delivery_id] = anchor
+                break
+    return anchor_map
+
+
+def _downloaded_delivery_ids(delivery_ids):
+    """Batch equivalent of ``DownloadRecord...count() > 0`` per delivery."""
+    if not delivery_ids:
+        return set()
+    rows = (
+        db.session.query(DownloadRecord.delivery_id)
+        .filter(DownloadRecord.delivery_id.in_(delivery_ids))
+        .distinct()
+        .all()
+    )
+    return {row[0] for row in rows}
 
 
 # --------------------------------------------------------------------------- #
@@ -849,9 +900,34 @@ class ForensicsDeliveriesResource(Resource):
             query = query.filter_by(user_number=number)
         deliveries = query.order_by(DownloadDelivery.delivery_id.desc()).limit(limit).all()
 
+        # Batched per-delivery lookups (wave 6): anchors / downloaded flags /
+        # chain events / signing keys are fetched with one query each for the
+        # whole page instead of the former ~5 queries per delivery.
+        delivery_ids = [delivery.delivery_id for delivery in deliveries]
+        anchor_map = _anchors_for_deliveries(deliveries)
+        downloaded_ids = _downloaded_delivery_ids(delivery_ids)
+        stream_ids = [delivery.uuid for delivery in deliveries if delivery.uuid is not None]
+        stream_events = {}
+        if stream_ids:
+            for event_row in (
+                EvidenceEvent.query.filter(EvidenceEvent.stream_id.in_(stream_ids))
+                .order_by(EvidenceEvent.stream_id.asc(), EvidenceEvent.seq.asc())
+                .all()
+            ):
+                stream_events.setdefault(event_row.stream_id, []).append(event_row)
+        if any(delivery.uuid is None for delivery in deliveries):
+            # Legacy row without a uuid: keep _chain_summary(None)'s exact
+            # "events whose stream_id IS NULL" semantics (IN never matches NULL).
+            stream_events[None] = (
+                EvidenceEvent.query.filter(EvidenceEvent.stream_id.is_(None)).order_by(EvidenceEvent.seq.asc()).all()
+            )
+        public_keys = get_public_keys_by_kids(
+            {event_row.kid for events in stream_events.values() for event_row in events}
+        )
+
         items = []
         for delivery in deliveries:
-            anchor = _anchor_for(delivery)
+            anchor = anchor_map.get(delivery.delivery_id)
             items.append(
                 {
                     "uuid": delivery.uuid,
@@ -867,8 +943,8 @@ class ForensicsDeliveriesResource(Resource):
                     "created_at": utc_iso_z(delivery.created_at),
                     "ready_at": utc_iso_z(delivery.ready_at),
                     "completed_at": utc_iso_z(delivery.completed_at),
-                    "downloaded": DownloadRecord.query.filter_by(delivery_id=delivery.delivery_id).count() > 0,
-                    "chain": _chain_summary(delivery.uuid),
+                    "downloaded": delivery.delivery_id in downloaded_ids,
+                    "chain": _chain_summary_events(stream_events.get(delivery.uuid, []), public_keys),
                     "anchor": {
                         "status": anchor.status if anchor else None,
                         "batch_id": anchor.batch_id if anchor else None,

@@ -95,6 +95,20 @@ def get_public_key_by_kid(kid: int) -> ed25519.Ed25519PublicKey:
     return ed25519.Ed25519PublicKey.from_public_bytes(bytes(row.public_key))
 
 
+def get_public_keys_by_kids(kids) -> dict[int, ed25519.Ed25519PublicKey]:
+    """Batch variant of :func:`get_public_key_by_kid` — one ``IN`` query.
+
+    Unknown kids are simply absent from the returned map, so callers that need
+    ``get_public_key_by_kid``'s KeyError contract (e.g. ``evidence.chain``)
+    can distinguish "kid not registered" by a missing dict key.
+    """
+    unique_kids = {int(kid) for kid in kids if kid is not None}
+    if not unique_kids:
+        return {}
+    rows = KeyRegistry.query.filter(KeyRegistry.kid.in_(unique_kids)).all()
+    return {row.kid: ed25519.Ed25519PublicKey.from_public_bytes(bytes(row.public_key)) for row in rows}
+
+
 def public_key_fingerprint(pub) -> str:
     """sha256 over the 32-byte raw public key, as the full 64-char hex digest."""
     raw = pub.public_bytes(encoding=serialization.Encoding.Raw, format=serialization.PublicFormat.Raw)
