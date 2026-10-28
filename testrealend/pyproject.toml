@@ -39,7 +39,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["model", "resource", "extension", "algorithm", "utils"]
+known-first-party = ["model", "resource", "extension", "algorithm", "utils", "server"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

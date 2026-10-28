@@ -268,6 +268,7 @@ const { isDark, toggleTheme } = useTheme();
             :size="36"
             :src="avatarUrl"
             class="user-avatar"
+            :alt="$t('header.defaultAvatar')"
             @error="handleAvatarError"
           >
             <img
