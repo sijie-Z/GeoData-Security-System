@@ -19,10 +19,13 @@ prometheus_client
 mysqlclient
 psycopg2-binary
 geopandas>=1.2.0
-numpy
-pillow
+# 防 CI 自动跳 major：numpy 3.x 未验证，升级需专项验证（全站算法依赖）
+numpy<3
+# 防 CI 自动跳 major：pillow 14 未验证，升级需专项验证（QR/图像处理依赖）
+pillow<14
 werkzeug
-pandas>=3.0.6
+# 防 CI 自动跳 minor：pandas 3.1 未验证，升级需专项验证（数据统计端点依赖）
+pandas>=3.0.6,<3.1
 python-dotenv
 pyproj
 shapely
@@ -45,7 +48,8 @@ opencv-python>=5.0.0.93
 cryptography>=50.0.2
 cbor2>=6.1.5
 httpx
-openai
+# 防 CI 自动跳 major：openai 3.x（2026-10 发布）未验证，升级需全量回归
+openai>=2.44.0,<3
 # EVM anchor (Sepolia): py-solc-x compiles AnchorRegistry.sol, eth-tester drives the in-memory chain in tests
 web3>=8.0.0
 py-solc-x>=2.0.5
