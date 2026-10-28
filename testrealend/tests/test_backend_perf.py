@@ -13,16 +13,49 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from sqlalchemy import event as sa_event
-from sqlalchemy import inspect
+from sqlalchemy import func, inspect
 
 from config import BASE_DIR
 from model.Adm_Account import AdmAccount
 from model.Adm_Info import AdmInfo
 from model.anchor_record import AnchorRecord
 from model.Application import Application
+from model.download_delivery import DownloadDelivery
 from model.Download_Record import DownloadRecord
 from model.Employee_Account import EmployeeAccount
 from model.Employee_Info import EmployeeInfo
+from model.evidence_event import EvidenceEvent
+
+
+@pytest.fixture(autouse=True)
+def _cleanup_perf_rows(db):
+    """Keep wave-6 tests out of the shared file-backed test database.
+
+    Later suites aggregate row counts (download-stats top-10, forensics list),
+    so every Application / delivery / evidence / anchor / download row created
+    by this module is deleted when the test finishes. Admin rows have string
+    primary keys, so they are removed via their autoincrement account ids.
+    """
+    max_app = db.session.query(func.max(Application.id)).scalar() or 0
+    max_delivery = db.session.query(func.max(DownloadDelivery.delivery_id)).scalar() or 0
+    max_event = db.session.query(func.max(EvidenceEvent.id)).scalar() or 0
+    max_anchor = db.session.query(func.max(AnchorRecord.id)).scalar() or 0
+    max_record = db.session.query(func.max(DownloadRecord.id)).scalar() or 0
+    max_admin = db.session.query(func.max(AdmAccount.id)).scalar() or 0
+    yield
+    admin_numbers = [row[0] for row in db.session.query(AdmAccount.adm_number).filter(AdmAccount.id > max_admin)]
+    DownloadRecord.query.filter(DownloadRecord.id > max_record).delete(synchronize_session=False)
+    EvidenceEvent.query.filter(EvidenceEvent.id > max_event).delete(synchronize_session=False)
+    AnchorRecord.query.filter(AnchorRecord.id > max_anchor).delete(synchronize_session=False)
+    DownloadDelivery.query.filter(DownloadDelivery.delivery_id > max_delivery).delete(synchronize_session=False)
+    Application.query.filter(Application.id > max_app).delete(synchronize_session=False)
+    AdmAccount.query.filter(AdmAccount.id > max_admin).delete(synchronize_session=False)
+    if admin_numbers:
+        AdmInfo.query.filter(AdmInfo.adm_number.in_(admin_numbers)).delete(synchronize_session=False)
+    # The delete-account refresh test removes its account before this cleanup;
+    # its info row (only this module uses the ADM- number prefix) still goes.
+    AdmInfo.query.filter(AdmInfo.adm_number.like("ADM-%")).delete(synchronize_session=False)
+    db.session.commit()
 
 
 def _uniq(prefix):
