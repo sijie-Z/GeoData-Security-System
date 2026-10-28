@@ -2,22 +2,39 @@
   <section class="dfg-card">
     <header class="dfg-head">
       <div class="dfg-titles">
-        <h2 class="dfg-title">{{ t('dataFlow.title') }}</h2>
-        <p class="dfg-subtitle">{{ subtitleText }}</p>
+        <h2 class="dfg-title">
+          {{ t('dataFlow.title') }}
+        </h2>
+        <p class="dfg-subtitle">
+          {{ subtitleText }}
+        </p>
       </div>
       <div class="dfg-legend">
-        <span class="dfg-chip"><i class="dfg-dot dot-origin"></i>{{ t('dataFlow.legendOrigin') }}</span>
-        <span class="dfg-chip"><i class="dfg-dot dot-vector"></i>{{ t('dataFlow.legendVector') }}</span>
-        <span class="dfg-chip"><i class="dfg-dot dot-raster"></i>{{ t('dataFlow.legendRaster') }}</span>
+        <span class="dfg-chip"><i class="dfg-dot dot-origin" />{{ t('dataFlow.legendOrigin') }}</span>
+        <span class="dfg-chip"><i class="dfg-dot dot-vector" />{{ t('dataFlow.legendVector') }}</span>
+        <span class="dfg-chip"><i class="dfg-dot dot-raster" />{{ t('dataFlow.legendRaster') }}</span>
       </div>
     </header>
 
     <div class="dfg-stage">
-      <div v-if="loading" class="dfg-state">
-        <el-icon class="dfg-spin motion-loop" :size="26"><Loading /></el-icon>
+      <div
+        v-if="loading"
+        class="dfg-state"
+      >
+        <el-icon
+          class="dfg-spin motion-loop"
+          :size="26"
+        >
+          <Loading />
+        </el-icon>
         <span>{{ t('common.loading') }}</span>
       </div>
-      <el-empty v-else-if="arcs.length === 0" class="dfg-state" :description="t('dataFlow.empty')" :image-size="72" />
+      <el-empty
+        v-else-if="arcs.length === 0"
+        class="dfg-state"
+        :description="t('dataFlow.empty')"
+        :image-size="72"
+      />
       <div
         v-show="!loading && arcs.length > 0"
         ref="stageRef"
@@ -25,23 +42,45 @@
         role="img"
         :aria-label="t('dataFlow.canvasLabel')"
       >
-        <div v-if="tip.visible && tip.arc" class="dfg-tip" :style="tipStyle">
+        <div
+          v-if="tip.visible && tip.arc"
+          class="dfg-tip"
+          :style="tipStyle"
+        >
           <div class="dfg-tip-head">
-            <i class="dfg-dot" :style="{ background: typeColor(tip.arc.type) }"></i>
+            <i
+              class="dfg-dot"
+              :style="{ background: typeColor(tip.arc.type) }"
+            />
             <span>{{ typeLabel(tip.arc.type) }}</span>
           </div>
-          <div class="dfg-tip-row"><span>{{ t('dataFlow.hoverUser') }}</span><b>{{ tip.arc.user }}</b></div>
-          <div class="dfg-tip-row"><span>{{ t('dataFlow.hoverDelivery') }}</span><b>{{ tip.arc.uuid.slice(0, 8) }}</b></div>
-          <div class="dfg-tip-row"><span>{{ t('dataFlow.hoverFid') }}</span><b>{{ tip.arc.fid }}</b></div>
-          <div class="dfg-tip-row"><span>{{ t('dataFlow.hoverTime') }}</span><b>{{ tip.arc.time }}</b></div>
-          <div class="dfg-tip-row"><span>{{ t('dataFlow.hoverCity') }}</span><b>{{ tip.arc.city || t('dataFlow.cityPseudo') }}</b></div>
+          <div class="dfg-tip-row">
+            <span>{{ t('dataFlow.hoverUser') }}</span><b>{{ tip.arc.user }}</b>
+          </div>
+          <div class="dfg-tip-row">
+            <span>{{ t('dataFlow.hoverDelivery') }}</span><b>{{ tip.arc.uuid.slice(0, 8) }}</b>
+          </div>
+          <div class="dfg-tip-row">
+            <span>{{ t('dataFlow.hoverFid') }}</span><b>{{ tip.arc.fid }}</b>
+          </div>
+          <div class="dfg-tip-row">
+            <span>{{ t('dataFlow.hoverTime') }}</span><b>{{ tip.arc.time }}</b>
+          </div>
+          <div class="dfg-tip-row">
+            <span>{{ t('dataFlow.hoverCity') }}</span><b>{{ tip.arc.city || t('dataFlow.cityPseudo') }}</b>
+          </div>
         </div>
       </div>
     </div>
 
-    <p v-if="!loading && arcs.length > 0" class="dfg-footnote">
+    <p
+      v-if="!loading && arcs.length > 0"
+      class="dfg-footnote"
+    >
       {{ t('dataFlow.arcFootnote', { n: arcs.length }) }}
-      <template v-if="pseudoCount > 0"> · {{ t('dataFlow.pseudoNote', { count: pseudoCount }) }}</template>
+      <template v-if="pseudoCount > 0">
+        · {{ t('dataFlow.pseudoNote', { count: pseudoCount }) }}
+      </template>
     </p>
   </section>
 </template>

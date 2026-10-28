@@ -14,12 +14,25 @@
   - 不引入面包屑
 -->
 <template>
-  <div class="page-header" :class="{ 'is-sticky': sticky }">
+  <div
+    class="page-header"
+    :class="{ 'is-sticky': sticky }"
+  >
     <div class="page-header-text">
-      <h1 class="page-header-title">{{ title }}</h1>
-      <p v-if="subtitle" class="page-header-subtitle">{{ subtitle }}</p>
+      <h1 class="page-header-title">
+        {{ title }}
+      </h1>
+      <p
+        v-if="subtitle"
+        class="page-header-subtitle"
+      >
+        {{ subtitle }}
+      </p>
     </div>
-    <div v-if="$slots.default" class="page-header-actions">
+    <div
+      v-if="$slots.default"
+      class="page-header-actions"
+    >
       <slot />
     </div>
   </div>

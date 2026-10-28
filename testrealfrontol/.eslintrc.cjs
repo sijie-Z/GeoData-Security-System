@@ -19,7 +19,10 @@ module.exports = {
     "vue/no-v-html": "warn",
 
     // General
-    "no-console": "warn",
+    // console.error/warn are intentional production diagnostics (global error
+    // handler, API failure logging, a11y warnings). Only debug-level residue
+    // (log/info/debug/...) stays forbidden.
+    "no-console": ["warn", { allow: ["error", "warn"] }],
     "no-debugger": "warn",
     "no-unused-vars": ["warn", { argsIgnorePattern: "^_" }],
     "prefer-const": "warn",

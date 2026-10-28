@@ -3,36 +3,75 @@
     <!-- 顶部装饰区域 -->
     <div class="profile-header-bg">
       <div class="header-content">
-        <h1 class="profile-title">{{ $t('empProfile.personalCenter') }}</h1>
-        <p class="profile-subtitle">{{ $t('empProfile.manageProfile') }}</p>
+        <h1 class="profile-title">
+          {{ $t('empProfile.personalCenter') }}
+        </h1>
+        <p class="profile-subtitle">
+          {{ $t('empProfile.manageProfile') }}
+        </p>
       </div>
     </div>
 
     <div class="profile-main-content">
       <!-- 个人信息卡片 -->
-      <el-card class="box-card profile-info-card" v-loading="loading">
+      <el-card
+        v-loading="loading"
+        class="box-card profile-info-card"
+      >
         <template #header>
           <div class="card-header">
-            <el-icon size="20" color="var(--accent-9)"><User /></el-icon>
+            <el-icon
+              size="20"
+              color="var(--accent-9)"
+            >
+              <User />
+            </el-icon>
             <span>{{ $t('empProfile.basicInfo') }}</span>
           </div>
         </template>
         <div class="profile-content">
           <div class="avatar-section">
-            <el-avatar :size="120" class="profile-avatar">
-              <img v-if="profileData.avatarUrl" :src="profileData.avatarUrl" :alt="$t('empProfile.employeeAvatar')" @error="handleAvatarError" />
-              <el-icon v-else :size="60" class="default-avatar-icon"><User /></el-icon>
+            <el-avatar
+              :size="120"
+              class="profile-avatar"
+            >
+              <img
+                v-if="profileData.avatarUrl"
+                :src="profileData.avatarUrl"
+                :alt="$t('empProfile.employeeAvatar')"
+                @error="handleAvatarError"
+              >
+              <el-icon
+                v-else
+                :size="60"
+                class="default-avatar-icon"
+              >
+                <User />
+              </el-icon>
             </el-avatar>
             <div class="avatar-info">
-              <h2 class="user-name">{{ profileData.userName || $t('empProfile.nameNotSet') }}</h2>
-              <p class="user-number">{{ $t('empProfile.employeeNumber') }}: {{ profileData.userNumber || 'N/A' }}</p>
+              <h2 class="user-name">
+                {{ profileData.userName || $t('empProfile.nameNotSet') }}
+              </h2>
+              <p class="user-number">
+                {{ $t('empProfile.employeeNumber') }}: {{ profileData.userNumber || 'N/A' }}
+              </p>
               <p class="user-status">
-                <el-tag type="success" size="small">{{ $t('empProfile.active') }}</el-tag>
+                <el-tag
+                  type="success"
+                  size="small"
+                >
+                  {{ $t('empProfile.active') }}
+                </el-tag>
               </p>
             </div>
           </div>
 
-          <el-descriptions :column="isMobile ? 1 : 2" border class="profile-descriptions">
+          <el-descriptions
+            :column="isMobile ? 1 : 2"
+            border
+            class="profile-descriptions"
+          >
             <el-descriptions-item :label="$t('empProfile.jobNumber')">
               <strong>{{ profileData.jobNumber || 'N/A' }}</strong>
             </el-descriptions-item>
@@ -52,18 +91,30 @@
               <strong>{{ profileData.hireDate || 'N/A' }}</strong>
             </el-descriptions-item>
           </el-descriptions>
-          <el-descriptions :column="1" border class="profile-descriptions" style="margin-top: 16px;">
+          <el-descriptions
+            :column="1"
+            border
+            class="profile-descriptions"
+            style="margin-top: 16px;"
+          >
             <el-descriptions-item :label="$t('empProfile.address')">
               <strong>{{ profileData.address || 'N/A' }}</strong>
             </el-descriptions-item>
           </el-descriptions>
 
           <div class="action-buttons">
-            <el-button type="primary" @click="editProfile" size="large">
+            <el-button
+              type="primary"
+              size="large"
+              @click="editProfile"
+            >
               <el-icon><Edit /></el-icon>
               {{ $t('empProfile.editProfile') }}
             </el-button>
-            <el-button @click="openChangePasswordDialog" size="large">
+            <el-button
+              size="large"
+              @click="openChangePasswordDialog"
+            >
               <el-icon><Key /></el-icon>
               {{ $t('empProfile.changePassword') }}
             </el-button>
@@ -75,43 +126,85 @@
       <el-card class="stats-card">
         <template #header>
           <div class="card-header">
-            <el-icon size="20" color="var(--tint-success-text)"><DataAnalysis /></el-icon>
+            <el-icon
+              size="20"
+              color="var(--tint-success-text)"
+            >
+              <DataAnalysis />
+            </el-icon>
             <span>{{ $t('empProfile.accountStats') }}</span>
           </div>
         </template>
         <div class="stats-content">
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="var(--accent-9)"><Calendar /></el-icon>
+              <el-icon
+                size="24"
+                color="var(--accent-9)"
+              >
+                <Calendar />
+              </el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ profileData.hireDate ? calculateDaysSinceHire() : '—' }}</div>
-              <div class="stat-label">{{ profileData.hireDate ? $t('empProfile.daysSinceHire') : $t('empProfile.noHireDate') || '入职日期未设置' }}</div>
+              <div class="stat-value">
+                {{ profileData.hireDate ? calculateDaysSinceHire() : '—' }}
+              </div>
+              <div class="stat-label">
+                {{ profileData.hireDate ? $t('empProfile.daysSinceHire') : $t('empProfile.noHireDate') || '入职日期未设置' }}
+              </div>
             </div>
           </div>
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="var(--tint-success-text)"><Clock /></el-icon>
+              <el-icon
+                size="24"
+                color="var(--tint-success-text)"
+              >
+                <Clock />
+              </el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ lastLoginTime || $t('empProfile.firstLogin') }}</div>
-              <div class="stat-label">{{ $t('empProfile.recentLogin') }}</div>
+              <div class="stat-value">
+                {{ lastLoginTime || $t('empProfile.firstLogin') }}
+              </div>
+              <div class="stat-label">
+                {{ $t('empProfile.recentLogin') }}
+              </div>
             </div>
           </div>
           <div class="stat-item">
             <div class="stat-icon">
-              <el-icon size="24" color="var(--tint-warning-text)"><Document /></el-icon>
+              <el-icon
+                size="24"
+                color="var(--tint-warning-text)"
+              >
+                <Document />
+              </el-icon>
             </div>
             <div class="stat-info">
-              <div class="stat-value">{{ dataCount || '0' }}</div>
-              <div class="stat-label">{{ $t('empProfile.processedData') }}</div>
+              <div class="stat-value">
+                {{ dataCount || '0' }}
+              </div>
+              <div class="stat-label">
+                {{ $t('empProfile.processedData') }}
+              </div>
             </div>
           </div>
         </div>
         <div class="quick-links">
-          <router-link to="/employee/operation_history" class="quick-link">{{ $t('empProfile.operationHistory') }}</router-link>
+          <router-link
+            to="/employee/operation_history"
+            class="quick-link"
+          >
+            {{ $t('empProfile.operationHistory') }}
+          </router-link>
           <span class="quick-divider">|</span>
-          <router-link to="/employee/notifications" class="quick-link">{{ $t('empProfile.myNotifications') }}</router-link>
+          <router-link
+            to="/employee/notifications"
+            class="quick-link"
+          >
+            {{ $t('empProfile.myNotifications') }}
+          </router-link>
         </div>
       </el-card>
     </div>
@@ -123,18 +216,42 @@
       width="500px"
       :before-close="handleEditClose"
     >
-      <el-form :model="editForm" label-width="80px">
+      <el-form
+        :model="editForm"
+        label-width="80px"
+      >
         <!-- 头像上传区域 -->
         <el-form-item :label="$t('empProfile.avatar')">
           <div class="avatar-upload-section">
-            <div class="avatar-preview" @click="triggerFileInput">
-              <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" :alt="$t('empProfile.avatarPreview')" class="avatar-image" />
-              <div v-else class="avatar-placeholder">
-                <el-icon size="32" color="var(--text-4)"><User /></el-icon>
+            <div
+              class="avatar-preview"
+              @click="triggerFileInput"
+            >
+              <img
+                v-if="editForm.avatarUrl"
+                :src="editForm.avatarUrl"
+                :alt="$t('empProfile.avatarPreview')"
+                class="avatar-image"
+              >
+              <div
+                v-else
+                class="avatar-placeholder"
+              >
+                <el-icon
+                  size="32"
+                  color="var(--text-4)"
+                >
+                  <User />
+                </el-icon>
                 <span class="avatar-text">{{ $t('empProfile.clickToUpload') }}</span>
               </div>
               <div class="avatar-overlay">
-                <el-icon color="white" size="20"><Camera /></el-icon>
+                <el-icon
+                  color="white"
+                  size="20"
+                >
+                  <Camera />
+                </el-icon>
                 <span>{{ $t('empProfile.changeAvatar') }}</span>
               </div>
             </div>
@@ -144,9 +261,12 @@
               accept="image/*"
               style="display: none"
               @change="handleAvatarChange"
-            />
+            >
             <div class="avatar-tips">
-              <el-text type="info" size="small">
+              <el-text
+                type="info"
+                size="small"
+              >
                 {{ $t('empProfile.avatarTips') }}
               </el-text>
             </div>
@@ -154,22 +274,38 @@
         </el-form-item>
 
         <el-form-item :label="$t('empProfile.name')">
-          <el-input v-model="editForm.userName" :placeholder="$t('empProfile.enterName')" />
+          <el-input
+            v-model="editForm.userName"
+            :placeholder="$t('empProfile.enterName')"
+          />
         </el-form-item>
         <el-form-item :label="$t('empProfile.email')">
-          <el-input v-model="editForm.email" :placeholder="$t('empProfile.enterEmail')" />
+          <el-input
+            v-model="editForm.email"
+            :placeholder="$t('empProfile.enterEmail')"
+          />
         </el-form-item>
         <el-form-item :label="$t('empProfile.phoneNumber')">
-          <el-input v-model="editForm.phoneNumber" :placeholder="$t('empProfile.enterPhone')" />
+          <el-input
+            v-model="editForm.phoneNumber"
+            :placeholder="$t('empProfile.enterPhone')"
+          />
         </el-form-item>
         <el-form-item :label="$t('empProfile.address')">
-          <el-input v-model="editForm.address" :placeholder="$t('empProfile.enterAddress')" type="textarea" />
+          <el-input
+            v-model="editForm.address"
+            :placeholder="$t('empProfile.enterAddress')"
+            type="textarea"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="editDialogVisible = false">{{ $t('empProfile.cancel') }}</el-button>
-          <el-button type="primary" @click="saveProfile">{{ $t('empProfile.save') }}</el-button>
+          <el-button
+            type="primary"
+            @click="saveProfile"
+          >{{ $t('empProfile.save') }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -181,7 +317,10 @@
       width="500px"
       :before-close="handlePasswordClose"
     >
-      <el-form :model="passwordForm" label-width="100px">
+      <el-form
+        :model="passwordForm"
+        label-width="100px"
+      >
         <el-form-item :label="$t('empProfile.oldPassword')">
           <el-input
             v-model="passwordForm.oldPassword"
@@ -210,7 +349,10 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="passwordDialogVisible = false">{{ $t('empProfile.cancel') }}</el-button>
-          <el-button type="primary" @click="updatePassword">{{ $t('empProfile.confirmChange') }}</el-button>
+          <el-button
+            type="primary"
+            @click="updatePassword"
+          >{{ $t('empProfile.confirmChange') }}</el-button>
         </span>
       </template>
     </el-dialog>
@@ -221,7 +363,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useMediaQuery } from '@vueuse/core';
-import { ElMessage, ElLoading, ElMessageBox } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { User, Camera, Edit, Key, DataAnalysis, Calendar, Clock, Document } from '@element-plus/icons-vue';
 import { getProfile, updateProfile, changePassword, getPhoto, getDashboard } from '@/api/employee';
 import { useUserStore } from '@/stores/userStore';

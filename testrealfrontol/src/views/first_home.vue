@@ -1,6 +1,9 @@
 <template>
   <div class="home-container">
-    <canvas ref="bgCanvas" class="background-canvas"></canvas>
+    <canvas
+      ref="bgCanvas"
+      class="background-canvas"
+    />
     <!-- 主要内容区域 -->
     <div class="content-overlay">
       <!-- 品牌信息区域 -->
@@ -8,16 +11,24 @@
         <h1 class="system-title">
           <span class="title-line">{{ $t('firstHome.title') }}</span>
         </h1>
-        <p class="system-subtitle">{{ $t('firstHome.subtitle') }}</p>
+        <p class="system-subtitle">
+          {{ $t('firstHome.subtitle') }}
+        </p>
       </div>
 
       <!-- 操作按钮 -->
       <div class="action-buttons">
-        <button @click="register_button" class="action-btn register-btn">
+        <button
+          class="action-btn register-btn"
+          @click="register_button"
+        >
           <el-icon><Plus /></el-icon>
           {{ $t('firstHome.createAccount') }}
         </button>
-        <button @click="login_button" class="action-btn login-btn">
+        <button
+          class="action-btn login-btn"
+          @click="login_button"
+        >
           <el-icon><Key /></el-icon>
           {{ $t('firstHome.accessLogin') }}
         </button>
@@ -50,11 +61,22 @@
 
       <!-- 工作流程引导 -->
       <div class="workflow-section">
-        <h2 class="workflow-title">{{ $t('firstHome.workflowTitle') }}</h2>
+        <h2 class="workflow-title">
+          {{ $t('firstHome.workflowTitle') }}
+        </h2>
         <div class="workflow-steps">
-          <div v-for="(step, idx) in workflowSteps" :key="idx" class="workflow-step">
-            <div class="step-number">{{ idx + 1 }}</div>
-            <div class="step-connector" v-if="idx < workflowSteps.length - 1"></div>
+          <div
+            v-for="(step, idx) in workflowSteps"
+            :key="idx"
+            class="workflow-step"
+          >
+            <div class="step-number">
+              {{ idx + 1 }}
+            </div>
+            <div
+              v-if="idx < workflowSteps.length - 1"
+              class="step-connector"
+            />
             <h3>{{ step.title }}</h3>
             <p>{{ step.desc }}</p>
           </div>
@@ -70,7 +92,7 @@
     <!-- Scroll indicator -->
     <div class="scroll-indicator motion-rise">
       <div class="scroll-mouse">
-        <div class="scroll-wheel motion-loop"></div>
+        <div class="scroll-wheel motion-loop" />
       </div>
     </div>
 

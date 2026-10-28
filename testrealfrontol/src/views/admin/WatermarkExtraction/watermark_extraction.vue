@@ -1,22 +1,47 @@
 <template>
-  <div class="watermark-extraction-container" v-loading="loading">
+  <div
+    v-loading="loading"
+    class="watermark-extraction-container"
+  >
     <PageHeader :title="$t('wmExtract.pageTitle')" />
     <div class="input-section">
       <span class="input-label">{{ $t('wmExtract.applicationIdLabel') }}</span>
-      <el-input v-model="GetIdInput" style="width: 200px" :placeholder="$t('wmExtract.inputPlaceholder')" clearable/>
-      <el-button size="default" type="primary" @click="click_extract">{{ $t('wmExtract.selectAndExtract') }}</el-button>
-      <el-tooltip :content="$t('wmExtract.idHint')" placement="top">
-        <el-icon style="color: var(--text-3); cursor: help; font-size: 16px;"><QuestionFilled /></el-icon>
+      <el-input
+        v-model="GetIdInput"
+        style="width: 200px"
+        :placeholder="$t('wmExtract.inputPlaceholder')"
+        clearable
+      />
+      <el-button
+        size="default"
+        type="primary"
+        @click="click_extract"
+      >
+        {{ $t('wmExtract.selectAndExtract') }}
+      </el-button>
+      <el-tooltip
+        :content="$t('wmExtract.idHint')"
+        placement="top"
+      >
+        <el-icon style="color: var(--text-3); cursor: help; font-size: 16px;">
+          <QuestionFilled />
+        </el-icon>
       </el-tooltip>
     </div>
 
-    <el-card class="watermark-card" shadow="hover">
+    <el-card
+      class="watermark-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <span>{{ $t('wmExtract.extractedWatermarkTitle') }}</span>
         </div>
       </template>
-      <div v-if="extractedWatermarkBase64" class="watermark-image-wrapper">
+      <div
+        v-if="extractedWatermarkBase64"
+        class="watermark-image-wrapper"
+      >
         <WatermarkImage
           :src="`data:image/png;base64,${extractedWatermarkBase64}`"
           :alt="$t('wmExtract.extractedWatermarkTitle')"
@@ -24,12 +49,20 @@
           class="watermark-image"
         />
       </div>
-      <div v-else class="watermark-placeholder">
-        <el-empty :description="$t('wmExtract.watermarkPlaceholder')"></el-empty>
+      <div
+        v-else
+        class="watermark-placeholder"
+      >
+        <el-empty :description="$t('wmExtract.watermarkPlaceholder')" />
       </div>
     </el-card>
 
-    <el-card v-if="recoveredBase64" class="watermark-card" shadow="hover" style="margin-top: 16px;">
+    <el-card
+      v-if="recoveredBase64"
+      class="watermark-card"
+      shadow="hover"
+      style="margin-top: 16px;"
+    >
       <template #header>
         <div class="card-header">
           <span>{{ $t('wmExtract.recoveredTitle') || 'Recovered Original Image' }}</span>
@@ -44,13 +77,25 @@
         />
       </div>
       <div style="text-align: center; margin-top: 8px;">
-        <el-tag type="success" effect="dark">{{ $t('wmExtract.reversibleSuccess') || 'Reversible recovery successful — original image perfectly restored' }}</el-tag>
+        <el-tag
+          type="success"
+          effect="dark"
+        >
+          {{ $t('wmExtract.reversibleSuccess') || 'Reversible recovery successful — original image perfectly restored' }}
+        </el-tag>
       </div>
     </el-card>
 
-    <el-card v-if="decodedInfo" class="decode-card" shadow="never" style="margin-top: 16px;">
+    <el-card
+      v-if="decodedInfo"
+      class="decode-card"
+      shadow="never"
+      style="margin-top: 16px;"
+    >
       <template #header>
-        <div class="card-header"><span>{{ $t('wmExtract.rawQrTitle') }}</span></div>
+        <div class="card-header">
+          <span>{{ $t('wmExtract.rawQrTitle') }}</span>
+        </div>
       </template>
       <el-input
         type="textarea"
@@ -61,9 +106,16 @@
       />
     </el-card>
 
-    <el-card v-if="decodedInfo" class="decode-card" shadow="never" style="margin-top: 16px;">
+    <el-card
+      v-if="decodedInfo"
+      class="decode-card"
+      shadow="never"
+      style="margin-top: 16px;"
+    >
       <template #header>
-        <div class="card-header"><span>{{ $t('wmExtract.decodeInfoTitle') }}</span></div>
+        <div class="card-header">
+          <span>{{ $t('wmExtract.decodeInfoTitle') }}</span>
+        </div>
       </template>
       <el-alert
         :title="decodedInfo.verify?.message || $t('wmExtract.verifyUnavailable')"
@@ -71,30 +123,79 @@
         :closable="false"
         style="margin-bottom: 10px;"
       />
-      <el-descriptions :column="2" border>
-        <el-descriptions-item :label="$t('wmExtract.descApplicationId')">{{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApplicationNumber')">{{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApplicationStatus')">{{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descDataType')">{{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApplicant')">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApplicantId')">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover1')">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover1Id')">{{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover1Time')">{{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover2')">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover2Id')">{{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descApprover2Time')">{{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descSubmittedAt')">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descGeneratedAt')">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descPurpose')">{{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descUsageScope')">{{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descSecurityLevel')">{{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descCustomTag')">{{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('wmExtract.descReason')" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
+      <el-descriptions
+        :column="2"
+        border
+      >
+        <el-descriptions-item :label="$t('wmExtract.descApplicationId')">
+          {{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicationNumber')">
+          {{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicationStatus')">
+          {{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descDataType')">
+          {{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicant')">
+          {{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApplicantId')">
+          {{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1')">
+          {{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1Id')">
+          {{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover1Time')">
+          {{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2')">
+          {{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2Id')">
+          {{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descApprover2Time')">
+          {{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descSubmittedAt')">
+          {{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descGeneratedAt')">
+          {{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descPurpose')">
+          {{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descUsageScope')">
+          {{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descSecurityLevel')">
+          {{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('wmExtract.descCustomTag')">
+          {{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          :label="$t('wmExtract.descReason')"
+          :span="2"
+        >
+          {{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
-    <el-dialog :title="$t('wmExtract.uploadDialogTitle')" v-model="ExtractVisible" width="50%" :before-close="(done) => handleClose('send', done)">
+    <el-dialog
+      v-model="ExtractVisible"
+      :title="$t('wmExtract.uploadDialogTitle')"
+      width="50%"
+      :before-close="(done) => handleClose('send', done)"
+    >
       <div class="upload-dialog-content">
         <el-upload
           class="send_file_uploader"
@@ -109,7 +210,9 @@
           :before-upload="beforeUpload"
           :file-list="[]"
         >
-          <el-icon class="el-icon--upload"><UploadFilled/></el-icon>
+          <el-icon class="el-icon--upload">
+            <UploadFilled />
+          </el-icon>
           <div class="el-upload__text">
             {{ $t('wmExtract.uploadText') }} <em>{{ $t('wmExtract.uploadClick') }}</em>
           </div>

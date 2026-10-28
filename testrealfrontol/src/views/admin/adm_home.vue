@@ -95,7 +95,7 @@ const reloadPage = () => {
         class="sidebar-mask"
         aria-hidden="true"
         @click="closeDrawer"
-      ></div>
+      />
 
       <HomeSide
         :is-collapse="isMobile ? false : isSideCollapse"
@@ -107,15 +107,32 @@ const reloadPage = () => {
         :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]"
         tabindex="0"
       >
-        <div v-if="hasError" class="error-fallback">
+        <div
+          v-if="hasError"
+          class="error-fallback"
+        >
           <h2>⚠️ 页面加载异常</h2>
           <p>子组件渲染出错，请刷新页面或返回首页。</p>
-          <el-button type="primary" @click="reloadPage">返回首页</el-button>
+          <el-button
+            type="primary"
+            @click="reloadPage"
+          >
+            返回首页
+          </el-button>
         </div>
-        <router-view v-else v-slot="{ Component }">
-          <transition name="page-fade" mode="out-in">
+        <router-view
+          v-else
+          v-slot="{ Component }"
+        >
+          <transition
+            name="page-fade"
+            mode="out-in"
+          >
             <keep-alive :include="['AdminDashboard']">
-              <div :key="$route.path" style="height: 100%;">
+              <div
+                :key="$route.path"
+                style="height: 100%;"
+              >
                 <component :is="Component" />
               </div>
             </keep-alive>

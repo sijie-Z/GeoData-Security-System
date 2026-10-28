@@ -1,14 +1,35 @@
 <template>
   <div class="admin-notify-page">
-    <PageHeader :title="$t('adminNotify.title')" :subtitle="$t('adminNotify.description')" />
+    <PageHeader
+      :title="$t('adminNotify.title')"
+      :subtitle="$t('adminNotify.description')"
+    />
 
-    <el-card class="notify-card" shadow="hover">
-      <el-form :model="form" label-width="96px" class="notify-form">
-        <el-form-item :label="$t('adminNotify.titleLabel')" required>
-          <el-input v-model="form.title" maxlength="80" show-word-limit :placeholder="$t('adminNotify.titlePlaceholder')" />
+    <el-card
+      class="notify-card"
+      shadow="hover"
+    >
+      <el-form
+        :model="form"
+        label-width="96px"
+        class="notify-form"
+      >
+        <el-form-item
+          :label="$t('adminNotify.titleLabel')"
+          required
+        >
+          <el-input
+            v-model="form.title"
+            maxlength="80"
+            show-word-limit
+            :placeholder="$t('adminNotify.titlePlaceholder')"
+          />
         </el-form-item>
 
-        <el-form-item :label="$t('adminNotify.contentLabel')" required>
+        <el-form-item
+          :label="$t('adminNotify.contentLabel')"
+          required
+        >
           <el-input
             v-model="form.content"
             type="textarea"
@@ -21,12 +42,19 @@
 
         <el-form-item :label="$t('adminNotify.sendTarget')">
           <el-radio-group v-model="sendMode">
-            <el-radio value="all">{{ $t('adminNotify.allEmployees') }}</el-radio>
-            <el-radio value="specified">{{ $t('adminNotify.specifiedEmployees') }}</el-radio>
+            <el-radio value="all">
+              {{ $t('adminNotify.allEmployees') }}
+            </el-radio>
+            <el-radio value="specified">
+              {{ $t('adminNotify.specifiedEmployees') }}
+            </el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="sendMode === 'specified'" :label="$t('adminNotify.employeeNumber')">
+        <el-form-item
+          v-if="sendMode === 'specified'"
+          :label="$t('adminNotify.employeeNumber')"
+        >
           <el-select
             v-model="form.user_numbers"
             multiple
@@ -46,8 +74,16 @@
         </el-form-item>
 
         <el-form-item>
-          <el-button type="primary" :loading="sending" @click="sendNotification">{{ $t('adminNotify.sendNotification') }}</el-button>
-          <el-button @click="resetForm">{{ $t('adminNotify.reset') }}</el-button>
+          <el-button
+            type="primary"
+            :loading="sending"
+            @click="sendNotification"
+          >
+            {{ $t('adminNotify.sendNotification') }}
+          </el-button>
+          <el-button @click="resetForm">
+            {{ $t('adminNotify.reset') }}
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>

@@ -17,19 +17,45 @@
         </span>
         <span class="mg-range">0 ~ 1</span>
       </div>
-      <p class="mg-short">{{ $t('robustnessLab.metricNcShort') }}</p>
-      <p class="mg-desc">{{ $t('robustnessLab.metricNcDesc') }}</p>
-      <div class="mg-bar" aria-hidden="true">
-        <span class="mg-seg is-bad" :style="{ flex: 75 }"></span>
-        <span class="mg-seg is-mid" :style="{ flex: 20 }"></span>
-        <span class="mg-seg is-ok" :style="{ flex: 5 }"></span>
+      <p class="mg-short">
+        {{ $t('robustnessLab.metricNcShort') }}
+      </p>
+      <p class="mg-desc">
+        {{ $t('robustnessLab.metricNcDesc') }}
+      </p>
+      <div
+        class="mg-bar"
+        aria-hidden="true"
+      >
+        <span
+          class="mg-seg is-bad"
+          :style="{ flex: 75 }"
+        />
+        <span
+          class="mg-seg is-mid"
+          :style="{ flex: 20 }"
+        />
+        <span
+          class="mg-seg is-ok"
+          :style="{ flex: 5 }"
+        />
       </div>
-      <div class="mg-scale" aria-hidden="true">
+      <div
+        class="mg-scale"
+        aria-hidden="true"
+      >
         <span>0</span><span>0.75</span><span>0.95</span><span>1</span>
       </div>
-      <p class="mg-hint">{{ $t('robustnessLab.metricScaleHint') }}</p>
+      <p class="mg-hint">
+        {{ $t('robustnessLab.metricScaleHint') }}
+      </p>
       <div class="mg-doc-row">
-        <el-button text size="small" type="primary" @click="openDoc('nc')">
+        <el-button
+          text
+          size="small"
+          type="primary"
+          @click="openDoc('nc')"
+        >
           {{ $t('robustnessLab.metricDocBtn') }}
         </el-button>
       </div>
@@ -43,10 +69,19 @@
         </span>
         <span class="mg-range">0 ~ 0.5</span>
       </div>
-      <p class="mg-short">{{ $t('robustnessLab.metricBerShort') }}</p>
-      <p class="mg-desc">{{ $t('robustnessLab.metricBerDesc') }}</p>
+      <p class="mg-short">
+        {{ $t('robustnessLab.metricBerShort') }}
+      </p>
+      <p class="mg-desc">
+        {{ $t('robustnessLab.metricBerDesc') }}
+      </p>
       <div class="mg-doc-row">
-        <el-button text size="small" type="primary" @click="openDoc('ber')">
+        <el-button
+          text
+          size="small"
+          type="primary"
+          @click="openDoc('ber')"
+        >
           {{ $t('robustnessLab.metricDocBtn') }}
         </el-button>
       </div>
@@ -57,10 +92,19 @@
         <span class="mg-name">{{ $t('robustnessLab.metricDecodeName') }}</span>
         <span class="mg-range">✓ / ✗</span>
       </div>
-      <p class="mg-short">{{ $t('robustnessLab.metricDecodeShort') }}</p>
-      <p class="mg-desc">{{ $t('robustnessLab.metricDecodeDesc') }}</p>
+      <p class="mg-short">
+        {{ $t('robustnessLab.metricDecodeShort') }}
+      </p>
+      <p class="mg-desc">
+        {{ $t('robustnessLab.metricDecodeDesc') }}
+      </p>
       <div class="mg-doc-row">
-        <el-button text size="small" type="primary" @click="openDoc('decode')">
+        <el-button
+          text
+          size="small"
+          type="primary"
+          @click="openDoc('decode')"
+        >
           {{ $t('robustnessLab.metricDocBtn') }}
         </el-button>
       </div>
@@ -75,9 +119,17 @@
       class="metric-doc-drawer"
     >
       <div class="md-body">
-        <section v-for="section in docSections" :key="section.label" class="md-section">
-          <h5 class="md-label">{{ section.label }}</h5>
-          <p class="md-text">{{ section.text }}</p>
+        <section
+          v-for="section in docSections"
+          :key="section.label"
+          class="md-section"
+        >
+          <h5 class="md-label">
+            {{ section.label }}
+          </h5>
+          <p class="md-text">
+            {{ section.text }}
+          </p>
         </section>
       </div>
     </el-drawer>

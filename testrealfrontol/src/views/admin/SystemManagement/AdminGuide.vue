@@ -1,19 +1,31 @@
 <template>
   <div class="guide-page">
-    <el-card class="guide-card" shadow="hover">
+    <el-card
+      class="guide-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <h1>{{ $t('adminGuide.title') }}</h1>
-          <el-tag type="success">{{ $t('adminGuide.beginner') }}</el-tag>
+          <el-tag type="success">
+            {{ $t('adminGuide.beginner') }}
+          </el-tag>
         </div>
       </template>
 
       <el-collapse v-model="activeSection">
         <!-- 系统概述 -->
-        <el-collapse-item :title="$t('adminGuide.overview')" name="overview">
+        <el-collapse-item
+          :title="$t('adminGuide.overview')"
+          name="overview"
+        >
           <div class="section-content">
             <p>{{ $t('adminGuide.overviewDescPrefix') }}<strong>{{ $t('adminGuide.overviewDescBold') }}</strong>{{ $t('adminGuide.overviewDescSuffix') }}</p>
-            <el-alert type="info" :closable="false" style="margin-top: 12px">
+            <el-alert
+              type="info"
+              :closable="false"
+              style="margin-top: 12px"
+            >
               <template #title>
                 {{ $t('adminGuide.currentIdentityPrefix') }}<strong>{{ adminRoleName }}</strong>{{ $t('adminGuide.currentIdentitySuffix') }}
               </template>
@@ -22,38 +34,69 @@
         </el-collapse-item>
 
         <!-- 管理员角色 -->
-        <el-collapse-item :title="$t('adminGuide.roles')" name="roles">
+        <el-collapse-item
+          :title="$t('adminGuide.roles')"
+          name="roles"
+        >
           <div class="section-content">
-            <el-table :data="roleData" border style="margin-top: 12px">
-              <el-table-column prop="role" :label="$t('adminGuide.role')" width="100" />
-              <el-table-column prop="permission" :label="$t('adminGuide.mainDuties')" />
-              <el-table-column prop="watermark" :label="$t('adminGuide.watermarkPermission')" width="150" />
+            <el-table
+              :data="roleData"
+              border
+              style="margin-top: 12px"
+            >
+              <el-table-column
+                prop="role"
+                :label="$t('adminGuide.role')"
+                width="100"
+              />
+              <el-table-column
+                prop="permission"
+                :label="$t('adminGuide.mainDuties')"
+              />
+              <el-table-column
+                prop="watermark"
+                :label="$t('adminGuide.watermarkPermission')"
+                width="150"
+              />
             </el-table>
           </div>
         </el-collapse-item>
 
         <!-- 审批流程 -->
-        <el-collapse-item :title="$t('adminGuide.approvalProcess')" name="approval">
+        <el-collapse-item
+          :title="$t('adminGuide.approvalProcess')"
+          name="approval"
+        >
           <div class="section-content">
             <div class="flow-diagram">
               <div class="flow-item">
-                <div class="flow-box">{{ $t('adminGuide.employeeSubmit') }}</div>
+                <div class="flow-box">
+                  {{ $t('adminGuide.employeeSubmit') }}
+                </div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box primary">{{ $t('adminGuide.admin1Review') }}</div>
+                <div class="flow-box primary">
+                  {{ $t('adminGuide.admin1Review') }}
+                </div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box success">{{ $t('adminGuide.admin2Review') }}</div>
+                <div class="flow-box success">
+                  {{ $t('adminGuide.admin2Review') }}
+                </div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box warning">{{ $t('adminGuide.watermarkProcess') }}</div>
+                <div class="flow-box warning">
+                  {{ $t('adminGuide.watermarkProcess') }}
+                </div>
                 <el-icon><ArrowRight /></el-icon>
               </div>
               <div class="flow-item">
-                <div class="flow-box info">{{ $t('adminGuide.dataDistribution') }}</div>
+                <div class="flow-box info">
+                  {{ $t('adminGuide.dataDistribution') }}
+                </div>
               </div>
             </div>
             <el-divider />
@@ -68,21 +111,44 @@
         </el-collapse-item>
 
         <!-- 水印流程 -->
-        <el-collapse-item :title="$t('adminGuide.watermarkFlow')" name="watermark">
+        <el-collapse-item
+          :title="$t('adminGuide.watermarkFlow')"
+          name="watermark"
+        >
           <div class="section-content">
-            <el-steps :active="3" finish-status="success" simple style="margin-bottom: 20px">
-              <el-step :title="$t('adminGuide.generate')" :description="$t('adminGuide.admin1')" />
-              <el-step :title="$t('adminGuide.embed')" :description="$t('adminGuide.admin2')" />
-              <el-step :title="$t('adminGuide.extract')" :description="$t('adminGuide.admin3')" />
+            <el-steps
+              :active="3"
+              finish-status="success"
+              simple
+              style="margin-bottom: 20px"
+            >
+              <el-step
+                :title="$t('adminGuide.generate')"
+                :description="$t('adminGuide.admin1')"
+              />
+              <el-step
+                :title="$t('adminGuide.embed')"
+                :description="$t('adminGuide.admin2')"
+              />
+              <el-step
+                :title="$t('adminGuide.extract')"
+                :description="$t('adminGuide.admin3')"
+              />
             </el-steps>
-            <el-alert type="warning" :closable="false">
+            <el-alert
+              type="warning"
+              :closable="false"
+            >
               {{ $t('adminGuide.watermarkNote') }}
             </el-alert>
           </div>
         </el-collapse-item>
 
         <!-- 数据回收 -->
-        <el-collapse-item :title="$t('adminGuide.dataRecall')" name="recall">
+        <el-collapse-item
+          :title="$t('adminGuide.dataRecall')"
+          name="recall"
+        >
           <div class="section-content">
             <p>{{ $t('adminGuide.recallDesc') }}</p>
             <ol>
@@ -95,29 +161,52 @@
         </el-collapse-item>
 
         <!-- 在线沟通 -->
-        <el-collapse-item :title="$t('adminGuide.onlineChat')" name="chat">
+        <el-collapse-item
+          :title="$t('adminGuide.onlineChat')"
+          name="chat"
+        >
           <div class="section-content">
             <p>{{ $t('adminGuide.chatDesc') }}</p>
-            <el-button type="primary" @click="goToChat">{{ $t('adminGuide.enterChat') }}</el-button>
+            <el-button
+              type="primary"
+              @click="goToChat"
+            >
+              {{ $t('adminGuide.enterChat') }}
+            </el-button>
             <el-divider direction="vertical" />
             <span class="hint">{{ $t('adminGuide.chatHint') }}</span>
           </div>
         </el-collapse-item>
 
         <!-- 常见问题 -->
-        <el-collapse-item :title="$t('adminGuide.faq')" name="faq">
+        <el-collapse-item
+          :title="$t('adminGuide.faq')"
+          name="faq"
+        >
           <div class="section-content">
             <el-collapse>
-              <el-collapse-item :title="$t('adminGuide.faq1Q')" name="q1">
+              <el-collapse-item
+                :title="$t('adminGuide.faq1Q')"
+                name="q1"
+              >
                 <p>{{ $t('adminGuide.faq1A') }}</p>
               </el-collapse-item>
-              <el-collapse-item :title="$t('adminGuide.faq2Q')" name="q2">
+              <el-collapse-item
+                :title="$t('adminGuide.faq2Q')"
+                name="q2"
+              >
                 <p>{{ $t('adminGuide.faq2A') }}</p>
               </el-collapse-item>
-              <el-collapse-item :title="$t('adminGuide.faq3Q')" name="q3">
+              <el-collapse-item
+                :title="$t('adminGuide.faq3Q')"
+                name="q3"
+              >
                 <p>{{ $t('adminGuide.faq3A') }}</p>
               </el-collapse-item>
-              <el-collapse-item :title="$t('adminGuide.faq4Q')" name="q4">
+              <el-collapse-item
+                :title="$t('adminGuide.faq4Q')"
+                name="q4"
+              >
                 <p>{{ $t('adminGuide.faq4A') }}</p>
               </el-collapse-item>
             </el-collapse>
@@ -127,15 +216,39 @@
     </el-card>
 
     <!-- 快捷入口 -->
-    <el-card class="shortcuts-card" shadow="hover" style="margin-top: 16px">
+    <el-card
+      class="shortcuts-card"
+      shadow="hover"
+      style="margin-top: 16px"
+    >
       <template #header>
         <span>{{ $t('adminGuide.shortcuts') }}</span>
       </template>
       <div class="shortcuts">
-        <el-button type="primary" @click="goTo('/admin/approve_application/not_approved')">{{ $t('adminGuide.pendingApproval') }}</el-button>
-        <el-button type="success" @click="goTo('/admin/employee_management/information_list')">{{ $t('adminGuide.employeeList') }}</el-button>
-        <el-button type="warning" @click="goTo('/admin/system/chat')">{{ $t('adminGuide.onlineChatBtn') }}</el-button>
-        <el-button type="info" @click="goTo('/admin/logs')">{{ $t('adminGuide.operationLog') }}</el-button>
+        <el-button
+          type="primary"
+          @click="goTo('/admin/approve_application/not_approved')"
+        >
+          {{ $t('adminGuide.pendingApproval') }}
+        </el-button>
+        <el-button
+          type="success"
+          @click="goTo('/admin/employee_management/information_list')"
+        >
+          {{ $t('adminGuide.employeeList') }}
+        </el-button>
+        <el-button
+          type="warning"
+          @click="goTo('/admin/system/chat')"
+        >
+          {{ $t('adminGuide.onlineChatBtn') }}
+        </el-button>
+        <el-button
+          type="info"
+          @click="goTo('/admin/logs')"
+        >
+          {{ $t('adminGuide.operationLog') }}
+        </el-button>
       </div>
     </el-card>
   </div>

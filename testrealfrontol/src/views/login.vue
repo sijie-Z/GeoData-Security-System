@@ -13,16 +13,26 @@
       <main class="auth-main">
         <section class="auth-card">
           <header class="auth-card-header">
-            <h2 class="auth-form-title">{{ $t('login.formTitle') }}</h2>
-            <p class="auth-form-subtitle">{{ $t('login.formSubtitle') }}</p>
+            <h2 class="auth-form-title">
+              {{ $t('login.formTitle') }}
+            </h2>
+            <p class="auth-form-subtitle">
+              {{ $t('login.formSubtitle') }}
+            </p>
           </header>
 
-          <el-form :model="data" :rules="rules" ref="elFormRef" class="auth-form" @submit.prevent="login">
+          <el-form
+            ref="elFormRef"
+            :model="data"
+            :rules="rules"
+            class="auth-form"
+            @submit.prevent="login"
+          >
             <el-form-item prop="username">
               <el-input
+                v-model="data.username"
                 size="large"
                 :prefix-icon="User"
-                v-model="data.username"
                 :placeholder="$t('login.usernamePlaceholder')"
                 class="auth-input"
               />
@@ -30,19 +40,25 @@
 
             <el-form-item prop="password">
               <el-input
+                v-model="data.password"
                 size="large"
                 :prefix-icon="Lock"
                 show-password
-                v-model="data.password"
                 type="password"
                 :placeholder="$t('login.passwordPlaceholder')"
-                @keyup.enter="login"
                 class="auth-input"
+                @keyup.enter="login"
               />
             </el-form-item>
 
-            <el-form-item prop="role" class="role-selector-item">
-              <div class="role-capsule-group" role="radiogroup">
+            <el-form-item
+              prop="role"
+              class="role-selector-item"
+            >
+              <div
+                class="role-capsule-group"
+                role="radiogroup"
+              >
                 <div
                   class="role-option"
                   :class="{ active: data.role === 'admin' }"
@@ -61,18 +77,26 @@
                 >
                   <el-icon><UserFilled /></el-icon><span>{{ $t('auth.employee') }}</span>
                 </div>
-                <div class="active-capsule" :style="capsuleStyle"></div>
+                <div
+                  class="active-capsule"
+                  :style="capsuleStyle"
+                />
               </div>
             </el-form-item>
 
             <el-form-item class="submit-item">
               <el-button
                 class="auth-submit"
-                @click="login"
                 :loading="loading"
                 native-type="submit"
+                @click="login"
               >
-                <el-icon v-if="!loading" class="submit-icon"><Key /></el-icon>
+                <el-icon
+                  v-if="!loading"
+                  class="submit-icon"
+                >
+                  <Key />
+                </el-icon>
                 {{ $t('login.loginButton') }}
               </el-button>
             </el-form-item>
@@ -81,7 +105,13 @@
           <div class="auth-card-footer">
             <span>{{ $t('login.noAccount') }}</span>
             <!-- href 保留可爬锚点（Lighthouse crawlable-anchors）；左键普通点击在 register() 内拦截默认行为，仍走 SPA -->
-            <el-link type="primary" href="/register" @click="register" :underline="false" class="auth-link">
+            <el-link
+              type="primary"
+              href="/register"
+              :underline="false"
+              class="auth-link"
+              @click="register"
+            >
               {{ $t('login.registerNow') }}
             </el-link>
           </div>

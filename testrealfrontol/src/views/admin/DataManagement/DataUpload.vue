@@ -1,114 +1,152 @@
 <template>
-    <div class="data-upload-container">
-      <!-- 1. 页面标题和引导区 -->
-      <div class="page-header">
-        <h1 class="page-title">{{ $t('adminDataUpload.title') }}</h1>
-        <p class="page-description">
-          {{ $t('adminDataUpload.description') }}
-        </p>
-      </div>
-
-      <!-- 2. 主操作区：表单和上传控件 -->
-      <el-card class="upload-main-card">
-        <el-form
-          ref="uploadFormRef"
-          :model="form"
-          :rules="rules"
-          label-width="120px"
-          label-position="top"
-          class="upload-form"
-          size="large"
-        >
-          <el-row :gutter="40">
-            <el-col :span="12">
-              <el-form-item :label="$t('adminDataUpload.dataName')" prop="data_alias">
-                <el-input
-                  v-model="form.data_alias"
-                  :placeholder="$t('adminDataUpload.dataNameExample')"
-                  clearable
-                />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-               <el-form-item :label="$t('adminDataUpload.category')" prop="category">
-                  <el-select v-model="form.category" :placeholder="$t('adminDataUpload.selectCategory')" filterable allow-create>
-                    <el-option :label="$t('adminDataUpload.categoryAdmin')" value="行政区划"></el-option>
-                    <el-option :label="$t('adminDataUpload.categoryWater')" value="水系"></el-option>
-                    <el-option :label="$t('adminDataUpload.categoryTraffic')" value="交通网络"></el-option>
-                    <el-option :label="$t('adminDataUpload.categoryPOI')" value="兴趣点 (POI)"></el-option>
-                  </el-select>
-                </el-form-item>
-            </el-col>
-          </el-row>
-
-          <el-form-item :label="$t('adminDataUpload.dataIntro')" prop="data_introduction">
-            <el-input
-              v-model="form.data_introduction"
-              type="textarea"
-              :rows="4"
-              :placeholder="$t('adminDataUpload.dataIntroPlaceholder')"
-              show-word-limit
-              maxlength="500"
-            />
-          </el-form-item>
-
-          <el-form-item :label="$t('adminDataUpload.uploadSHP')" prop="file">
-            <!-- el-upload 组件现在只用于选择文件，不进行实际上传 -->
-            <el-upload
-              ref="uploadRef"
-              class="upload-dragger-wrapper"
-              drag
-              action="#"
-              :limit="1"
-              :auto-upload="false"
-              :http-request="() => {}"
-              :on-change="handleFileChange"
-              :on-remove="handleFileRemove"
-              :on-exceed="handleExceed"
-              accept=".zip"
-            >
-              <el-icon class="el-icon--upload"><upload-filled /></el-icon>
-              <div class="el-upload__text">
-                {{ $t('adminDataUpload.dragHere') }}<em>{{ $t('adminDataUpload.clickUpload') }}</em>
-              </div>
-              <template #tip>
-                <div class="el-upload__tip">
-                  {{ $t('adminDataUpload.zipOnly') }}
-                </div>
-              </template>
-            </el-upload>
-          </el-form-item>
-
-          <!-- 上传进度条 -->
-          <el-progress
-              v-if="uploadPercentage > 0"
-              :percentage="uploadPercentage"
-              :stroke-width="10"
-              :text-inside="true"
-              status="success"
-              class="upload-progress"
-            />
-
-          <!-- 3. 操作按钮区 -->
-          <el-form-item class="form-actions">
-            <TipWrap :reason="!form.file ? $t('common.disabledReason.uploadFile') : ''">
-              <el-button
-                type="primary"
-                size="large"
-                :icon="Upload"
-                @click="submitUpload"
-                :loading="isUploading"
-                :disabled="!form.file"
-              >
-                {{ isUploading ? $t('adminDataUpload.uploading') : $t('adminDataUpload.uploadNow') }}
-              </el-button>
-            </TipWrap>
-            <el-button size="large" @click="resetForm">{{ $t('adminDataUpload.resetAll') }}</el-button>
-          </el-form-item>
-        </el-form>
-      </el-card>
+  <div class="data-upload-container">
+    <!-- 1. 页面标题和引导区 -->
+    <div class="page-header">
+      <h1 class="page-title">
+        {{ $t('adminDataUpload.title') }}
+      </h1>
+      <p class="page-description">
+        {{ $t('adminDataUpload.description') }}
+      </p>
     </div>
-  </template>
+
+    <!-- 2. 主操作区：表单和上传控件 -->
+    <el-card class="upload-main-card">
+      <el-form
+        ref="uploadFormRef"
+        :model="form"
+        :rules="rules"
+        label-width="120px"
+        label-position="top"
+        class="upload-form"
+        size="large"
+      >
+        <el-row :gutter="40">
+          <el-col :span="12">
+            <el-form-item
+              :label="$t('adminDataUpload.dataName')"
+              prop="data_alias"
+            >
+              <el-input
+                v-model="form.data_alias"
+                :placeholder="$t('adminDataUpload.dataNameExample')"
+                clearable
+              />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item
+              :label="$t('adminDataUpload.category')"
+              prop="category"
+            >
+              <el-select
+                v-model="form.category"
+                :placeholder="$t('adminDataUpload.selectCategory')"
+                filterable
+                allow-create
+              >
+                <el-option
+                  :label="$t('adminDataUpload.categoryAdmin')"
+                  value="行政区划"
+                />
+                <el-option
+                  :label="$t('adminDataUpload.categoryWater')"
+                  value="水系"
+                />
+                <el-option
+                  :label="$t('adminDataUpload.categoryTraffic')"
+                  value="交通网络"
+                />
+                <el-option
+                  :label="$t('adminDataUpload.categoryPOI')"
+                  value="兴趣点 (POI)"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-form-item
+          :label="$t('adminDataUpload.dataIntro')"
+          prop="data_introduction"
+        >
+          <el-input
+            v-model="form.data_introduction"
+            type="textarea"
+            :rows="4"
+            :placeholder="$t('adminDataUpload.dataIntroPlaceholder')"
+            show-word-limit
+            maxlength="500"
+          />
+        </el-form-item>
+
+        <el-form-item
+          :label="$t('adminDataUpload.uploadSHP')"
+          prop="file"
+        >
+          <!-- el-upload 组件现在只用于选择文件，不进行实际上传 -->
+          <el-upload
+            ref="uploadRef"
+            class="upload-dragger-wrapper"
+            drag
+            action="#"
+            :limit="1"
+            :auto-upload="false"
+            :http-request="() => {}"
+            :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
+            :on-exceed="handleExceed"
+            accept=".zip"
+          >
+            <el-icon class="el-icon--upload">
+              <upload-filled />
+            </el-icon>
+            <div class="el-upload__text">
+              {{ $t('adminDataUpload.dragHere') }}<em>{{ $t('adminDataUpload.clickUpload') }}</em>
+            </div>
+            <template #tip>
+              <div class="el-upload__tip">
+                {{ $t('adminDataUpload.zipOnly') }}
+              </div>
+            </template>
+          </el-upload>
+        </el-form-item>
+
+        <!-- 上传进度条 -->
+        <el-progress
+          v-if="uploadPercentage > 0"
+          :percentage="uploadPercentage"
+          :stroke-width="10"
+          :text-inside="true"
+          status="success"
+          class="upload-progress"
+        />
+
+        <!-- 3. 操作按钮区 -->
+        <el-form-item class="form-actions">
+          <TipWrap :reason="!form.file ? $t('common.disabledReason.uploadFile') : ''">
+            <el-button
+              type="primary"
+              size="large"
+              :icon="Upload"
+              :loading="isUploading"
+              :disabled="!form.file"
+              @click="submitUpload"
+            >
+              {{ isUploading ? $t('adminDataUpload.uploading') : $t('adminDataUpload.uploadNow') }}
+            </el-button>
+          </TipWrap>
+          <el-button
+            size="large"
+            @click="resetForm"
+          >
+            {{ $t('adminDataUpload.resetAll') }}
+          </el-button>
+        </el-form-item>
+      </el-form>
+    </el-card>
+  </div>
+</template>
 
 <script setup>
 import { ref, reactive, nextTick, onBeforeUnmount } from 'vue';

@@ -1,8 +1,12 @@
 <template>
   <div class="data-upload-container">
     <div class="page-header">
-      <h1 class="page-title">{{ $t('adminRasterUpload.title') }}</h1>
-      <p class="page-description">{{ $t('adminRasterUpload.description') }}</p>
+      <h1 class="page-title">
+        {{ $t('adminRasterUpload.title') }}
+      </h1>
+      <p class="page-description">
+        {{ $t('adminRasterUpload.description') }}
+      </p>
     </div>
 
     <el-card class="upload-main-card">
@@ -17,23 +21,53 @@
       >
         <el-row :gutter="40">
           <el-col :span="12">
-            <el-form-item :label="$t('adminRasterUpload.dataName')" prop="data_alias">
-              <el-input v-model="form.data_alias" :placeholder="$t('adminRasterUpload.dataNameExample')" clearable />
+            <el-form-item
+              :label="$t('adminRasterUpload.dataName')"
+              prop="data_alias"
+            >
+              <el-input
+                v-model="form.data_alias"
+                :placeholder="$t('adminRasterUpload.dataNameExample')"
+                clearable
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('adminRasterUpload.category')" prop="category">
-              <el-select v-model="form.category" :placeholder="$t('adminRasterUpload.selectCategory')" filterable allow-create>
-                <el-option :label="$t('adminRasterUpload.categoryRS')" value="遥感影像"></el-option>
-                <el-option :label="$t('adminRasterUpload.categoryDEM')" value="高程模型"></el-option>
-                <el-option :label="$t('adminRasterUpload.categoryLand')" value="土地利用"></el-option>
-                <el-option :label="$t('adminRasterUpload.categoryOther')" value="其他栅格"></el-option>
+            <el-form-item
+              :label="$t('adminRasterUpload.category')"
+              prop="category"
+            >
+              <el-select
+                v-model="form.category"
+                :placeholder="$t('adminRasterUpload.selectCategory')"
+                filterable
+                allow-create
+              >
+                <el-option
+                  :label="$t('adminRasterUpload.categoryRS')"
+                  value="遥感影像"
+                />
+                <el-option
+                  :label="$t('adminRasterUpload.categoryDEM')"
+                  value="高程模型"
+                />
+                <el-option
+                  :label="$t('adminRasterUpload.categoryLand')"
+                  value="土地利用"
+                />
+                <el-option
+                  :label="$t('adminRasterUpload.categoryOther')"
+                  value="其他栅格"
+                />
               </el-select>
             </el-form-item>
           </el-col>
         </el-row>
 
-        <el-form-item :label="$t('adminRasterUpload.dataIntro')" prop="data_introduction">
+        <el-form-item
+          :label="$t('adminRasterUpload.dataIntro')"
+          prop="data_introduction"
+        >
           <el-input
             v-model="form.data_introduction"
             type="textarea"
@@ -43,13 +77,20 @@
             maxlength="500"
           />
           <div class="ai-hint">
-            <el-button text size="small" @click="form.data_introduction = ''">
+            <el-button
+              text
+              size="small"
+              @click="form.data_introduction = ''"
+            >
               {{ $t('adminRasterUpload.aiHint') }}
             </el-button>
           </div>
         </el-form-item>
 
-        <el-form-item :label="$t('adminRasterUpload.uploadFile')" prop="file">
+        <el-form-item
+          :label="$t('adminRasterUpload.uploadFile')"
+          prop="file"
+        >
           <el-upload
             ref="uploadRef"
             class="upload-dragger-wrapper"
@@ -63,7 +104,9 @@
             :on-exceed="handleExceed"
             accept=".tif,.tiff,.png,.jpg,.jpeg"
           >
-            <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+            <el-icon class="el-icon--upload">
+              <upload-filled />
+            </el-icon>
             <div class="el-upload__text">
               {{ $t('adminRasterUpload.dragHere') }}<em>{{ $t('adminRasterUpload.clickUpload') }}</em>
             </div>
@@ -90,14 +133,19 @@
               type="primary"
               size="large"
               :icon="Upload"
-              @click="submitUpload"
               :loading="isUploading"
               :disabled="!form.file"
+              @click="submitUpload"
             >
               {{ isUploading ? $t('adminRasterUpload.uploading') : $t('adminRasterUpload.uploadNow') }}
             </el-button>
           </TipWrap>
-          <el-button size="large" @click="resetForm">{{ $t('adminRasterUpload.resetAll') }}</el-button>
+          <el-button
+            size="large"
+            @click="resetForm"
+          >
+            {{ $t('adminRasterUpload.resetAll') }}
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>

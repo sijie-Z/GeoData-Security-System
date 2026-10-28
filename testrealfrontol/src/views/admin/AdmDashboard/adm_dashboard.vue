@@ -1,37 +1,45 @@
 <template>
-  <div class="admin-dashboard" :aria-busy="loading">
+  <div
+    class="admin-dashboard"
+    :aria-busy="loading"
+  >
     <template v-if="loading">
       <!-- hero 位：与 .hero-section 同骨架（问候线 + 副标题线 + 右侧 2 按钮块） -->
       <section class="hero-section">
         <div class="hero-content">
-          <div class="sk-line sk-hero-title motion-shimmer"></div>
-          <div class="sk-line sk-hero-sub motion-shimmer"></div>
+          <div class="sk-line sk-hero-title motion-shimmer" />
+          <div class="sk-line sk-hero-sub motion-shimmer" />
         </div>
         <div class="hero-actions">
-          <div class="sk-btn motion-shimmer"></div>
-          <div class="sk-btn motion-shimmer"></div>
+          <div class="sk-btn motion-shimmer" />
+          <div class="sk-btn motion-shimmer" />
         </div>
       </section>
 
       <!-- 地球位：与 DataFlowGlobe 实测同高的整块占位（head + 340 stage + footnote） -->
       <section class="skeleton-globe">
         <div class="skeleton-globe-head">
-          <div class="sk-dark sk-globe-title motion-shimmer"></div>
-          <div class="sk-dark sk-globe-subtitle motion-shimmer"></div>
+          <div class="sk-dark sk-globe-title motion-shimmer" />
+          <div class="sk-dark sk-globe-subtitle motion-shimmer" />
         </div>
-        <div class="sk-dark skeleton-globe-stage motion-shimmer"></div>
-        <div class="sk-dark sk-globe-footnote motion-shimmer"></div>
+        <div class="sk-dark skeleton-globe-stage motion-shimmer" />
+        <div class="sk-dark sk-globe-footnote motion-shimmer" />
       </section>
 
       <!-- KPI 位：真实 .kpi-grid + el-card.kpi-card 骨架（图标块 + 3 行） -->
       <section class="kpi-grid">
-        <el-card v-for="n in 4" :key="n" class="kpi-card" shadow="hover">
+        <el-card
+          v-for="n in 4"
+          :key="n"
+          class="kpi-card"
+          shadow="hover"
+        >
           <div class="kpi-body">
-            <div class="kpi-icon sk-kpi-icon motion-shimmer"></div>
+            <div class="kpi-icon sk-kpi-icon motion-shimmer" />
             <div class="kpi-info sk-kpi-info">
-              <div class="sk-line sk-kpi-label motion-shimmer"></div>
-              <div class="sk-line sk-kpi-value motion-shimmer"></div>
-              <div class="sk-line sk-kpi-small motion-shimmer"></div>
+              <div class="sk-line sk-kpi-label motion-shimmer" />
+              <div class="sk-line sk-kpi-value motion-shimmer" />
+              <div class="sk-line sk-kpi-small motion-shimmer" />
             </div>
           </div>
         </el-card>
@@ -40,360 +48,650 @@
       <!-- 快捷入口位：标题线 + 6 个小块 -->
       <section class="quick-actions">
         <el-card shadow="hover">
-          <template #header><div class="sk-line sk-card-title motion-shimmer"></div></template>
+          <template #header>
+            <div class="sk-line sk-card-title motion-shimmer" />
+          </template>
           <div class="action-grid">
-            <div v-for="n in 6" :key="n" class="action-item sk-action-item">
-              <div class="sk-square motion-shimmer"></div>
-              <div class="sk-line sk-action-text motion-shimmer"></div>
+            <div
+              v-for="n in 6"
+              :key="n"
+              class="action-item sk-action-item"
+            >
+              <div class="sk-square motion-shimmer" />
+              <div class="sk-line sk-action-text motion-shimmer" />
             </div>
           </div>
         </el-card>
       </section>
 
       <!-- 图表位 ×2：标题线 + 与 .chart-container 同高（320px）的占位块 -->
-      <section v-for="n in 2" :key="n" class="charts-grid">
-        <el-card v-for="m in 2" :key="m" shadow="hover">
-          <template #header><div class="sk-line sk-card-title motion-shimmer"></div></template>
+      <section
+        v-for="n in 2"
+        :key="n"
+        class="charts-grid"
+      >
+        <el-card
+          v-for="m in 2"
+          :key="m"
+          shadow="hover"
+        >
+          <template #header>
+            <div class="sk-line sk-card-title motion-shimmer" />
+          </template>
           <div class="chart-container">
-            <div class="sk-chart motion-shimmer"></div>
+            <div class="sk-chart motion-shimmer" />
           </div>
         </el-card>
       </section>
     </template>
     <template v-else>
-    <!-- Hero区域 -->
-    <section class="hero-section">
-      <div class="hero-content">
-        <h1>{{ greeting }}，{{ adminRoleLabel }}</h1>
-        <p>{{ $t('adminDashboard.heroSubtitle') }}<span v-if="lastUpdate && lastUpdate !== '-'"> · {{ lastUpdate }}</span></p>
-      </div>
-      <div class="hero-actions">
-        <el-button type="primary" @click="refreshNow" :icon="RefreshRight">{{ $t('adminDashboard.refreshData') }}</el-button>
-        <el-button @click="exportSnapshot" :icon="Download">{{ $t('adminDashboard.exportReport') }}</el-button>
-      </div>
-    </section>
-
-    <!-- 数据分发流向 3D 地球 -->
-    <DataFlowGlobe />
-
-    <!-- 告警提示 -->
-    <section class="alert-section" v-if="alerts.length > 0">
-      <el-alert
-        v-for="(alert, idx) in alerts.slice(0, 3)"
-        :key="idx"
-        :title="alert.message"
-        :type="alert.level === 'warning' ? 'warning' : 'info'"
-        show-icon
-        closable
-      />
-    </section>
-
-    <!-- KPI卡片（§3.8 入场 stagger 40ms） -->
-    <section class="kpi-grid motion-stagger">
-      <el-card class="kpi-card" shadow="hover">
-        <div class="kpi-body">
-          <div class="kpi-icon blue"><el-icon><User /></el-icon></div>
-          <div class="kpi-info">
-            <span class="kpi-label">{{ $t('adminDashboard.registeredUsers') }}</span>
-            <h2 class="kpi-value">{{ metrics.totalUsers }}</h2>
-            <small>{{ $t('adminDashboard.adminCount', { count: metrics.totalAdmins }) }}</small>
-          </div>
+      <!-- Hero区域 -->
+      <section class="hero-section">
+        <div class="hero-content">
+          <h1>{{ greeting }}，{{ adminRoleLabel }}</h1>
+          <p>{{ $t('adminDashboard.heroSubtitle') }}<span v-if="lastUpdate && lastUpdate !== '-'"> · {{ lastUpdate }}</span></p>
         </div>
-      </el-card>
-      <el-card class="kpi-card" shadow="hover">
-        <div class="kpi-body">
-          <div class="kpi-icon orange"><el-icon><Clock /></el-icon></div>
-          <div class="kpi-info">
-            <span class="kpi-label">{{ $t('adminDashboard.pendingApplications') }}</span>
-            <h2 class="kpi-value">{{ metrics.pendingApprovals }}</h2>
-            <small>{{ $t('adminDashboard.totalCount', { count: metrics.totalApplications }) }}</small>
-          </div>
+        <div class="hero-actions">
+          <el-button
+            type="primary"
+            :icon="RefreshRight"
+            @click="refreshNow"
+          >
+            {{ $t('adminDashboard.refreshData') }}
+          </el-button>
+          <el-button
+            :icon="Download"
+            @click="exportSnapshot"
+          >
+            {{ $t('adminDashboard.exportReport') }}
+          </el-button>
         </div>
-      </el-card>
-      <el-card class="kpi-card" shadow="hover">
-        <div class="kpi-body">
-          <div class="kpi-icon green"><el-icon><FolderOpened /></el-icon></div>
-          <div class="kpi-info">
-            <span class="kpi-label">{{ $t('adminDashboard.dataAssets') }}</span>
-            <h2 class="kpi-value">{{ dataTypeStats.vector + dataTypeStats.raster }}</h2>
-            <small>{{ $t('adminDashboard.vectorRasterBreakdown', { vector: dataTypeStats.vector, raster: dataTypeStats.raster }) }}</small>
-          </div>
-        </div>
-      </el-card>
-      <el-card class="kpi-card" shadow="hover">
-        <div class="kpi-body">
-          <div class="kpi-icon cyan"><el-icon><TrendCharts /></el-icon></div>
-          <div class="kpi-info">
-            <span class="kpi-label">{{ $t('adminDashboard.todayActiveTotalDownloads') }}</span>
-            <h2 class="kpi-value">{{ todayStats.activeUsers }} / {{ metrics.totalDownloads }}</h2>
-            <small>{{ $t('adminDashboard.loginTimes', { count: todayStats.logins }) }}</small>
-          </div>
-        </div>
-      </el-card>
-    </section>
+      </section>
 
-    <!-- 快捷入口 -->
-    <section class="quick-actions">
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.quickTodo') }}</span></template>
-        <div class="action-grid">
-          <div class="action-item" @click="goTo('/admin/approve_application/not_approved')">
-            <el-badge :value="metrics.pendingApprovals" :hidden="metrics.pendingApprovals === 0">
-              <el-icon :size="24"><Document /></el-icon>
-            </el-badge>
-            <span>{{ $t('adminDashboard.pendingApproval') }}</span>
-          </div>
-          <div class="action-item" @click="goTo('/admin/recall')">
-            <el-badge :value="recallStats.voting" :hidden="recallStats.voting === 0">
-              <el-icon :size="24"><RefreshRight /></el-icon>
-            </el-badge>
-            <span>{{ $t('adminDashboard.recallReview') }}</span>
-          </div>
-          <div class="action-item" @click="goTo('/admin/admin-application')">
-            <el-badge :value="adminAppStats.pending + adminAppStats.voting" :hidden="adminAppStats.pending + adminAppStats.voting === 0">
-              <el-icon :size="24"><UserFilled /></el-icon>
-            </el-badge>
-            <span>{{ $t('adminDashboard.adminApplication') }}</span>
-          </div>
-          <div class="action-item" @click="goTo('/admin/data/upload')">
-            <el-icon :size="24"><Upload /></el-icon>
-            <span>{{ $t('adminDashboard.dataUpload') }}</span>
-          </div>
-          <div class="action-item" @click="goTo('/admin/logs')">
-            <el-icon :size="24"><List /></el-icon>
-            <span>{{ $t('adminDashboard.systemLogs') }}</span>
-          </div>
-          <div class="action-item" @click="goTo('/admin/system/chat')">
-            <el-icon :size="24"><ChatDotRound /></el-icon>
-            <span>{{ $t('adminDashboard.onlineChat') }}</span>
-          </div>
-        </div>
-      </el-card>
-    </section>
+      <!-- 数据分发流向 3D 地球 -->
+      <DataFlowGlobe />
 
-    <!-- 图表区域 -->
-    <section class="charts-grid">
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.trendChart') }}</span></template>
-        <v-chart
-          v-if="chartData.length > 0"
-          class="chart-container"
-          :option="trendOption"
-          :autoresize="{ throttle: 160 }"
+      <!-- 告警提示 -->
+      <section
+        v-if="alerts.length > 0"
+        class="alert-section"
+      >
+        <el-alert
+          v-for="(alert, idx) in alerts.slice(0, 3)"
+          :key="idx"
+          :title="alert.message"
+          :type="alert.level === 'warning' ? 'warning' : 'info'"
+          show-icon
+          closable
         />
-        <div v-else class="chart-empty">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
-        </div>
-      </el-card>
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.statusDistribution') }}</span></template>
-        <v-chart
-          v-if="statusDistribution.pending || statusDistribution.approved || statusDistribution.rejected"
-          class="chart-container"
-          :option="statusOption"
-          :autoresize="{ throttle: 160 }"
-        />
-        <div v-else class="chart-empty">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
-        </div>
-      </el-card>
-    </section>
+      </section>
 
-    <!-- 图表区域 2：活跃度 + 数据类型分布 -->
-    <section class="charts-grid">
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.hourlyActivity') }}</span></template>
-        <v-chart
-          v-if="hourlyActivity.length > 0"
-          class="chart-container"
-          :option="hourlyOption"
-          :autoresize="{ throttle: 160 }"
-        />
-        <div v-else class="chart-empty">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noActivityData')" />
-        </div>
-      </el-card>
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.dataTypeDist') }}</span></template>
-        <v-chart
-          v-if="dataTypeStats.vector || dataTypeStats.raster"
-          class="chart-container"
-          :option="dataTypeOption"
-          :autoresize="{ throttle: 160 }"
-        />
-        <div v-else class="chart-empty">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noData')" />
-        </div>
-      </el-card>
-    </section>
-
-    <!-- 下载统计（7/30/90 天切换）：逐日下载量 + 独立下载人数、两个 Top 小表 + 导出 CSV -->
-    <section class="download-stats-section">
-      <el-card shadow="hover" v-loading="dlStatsLoading">
-        <template #header>
-          <div class="dl-stats-header">
-            <span>{{ $t('adminDashboard.dlStatsTitle') }}</span>
-            <div class="dl-stats-actions">
-              <el-radio-group v-model="dlStatsDays" size="small" @change="fetchDownloadStats">
-                <el-radio-button :value="7">{{ $t('adminDashboard.day7') }}</el-radio-button>
-                <el-radio-button :value="30">{{ $t('adminDashboard.day30') }}</el-radio-button>
-                <el-radio-button :value="90">{{ $t('adminDashboard.day90') }}</el-radio-button>
-              </el-radio-group>
-              <el-button plain size="small" :icon="Download" :loading="dlStatsExporting" @click="exportDlStats">
-                {{ $t('adminDashboard.dlStatsExport') }}
-              </el-button>
+      <!-- KPI卡片（§3.8 入场 stagger 40ms） -->
+      <section class="kpi-grid motion-stagger">
+        <el-card
+          class="kpi-card"
+          shadow="hover"
+        >
+          <div class="kpi-body">
+            <div class="kpi-icon blue">
+              <el-icon><User /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">{{ $t('adminDashboard.registeredUsers') }}</span>
+              <h2 class="kpi-value">
+                {{ metrics.totalUsers }}
+              </h2>
+              <small>{{ $t('adminDashboard.adminCount', { count: metrics.totalAdmins }) }}</small>
             </div>
           </div>
-        </template>
+        </el-card>
+        <el-card
+          class="kpi-card"
+          shadow="hover"
+        >
+          <div class="kpi-body">
+            <div class="kpi-icon orange">
+              <el-icon><Clock /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">{{ $t('adminDashboard.pendingApplications') }}</span>
+              <h2 class="kpi-value">
+                {{ metrics.pendingApprovals }}
+              </h2>
+              <small>{{ $t('adminDashboard.totalCount', { count: metrics.totalApplications }) }}</small>
+            </div>
+          </div>
+        </el-card>
+        <el-card
+          class="kpi-card"
+          shadow="hover"
+        >
+          <div class="kpi-body">
+            <div class="kpi-icon green">
+              <el-icon><FolderOpened /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">{{ $t('adminDashboard.dataAssets') }}</span>
+              <h2 class="kpi-value">
+                {{ dataTypeStats.vector + dataTypeStats.raster }}
+              </h2>
+              <small>{{ $t('adminDashboard.vectorRasterBreakdown', { vector: dataTypeStats.vector, raster: dataTypeStats.raster }) }}</small>
+            </div>
+          </div>
+        </el-card>
+        <el-card
+          class="kpi-card"
+          shadow="hover"
+        >
+          <div class="kpi-body">
+            <div class="kpi-icon cyan">
+              <el-icon><TrendCharts /></el-icon>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">{{ $t('adminDashboard.todayActiveTotalDownloads') }}</span>
+              <h2 class="kpi-value">
+                {{ todayStats.activeUsers }} / {{ metrics.totalDownloads }}
+              </h2>
+              <small>{{ $t('adminDashboard.loginTimes', { count: todayStats.logins }) }}</small>
+            </div>
+          </div>
+        </el-card>
+      </section>
 
-        <div class="dl-stats-summary">
-          <div class="dl-summary-item">
-            <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekDownloads') }}</span>
-            <span class="dl-summary-value">{{ dlComparison.this_week_downloads ?? 0 }}</span>
-            <el-tag size="small" :type="(dlComparison.downloads_growth ?? 0) >= 0 ? 'success' : 'danger'">
-              {{ (dlComparison.downloads_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.downloads_growth ?? 0 }}%
-            </el-tag>
+      <!-- 快捷入口 -->
+      <section class="quick-actions">
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.quickTodo') }}</span>
+          </template>
+          <div class="action-grid">
+            <div
+              class="action-item"
+              @click="goTo('/admin/approve_application/not_approved')"
+            >
+              <el-badge
+                :value="metrics.pendingApprovals"
+                :hidden="metrics.pendingApprovals === 0"
+              >
+                <el-icon :size="24">
+                  <Document />
+                </el-icon>
+              </el-badge>
+              <span>{{ $t('adminDashboard.pendingApproval') }}</span>
+            </div>
+            <div
+              class="action-item"
+              @click="goTo('/admin/recall')"
+            >
+              <el-badge
+                :value="recallStats.voting"
+                :hidden="recallStats.voting === 0"
+              >
+                <el-icon :size="24">
+                  <RefreshRight />
+                </el-icon>
+              </el-badge>
+              <span>{{ $t('adminDashboard.recallReview') }}</span>
+            </div>
+            <div
+              class="action-item"
+              @click="goTo('/admin/admin-application')"
+            >
+              <el-badge
+                :value="adminAppStats.pending + adminAppStats.voting"
+                :hidden="adminAppStats.pending + adminAppStats.voting === 0"
+              >
+                <el-icon :size="24">
+                  <UserFilled />
+                </el-icon>
+              </el-badge>
+              <span>{{ $t('adminDashboard.adminApplication') }}</span>
+            </div>
+            <div
+              class="action-item"
+              @click="goTo('/admin/data/upload')"
+            >
+              <el-icon :size="24">
+                <Upload />
+              </el-icon>
+              <span>{{ $t('adminDashboard.dataUpload') }}</span>
+            </div>
+            <div
+              class="action-item"
+              @click="goTo('/admin/logs')"
+            >
+              <el-icon :size="24">
+                <List />
+              </el-icon>
+              <span>{{ $t('adminDashboard.systemLogs') }}</span>
+            </div>
+            <div
+              class="action-item"
+              @click="goTo('/admin/system/chat')"
+            >
+              <el-icon :size="24">
+                <ChatDotRound />
+              </el-icon>
+              <span>{{ $t('adminDashboard.onlineChat') }}</span>
+            </div>
           </div>
-          <div class="dl-summary-item">
-            <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekUsers') }}</span>
-            <span class="dl-summary-value">{{ dlComparison.this_week_users ?? 0 }}</span>
-            <el-tag size="small" :type="(dlComparison.users_growth ?? 0) >= 0 ? 'success' : 'danger'">
-              {{ (dlComparison.users_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.users_growth ?? 0 }}%
-            </el-tag>
-          </div>
-        </div>
+        </el-card>
+      </section>
 
-        <v-chart
-          v-if="dlStats.daily.length > 0"
-          class="dl-stats-chart"
-          :option="dlStatsOption"
-          :autoresize="{ throttle: 160 }"
-        />
-        <div v-else class="chart-empty dl-stats-chart">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noDownloadData')" />
-        </div>
+      <!-- 图表区域 -->
+      <section class="charts-grid">
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.trendChart') }}</span>
+          </template>
+          <v-chart
+            v-if="chartData.length > 0"
+            class="chart-container"
+            :option="trendOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noDownloadData')"
+            />
+          </div>
+        </el-card>
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.statusDistribution') }}</span>
+          </template>
+          <v-chart
+            v-if="statusDistribution.pending || statusDistribution.approved || statusDistribution.rejected"
+            class="chart-container"
+            :option="statusOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noDownloadData')"
+            />
+          </div>
+        </el-card>
+      </section>
 
-        <div class="dl-stats-tables">
-          <div class="dl-stats-table">
-            <h3 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopUsers') }}</h3>
-            <el-table ref="dlTopUsersTable" :data="dlStats.top_users" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
-              <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
-                <template #default="{ $index }">
-                  <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('adminDashboard.colUser')" min-width="150" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <span class="dl-user">{{ row.name || row.user_number || '—' }}</span>
-                  <span v-if="row.name && row.user_number" class="dl-user-number">{{ row.user_number }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('adminDashboard.colCount')" width="90" align="right">
-                <template #default="{ row }"><span class="dl-num">{{ row.downloads ?? 0 }}</span></template>
-              </el-table-column>
-            </el-table>
+      <!-- 图表区域 2：活跃度 + 数据类型分布 -->
+      <section class="charts-grid">
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.hourlyActivity') }}</span>
+          </template>
+          <v-chart
+            v-if="hourlyActivity.length > 0"
+            class="chart-container"
+            :option="hourlyOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noActivityData')"
+            />
           </div>
-          <div class="dl-stats-table">
-            <h3 class="dl-table-title">{{ $t('adminDashboard.dlStatsTopData') }}</h3>
-            <el-table ref="dlTopDataTable" :data="dlStats.top_data" size="small" max-height="280" :empty-text="$t('adminDashboard.noDownloadData')">
-              <el-table-column :label="$t('adminDashboard.colRank')" width="56" align="center">
-                <template #default="{ $index }">
-                  <span class="dl-rank" :class="{ top: $index < 3 }">{{ $index + 1 }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('adminDashboard.colDataName')" min-width="180" show-overflow-tooltip>
-                <template #default="{ row }">
-                  <span class="dl-user">{{ row.data_name || $t('adminDashboard.untitled') }}</span>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('adminDashboard.colDataType')" width="90" align="center">
-                <template #default="{ row }">
-                  <el-tag size="small" :type="row.data_type === 'vector' ? 'primary' : (row.data_type === 'raster' ? 'success' : 'info')">
-                    {{ dlTypeLabel(row.data_type) }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column :label="$t('adminDashboard.colCount')" width="90" align="right">
-                <template #default="{ row }"><span class="dl-num">{{ row.downloads ?? 0 }}</span></template>
-              </el-table-column>
-            </el-table>
+        </el-card>
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.dataTypeDist') }}</span>
+          </template>
+          <v-chart
+            v-if="dataTypeStats.vector || dataTypeStats.raster"
+            class="chart-container"
+            :option="dataTypeOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noData')"
+            />
           </div>
-        </div>
-      </el-card>
-    </section>
+        </el-card>
+      </section>
 
-    <!-- 管理员审批效率 -->
-    <section class="full-chart-section">
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.adminEfficiency') }}</span></template>
-        <v-chart
-          v-if="adminEfficiency.length > 0"
-          class="chart-container-wide"
-          :option="efficiencyOption"
-          :autoresize="{ throttle: 160 }"
-        />
-        <div v-else class="chart-empty">
-          <EmptyState compact variant="never" :title="$t('adminDashboard.noReviewData')" />
-        </div>
-      </el-card>
-    </section>
+      <!-- 下载统计（7/30/90 天切换）：逐日下载量 + 独立下载人数、两个 Top 小表 + 导出 CSV -->
+      <section class="download-stats-section">
+        <el-card
+          v-loading="dlStatsLoading"
+          shadow="hover"
+        >
+          <template #header>
+            <div class="dl-stats-header">
+              <span>{{ $t('adminDashboard.dlStatsTitle') }}</span>
+              <div class="dl-stats-actions">
+                <el-radio-group
+                  v-model="dlStatsDays"
+                  size="small"
+                  @change="fetchDownloadStats"
+                >
+                  <el-radio-button :value="7">
+                    {{ $t('adminDashboard.day7') }}
+                  </el-radio-button>
+                  <el-radio-button :value="30">
+                    {{ $t('adminDashboard.day30') }}
+                  </el-radio-button>
+                  <el-radio-button :value="90">
+                    {{ $t('adminDashboard.day90') }}
+                  </el-radio-button>
+                </el-radio-group>
+                <el-button
+                  plain
+                  size="small"
+                  :icon="Download"
+                  :loading="dlStatsExporting"
+                  @click="exportDlStats"
+                >
+                  {{ $t('adminDashboard.dlStatsExport') }}
+                </el-button>
+              </div>
+            </div>
+          </template>
 
-    <!-- 底部统计 -->
-    <section class="bottom-grid">
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.weeklyComparison') }}</span></template>
-        <div class="stats-row">
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('adminDashboard.thisWeekApplications') }}</span>
-            <span class="stat-value">{{ weeklyComparison.thisWeekApplications }}</span>
-            <el-tag size="small" :type="weeklyComparison.applicationGrowth >= 0 ? 'success' : 'danger'">
-              {{ weeklyComparison.applicationGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.applicationGrowth }}%
-            </el-tag>
+          <div class="dl-stats-summary">
+            <div class="dl-summary-item">
+              <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekDownloads') }}</span>
+              <span class="dl-summary-value">{{ dlComparison.this_week_downloads ?? 0 }}</span>
+              <el-tag
+                size="small"
+                :type="(dlComparison.downloads_growth ?? 0) >= 0 ? 'success' : 'danger'"
+              >
+                {{ (dlComparison.downloads_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.downloads_growth ?? 0 }}%
+              </el-tag>
+            </div>
+            <div class="dl-summary-item">
+              <span class="dl-summary-label">{{ $t('adminDashboard.dlStatsWeekUsers') }}</span>
+              <span class="dl-summary-value">{{ dlComparison.this_week_users ?? 0 }}</span>
+              <el-tag
+                size="small"
+                :type="(dlComparison.users_growth ?? 0) >= 0 ? 'success' : 'danger'"
+              >
+                {{ (dlComparison.users_growth ?? 0) >= 0 ? '+' : '' }}{{ dlComparison.users_growth ?? 0 }}%
+              </el-tag>
+            </div>
           </div>
-          <div class="stat-item">
-            <span class="stat-label">{{ $t('adminDashboard.thisWeekDownloads') }}</span>
-            <span class="stat-value">{{ weeklyComparison.thisWeekDownloads }}</span>
-            <el-tag size="small" :type="weeklyComparison.downloadGrowth >= 0 ? 'success' : 'danger'">
-              {{ weeklyComparison.downloadGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.downloadGrowth }}%
-            </el-tag>
-          </div>
-        </div>
-      </el-card>
 
-      <el-card shadow="hover">
-        <template #header><span>{{ $t('adminDashboard.hotDataTop5') }}</span></template>
-        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
-        <div class="hot-list" tabindex="0" :aria-label="$t('adminDashboard.hotDataTop5')">
-          <div v-for="(item, idx) in hotData.slice(0, 5)" :key="idx" class="hot-item">
-            <span class="rank" :class="{ top: idx < 3 }">{{ idx + 1 }}</span>
-            <span class="name">{{ item.name || $t('adminDashboard.untitled') }}</span>
-            <el-tag size="small" :type="item.type === 'vector' ? 'primary' : 'success'">
-              {{ item.type === 'vector' ? $t('adminDashboard.vector') : $t('adminDashboard.raster') }}
-            </el-tag>
-            <span class="count">{{ item.downloads ?? 0 }} {{ $t('adminDashboard.timesUnit') }}</span>
+          <v-chart
+            v-if="dlStats.daily.length > 0"
+            class="dl-stats-chart"
+            :option="dlStatsOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty dl-stats-chart"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noDownloadData')"
+            />
           </div>
-          <div v-if="hotData.length === 0" class="empty-tip">{{ $t('adminDashboard.noDownloadData') }}</div>
-        </div>
-      </el-card>
 
-      <el-card shadow="hover">
-        <template #header>
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <span>{{ $t('adminDashboard.recentLogs') }}</span>
-            <el-button text type="primary" size="small" @click="goTo('/admin/logs')">{{ $t('adminDashboard.viewAll') }}</el-button>
+          <div class="dl-stats-tables">
+            <div class="dl-stats-table">
+              <h3 class="dl-table-title">
+                {{ $t('adminDashboard.dlStatsTopUsers') }}
+              </h3>
+              <el-table
+                ref="dlTopUsersTable"
+                :data="dlStats.top_users"
+                size="small"
+                max-height="280"
+                :empty-text="$t('adminDashboard.noDownloadData')"
+              >
+                <el-table-column
+                  :label="$t('adminDashboard.colRank')"
+                  width="56"
+                  align="center"
+                >
+                  <template #default="{ $index }">
+                    <span
+                      class="dl-rank"
+                      :class="{ top: $index < 3 }"
+                    >{{ $index + 1 }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="$t('adminDashboard.colUser')"
+                  min-width="150"
+                  show-overflow-tooltip
+                >
+                  <template #default="{ row }">
+                    <span class="dl-user">{{ row.name || row.user_number || '—' }}</span>
+                    <span
+                      v-if="row.name && row.user_number"
+                      class="dl-user-number"
+                    >{{ row.user_number }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="$t('adminDashboard.colCount')"
+                  width="90"
+                  align="right"
+                >
+                  <template #default="{ row }">
+                    <span class="dl-num">{{ row.downloads ?? 0 }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <div class="dl-stats-table">
+              <h3 class="dl-table-title">
+                {{ $t('adminDashboard.dlStatsTopData') }}
+              </h3>
+              <el-table
+                ref="dlTopDataTable"
+                :data="dlStats.top_data"
+                size="small"
+                max-height="280"
+                :empty-text="$t('adminDashboard.noDownloadData')"
+              >
+                <el-table-column
+                  :label="$t('adminDashboard.colRank')"
+                  width="56"
+                  align="center"
+                >
+                  <template #default="{ $index }">
+                    <span
+                      class="dl-rank"
+                      :class="{ top: $index < 3 }"
+                    >{{ $index + 1 }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="$t('adminDashboard.colDataName')"
+                  min-width="180"
+                  show-overflow-tooltip
+                >
+                  <template #default="{ row }">
+                    <span class="dl-user">{{ row.data_name || $t('adminDashboard.untitled') }}</span>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="$t('adminDashboard.colDataType')"
+                  width="90"
+                  align="center"
+                >
+                  <template #default="{ row }">
+                    <el-tag
+                      size="small"
+                      :type="row.data_type === 'vector' ? 'primary' : (row.data_type === 'raster' ? 'success' : 'info')"
+                    >
+                      {{ dlTypeLabel(row.data_type) }}
+                    </el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column
+                  :label="$t('adminDashboard.colCount')"
+                  width="90"
+                  align="right"
+                >
+                  <template #default="{ row }">
+                    <span class="dl-num">{{ row.downloads ?? 0 }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
           </div>
-        </template>
-        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
-        <div class="log-list" tabindex="0" :aria-label="$t('adminDashboard.recentLogs')">
-          <div v-for="(log, idx) in recentLogs" :key="idx" class="log-item">
-            <el-tag size="small" :type="getLogType(log.action)">{{ log.action }}</el-tag>
-            <span class="log-user">{{ log.username }}</span>
-            <span class="log-time">{{ log.timestamp }}</span>
+        </el-card>
+      </section>
+
+      <!-- 管理员审批效率 -->
+      <section class="full-chart-section">
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.adminEfficiency') }}</span>
+          </template>
+          <v-chart
+            v-if="adminEfficiency.length > 0"
+            class="chart-container-wide"
+            :option="efficiencyOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <div
+            v-else
+            class="chart-empty"
+          >
+            <EmptyState
+              compact
+              variant="never"
+              :title="$t('adminDashboard.noReviewData')"
+            />
           </div>
-          <div v-if="recentLogs.length === 0" class="empty-tip">{{ $t('adminDashboard.noLogs') }}</div>
-        </div>
-      </el-card>
-    </section>
+        </el-card>
+      </section>
+
+      <!-- 底部统计 -->
+      <section class="bottom-grid">
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.weeklyComparison') }}</span>
+          </template>
+          <div class="stats-row">
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('adminDashboard.thisWeekApplications') }}</span>
+              <span class="stat-value">{{ weeklyComparison.thisWeekApplications }}</span>
+              <el-tag
+                size="small"
+                :type="weeklyComparison.applicationGrowth >= 0 ? 'success' : 'danger'"
+              >
+                {{ weeklyComparison.applicationGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.applicationGrowth }}%
+              </el-tag>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">{{ $t('adminDashboard.thisWeekDownloads') }}</span>
+              <span class="stat-value">{{ weeklyComparison.thisWeekDownloads }}</span>
+              <el-tag
+                size="small"
+                :type="weeklyComparison.downloadGrowth >= 0 ? 'success' : 'danger'"
+              >
+                {{ weeklyComparison.downloadGrowth >= 0 ? '+' : '' }}{{ weeklyComparison.downloadGrowth }}%
+              </el-tag>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card shadow="hover">
+          <template #header>
+            <span>{{ $t('adminDashboard.hotDataTop5') }}</span>
+          </template>
+          <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+          <div
+            class="hot-list"
+            tabindex="0"
+            :aria-label="$t('adminDashboard.hotDataTop5')"
+          >
+            <div
+              v-for="(item, idx) in hotData.slice(0, 5)"
+              :key="idx"
+              class="hot-item"
+            >
+              <span
+                class="rank"
+                :class="{ top: idx < 3 }"
+              >{{ idx + 1 }}</span>
+              <span class="name">{{ item.name || $t('adminDashboard.untitled') }}</span>
+              <el-tag
+                size="small"
+                :type="item.type === 'vector' ? 'primary' : 'success'"
+              >
+                {{ item.type === 'vector' ? $t('adminDashboard.vector') : $t('adminDashboard.raster') }}
+              </el-tag>
+              <span class="count">{{ item.downloads ?? 0 }} {{ $t('adminDashboard.timesUnit') }}</span>
+            </div>
+            <div
+              v-if="hotData.length === 0"
+              class="empty-tip"
+            >
+              {{ $t('adminDashboard.noDownloadData') }}
+            </div>
+          </div>
+        </el-card>
+
+        <el-card shadow="hover">
+          <template #header>
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span>{{ $t('adminDashboard.recentLogs') }}</span>
+              <el-button
+                text
+                type="primary"
+                size="small"
+                @click="goTo('/admin/logs')"
+              >
+                {{ $t('adminDashboard.viewAll') }}
+              </el-button>
+            </div>
+          </template>
+          <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+          <div
+            class="log-list"
+            tabindex="0"
+            :aria-label="$t('adminDashboard.recentLogs')"
+          >
+            <div
+              v-for="(log, idx) in recentLogs"
+              :key="idx"
+              class="log-item"
+            >
+              <el-tag
+                size="small"
+                :type="getLogType(log.action)"
+              >
+                {{ log.action }}
+              </el-tag>
+              <span class="log-user">{{ log.username }}</span>
+              <span class="log-time">{{ log.timestamp }}</span>
+            </div>
+            <div
+              v-if="recentLogs.length === 0"
+              class="empty-tip"
+            >
+              {{ $t('adminDashboard.noLogs') }}
+            </div>
+          </div>
+        </el-card>
+      </section>
     </template>
   </div>
 </template>

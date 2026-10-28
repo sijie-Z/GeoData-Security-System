@@ -1,26 +1,54 @@
 <template>
   <div class="chat-page">
-    <el-card class="chat-card" shadow="hover">
+    <el-card
+      class="chat-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="chat-header">
           <div class="header-left">
-            <h1 class="chat-title">{{ $t('empChat.title') }}</h1>
-            <el-radio-group v-model="activeTab" size="default">
-              <el-radio-button value="human">💬 {{ $t('empChat.humanChat') || '人工聊天' }}</el-radio-button>
-              <el-radio-button value="ai">🤖 {{ $t('empChat.aiAssistant') || 'AI 助手' }}</el-radio-button>
+            <h1 class="chat-title">
+              {{ $t('empChat.title') }}
+            </h1>
+            <el-radio-group
+              v-model="activeTab"
+              size="default"
+            >
+              <el-radio-button value="human">
+                💬 {{ $t('empChat.humanChat') || '人工聊天' }}
+              </el-radio-button>
+              <el-radio-button value="ai">
+                🤖 {{ $t('empChat.aiAssistant') || 'AI 助手' }}
+              </el-radio-button>
             </el-radio-group>
           </div>
-          <div class="header-actions" v-if="activeTab === 'human'">
-            <el-button @click="loadConversations" :loading="loadingConversations">{{ $t('empChat.refreshConversations') }}</el-button>
+          <div
+            v-if="activeTab === 'human'"
+            class="header-actions"
+          >
+            <el-button
+              :loading="loadingConversations"
+              @click="loadConversations"
+            >
+              {{ $t('empChat.refreshConversations') }}
+            </el-button>
           </div>
         </div>
       </template>
 
       <!-- ==================== AI 助手 ==================== -->
-      <div v-if="activeTab === 'ai'" class="ai-layout">
+      <div
+        v-if="activeTab === 'ai'"
+        class="ai-layout"
+      >
         <aside class="ai-conv-list">
           <div class="ai-conv-toolbar">
-            <el-button size="small" type="primary" @click="newAIConversation" style="width:100%">
+            <el-button
+              size="small"
+              type="primary"
+              style="width:100%"
+              @click="newAIConversation"
+            >
               + {{ $t('empChat.newConversation') || '新对话' }}
             </el-button>
           </div>
@@ -43,37 +71,78 @@
                   text
                   size="small"
                   type="danger"
-                  @click.stop="deleteAIConversation(conv.id)"
                   class="ai-conv-del"
                   style="font-size:14px;padding:0 4px;min-height:auto"
-                >✕</el-button>
+                  @click.stop="deleteAIConversation(conv.id)"
+                >
+                  ✕
+                </el-button>
               </div>
             </div>
-            <el-empty v-if="!aiConversations.length" :description="$t('empChat.noConversations') || '暂无对话'" :image-size="60" />
+            <el-empty
+              v-if="!aiConversations.length"
+              :description="$t('empChat.noConversations') || '暂无对话'"
+              :image-size="60"
+            />
           </div>
         </aside>
 
-        <div class="ai-main" style="display:flex;flex-direction:column">
-          <div class="ai-messages" ref="aiMessageListRef">
+        <div
+          class="ai-main"
+          style="display:flex;flex-direction:column"
+        >
+          <div
+            ref="aiMessageListRef"
+            class="ai-messages"
+          >
             <!-- 欢迎消息 -->
-            <div v-if="!aiMessages.length" class="ai-welcome">
-              <div class="ai-welcome-icon">🤖</div>
+            <div
+              v-if="!aiMessages.length"
+              class="ai-welcome"
+            >
+              <div class="ai-welcome-icon">
+                🤖
+              </div>
               <h3>{{ $t('empChat.aiWelcomeTitle') || '你好！我是地安智助' }}</h3>
               <p>{{ $t('empChat.aiWelcomeDesc') || '我可以帮你解答关于系统使用、数据申请、水印技术等问题。' }}</p>
               <div class="ai-suggestions">
-                <el-button v-for="q in aiSuggestions" :key="q" text class="suggestion-btn" @click="askSuggestion(q)">
+                <el-button
+                  v-for="q in aiSuggestions"
+                  :key="q"
+                  text
+                  class="suggestion-btn"
+                  @click="askSuggestion(q)"
+                >
                   {{ q }}
                 </el-button>
               </div>
             </div>
 
-            <div v-for="(msg, idx) in aiMessages" :key="idx" class="msg-row" :class="{ me: msg.role === 'user' }">
-              <div class="bubble" :class="{ 'ai-bubble': msg.role === 'assistant' }">
-                <div class="bubble-role" style="font-size:12px;margin-bottom:2px">{{ msg.role === 'assistant' ? '🤖 AI' : '👤 我' }}</div>
-                <div v-if="msg.loading" class="ai-typing">
-                  <span class="motion-loop"></span><span class="motion-loop"></span><span class="motion-loop"></span>
+            <div
+              v-for="(msg, idx) in aiMessages"
+              :key="idx"
+              class="msg-row"
+              :class="{ me: msg.role === 'user' }"
+            >
+              <div
+                class="bubble"
+                :class="{ 'ai-bubble': msg.role === 'assistant' }"
+              >
+                <div
+                  class="bubble-role"
+                  style="font-size:12px;margin-bottom:2px"
+                >
+                  {{ msg.role === 'assistant' ? '🤖 AI' : '👤 我' }}
                 </div>
-                <template v-else>{{ msg.content }}</template>
+                <div
+                  v-if="msg.loading"
+                  class="ai-typing"
+                >
+                  <span class="motion-loop" /><span class="motion-loop" /><span class="motion-loop" />
+                </div>
+                <template v-else>
+                  {{ msg.content }}
+                </template>
               </div>
             </div>
           </div>
@@ -89,8 +158,17 @@
               @keydown.enter.exact.prevent="sendAIMessage"
             />
             <div class="composer-actions">
-              <el-button @click="clearAIChat" text>{{ $t('empChat.aiClear') || '清空对话' }}</el-button>
-              <el-button type="primary" :loading="aiSending" @click="sendAIMessage">
+              <el-button
+                text
+                @click="clearAIChat"
+              >
+                {{ $t('empChat.aiClear') || '清空对话' }}
+              </el-button>
+              <el-button
+                type="primary"
+                :loading="aiSending"
+                @click="sendAIMessage"
+              >
                 {{ $t('empChat.aiSend') || '发送' }}
               </el-button>
             </div>
@@ -99,37 +177,89 @@
       </div>
 
       <!-- ==================== 人工聊天 ==================== -->
-      <div v-else class="chat-layout">
-        <aside class="conversation-list" v-loading="loadingConversations">
+      <div
+        v-else
+        class="chat-layout"
+      >
+        <aside
+          v-loading="loadingConversations"
+          class="conversation-list"
+        >
           <div class="tool-row">
-            <el-input v-model="searchKeyword" :placeholder="$t('empChat.searchPlaceholder')" clearable @keyup.enter="searchUsers">
+            <el-input
+              v-model="searchKeyword"
+              :placeholder="$t('empChat.searchPlaceholder')"
+              clearable
+              @keyup.enter="searchUsers"
+            >
               <template #append>
-                <el-button @click="searchUsers">{{ $t('empChat.search') }}</el-button>
+                <el-button @click="searchUsers">
+                  {{ $t('empChat.search') }}
+                </el-button>
               </template>
             </el-input>
           </div>
 
-          <div class="search-result" v-if="searchResults.length">
-            <div class="result-title">{{ $t('empChat.searchResults') }}</div>
-            <div class="result-item" v-for="u in searchResults" :key="`${u.role}-${u.number}`">
+          <div
+            v-if="searchResults.length"
+            class="search-result"
+          >
+            <div class="result-title">
+              {{ $t('empChat.searchResults') }}
+            </div>
+            <div
+              v-for="u in searchResults"
+              :key="`${u.role}-${u.number}`"
+              class="result-item"
+            >
               <div>
                 <b>{{ u.name }}</b>
                 <span class="sub">{{ u.number }} / {{ roleText(u.role) }}</span>
               </div>
-              <el-button size="small" type="primary" link @click="addFriend(u)">{{ $t('empChat.addFriend') }}</el-button>
+              <el-button
+                size="small"
+                type="primary"
+                link
+                @click="addFriend(u)"
+              >
+                {{ $t('empChat.addFriend') }}
+              </el-button>
             </div>
           </div>
 
-          <div class="search-result" v-if="friendRequests.length">
-            <div class="result-title">{{ $t('empChat.friendRequests') }}</div>
-            <div class="result-item" v-for="r in friendRequests" :key="r.id">
+          <div
+            v-if="friendRequests.length"
+            class="search-result"
+          >
+            <div class="result-title">
+              {{ $t('empChat.friendRequests') }}
+            </div>
+            <div
+              v-for="r in friendRequests"
+              :key="r.id"
+              class="result-item"
+            >
               <div>
                 <b>{{ r.owner_name }}</b>
                 <span class="sub">{{ r.owner_number }} / {{ roleText(r.owner_role) }}</span>
               </div>
               <div>
-                <el-button size="small" type="success" link @click="respondFriend(r, 'accept')">{{ $t('empChat.accept') }}</el-button>
-                <el-button size="small" type="danger" link @click="respondFriend(r, 'reject')">{{ $t('empChat.reject') }}</el-button>
+                <el-button
+                  size="small"
+                  type="success"
+                  link
+                  @click="respondFriend(r, 'accept')"
+                >
+                  {{ $t('empChat.accept') }}
+                </el-button>
+                <el-button
+                  size="small"
+                  type="danger"
+                  link
+                  @click="respondFriend(r, 'reject')"
+                >
+                  {{ $t('empChat.reject') }}
+                </el-button>
               </div>
             </div>
           </div>
@@ -147,15 +277,26 @@
             </div>
             <div class="bottom-row">
               <span class="last">{{ item.last_message || $t('empChat.noMessages') }}</span>
-              <el-badge v-if="item.unread_count > 0" :value="item.unread_count" class="badge" />
+              <el-badge
+                v-if="item.unread_count > 0"
+                :value="item.unread_count"
+                class="badge"
+              />
             </div>
           </div>
 
-          <el-empty v-if="!conversations.length && !loadingConversations" :description="$t('empChat.noConversations')" :image-size="80" />
+          <el-empty
+            v-if="!conversations.length && !loadingConversations"
+            :description="$t('empChat.noConversations')"
+            :image-size="80"
+          />
         </aside>
 
         <section class="message-panel">
-          <div v-if="!activePeer" class="empty-wrap">
+          <div
+            v-if="!activePeer"
+            class="empty-wrap"
+          >
             <el-empty :description="$t('empChat.selectConversation')" />
           </div>
 
@@ -165,15 +306,37 @@
                 <b>{{ activePeer.peer_name || activePeer.peer_number }}</b>
                 <span class="sub">（{{ roleText(activePeer.peer_role) }}）</span>
               </div>
-              <el-button size="small" @click="loadMessages">{{ $t('empChat.refreshMessages') }}</el-button>
+              <el-button
+                size="small"
+                @click="loadMessages"
+              >
+                {{ $t('empChat.refreshMessages') }}
+              </el-button>
             </div>
 
-            <div class="message-list" ref="messageListRef" v-loading="loadingMessages">
-              <div v-for="msg in messages" :key="msg.id" class="msg-row" :class="{ me: msg.is_me }">
-                <div class="bubble">{{ msg.content }}</div>
-                <div class="meta">{{ msg.created_at }}</div>
+            <div
+              ref="messageListRef"
+              v-loading="loadingMessages"
+              class="message-list"
+            >
+              <div
+                v-for="msg in messages"
+                :key="msg.id"
+                class="msg-row"
+                :class="{ me: msg.is_me }"
+              >
+                <div class="bubble">
+                  {{ msg.content }}
+                </div>
+                <div class="meta">
+                  {{ msg.created_at }}
+                </div>
               </div>
-              <el-empty v-if="!messages.length && !loadingMessages" :description="$t('empChat.noMessages')" :image-size="70" />
+              <el-empty
+                v-if="!messages.length && !loadingMessages"
+                :description="$t('empChat.noMessages')"
+                :image-size="70"
+              />
             </div>
 
             <div class="composer">
@@ -187,7 +350,13 @@
                 @keydown.ctrl.enter="sendMessage"
               />
               <div class="composer-actions">
-                <el-button type="primary" :loading="sending" @click="sendMessage">{{ $t('empChat.send') }}</el-button>
+                <el-button
+                  type="primary"
+                  :loading="sending"
+                  @click="sendMessage"
+                >
+                  {{ $t('empChat.send') }}
+                </el-button>
               </div>
             </div>
           </template>

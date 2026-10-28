@@ -1,34 +1,112 @@
 <template>
   <div class="notifications-page">
     <div class="page-header">
-      <h1 class="page-title">{{ $t('empNotify.title') }}</h1>
-      <p class="page-desc">{{ $t('empNotify.description') }}</p>
+      <h1 class="page-title">
+        {{ $t('empNotify.title') }}
+      </h1>
+      <p class="page-desc">
+        {{ $t('empNotify.description') }}
+      </p>
     </div>
 
-    <el-card class="notify-card" shadow="hover">
+    <el-card
+      class="notify-card"
+      shadow="hover"
+    >
       <div class="filter-bar">
-        <el-radio-group v-model="unreadOnly" @change="fetchList">
-          <el-radio-button :value="false">{{ $t('empNotify.all') }}</el-radio-button>
-          <el-radio-button :value="true">{{ $t('empNotify.unreadOnly') }}</el-radio-button>
+        <el-radio-group
+          v-model="unreadOnly"
+          @change="fetchList"
+        >
+          <el-radio-button :value="false">
+            {{ $t('empNotify.all') }}
+          </el-radio-button>
+          <el-radio-button :value="true">
+            {{ $t('empNotify.unreadOnly') }}
+          </el-radio-button>
         </el-radio-group>
-        <el-button :icon="RefreshRight" circle @click="fetchList" :loading="loading" title="刷新" />
+        <el-button
+          :icon="RefreshRight"
+          circle
+          :loading="loading"
+          title="刷新"
+          @click="fetchList"
+        />
       </div>
 
-      <el-table :data="list" v-loading="loading" border stripe>
-        <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="title" :label="$t('empNotify.titleColumn')" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="content" :label="$t('empNotify.contentColumn')" min-width="280" show-overflow-tooltip />
-        <el-table-column prop="created_at" :label="$t('empNotify.timeColumn')" width="172" />
-        <el-table-column :label="$t('empNotify.statusColumn')" width="90" align="center">
+      <el-table
+        v-loading="loading"
+        :data="list"
+        border
+        stripe
+      >
+        <el-table-column
+          type="index"
+          label="#"
+          width="56"
+          align="center"
+        />
+        <el-table-column
+          prop="title"
+          :label="$t('empNotify.titleColumn')"
+          min-width="180"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="content"
+          :label="$t('empNotify.contentColumn')"
+          min-width="280"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="created_at"
+          :label="$t('empNotify.timeColumn')"
+          width="172"
+        />
+        <el-table-column
+          :label="$t('empNotify.statusColumn')"
+          width="90"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag v-if="row.read" type="info" size="small">{{ $t('empNotify.read') }}</el-tag>
-            <el-tag v-else type="warning" size="small">{{ $t('empNotify.unread') }}</el-tag>
+            <el-tag
+              v-if="row.read"
+              type="info"
+              size="small"
+            >
+              {{ $t('empNotify.read') }}
+            </el-tag>
+            <el-tag
+              v-else
+              type="warning"
+              size="small"
+            >
+              {{ $t('empNotify.unread') }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('empNotify.actionColumn')" width="100" align="center" fixed="right">
+        <el-table-column
+          :label="$t('empNotify.actionColumn')"
+          width="100"
+          align="center"
+          fixed="right"
+        >
           <template #default="{ row }">
-            <el-button v-if="!row.read" link type="primary" @click="markRead(row)">{{ $t('empNotify.markRead') }}</el-button>
-            <el-button link type="primary" @click="openDetail(row)">{{ $t('empNotify.detail') }}</el-button>
+            <el-button
+              v-if="!row.read"
+              link
+              type="primary"
+              @click="markRead(row)"
+            >
+              {{ $t('empNotify.markRead') }}
+            </el-button>
+            <el-button
+              link
+              type="primary"
+              @click="openDetail(row)"
+            >
+              {{ $t('empNotify.detail') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -36,23 +114,37 @@
       <div class="pagination-wrap">
         <el-pagination
           ref="paginationRef"
+          v-model:page-size="pageSize"
+          v-model:current-page="currentPage"
           background
           layout="total, sizes, prev, pager, next"
           :total="total"
           :page-sizes="[10, 20, 50]"
-          v-model:page-size="pageSize"
-          v-model:current-page="currentPage"
           @size-change="fetchList"
           @current-change="fetchList"
         />
       </div>
     </el-card>
 
-    <el-dialog v-model="detailVisible" :title="detailRow?.title" width="520px">
-      <div class="detail-content">{{ detailRow?.content }}</div>
+    <el-dialog
+      v-model="detailVisible"
+      :title="detailRow?.title"
+      width="520px"
+    >
+      <div class="detail-content">
+        {{ detailRow?.content }}
+      </div>
       <template #footer>
-        <el-button v-if="detailRow && !detailRow.read" type="primary" @click="markRead(detailRow); detailVisible = false">{{ $t('empNotify.markRead') }}</el-button>
-        <el-button @click="detailVisible = false">{{ $t('empNotify.close') }}</el-button>
+        <el-button
+          v-if="detailRow && !detailRow.read"
+          type="primary"
+          @click="markRead(detailRow); detailVisible = false"
+        >
+          {{ $t('empNotify.markRead') }}
+        </el-button>
+        <el-button @click="detailVisible = false">
+          {{ $t('empNotify.close') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
@@ -60,7 +152,7 @@
 
 <script setup>
 defineOptions({ name: 'EmployeeNotifications' });
-import { ref, reactive, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { RefreshRight } from '@element-plus/icons-vue';
 import { ElMessage } from 'element-plus';

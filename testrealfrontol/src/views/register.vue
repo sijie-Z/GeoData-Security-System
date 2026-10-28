@@ -13,26 +13,65 @@
       <main class="auth-main">
         <section class="auth-card auth-card-register">
           <header class="auth-card-header">
-            <h2 class="auth-form-title">{{ $t('register.title') }}</h2>
-            <p class="auth-form-subtitle">{{ $t('register.subtitle') }}</p>
+            <h2 class="auth-form-title">
+              {{ $t('register.title') }}
+            </h2>
+            <p class="auth-form-subtitle">
+              {{ $t('register.subtitle') }}
+            </p>
           </header>
 
-          <el-form :model="data" :rules="rules" ref="elFormRef" label-position="top" status-icon class="auth-form">
-            <el-form-item :label="$t('register.avatar')" prop="avatar" class="avatar-item">
+          <el-form
+            ref="elFormRef"
+            :model="data"
+            :rules="rules"
+            label-position="top"
+            status-icon
+            class="auth-form"
+          >
+            <el-form-item
+              :label="$t('register.avatar')"
+              prop="avatar"
+              class="avatar-item"
+            >
               <div class="avatar-upload-section">
-                <div class="avatar-preview" @click="triggerFileInput">
-                  <img v-if="data.avatarUrl" :src="data.avatarUrl" alt="头像预览" class="avatar-image" />
-                  <div v-else class="avatar-placeholder">
-                    <el-icon size="30" color="#94a3b8"><User /></el-icon>
+                <div
+                  class="avatar-preview"
+                  @click="triggerFileInput"
+                >
+                  <img
+                    v-if="data.avatarUrl"
+                    :src="data.avatarUrl"
+                    alt="头像预览"
+                    class="avatar-image"
+                  >
+                  <div
+                    v-else
+                    class="avatar-placeholder"
+                  >
+                    <el-icon
+                      size="30"
+                      color="#94a3b8"
+                    >
+                      <User />
+                    </el-icon>
                     <span class="avatar-text">{{ $t('register.avatarUpload') }}</span>
                   </div>
                   <div class="avatar-overlay">
-                    <el-icon color="white" size="20"><Camera /></el-icon>
+                    <el-icon
+                      color="white"
+                      size="20"
+                    >
+                      <Camera />
+                    </el-icon>
                     <span>{{ $t('register.avatarChange') }}</span>
                   </div>
                 </div>
                 <div class="avatar-tips">
-                  <el-text type="info" size="small">
+                  <el-text
+                    type="info"
+                    size="small"
+                  >
                     {{ $t('register.avatarTip') }}
                   </el-text>
                 </div>
@@ -42,7 +81,7 @@
                   accept="image/*"
                   style="display: none"
                   @change="handleAvatarChange"
-                />
+                >
               </div>
             </el-form-item>
 
@@ -52,16 +91,40 @@
               <span>{{ $t('register.groupPersonal') }}</span>
             </div>
 
-            <el-form-item :label="$t('register.nameLabel')" prop="name">
-              <el-input v-model="data.name" :placeholder="$t('register.namePlaceholder')" :prefix-icon="User" class="auth-input" />
+            <el-form-item
+              :label="$t('register.nameLabel')"
+              prop="name"
+            >
+              <el-input
+                v-model="data.name"
+                :placeholder="$t('register.namePlaceholder')"
+                :prefix-icon="User"
+                class="auth-input"
+              />
             </el-form-item>
 
-            <el-form-item :label="$t('register.idNumberLabel')" prop="idNumber">
-              <el-input v-model="data.idNumber" :placeholder="$t('register.idNumberPlaceholder')" :prefix-icon="CreditCard" class="auth-input" />
+            <el-form-item
+              :label="$t('register.idNumberLabel')"
+              prop="idNumber"
+            >
+              <el-input
+                v-model="data.idNumber"
+                :placeholder="$t('register.idNumberPlaceholder')"
+                :prefix-icon="CreditCard"
+                class="auth-input"
+              />
             </el-form-item>
 
-            <el-form-item :label="$t('register.phoneLabel')" prop="phone">
-              <el-input v-model="data.phone" :placeholder="$t('register.phonePlaceholder')" :prefix-icon="Phone" class="auth-input" />
+            <el-form-item
+              :label="$t('register.phoneLabel')"
+              prop="phone"
+            >
+              <el-input
+                v-model="data.phone"
+                :placeholder="$t('register.phonePlaceholder')"
+                :prefix-icon="Phone"
+                class="auth-input"
+              />
             </el-form-item>
 
             <!-- 分组：账号信息 -->
@@ -70,21 +133,56 @@
               <span>{{ $t('register.groupAccount') }}</span>
             </div>
 
-            <el-form-item :label="$t('register.employeeIdLabel')" prop="employeeId">
-              <el-input v-model="data.employeeId" :placeholder="$t('register.employeeIdPlaceholder')" :prefix-icon="Key" class="auth-input" />
+            <el-form-item
+              :label="$t('register.employeeIdLabel')"
+              prop="employeeId"
+            >
+              <el-input
+                v-model="data.employeeId"
+                :placeholder="$t('register.employeeIdPlaceholder')"
+                :prefix-icon="Key"
+                class="auth-input"
+              />
             </el-form-item>
 
-            <el-form-item :label="$t('register.passwordLabel')" prop="password">
-              <el-input show-password v-model="data.password" :placeholder="$t('register.passwordPlaceholder')" :prefix-icon="Lock" class="auth-input" />
+            <el-form-item
+              :label="$t('register.passwordLabel')"
+              prop="password"
+            >
+              <el-input
+                v-model="data.password"
+                show-password
+                :placeholder="$t('register.passwordPlaceholder')"
+                :prefix-icon="Lock"
+                class="auth-input"
+              />
             </el-form-item>
 
-            <el-form-item :label="$t('register.confirmPasswordLabel')" prop="confirmPassword">
-              <el-input show-password v-model="data.confirmPassword" :placeholder="$t('register.confirmPasswordPlaceholder')" :prefix-icon="Lock" class="auth-input" />
+            <el-form-item
+              :label="$t('register.confirmPasswordLabel')"
+              prop="confirmPassword"
+            >
+              <el-input
+                v-model="data.confirmPassword"
+                show-password
+                :placeholder="$t('register.confirmPasswordPlaceholder')"
+                :prefix-icon="Lock"
+                class="auth-input"
+              />
             </el-form-item>
 
             <el-form-item class="submit-item">
-              <el-button class="auth-submit" @click="register" :loading="loading">
-                <el-icon v-if="!loading" class="submit-icon"><CircleCheck /></el-icon>
+              <el-button
+                class="auth-submit"
+                :loading="loading"
+                @click="register"
+              >
+                <el-icon
+                  v-if="!loading"
+                  class="submit-icon"
+                >
+                  <CircleCheck />
+                </el-icon>
                 {{ $t('register.createButton') }}
               </el-button>
             </el-form-item>
@@ -92,7 +190,14 @@
 
           <div class="auth-card-footer">
             <span class="login-text">{{ $t('register.hasAccount') }}</span>
-            <el-link type="primary" @click="login" :underline="false" class="auth-link">{{ $t('register.loginNow') }}</el-link>
+            <el-link
+              type="primary"
+              :underline="false"
+              class="auth-link"
+              @click="login"
+            >
+              {{ $t('register.loginNow') }}
+            </el-link>
           </div>
 
           <!-- 服务保障 -->

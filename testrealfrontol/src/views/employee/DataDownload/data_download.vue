@@ -1,24 +1,52 @@
 <template>
-  <el-card class="page-container" shadow="never">
+  <el-card
+    class="page-container"
+    shadow="never"
+  >
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
         <h1>{{ $t('empDataDownload.title') }}</h1>
-        <el-button :icon="Refresh" circle :aria-label="$t('common.refresh')" @click="get_applications" :loading="loading" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="$t('common.refresh')"
+          :loading="loading"
+          @click="get_applications"
+        />
       </div>
     </template>
 
     <!-- 主内容区域：卡片列表或空状态 -->
-    <div v-if="!loading && data.list.length > 0" class="data-card-list">
-      <el-card v-for="item in data.list" :key="item.application_id" class="data-card" shadow="hover">
+    <div
+      v-if="!loading && data.list.length > 0"
+      class="data-card-list"
+    >
+      <el-card
+        v-for="item in data.list"
+        :key="item.application_id"
+        class="data-card"
+        shadow="hover"
+      >
         <div class="card-content">
           <!-- 左侧信息区 -->
           <div class="info-section">
-            <el-descriptions :column="1" size="small">
-              <el-descriptions-item :label="$t('empDataDownload.applicationId')">#{{ item.application_id }}</el-descriptions-item>
-              <el-descriptions-item :label="$t('empDataDownload.dataName')"><strong>{{ item.data_alias }}</strong></el-descriptions-item>
-              <el-descriptions-item :label="$t('empDataDownload.vectorDataId')">{{ item.data_id }}</el-descriptions-item>
-              <el-descriptions-item :label="$t('empDataDownload.dataProvider')">{{ item.send_file_person_user_number }}</el-descriptions-item>
+            <el-descriptions
+              :column="1"
+              size="small"
+            >
+              <el-descriptions-item :label="$t('empDataDownload.applicationId')">
+                #{{ item.application_id }}
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.dataName')">
+                <strong>{{ item.data_alias }}</strong>
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.vectorDataId')">
+                {{ item.data_id }}
+              </el-descriptions-item>
+              <el-descriptions-item :label="$t('empDataDownload.dataProvider')">
+                {{ item.send_file_person_user_number }}
+              </el-descriptions-item>
             </el-descriptions>
           </div>
           <!-- 右侧操作区 -->
@@ -27,8 +55,8 @@
               type="primary"
               size="large"
               :icon="Download"
-              @click="download(item)"
               :loading="downloadingStatus[item.application_id]"
+              @click="download(item)"
             >
               {{ downloadingStatus[item.application_id] ? $t('empDataDownload.preparingDelivery') : $t('empDataDownload.downloadData') }}
             </el-button>
@@ -38,13 +66,23 @@
     </div>
 
     <!-- 加载状态 -->
-    <div v-if="loading" v-loading="loading" class="loading-placeholder"></div>
+    <div
+      v-if="loading"
+      v-loading="loading"
+      class="loading-placeholder"
+    />
 
     <!-- 空状态 -->
-    <el-empty v-if="!loading && data.list.length === 0" :description="$t('empDataDownload.emptyDescription')" />
+    <el-empty
+      v-if="!loading && data.list.length === 0"
+      :description="$t('empDataDownload.emptyDescription')"
+    />
 
     <!-- 分页器 -->
-    <div v-if="total > 0" class="pagination-container">
+    <div
+      v-if="total > 0"
+      class="pagination-container"
+    >
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="pageSize"

@@ -2,7 +2,7 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Back, User as UserIcon, Plus as PlusIcon } from '@element-plus/icons-vue';
+import { Back, Plus as PlusIcon } from '@element-plus/icons-vue';
 import { useI18n } from 'vue-i18n';
 import { getEmployeeDetails, updateEmployee } from '@/api/admin';
 import EmptyState from '@/components/common/EmptyState.vue';
@@ -114,7 +114,12 @@ onMounted(() => {
 <template>
   <div class="page-container">
     <PageHeader :title="$t('employeeMgmt.editEmployeeInfo')">
-      <el-button :icon="Back" @click="handleBack">{{ $t('employeeMgmt.backToList') }}</el-button>
+      <el-button
+        :icon="Back"
+        @click="handleBack"
+      >
+        {{ $t('employeeMgmt.backToList') }}
+      </el-button>
     </PageHeader>
     <el-divider />
     <div class="form-wrapper">
@@ -127,34 +132,103 @@ onMounted(() => {
         :cta-text="$t('common.retry')"
         @cta="fetchEmployeeData(employeeId)"
       />
-      <el-form v-else ref="formRef" :model="formData" :rules="rules" label-width="100px" style="max-width: 700px;">
-        <h3 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h3>
-        <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
-          <el-input v-model="formData.employee_number" disabled />
+      <el-form
+        v-else
+        ref="formRef"
+        :model="formData"
+        :rules="rules"
+        label-width="100px"
+        style="max-width: 700px;"
+      >
+        <h3 class="form-section-title">
+          {{ $t('employeeMgmt.basicInfo') }}
+        </h3>
+        <el-form-item
+          :label="$t('employeeMgmt.employeeNumber')"
+          prop="employee_number"
+        >
+          <el-input
+            v-model="formData.employee_number"
+            disabled
+          />
         </el-form-item>
         <el-row :gutter="20">
-          <el-col :span="12"><el-form-item :label="$t('employeeMgmt.name')" prop="name"><el-input v-model="formData.name" /></el-form-item></el-col>
-          <el-col :span="12"><el-form-item :label="$t('employeeMgmt.jobNumber')" prop="job_number"><el-input v-model="formData.job_number" /></el-form-item></el-col>
+          <el-col :span="12">
+            <el-form-item
+              :label="$t('employeeMgmt.name')"
+              prop="name"
+            >
+              <el-input v-model="formData.name" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item
+              :label="$t('employeeMgmt.jobNumber')"
+              prop="job_number"
+            >
+              <el-input v-model="formData.job_number" />
+            </el-form-item>
+          </el-col>
         </el-row>
-        <el-form-item :label="$t('employeeMgmt.idNumber')" prop="id_number"><el-input v-model="formData.id_number" /></el-form-item>
-        <el-form-item :label="$t('employeeMgmt.phoneNumber')" prop="phone_number"><el-input v-model="formData.phone_number" /></el-form-item>
-        <el-form-item :label="$t('employeeMgmt.address')" prop="address"><el-input v-model="formData.address" type="textarea" :rows="2" /></el-form-item>
+        <el-form-item
+          :label="$t('employeeMgmt.idNumber')"
+          prop="id_number"
+        >
+          <el-input v-model="formData.id_number" />
+        </el-form-item>
+        <el-form-item
+          :label="$t('employeeMgmt.phoneNumber')"
+          prop="phone_number"
+        >
+          <el-input v-model="formData.phone_number" />
+        </el-form-item>
+        <el-form-item
+          :label="$t('employeeMgmt.address')"
+          prop="address"
+        >
+          <el-input
+            v-model="formData.address"
+            type="textarea"
+            :rows="2"
+          />
+        </el-form-item>
 
-        <h3 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h3>
-        <el-form-item :label="$t('employeeMgmt.updatePhoto')" prop="photo">
+        <h3 class="form-section-title">
+          {{ $t('employeeMgmt.employeePhoto') }}
+        </h3>
+        <el-form-item
+          :label="$t('employeeMgmt.updatePhoto')"
+          prop="photo"
+        >
           <el-upload
-            v-model:file-list="photoFileList" action="#" list-type="picture-card"
-            :limit="1" :auto-upload="false" :on-change="handleFileChange" :on-remove="handleRemove">
+            v-model:file-list="photoFileList"
+            action="#"
+            list-type="picture-card"
+            :limit="1"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :on-remove="handleRemove"
+          >
             <el-icon><PlusIcon /></el-icon>
             <!-- axe aria-command-name：图标触发区补屏幕阅读器可读文本（视觉隐藏） -->
             <span class="sr-only">{{ $t('employeeMgmt.updatePhoto') }}</span>
-            <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.updatePhotoTip') }}</div></template>
+            <template #tip>
+              <div class="el-upload__tip">
+                {{ $t('employeeMgmt.updatePhotoTip') }}
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
 
         <el-divider />
         <el-form-item>
-          <el-button type="primary" :loading="submitLoading" @click="submitForm">{{ $t('employeeMgmt.saveChanges') }}</el-button>
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            @click="submitForm"
+          >
+            {{ $t('employeeMgmt.saveChanges') }}
+          </el-button>
         </el-form-item>
       </el-form>
     </div>

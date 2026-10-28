@@ -6,9 +6,18 @@
 -->
 <template>
   <div class="not-found">
-    <h1 class="nf-code">404</h1>
-    <p class="nf-message">{{ $t('notFound.message') }}</p>
-    <el-button type="primary" size="large" class="nf-home" @click="goHome">
+    <h1 class="nf-code">
+      404
+    </h1>
+    <p class="nf-message">
+      {{ $t('notFound.message') }}
+    </p>
+    <el-button
+      type="primary"
+      size="large"
+      class="nf-home"
+      @click="goHome"
+    >
       {{ $t('notFound.backHome') }}
     </el-button>
   </div>

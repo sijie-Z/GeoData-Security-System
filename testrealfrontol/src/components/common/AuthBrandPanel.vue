@@ -1,29 +1,41 @@
 <template>
   <aside class="auth-aside">
-    <div class="brand-panel" ref="panelRef">
+    <div
+      ref="panelRef"
+      class="brand-panel"
+    >
       <!-- 程序化装饰：网格 / 光斑 / 轨道 / 漂浮粒子（纯 CSS，无外网资源） -->
-      <div class="decor" aria-hidden="true">
-        <div class="decor-grid"></div>
-        <div class="decor-orb orb-a"></div>
-        <div class="decor-orb orb-b"></div>
+      <div
+        class="decor"
+        aria-hidden="true"
+      >
+        <div class="decor-grid" />
+        <div class="decor-orb orb-a" />
+        <div class="decor-orb orb-b" />
         <div class="decor-orbit">
-          <span class="orbit-ring"></span>
-          <span class="orbit-dot"></span>
+          <span class="orbit-ring" />
+          <span class="orbit-dot" />
         </div>
-        <span class="particle p1"></span>
-        <span class="particle p2"></span>
-        <span class="particle p3"></span>
-        <span class="particle p4"></span>
-        <span class="particle p5"></span>
-        <span class="particle p6"></span>
+        <span class="particle p1" />
+        <span class="particle p2" />
+        <span class="particle p3" />
+        <span class="particle p4" />
+        <span class="particle p5" />
+        <span class="particle p6" />
       </div>
 
       <div class="brand-content">
         <div class="brand-mark">
-          <el-icon :size="24"><MapLocation /></el-icon>
+          <el-icon :size="24">
+            <MapLocation />
+          </el-icon>
         </div>
-        <h1 class="brand-title">{{ $t('common.appName') }}</h1>
-        <p class="brand-tagline">{{ $t('login.brandTagline') }}</p>
+        <h1 class="brand-title">
+          {{ $t('common.appName') }}
+        </h1>
+        <p class="brand-tagline">
+          {{ $t('login.brandTagline') }}
+        </p>
 
         <ul class="brand-features">
           <li class="brand-feature">
@@ -47,17 +59,28 @@
         <!-- 装饰性数字印记（QR）：固定品牌串渲染，不含任何真实地址/信息；
              深墨浅底 + 充分静区，纸面印记与铭文同栏排布 -->
         <div class="brand-qr">
-          <div class="qr-plate" aria-hidden="true">
-            <canvas ref="qrCanvasRef" class="qr-canvas"></canvas>
+          <div
+            class="qr-plate"
+            aria-hidden="true"
+          >
+            <canvas
+              ref="qrCanvasRef"
+              class="qr-canvas"
+            />
           </div>
           <div class="qr-caption">
             <span class="qr-caption-text">{{ $t('login.brandQrCaption') }}</span>
-            <span class="qr-caption-meta" aria-hidden="true">GEODATA · TRACE</span>
+            <span
+              class="qr-caption-meta"
+              aria-hidden="true"
+            >GEODATA · TRACE</span>
           </div>
         </div>
       </div>
 
-      <p class="brand-footer">{{ $t('login.brandFooter') }}</p>
+      <p class="brand-footer">
+        {{ $t('login.brandFooter') }}
+      </p>
     </div>
   </aside>
 </template>

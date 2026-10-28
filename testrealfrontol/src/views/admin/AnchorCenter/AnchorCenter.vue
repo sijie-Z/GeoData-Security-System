@@ -1,8 +1,23 @@
 <template>
   <div class="anchor-center">
-    <PageHeader :title="$t('anchorCenter.title')" :subtitle="$t('anchorCenter.subtitle')">
-      <el-button :icon="Refresh" :loading="loading" @click="fetchAnchors">{{ $t('anchorCenter.refreshBtn') }}</el-button>
-      <el-button type="primary" :icon="Plus" @click="buildVisible = true">{{ $t('anchorCenter.buildBtn') }}</el-button>
+    <PageHeader
+      :title="$t('anchorCenter.title')"
+      :subtitle="$t('anchorCenter.subtitle')"
+    >
+      <el-button
+        :icon="Refresh"
+        :loading="loading"
+        @click="fetchAnchors"
+      >
+        {{ $t('anchorCenter.refreshBtn') }}
+      </el-button>
+      <el-button
+        type="primary"
+        :icon="Plus"
+        @click="buildVisible = true"
+      >
+        {{ $t('anchorCenter.buildBtn') }}
+      </el-button>
     </PageHeader>
 
     <!-- Hero 统计带：整表聚合（summary），不是当前页聚合 -->
@@ -19,7 +34,10 @@
         <span class="hero-value">{{ stats.evm }}</span>
         <span class="hero-label">{{ $t('anchorCenter.statEvm') }}</span>
       </div>
-      <div class="hero-card" :class="{ 'is-alert': stats.pending > 0 }">
+      <div
+        class="hero-card"
+        :class="{ 'is-alert': stats.pending > 0 }"
+      >
         <span class="hero-value">{{ stats.pending }}</span>
         <span class="hero-label">{{ $t('anchorCenter.statPending') }}</span>
       </div>
@@ -31,33 +49,86 @@
         <div class="chain-card-head">
           <span class="anchor-badge is-ots">{{ $t('anchorCenter.chainOtsName') }}</span>
         </div>
-        <p class="chain-desc">{{ $t('anchorCenter.chainOtsDesc') }}</p>
+        <p class="chain-desc">
+          {{ $t('anchorCenter.chainOtsDesc') }}
+        </p>
         <div class="state-legend">
-          <el-tag size="small" type="warning">{{ $t('anchorCenter.statePending') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateSubmitted') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateReady') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateConfirmed') }}</el-tag>
+          <el-tag
+            size="small"
+            type="warning"
+          >
+            {{ $t('anchorCenter.statePending') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateSubmitted') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateReady') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateConfirmed') }}
+          </el-tag>
         </div>
-        <p class="chain-honest">{{ $t('anchorCenter.chainOtsHonest') }}</p>
+        <p class="chain-honest">
+          {{ $t('anchorCenter.chainOtsHonest') }}
+        </p>
       </section>
       <section class="chain-card">
         <div class="chain-card-head">
           <span class="anchor-badge is-evm">{{ $t('anchorCenter.chainEvmName') }}</span>
         </div>
-        <p class="chain-desc">{{ $t('anchorCenter.chainEvmDesc') }}</p>
+        <p class="chain-desc">
+          {{ $t('anchorCenter.chainEvmDesc') }}
+        </p>
         <div class="state-legend">
-          <el-tag size="small" type="warning">{{ $t('anchorCenter.statePending') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateSubmitted') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateReady') }}</el-tag>
-          <el-tag size="small" type="success">{{ $t('anchorCenter.stateConfirmed') }}</el-tag>
+          <el-tag
+            size="small"
+            type="warning"
+          >
+            {{ $t('anchorCenter.statePending') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateSubmitted') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateReady') }}
+          </el-tag>
+          <el-tag
+            size="small"
+            type="success"
+          >
+            {{ $t('anchorCenter.stateConfirmed') }}
+          </el-tag>
         </div>
-        <p class="chain-honest">{{ $t('anchorCenter.chainEvmHonest') }}</p>
+        <p class="chain-honest">
+          {{ $t('anchorCenter.chainEvmHonest') }}
+        </p>
       </section>
     </div>
 
     <!-- 批次台账 -->
-    <el-card shadow="never" class="ledger-card">
-      <h2 class="ledger-title">{{ $t('anchorCenter.ledgerTitle') }}</h2>
+    <el-card
+      shadow="never"
+      class="ledger-card"
+    >
+      <h2 class="ledger-title">
+        {{ $t('anchorCenter.ledgerTitle') }}
+      </h2>
       <el-table
         v-loading="loading"
         :data="anchors"
@@ -66,34 +137,67 @@
         :row-class-name="ledgerRowClass"
         @row-click="openDetail"
       >
-        <el-table-column :label="$t('anchorCenter.colBatchId')" width="150">
+        <el-table-column
+          :label="$t('anchorCenter.colBatchId')"
+          width="150"
+        >
           <template #default="{ row }">
             <HashText :value="row.batch_id" />
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" :label="$t('anchorCenter.colCreatedAt')" width="180" />
-        <el-table-column :label="$t('anchorCenter.colProvider')" width="120">
+        <el-table-column
+          prop="created_at"
+          :label="$t('anchorCenter.colCreatedAt')"
+          width="180"
+        />
+        <el-table-column
+          :label="$t('anchorCenter.colProvider')"
+          width="120"
+        >
           <template #default="{ row }">
-            <span class="anchor-badge" :class="providerBadgeClass(row.provider)">{{ providerLabel(row.provider) }}</span>
+            <span
+              class="anchor-badge"
+              :class="providerBadgeClass(row.provider)"
+            >{{ providerLabel(row.provider) }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colStatus')" width="110">
+        <el-table-column
+          :label="$t('anchorCenter.colStatus')"
+          width="110"
+        >
           <template #default="{ row }">
-            <el-tag v-if="row.status" size="small" :type="statusTagType(row.status)">{{ row.status }}</el-tag>
+            <el-tag
+              v-if="row.status"
+              size="small"
+              :type="statusTagType(row.status)"
+            >
+              {{ row.status }}
+            </el-tag>
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colRootHex')" min-width="150">
+        <el-table-column
+          :label="$t('anchorCenter.colRootHex')"
+          min-width="150"
+        >
           <template #default="{ row }">
             <HashText :value="row.root_hex" />
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colEventCount')" width="90" align="right">
+        <el-table-column
+          :label="$t('anchorCenter.colEventCount')"
+          width="90"
+          align="right"
+        >
           <template #default="{ row }">
             <span class="mono">{{ row.event_count != null ? row.event_count : '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colProof')" width="100" align="center">
+        <el-table-column
+          :label="$t('anchorCenter.colProof')"
+          width="100"
+          align="center"
+        >
           <template #default="{ row }">
             <el-button
               v-if="row.proof_available"
@@ -105,10 +209,17 @@
             >
               {{ $t('anchorCenter.downloadProofBtn') }}
             </el-button>
-            <span v-else class="muted">—</span>
+            <span
+              v-else
+              class="muted"
+            >—</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('anchorCenter.colExplorer')" width="110" align="center">
+        <el-table-column
+          :label="$t('anchorCenter.colExplorer')"
+          width="110"
+          align="center"
+        >
           <template #default="{ row }">
             <a
               v-if="row.explorer_url"
@@ -121,7 +232,10 @@
               <el-icon><Link /></el-icon>
               {{ $t('anchorCenter.explorerLink') }}
             </a>
-            <span v-else class="muted">—</span>
+            <span
+              v-else
+              class="muted"
+            >—</span>
           </template>
         </el-table-column>
         <template #empty>
@@ -151,44 +265,94 @@
     </el-card>
 
     <!-- 构建锚定批次 -->
-    <el-dialog v-model="buildVisible" :title="$t('anchorCenter.buildTitle')" width="480px">
-      <el-radio-group v-model="buildProvider" class="provider-group">
-        <el-radio value="ots" border class="provider-radio">
-          <div class="provider-radio-title">{{ $t('anchorCenter.buildProviderOts') }}</div>
-          <div class="provider-radio-hint">{{ $t('anchorCenter.buildProviderOtsHint') }}</div>
+    <el-dialog
+      v-model="buildVisible"
+      :title="$t('anchorCenter.buildTitle')"
+      width="480px"
+    >
+      <el-radio-group
+        v-model="buildProvider"
+        class="provider-group"
+      >
+        <el-radio
+          value="ots"
+          border
+          class="provider-radio"
+        >
+          <div class="provider-radio-title">
+            {{ $t('anchorCenter.buildProviderOts') }}
+          </div>
+          <div class="provider-radio-hint">
+            {{ $t('anchorCenter.buildProviderOtsHint') }}
+          </div>
         </el-radio>
-        <el-radio value="evm" border class="provider-radio">
-          <div class="provider-radio-title">{{ $t('anchorCenter.buildProviderEvm') }}</div>
-          <div class="provider-radio-hint">{{ $t('anchorCenter.buildProviderEvmHint') }}</div>
+        <el-radio
+          value="evm"
+          border
+          class="provider-radio"
+        >
+          <div class="provider-radio-title">
+            {{ $t('anchorCenter.buildProviderEvm') }}
+          </div>
+          <div class="provider-radio-hint">
+            {{ $t('anchorCenter.buildProviderEvmHint') }}
+          </div>
         </el-radio>
       </el-radio-group>
-      <p class="build-hint">{{ $t('anchorCenter.buildHint') }}</p>
+      <p class="build-hint">
+        {{ $t('anchorCenter.buildHint') }}
+      </p>
       <template #footer>
-        <el-button @click="buildVisible = false">{{ $t('common.cancel') }}</el-button>
-        <el-button type="primary" :loading="building" @click="submitBuild">
+        <el-button @click="buildVisible = false">
+          {{ $t('common.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="building"
+          @click="submitBuild"
+        >
           {{ $t('anchorCenter.buildConfirm') }}
         </el-button>
       </template>
     </el-dialog>
 
     <!-- 批次详情 -->
-    <el-dialog v-model="detailVisible" :title="$t('anchorCenter.detailTitle')" width="720px">
-      <div v-loading="detailLoading" class="detail-body">
+    <el-dialog
+      v-model="detailVisible"
+      :title="$t('anchorCenter.detailTitle')"
+      width="720px"
+    >
+      <div
+        v-loading="detailLoading"
+        class="detail-body"
+      >
         <template v-if="detail">
           <section class="summary-card">
             <div class="summary-head">
               <div class="summary-id">
                 <span class="summary-label">{{ $t('anchorCenter.fieldBatchId') }}</span>
-                <HashText :value="detail.batch_id" :head="18" :tail="17" />
+                <HashText
+                  :value="detail.batch_id"
+                  :head="18"
+                  :tail="17"
+                />
               </div>
-              <el-tag v-if="detail.status" size="large" effect="dark" :type="statusTagType(detail.status)">
+              <el-tag
+                v-if="detail.status"
+                size="large"
+                effect="dark"
+                :type="statusTagType(detail.status)"
+              >
                 {{ detail.status }}
               </el-tag>
             </div>
             <div class="summary-grid">
               <div class="summary-item">
                 <span class="summary-label">{{ $t('anchorCenter.fieldProvider') }}</span>
-                <span class="anchor-badge" :class="providerBadgeClass(detail.provider)">{{ providerLabel(detail.provider) }}</span>
+                <span
+                  class="anchor-badge"
+                  :class="providerBadgeClass(detail.provider)"
+                >{{ providerLabel(detail.provider) }}</span>
               </div>
               <div class="summary-item">
                 <span class="summary-label">{{ $t('anchorCenter.fieldEventCount') }}</span>
@@ -205,7 +369,9 @@
             </div>
           </section>
 
-          <h3 class="detail-section-title">{{ $t('anchorCenter.timelineTitle') }}</h3>
+          <h3 class="detail-section-title">
+            {{ $t('anchorCenter.timelineTitle') }}
+          </h3>
           <div class="time-axis">
             <span class="time-chip">
               <span class="time-chip-label">{{ $t('anchorCenter.fieldCreatedAt') }}</span>
@@ -218,19 +384,30 @@
             </span>
           </div>
 
-          <h3 class="detail-section-title">{{ $t('anchorCenter.digestTitle') }}</h3>
-          <p class="digest-note">{{ $t('anchorCenter.digestSemantics') }}</p>
+          <h3 class="detail-section-title">
+            {{ $t('anchorCenter.digestTitle') }}
+          </h3>
+          <p class="digest-note">
+            {{ $t('anchorCenter.digestSemantics') }}
+          </p>
           <div class="summary-item">
             <span class="summary-label">{{ $t('anchorCenter.digestIncluded') }}</span>
             <span class="mono">{{ digestCount }}</span>
           </div>
 
           <template v-if="detail.proof_sha256">
-            <h3 class="detail-section-title">{{ $t('anchorCenter.fieldProofSha') }}</h3>
+            <h3 class="detail-section-title">
+              {{ $t('anchorCenter.fieldProofSha') }}
+            </h3>
             <HashText :value="detail.proof_sha256" />
           </template>
 
-          <p v-if="detail.error" class="anchor-error">{{ $t('anchorCenter.fieldError') }}: {{ detail.error }}</p>
+          <p
+            v-if="detail.error"
+            class="anchor-error"
+          >
+            {{ $t('anchorCenter.fieldError') }}: {{ detail.error }}
+          </p>
 
           <div class="dialog-actions">
             <el-button

@@ -116,16 +116,27 @@ onMounted(fetchAnnouncements)
 <template>
   <div class="announcement-admin">
     <PageHeader :title="$t('adminAnnounce.title')">
-      <el-button type="primary" @click="openForm()">{{ $t('adminAnnounce.publish') }}</el-button>
+      <el-button
+        type="primary"
+        @click="openForm()"
+      >
+        {{ $t('adminAnnounce.publish') }}
+      </el-button>
     </PageHeader>
 
     <el-card class="mb-3 notify-card">
-      <template #header><span class="card-label">{{ $t('adminAnnounce.explanation') }}</span></template>
-      <p class="card-desc">{{ $t('adminAnnounce.explanationDesc') }}</p>
+      <template #header>
+        <span class="card-label">{{ $t('adminAnnounce.explanation') }}</span>
+      </template>
+      <p class="card-desc">
+        {{ $t('adminAnnounce.explanationDesc') }}
+      </p>
     </el-card>
 
     <el-card class="mb-3">
-      <template #header><span class="card-label">{{ $t('adminAnnounce.announcementList') }}</span></template>
+      <template #header>
+        <span class="card-label">{{ $t('adminAnnounce.announcementList') }}</span>
+      </template>
       <ListShell
         :empty="!loading && list.length === 0"
         empty-variant="never"
@@ -134,68 +145,160 @@ onMounted(fetchAnnouncements)
         :pagination="{ page: pages.page, pageSize: pages.pageSize, total: pages.total, layout: 'prev, pager, next, jumper, total' }"
         @page-change="goToPage"
       >
-        <el-table :data="list" v-loading="loading" border>
-          <el-table-column :label="$t('adminAnnounce.icon')" width="80">
+        <el-table
+          v-loading="loading"
+          :data="list"
+          border
+        >
+          <el-table-column
+            :label="$t('adminAnnounce.icon')"
+            width="80"
+          >
             <template #default="{ row }">
               <el-icon :style="{ color: row.tag_color }">
                 <component :is="row.icon === 'CircleCheckFilled' ? CircleCheckFilled : row.icon === 'WarningFilled' ? WarningFilled : InfoFilled" />
               </el-icon>
             </template>
           </el-table-column>
-          <el-table-column prop="title" :label="$t('adminAnnounce.titleLabel')" min-width="200" />
-          <el-table-column :label="$t('adminAnnounce.tag')" width="140">
+          <el-table-column
+            prop="title"
+            :label="$t('adminAnnounce.titleLabel')"
+            min-width="200"
+          />
+          <el-table-column
+            :label="$t('adminAnnounce.tag')"
+            width="140"
+          >
             <template #default="{ row }">
-              <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">{{ row.tag }}</el-tag>
+              <el-tag :style="{ backgroundColor: row.tag_color, color: '#fff', borderColor: row.tag_color }">
+                {{ row.tag }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('adminAnnounce.content')" min-width="320">
+          <el-table-column
+            :label="$t('adminAnnounce.content')"
+            min-width="320"
+          >
             <template #default="{ row }">
-              <div class="content-clamp" :title="row.content">{{ row.content }}</div>
+              <div
+                class="content-clamp"
+                :title="row.content"
+              >
+                {{ row.content }}
+              </div>
             </template>
           </el-table-column>
-          <el-table-column prop="created_at" :label="$t('adminAnnounce.time')" width="180" />
-          <el-table-column :label="$t('adminAnnounce.action')" width="180">
+          <el-table-column
+            prop="created_at"
+            :label="$t('adminAnnounce.time')"
+            width="180"
+          />
+          <el-table-column
+            :label="$t('adminAnnounce.action')"
+            width="180"
+          >
             <template #default="{ row }">
-              <el-button link type="primary" @click="openForm(row)">{{ $t('adminAnnounce.edit') }}</el-button>
-              <el-button link type="danger" @click="removeAnnouncement(row)">{{ $t('adminAnnounce.delete') }}</el-button>
+              <el-button
+                link
+                type="primary"
+                @click="openForm(row)"
+              >
+                {{ $t('adminAnnounce.edit') }}
+              </el-button>
+              <el-button
+                link
+                type="danger"
+                @click="removeAnnouncement(row)"
+              >
+                {{ $t('adminAnnounce.delete') }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>
       </ListShell>
     </el-card>
 
-    <el-dialog v-model="formVisible" :title="formTitle" width="620px" draggable custom-class="rounded-dialog">
+    <el-dialog
+      v-model="formVisible"
+      :title="formTitle"
+      width="620px"
+      draggable
+      custom-class="rounded-dialog"
+    >
       <el-form label-width="88px">
         <el-form-item :label="$t('adminAnnounce.titleLabel')">
-          <el-input v-model="form.title" :placeholder="$t('adminAnnounce.titlePlaceholder')" />
+          <el-input
+            v-model="form.title"
+            :placeholder="$t('adminAnnounce.titlePlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="$t('adminAnnounce.content')">
-          <el-input v-model="form.content" type="textarea" :rows="5" :placeholder="$t('adminAnnounce.contentPlaceholder')" />
+          <el-input
+            v-model="form.content"
+            type="textarea"
+            :rows="5"
+            :placeholder="$t('adminAnnounce.contentPlaceholder')"
+          />
         </el-form-item>
         <el-form-item :label="$t('adminAnnounce.tag')">
-          <el-select v-model="form.tag" style="width: 160px">
-            <el-option :label="$t('adminAnnounce.tagImportant')" value="重要" />
-            <el-option :label="$t('adminAnnounce.tagNewData')" value="新数据" />
-            <el-option :label="$t('adminAnnounce.tagOptimize')" value="优化" />
-            <el-option :label="$t('adminAnnounce.tagCustom')" value="自定义" />
+          <el-select
+            v-model="form.tag"
+            style="width: 160px"
+          >
+            <el-option
+              :label="$t('adminAnnounce.tagImportant')"
+              value="重要"
+            />
+            <el-option
+              :label="$t('adminAnnounce.tagNewData')"
+              value="新数据"
+            />
+            <el-option
+              :label="$t('adminAnnounce.tagOptimize')"
+              value="优化"
+            />
+            <el-option
+              :label="$t('adminAnnounce.tagCustom')"
+              value="自定义"
+            />
           </el-select>
-          <el-color-picker v-model="form.tag_color" style="margin-left: 12px" />
+          <el-color-picker
+            v-model="form.tag_color"
+            style="margin-left: 12px"
+          />
         </el-form-item>
         <el-form-item :label="$t('adminAnnounce.icon')">
-          <el-select v-model="form.icon" style="width: 200px">
-            <el-option :label="$t('adminAnnounce.iconInfo')" value="InfoFilled" />
-            <el-option :label="$t('adminAnnounce.iconPass')" value="CircleCheckFilled" />
-            <el-option :label="$t('adminAnnounce.iconWarning')" value="WarningFilled" />
+          <el-select
+            v-model="form.icon"
+            style="width: 200px"
+          >
+            <el-option
+              :label="$t('adminAnnounce.iconInfo')"
+              value="InfoFilled"
+            />
+            <el-option
+              :label="$t('adminAnnounce.iconPass')"
+              value="CircleCheckFilled"
+            />
+            <el-option
+              :label="$t('adminAnnounce.iconWarning')"
+              value="WarningFilled"
+            />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="formVisible=false">{{ $t('adminAnnounce.cancel') }}</el-button>
-        <el-button type="primary" @click="submitForm">{{ $t('adminAnnounce.save') }}</el-button>
+        <el-button @click="formVisible=false">
+          {{ $t('adminAnnounce.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="submitForm"
+        >
+          {{ $t('adminAnnounce.save') }}
+        </el-button>
       </template>
     </el-dialog>
-
-
   </div>
 </template>
 

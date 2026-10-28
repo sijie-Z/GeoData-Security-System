@@ -1,33 +1,59 @@
 <template>
   <div class="dual-channel-approval">
     <!-- 页面标题和统计 -->
-    <el-card class="header-card" shadow="never">
+    <el-card
+      class="header-card"
+      shadow="never"
+    >
       <div class="header-content">
         <div class="title-section">
-          <h1 class="page-title">{{ $t('approval.dualChannelTitle') }}</h1>
-          <p class="page-subtitle">{{ $t('approval.dualChannelSubtitle') }}</p>
+          <h1 class="page-title">
+            {{ $t('approval.dualChannelTitle') }}
+          </h1>
+          <p class="page-subtitle">
+            {{ $t('approval.dualChannelSubtitle') }}
+          </p>
         </div>
         <div class="stats-section">
           <div class="stat-item">
-            <div class="stat-number">{{ pendingVectorCount }}</div>
-            <div class="stat-label">{{ $t('approval.pendingVector') }}</div>
+            <div class="stat-number">
+              {{ pendingVectorCount }}
+            </div>
+            <div class="stat-label">
+              {{ $t('approval.pendingVector') }}
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">{{ pendingRasterCount }}</div>
-            <div class="stat-label">{{ $t('approval.pendingRaster') }}</div>
+            <div class="stat-number">
+              {{ pendingRasterCount }}
+            </div>
+            <div class="stat-label">
+              {{ $t('approval.pendingRaster') }}
+            </div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">{{ totalProcessed }}</div>
-            <div class="stat-label">{{ $t('approval.processed') }}</div>
+            <div class="stat-number">
+              {{ totalProcessed }}
+            </div>
+            <div class="stat-label">
+              {{ $t('approval.processed') }}
+            </div>
           </div>
         </div>
       </div>
     </el-card>
 
     <!-- 数据类型选择和筛选 -->
-    <el-card class="filter-card" shadow="hover">
+    <el-card
+      class="filter-card"
+      shadow="hover"
+    >
       <div class="filter-content">
-        <el-radio-group v-model="activeDataType" size="large" class="data-type-selector">
+        <el-radio-group
+          v-model="activeDataType"
+          size="large"
+          class="data-type-selector"
+        >
           <el-radio-button value="vector">
             <el-icon><Location /></el-icon>
             {{ $t('approval.vectorData') }} ({{ pendingVectorCount }})
@@ -50,19 +76,42 @@
             </template>
           </el-input>
 
-          <el-select v-model="statusFilter" :placeholder="$t('approval.reviewStatus')" :aria-label="$t('approval.reviewStatus')" style="width: 120px">
-            <el-option :label="$t('approval.all')" value="" />
-            <el-option :label="$t('approval.pendingFirst')" value="pending_first" />
-            <el-option :label="$t('approval.pendingSecond')" value="pending_second" />
-            <el-option :label="$t('approval.approved')" value="approved" />
-            <el-option :label="$t('approval.rejected')" value="rejected" />
+          <el-select
+            v-model="statusFilter"
+            :placeholder="$t('approval.reviewStatus')"
+            :aria-label="$t('approval.reviewStatus')"
+            style="width: 120px"
+          >
+            <el-option
+              :label="$t('approval.all')"
+              value=""
+            />
+            <el-option
+              :label="$t('approval.pendingFirst')"
+              value="pending_first"
+            />
+            <el-option
+              :label="$t('approval.pendingSecond')"
+              value="pending_second"
+            />
+            <el-option
+              :label="$t('approval.approved')"
+              value="approved"
+            />
+            <el-option
+              :label="$t('approval.rejected')"
+              value="rejected"
+            />
           </el-select>
         </div>
       </div>
     </el-card>
 
     <!-- 数据列表 -->
-    <el-card class="data-list-card" shadow="hover">
+    <el-card
+      class="data-list-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <h2 class="card-title">
@@ -70,16 +119,22 @@
             {{ activeDataType === 'vector' ? $t('approval.vectorData') : $t('approval.rasterData') }} {{ $t('approval.reviewList') }}
           </h2>
           <div class="header-actions">
-            <el-button type="primary" :icon="Refresh" @click="refreshData">{{ $t('approval.refresh') }}</el-button>
+            <el-button
+              type="primary"
+              :icon="Refresh"
+              @click="refreshData"
+            >
+              {{ $t('approval.refresh') }}
+            </el-button>
           </div>
         </div>
       </template>
 
       <el-table
+        v-loading="loading"
         :data="paginatedApplications"
         border
         style="width: 100%"
-        v-loading="loading"
       >
         <el-table-column type="expand">
           <!-- 展开列表头仅对辅助技术可见（axe: empty-table-header；sr-only 零视觉） -->
@@ -88,25 +143,70 @@
           </template>
           <template #default="props">
             <div class="application-detail">
-              <el-descriptions :column="2" border>
-                <el-descriptions-item :label="$t('approval.applyId')">{{ props.row.id }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('approval.applyTime')">{{ props.row.application_time }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('approval.dataType')">{{ getDataTypeText(props.row.data_type) }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('approval.dataSize')">{{ props.row.data_size || $t('approval.unknown') }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('approval.applyReason')" :span="2">{{ props.row.reason }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('approval.purpose')" :span="2">{{ props.row.purpose || $t('approval.notFilled') }}</el-descriptions-item>
+              <el-descriptions
+                :column="2"
+                border
+              >
+                <el-descriptions-item :label="$t('approval.applyId')">
+                  {{ props.row.id }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.applyTime')">
+                  {{ props.row.application_time }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.dataType')">
+                  {{ getDataTypeText(props.row.data_type) }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('approval.dataSize')">
+                  {{ props.row.data_size || $t('approval.unknown') }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  :label="$t('approval.applyReason')"
+                  :span="2"
+                >
+                  {{ props.row.reason }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  :label="$t('approval.purpose')"
+                  :span="2"
+                >
+                  {{ props.row.purpose || $t('approval.notFilled') }}
+                </el-descriptions-item>
               </el-descriptions>
             </div>
           </template>
         </el-table-column>
 
-        <el-table-column prop="id" :label="$t('approval.applyId')" width="90" />
-        <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="130" />
-        <el-table-column prop="data_id" :label="$t('approval.dataId')" width="90" />
-        <el-table-column prop="applicant_name" :label="$t('approval.applicant')" width="110" />
-        <el-table-column prop="applicant_user_number" :label="$t('approval.userId')" width="100" />
+        <el-table-column
+          prop="id"
+          :label="$t('approval.applyId')"
+          width="90"
+        />
+        <el-table-column
+          prop="data_alias"
+          :label="$t('approval.dataName')"
+          min-width="130"
+        />
+        <el-table-column
+          prop="data_id"
+          :label="$t('approval.dataId')"
+          width="90"
+        />
+        <el-table-column
+          prop="applicant_name"
+          :label="$t('approval.applicant')"
+          width="110"
+        />
+        <el-table-column
+          prop="applicant_user_number"
+          :label="$t('approval.userId')"
+          width="100"
+        />
 
-        <el-table-column :label="$t('approval.reviewStatus')" width="110" align="center">
+        <el-table-column
+          :label="$t('approval.reviewStatus')"
+          width="110"
+          align="center"
+        >
           <template #default="scope">
             <el-tag
               :type="getStatusType(scope.row)"
@@ -118,21 +218,45 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.firstReviewInfo')" width="170" align="center">
+        <el-table-column
+          :label="$t('approval.firstReviewInfo')"
+          width="170"
+          align="center"
+        >
           <template #default="scope">
             <div class="review-info">
-              <div class="review-status" :class="getFirstReviewClass(scope.row)">
+              <div
+                class="review-status"
+                :class="getFirstReviewClass(scope.row)"
+              >
                 {{ getFirstReviewText(scope.row) }}
               </div>
-              <div class="review-time" v-if="scope.row.first_review_time">
+              <div
+                v-if="scope.row.first_review_time"
+                class="review-time"
+              >
                 {{ formatTime(scope.row.first_review_time) }}
               </div>
-              <div class="reviewer" v-if="scope.row.first_reviewer">
+              <div
+                v-if="scope.row.first_reviewer"
+                class="reviewer"
+              >
                 {{ scope.row.first_reviewer }}
               </div>
-              <el-tooltip v-if="scope.row.first_comment" :content="scope.row.first_comment" placement="top">
-                <el-tag size="small" type="info" effect="plain" style="margin-top:4px;cursor:pointer;">
-                  <el-icon style="margin-right:2px;"><ChatLineSquare /></el-icon>
+              <el-tooltip
+                v-if="scope.row.first_comment"
+                :content="scope.row.first_comment"
+                placement="top"
+              >
+                <el-tag
+                  size="small"
+                  type="info"
+                  effect="plain"
+                  style="margin-top:4px;cursor:pointer;"
+                >
+                  <el-icon style="margin-right:2px;">
+                    <ChatLineSquare />
+                  </el-icon>
                   {{ $t('approval.hasComment') }}
                 </el-tag>
               </el-tooltip>
@@ -140,21 +264,45 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.secondReviewInfo')" width="170" align="center">
+        <el-table-column
+          :label="$t('approval.secondReviewInfo')"
+          width="170"
+          align="center"
+        >
           <template #default="scope">
             <div class="review-info">
-              <div class="review-status" :class="getSecondReviewClass(scope.row)">
+              <div
+                class="review-status"
+                :class="getSecondReviewClass(scope.row)"
+              >
                 {{ getSecondReviewText(scope.row) }}
               </div>
-              <div class="review-time" v-if="scope.row.second_review_time">
+              <div
+                v-if="scope.row.second_review_time"
+                class="review-time"
+              >
                 {{ formatTime(scope.row.second_review_time) }}
               </div>
-              <div class="reviewer" v-if="scope.row.second_reviewer">
+              <div
+                v-if="scope.row.second_reviewer"
+                class="reviewer"
+              >
                 {{ scope.row.second_reviewer }}
               </div>
-              <el-tooltip v-if="scope.row.second_comment" :content="scope.row.second_comment" placement="top">
-                <el-tag size="small" type="info" effect="plain" style="margin-top:4px;cursor:pointer;">
-                  <el-icon style="margin-right:2px;"><ChatLineSquare /></el-icon>
+              <el-tooltip
+                v-if="scope.row.second_comment"
+                :content="scope.row.second_comment"
+                placement="top"
+              >
+                <el-tag
+                  size="small"
+                  type="info"
+                  effect="plain"
+                  style="margin-top:4px;cursor:pointer;"
+                >
+                  <el-icon style="margin-right:2px;">
+                    <ChatLineSquare />
+                  </el-icon>
                   {{ $t('approval.hasComment') }}
                 </el-tag>
               </el-tooltip>
@@ -162,7 +310,12 @@
           </template>
         </el-table-column>
 
-        <el-table-column :label="$t('approval.operation')" width="220" align="center" fixed="right">
+        <el-table-column
+          :label="$t('approval.operation')"
+          width="220"
+          align="center"
+          fixed="right"
+        >
           <template #default="scope">
             <div class="action-buttons">
               <el-button
@@ -221,9 +374,9 @@
                 type="primary"
                 size="small"
                 :icon="ChatDotSquare"
-                @click="contactApplicant(scope.row)"
                 circle
                 :title="$t('approval.contactApplicant')"
+                @click="contactApplicant(scope.row)"
               />
             </div>
           </template>
@@ -255,14 +408,16 @@
     >
       <ApplicationLifecycle :application-id="detailRow.id" />
       <template #footer>
-        <el-button @click="detailDialogVisible = false">{{ $t('common.close') }}</el-button>
+        <el-button @click="detailDialogVisible = false">
+          {{ $t('common.close') }}
+        </el-button>
       </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, h, nextTick } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox, ElLoading } from 'element-plus'
 import { useI18n } from 'vue-i18n'
 import {
@@ -307,7 +462,7 @@ const rasterApplications = ref([])
 const filteredApplications = computed(() => {
   const sourceData = activeDataType.value === 'vector' ? vectorApplications.value : rasterApplications.value
 
-  let filtered = sourceData.filter(item => {
+  const filtered = sourceData.filter(item => {
     // 搜索筛选
     const keyword = searchKeyword.value.toLowerCase()
     const matchesSearch = !keyword ||
@@ -552,7 +707,7 @@ const handleSecondReject = async (row) => {
 
 const handleAdditionalReview = async (row) => {
   try {
-    const { action, value } = await ElMessageBox({
+    const { action } = await ElMessageBox({
       title: t('approval.additionalReviewTitle'),
       message: h => {
         return h('div', [

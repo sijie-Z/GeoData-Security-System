@@ -2,161 +2,338 @@
 <!-- 栅格数据水印嵌入界面 -->
 
 <template>
-    <div class="raster-embed-page">
-      <el-alert :title="$t('rasterWmEmbed.roleAlert')" type="info" :closable="false" style="margin-bottom: 12px;" />
-      <div class="page-header-compact">
-        <h1 class="page-title">{{ $t('rasterWmEmbed.pageTitle') }}</h1>
-        <p class="page-desc">{{ $t('rasterWmEmbed.pageDesc') }}</p>
-      </div>
-      <el-alert :title="$t('rasterWmEmbed.workflowTip')" type="warning" :closable="false" style="margin-bottom: 12px;" />
-      <!-- 水印嵌入申请表格 -->
-      <el-table :data="data.list" border class="embed-table-compact">
-        <el-table-column prop="id" :label="$t('rasterWmEmbed.colApplicationId')" width="82.5" />
-        <el-table-column prop="data_alias" :label="$t('rasterWmEmbed.colDataName')" width="85"/>
-        <el-table-column prop="data_id" :label="$t('rasterWmEmbed.colRasterDataId')" width="110"/>
-        <el-table-column prop="applicant_user_number" :label="$t('rasterWmEmbed.colApplicantNo')" width="100"/>
-        <el-table-column prop="applicant_name" :label="$t('rasterWmEmbed.colApplicantName')" width="95"/>
-        <el-table-column prop="adm1_name" :label="$t('rasterWmEmbed.colAdm1Name')" width="110"/>
-        <el-table-column prop="adm2_name" :label="$t('rasterWmEmbed.colAdm2Name')" width="110"/>
-
-        <el-table-column :label="$t('rasterWmEmbed.colFirstStatus')" width="85">
-          <template v-slot="scope">
-            {{ getStatusText(scope.row.first_statu) }}
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmEmbed.colSecondStatus')" width="85">
-          <template v-slot="scope">
-            <div v-if="!scope.row.first_statu">
-              {{ getStatusText('空') }}
-            </div>
-            <div v-else>
-              {{ getStatusText(scope.row.second_statu) }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmEmbed.colWatermark')">
-          <template #default="scope">
-            <div class="qr-image-wrapper">
-              <WatermarkImage class="qr-code-image"
-                :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
-                :alt="$t('rasterWmEmbed.colWatermark')"
-                fit="cover"
-                style="width: 72px; height: 72px;"
-              />
-              <span v-if="!scope.row.qrcode" class="qr-empty-text">—</span>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmEmbed.colAction')" width="360">
-          <template v-slot="scope">
-            <div class="action-wrap">
-              <el-button size="small" type="info" plain @click="openDataPreviewDialog(scope.row)">{{ $t('rasterWmEmbed.viewOriginalData') }}</el-button>
-              <el-button size="small" type="primary" @click="embedding_watermark(scope.row)">{{ $t('rasterWmEmbed.embedWatermark') }}</el-button>
-              <el-button size="small" type="success" plain @click="openCrmarkDialog(scope.row)">{{ $t('rasterWmEmbed.crmarkExperiment') }}</el-button>
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+  <div class="raster-embed-page">
+    <el-alert
+      :title="$t('rasterWmEmbed.roleAlert')"
+      type="info"
+      :closable="false"
+      style="margin-bottom: 12px;"
+    />
+    <div class="page-header-compact">
+      <h1 class="page-title">
+        {{ $t('rasterWmEmbed.pageTitle') }}
+      </h1>
+      <p class="page-desc">
+        {{ $t('rasterWmEmbed.pageDesc') }}
+      </p>
     </div>
-
-    <!-- 分页组件 -->
-    <div>
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="prev, pager, next, jumper, total"
-        @current-change="pageChanged"
-        class="view-pagination"
+    <el-alert
+      :title="$t('rasterWmEmbed.workflowTip')"
+      type="warning"
+      :closable="false"
+      style="margin-bottom: 12px;"
+    />
+    <!-- 水印嵌入申请表格 -->
+    <el-table
+      :data="data.list"
+      border
+      class="embed-table-compact"
+    >
+      <el-table-column
+        prop="id"
+        :label="$t('rasterWmEmbed.colApplicationId')"
+        width="82.5"
       />
-    </div>
+      <el-table-column
+        prop="data_alias"
+        :label="$t('rasterWmEmbed.colDataName')"
+        width="85"
+      />
+      <el-table-column
+        prop="data_id"
+        :label="$t('rasterWmEmbed.colRasterDataId')"
+        width="110"
+      />
+      <el-table-column
+        prop="applicant_user_number"
+        :label="$t('rasterWmEmbed.colApplicantNo')"
+        width="100"
+      />
+      <el-table-column
+        prop="applicant_name"
+        :label="$t('rasterWmEmbed.colApplicantName')"
+        width="95"
+      />
+      <el-table-column
+        prop="adm1_name"
+        :label="$t('rasterWmEmbed.colAdm1Name')"
+        width="110"
+      />
+      <el-table-column
+        prop="adm2_name"
+        :label="$t('rasterWmEmbed.colAdm2Name')"
+        width="110"
+      />
 
-    <!-- 原始数据预览弹窗 -->
-    <el-dialog :title="$t('rasterWmEmbed.rasterPreviewDialogTitle')" v-model="viewDataVisible" width="65%" class="raster-preview-dialog" :before-close="handleClose" destroy-on-close>
-      <div class="dialog-container raster-preview-layout">
-        <div class="preview-main">
-          <div class="raster-preview-container">
-            <div v-if="selectedData.preview_base64" class="preview-image-wrapper">
-              <WatermarkImage
-                :src="`data:image/png;base64,${selectedData.preview_base64}`"
-                :alt="$t('rasterWmEmbed.rasterPreviewDialogTitle')"
-                fit="contain"
-                style="width: 100%; height: 320px; border-radius: 12px;"
-              />
-            </div>
-            <div v-else class="preview-placeholder">
-              <el-empty :description="$t('rasterWmEmbed.noPreviewImage')" />
-            </div>
+      <el-table-column
+        :label="$t('rasterWmEmbed.colFirstStatus')"
+        width="85"
+      >
+        <template #default="scope">
+          {{ getStatusText(scope.row.first_statu) }}
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        :label="$t('rasterWmEmbed.colSecondStatus')"
+        width="85"
+      >
+        <template #default="scope">
+          <div v-if="!scope.row.first_statu">
+            {{ getStatusText('空') }}
           </div>
-          <div class="raster-actions" v-if="selectedData.data_id">
-            <el-button type="primary" plain size="small" @click="openRasterMapDialog">{{ $t('rasterWmEmbed.viewOnMap') }}</el-button>
-            <el-button type="warning" plain size="small" :loading="generatingTiles" @click="generateTilesForPreview">{{ $t('rasterWmEmbed.generateTiles') }}</el-button>
+          <div v-else>
+            {{ getStatusText(scope.row.second_statu) }}
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column :label="$t('rasterWmEmbed.colWatermark')">
+        <template #default="scope">
+          <div class="qr-image-wrapper">
+            <WatermarkImage
+              class="qr-code-image"
+              :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
+              :alt="$t('rasterWmEmbed.colWatermark')"
+              fit="cover"
+              style="width: 72px; height: 72px;"
+            />
+            <span
+              v-if="!scope.row.qrcode"
+              class="qr-empty-text"
+            >—</span>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        :label="$t('rasterWmEmbed.colAction')"
+        width="360"
+      >
+        <template #default="scope">
+          <div class="action-wrap">
+            <el-button
+              size="small"
+              type="info"
+              plain
+              @click="openDataPreviewDialog(scope.row)"
+            >
+              {{ $t('rasterWmEmbed.viewOriginalData') }}
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click="embedding_watermark(scope.row)"
+            >
+              {{ $t('rasterWmEmbed.embedWatermark') }}
+            </el-button>
+            <el-button
+              size="small"
+              type="success"
+              plain
+              @click="openCrmarkDialog(scope.row)"
+            >
+              {{ $t('rasterWmEmbed.crmarkExperiment') }}
+            </el-button>
+          </div>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+
+  <!-- 分页组件 -->
+  <div>
+    <el-pagination
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      :total="total"
+      layout="prev, pager, next, jumper, total"
+      class="view-pagination"
+      @current-change="pageChanged"
+    />
+  </div>
+
+  <!-- 原始数据预览弹窗 -->
+  <el-dialog
+    v-model="viewDataVisible"
+    :title="$t('rasterWmEmbed.rasterPreviewDialogTitle')"
+    width="65%"
+    class="raster-preview-dialog"
+    :before-close="handleClose"
+    destroy-on-close
+  >
+    <div class="dialog-container raster-preview-layout">
+      <div class="preview-main">
+        <div class="raster-preview-container">
+          <div
+            v-if="selectedData.preview_base64"
+            class="preview-image-wrapper"
+          >
+            <WatermarkImage
+              :src="`data:image/png;base64,${selectedData.preview_base64}`"
+              :alt="$t('rasterWmEmbed.rasterPreviewDialogTitle')"
+              fit="contain"
+              style="width: 100%; height: 320px; border-radius: 12px;"
+            />
+          </div>
+          <div
+            v-else
+            class="preview-placeholder"
+          >
+            <el-empty :description="$t('rasterWmEmbed.noPreviewImage')" />
           </div>
         </div>
-        <div class="info-container">
-          <h4 class="info-title">{{ $t('rasterWmEmbed.applicationDataInfo') }}</h4>
-          <el-descriptions title="" :column="1" border size="small">
-            <el-descriptions-item :label="$t('rasterWmEmbed.descDataName')">{{ selectedData.data_alias }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('rasterWmEmbed.descRasterDataId')">{{ selectedData.data_id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('rasterWmEmbed.descApplicant')">{{ selectedData.applicant_name }} ({{ selectedData.applicant_user_number }})</el-descriptions-item>
-            <el-descriptions-item :label="$t('rasterWmEmbed.descFilePath')">
-              <span class="path-text" :title="selectedData.data_file_path">{{ selectedData.data_file_path || '—' }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
+        <div
+          v-if="selectedData.data_id"
+          class="raster-actions"
+        >
+          <el-button
+            type="primary"
+            plain
+            size="small"
+            @click="openRasterMapDialog"
+          >
+            {{ $t('rasterWmEmbed.viewOnMap') }}
+          </el-button>
+          <el-button
+            type="warning"
+            plain
+            size="small"
+            :loading="generatingTiles"
+            @click="generateTilesForPreview"
+          >
+            {{ $t('rasterWmEmbed.generateTiles') }}
+          </el-button>
         </div>
       </div>
-    </el-dialog>
+      <div class="info-container">
+        <h4 class="info-title">
+          {{ $t('rasterWmEmbed.applicationDataInfo') }}
+        </h4>
+        <el-descriptions
+          title=""
+          :column="1"
+          border
+          size="small"
+        >
+          <el-descriptions-item :label="$t('rasterWmEmbed.descDataName')">
+            {{ selectedData.data_alias }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('rasterWmEmbed.descRasterDataId')">
+            {{ selectedData.data_id }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('rasterWmEmbed.descApplicant')">
+            {{ selectedData.applicant_name }} ({{ selectedData.applicant_user_number }})
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('rasterWmEmbed.descFilePath')">
+            <span
+              class="path-text"
+              :title="selectedData.data_file_path"
+            >{{ selectedData.data_file_path || '—' }}</span>
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </div>
+  </el-dialog>
 
-    <!-- 栅格瓦片地图弹窗 -->
-    <el-dialog v-model="rasterMapVisible" :title="$t('rasterWmEmbed.rasterMapDialogTitle')" width="75%" class="raster-map-dialog" destroy-on-close @closed="destroyRasterMapView">
-      <div class="raster-map-container" ref="rasterMapContainer" style="height: 500px;"></div>
-    </el-dialog>
+  <!-- 栅格瓦片地图弹窗 -->
+  <el-dialog
+    v-model="rasterMapVisible"
+    :title="$t('rasterWmEmbed.rasterMapDialogTitle')"
+    width="75%"
+    class="raster-map-dialog"
+    destroy-on-close
+    @closed="destroyRasterMapView"
+  >
+    <div
+      ref="rasterMapContainer"
+      class="raster-map-container"
+      style="height: 500px;"
+    />
+  </el-dialog>
 
-    <!-- CRMark 水印流程弹窗 -->
-    <el-dialog v-model="crmarkDialogVisible" :title="$t('rasterWmEmbed.crmarkDialogTitle')" width="600px">
-      <el-form label-width="120px">
-        <el-form-item :label="$t('rasterWmEmbed.formApplicationId')">
-          <el-input v-model="crmarkApplicationId" :placeholder="$t('rasterWmEmbed.placeholderEnterApplicationId')" />
-        </el-form-item>
-        <el-form-item>
-          <el-button type="primary" @click="crmarkEmbed">{{ $t('rasterWmEmbed.executeCrmarkEmbed') }}</el-button>
-          <TipWrap :reason="!crmarkResult.stego_path ? $t('common.disabledReason.embedFirst') : ''">
-            <el-button @click="crmarkPreviewStego" :disabled="!crmarkResult.stego_path">{{ $t('rasterWmEmbed.previewStegoThumbnail') }}</el-button>
-          </TipWrap>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmEmbed.returnPaths')">
-          <div>
-            <div>stego_path：{{ crmarkResult.stego_path || $t('rasterWmEmbed.notReturned') }}</div>
-            <div>wm_map_path：{{ crmarkResult.wm_map_path || $t('rasterWmEmbed.notReturned') }}</div>
-            <div>wm_meta_path：{{ crmarkResult.wm_meta_path || $t('rasterWmEmbed.notReturned') }}</div>
-          </div>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmEmbed.embeddedThumbnail')" v-if="crmarkResult.stego_preview_base64">
-          <WatermarkImage :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`" :alt="$t('rasterWmEmbed.embeddedThumbnail')" fit="contain" style="width: 100%;" />
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmEmbed.compareLabel')" v-if="crmarkResult.stego_preview_base64">
-          <ImageCompare
-            :before-src="crmarkResult.original_preview_base64 ? `data:image/png;base64,${crmarkResult.original_preview_base64}` : ''"
-            :after-src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`"
-            :before-label="$t('rasterWmEmbed.embedBefore')"
-            :after-label="$t('rasterWmEmbed.embedAfter')"
-            height="300px"
-          />
-        </el-form-item>
-        <el-form-item>
-          <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path) ? $t('common.disabledReason.needStegoFiles') : ''">
-            <el-button type="success" @click="crmarkRecover" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path">{{ $t('rasterWmEmbed.recoverOriginal') }}</el-button>
-          </TipWrap>
-          <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path) ? $t('common.disabledReason.needStegoFiles') : ''">
-            <el-button type="warning" @click="crmarkDecode" :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path">{{ $t('rasterWmEmbed.decodeWatermark') }}</el-button>
-          </TipWrap>
-        </el-form-item>
-      </el-form>
-    </el-dialog>
-  </template>
+  <!-- CRMark 水印流程弹窗 -->
+  <el-dialog
+    v-model="crmarkDialogVisible"
+    :title="$t('rasterWmEmbed.crmarkDialogTitle')"
+    width="600px"
+  >
+    <el-form label-width="120px">
+      <el-form-item :label="$t('rasterWmEmbed.formApplicationId')">
+        <el-input
+          v-model="crmarkApplicationId"
+          :placeholder="$t('rasterWmEmbed.placeholderEnterApplicationId')"
+        />
+      </el-form-item>
+      <el-form-item>
+        <el-button
+          type="primary"
+          @click="crmarkEmbed"
+        >
+          {{ $t('rasterWmEmbed.executeCrmarkEmbed') }}
+        </el-button>
+        <TipWrap :reason="!crmarkResult.stego_path ? $t('common.disabledReason.embedFirst') : ''">
+          <el-button
+            :disabled="!crmarkResult.stego_path"
+            @click="crmarkPreviewStego"
+          >
+            {{ $t('rasterWmEmbed.previewStegoThumbnail') }}
+          </el-button>
+        </TipWrap>
+      </el-form-item>
+      <el-form-item :label="$t('rasterWmEmbed.returnPaths')">
+        <div>
+          <div>stego_path：{{ crmarkResult.stego_path || $t('rasterWmEmbed.notReturned') }}</div>
+          <div>wm_map_path：{{ crmarkResult.wm_map_path || $t('rasterWmEmbed.notReturned') }}</div>
+          <div>wm_meta_path：{{ crmarkResult.wm_meta_path || $t('rasterWmEmbed.notReturned') }}</div>
+        </div>
+      </el-form-item>
+      <el-form-item
+        v-if="crmarkResult.stego_preview_base64"
+        :label="$t('rasterWmEmbed.embeddedThumbnail')"
+      >
+        <WatermarkImage
+          :src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`"
+          :alt="$t('rasterWmEmbed.embeddedThumbnail')"
+          fit="contain"
+          style="width: 100%;"
+        />
+      </el-form-item>
+      <el-form-item
+        v-if="crmarkResult.stego_preview_base64"
+        :label="$t('rasterWmEmbed.compareLabel')"
+      >
+        <ImageCompare
+          :before-src="crmarkResult.original_preview_base64 ? `data:image/png;base64,${crmarkResult.original_preview_base64}` : ''"
+          :after-src="`data:image/png;base64,${crmarkResult.stego_preview_base64}`"
+          :before-label="$t('rasterWmEmbed.embedBefore')"
+          :after-label="$t('rasterWmEmbed.embedAfter')"
+          height="300px"
+        />
+      </el-form-item>
+      <el-form-item>
+        <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path) ? $t('common.disabledReason.needStegoFiles') : ''">
+          <el-button
+            type="success"
+            :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path"
+            @click="crmarkRecover"
+          >
+            {{ $t('rasterWmEmbed.recoverOriginal') }}
+          </el-button>
+        </TipWrap>
+        <TipWrap :reason="(!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path) ? $t('common.disabledReason.needStegoFiles') : ''">
+          <el-button
+            type="warning"
+            :disabled="!crmarkResult.stego_path || !crmarkResult.wm_map_path || !crmarkResult.wm_meta_path"
+            @click="crmarkDecode"
+          >
+            {{ $t('rasterWmEmbed.decodeWatermark') }}
+          </el-button>
+        </TipWrap>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+</template>
 
   <script setup>
   import { reactive, ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue';
@@ -326,8 +503,8 @@
   const destroyRasterMapView = () => {
     rasterMapSeq++;
     if (rasterMapInstance) {
-      try { rasterMapInstance.setTarget(null) } catch (_) {}
-      try { rasterMapInstance.dispose() } catch (_) {}
+      try { rasterMapInstance.setTarget(null) } catch (_) { /* best-effort teardown */ }
+      try { rasterMapInstance.dispose() } catch (_) { /* best-effort teardown */ }
       rasterMapInstance = null;
     }
   };

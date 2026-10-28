@@ -22,13 +22,23 @@
 -->
 <template>
   <div class="list-shell">
-    <div v-if="$slots.filters" class="list-shell__filters" data-ls="filters">
+    <div
+      v-if="$slots.filters"
+      class="list-shell__filters"
+      data-ls="filters"
+    >
       <slot name="filters" />
     </div>
 
-    <div class="list-shell__main" data-ls="main">
+    <div
+      class="list-shell__main"
+      data-ls="main"
+    >
       <slot v-if="!empty" />
-      <slot v-else name="empty">
+      <slot
+        v-else
+        name="empty"
+      >
         <EmptyState
           :variant="emptyVariant"
           :title="emptyTitle"
@@ -40,7 +50,11 @@
       </slot>
     </div>
 
-    <div v-if="showPagination" class="list-shell__pagination" data-ls="pagination">
+    <div
+      v-if="showPagination"
+      class="list-shell__pagination"
+      data-ls="pagination"
+    >
       <el-pagination
         :current-page="pagination.page"
         :page-size="pagination.pageSize"

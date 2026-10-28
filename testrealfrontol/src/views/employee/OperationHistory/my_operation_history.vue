@@ -1,15 +1,29 @@
 <template>
   <div class="my-history-page">
     <div class="page-header">
-      <h1 class="page-title">{{ $t('empHistory.title') }}</h1>
-      <p class="page-desc">{{ $t('empHistory.description') }}</p>
+      <h1 class="page-title">
+        {{ $t('empHistory.title') }}
+      </h1>
+      <p class="page-desc">
+        {{ $t('empHistory.description') }}
+      </p>
     </div>
 
-    <el-card class="history-card" shadow="hover">
+    <el-card
+      class="history-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <span class="card-title">{{ $t('empHistory.operationRecords') }}</span>
-          <el-button type="primary" :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" title="刷新" />
+          <el-button
+            type="primary"
+            :icon="RefreshRight"
+            circle
+            :loading="loading"
+            title="刷新"
+            @click="fetchLogs"
+          />
         </div>
       </template>
 
@@ -22,38 +36,102 @@
           style="width: 200px;"
           @change="handleFilterSearch"
         >
-          <el-option :label="$t('empHistory.allTypes')" value="" />
-          <el-option :label="$t('empHistory.userLogin')" value="用户登录" />
-          <el-option :label="$t('empHistory.submitApplication')" value="提交数据申请" />
-          <el-option :label="$t('empHistory.downloadData')" value="下载数据" />
-          <el-option :label="$t('empHistory.changePassword')" value="修改密码" />
-          <el-option :label="$t('empHistory.editProfile')" value="修改个人信息" />
-          <el-option :label="$t('empHistory.userLogout')" value="用户登出" />
+          <el-option
+            :label="$t('empHistory.allTypes')"
+            value=""
+          />
+          <el-option
+            :label="$t('empHistory.userLogin')"
+            value="用户登录"
+          />
+          <el-option
+            :label="$t('empHistory.submitApplication')"
+            value="提交数据申请"
+          />
+          <el-option
+            :label="$t('empHistory.downloadData')"
+            value="下载数据"
+          />
+          <el-option
+            :label="$t('empHistory.changePassword')"
+            value="修改密码"
+          />
+          <el-option
+            :label="$t('empHistory.editProfile')"
+            value="修改个人信息"
+          />
+          <el-option
+            :label="$t('empHistory.userLogout')"
+            value="用户登出"
+          />
         </el-select>
-        <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('empHistory.search') }}</el-button>
-        <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('empHistory.reset') }}</el-button>
+        <el-button
+          type="primary"
+          :icon="Search"
+          @click="handleFilterSearch"
+        >
+          {{ $t('empHistory.search') }}
+        </el-button>
+        <el-button
+          :icon="RefreshLeft"
+          @click="resetFilters"
+        >
+          {{ $t('empHistory.reset') }}
+        </el-button>
       </div>
 
       <el-table
+        v-loading="loading"
         :data="logList"
         border
         stripe
-        v-loading="loading"
         class="history-table"
         style="width: 100%"
       >
-        <el-table-column type="index" label="#" width="56" align="center" />
-        <el-table-column prop="timestamp" :label="$t('empHistory.operationTime')" width="172" />
-        <el-table-column prop="ip_address" :label="$t('empHistory.ipAddress')" width="140" show-overflow-tooltip />
-        <el-table-column prop="action" :label="$t('empHistory.operationType')" width="140" show-overflow-tooltip />
-        <el-table-column prop="status" :label="$t('empHistory.status')" width="88" align="center">
+        <el-table-column
+          type="index"
+          label="#"
+          width="56"
+          align="center"
+        />
+        <el-table-column
+          prop="timestamp"
+          :label="$t('empHistory.operationTime')"
+          width="172"
+        />
+        <el-table-column
+          prop="ip_address"
+          :label="$t('empHistory.ipAddress')"
+          width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="action"
+          :label="$t('empHistory.operationType')"
+          width="140"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="status"
+          :label="$t('empHistory.status')"
+          width="88"
+          align="center"
+        >
           <template #default="scope">
-            <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
+            <el-tag
+              :type="scope.row.status === '成功' ? 'success' : 'danger'"
+              size="small"
+              effect="plain"
+              round
+            >
               {{ scope.row.status }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('empHistory.details')" min-width="260">
+        <el-table-column
+          :label="$t('empHistory.details')"
+          min-width="260"
+        >
           <template #default="scope">
             <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
           </template>
@@ -63,12 +141,12 @@
       <div class="pagination-wrap">
         <el-pagination
           ref="paginationRef"
+          v-model:page-size="pageSize"
+          v-model:current-page="currentPage"
           background
           layout="total, sizes, prev, pager, next, jumper"
           :total="total"
           :page-sizes="[10, 20, 50]"
-          v-model:page-size="pageSize"
-          v-model:current-page="currentPage"
           @size-change="handleSizeChange"
           @current-change="handlePageChange"
         />

@@ -7,12 +7,20 @@
 -->
 <template>
   <div class="qr-provenance-card">
-    <h4 class="card-title">{{ $t('decodePlatform.provenanceTitle') }}</h4>
+    <h4 class="card-title">
+      {{ $t('decodePlatform.provenanceTitle') }}
+    </h4>
 
     <!-- ① 结论卡：状态 banner + 核心字段 -->
-    <section class="conclusion-card" :class="verifyPassed ? 'is-pass' : 'is-fail'">
+    <section
+      class="conclusion-card"
+      :class="verifyPassed ? 'is-pass' : 'is-fail'"
+    >
       <div class="conclusion-head">
-        <el-icon :size="20" class="conclusion-icon">
+        <el-icon
+          :size="20"
+          class="conclusion-icon"
+        >
           <CircleCheckFilled v-if="verifyPassed" />
           <CircleCloseFilled v-else />
         </el-icon>
@@ -25,7 +33,9 @@
           effect="dark"
           size="small"
         >
-          <el-icon style="margin-right: 4px;"><Lock /></el-icon>
+          <el-icon style="margin-right: 4px;">
+            <Lock />
+          </el-icon>
           {{ signatureOk ? $t('decodePlatform.sigValid') : $t('decodePlatform.sigInvalid') }}
         </el-tag>
       </div>
@@ -37,7 +47,12 @@
         </div>
         <div class="conclusion-item">
           <span class="conclusion-label">{{ $t('decodePlatform.appStatus') }}</span>
-          <el-tag size="small" :type="statusTagType">{{ normalized.application_status || parsed.application_status || '-' }}</el-tag>
+          <el-tag
+            size="small"
+            :type="statusTagType"
+          >
+            {{ normalized.application_status || parsed.application_status || '-' }}
+          </el-tag>
         </div>
         <div class="conclusion-item">
           <span class="conclusion-label">{{ $t('decodePlatform.dataType') }}</span>
@@ -52,7 +67,10 @@
         </div>
       </div>
 
-      <div v-if="ncValue != null" class="nc-badge">
+      <div
+        v-if="ncValue != null"
+        class="nc-badge"
+      >
         <span class="nc-label">{{ $t('decodePlatform.ncValue') }}</span>
         <el-progress
           :percentage="Math.round((ncValue || 0) * 100)"
@@ -65,10 +83,19 @@
 
     <!-- ② 完整字段：分区 descriptions -->
     <section class="fields-section">
-      <h5 class="section-title">{{ $t('decodePlatform.fullFieldsTitle') }}</h5>
+      <h5 class="section-title">
+        {{ $t('decodePlatform.fullFieldsTitle') }}
+      </h5>
 
-      <div class="fields-group-label">{{ $t('decodePlatform.sectionApplication') }}</div>
-      <el-descriptions :column="1" border size="small" class="provenance-desc">
+      <div class="fields-group-label">
+        {{ $t('decodePlatform.sectionApplication') }}
+      </div>
+      <el-descriptions
+        :column="1"
+        border
+        size="small"
+        class="provenance-desc"
+      >
         <el-descriptions-item :label="$t('decodePlatform.appId')">
           {{ normalized.id || parsed.id || '-' }}
         </el-descriptions-item>
@@ -76,7 +103,9 @@
           {{ normalized.application_number || parsed.application_number || '-' }}
         </el-descriptions-item>
         <el-descriptions-item :label="$t('decodePlatform.appStatus')">
-          <el-tag :type="statusTagType">{{ normalized.application_status || parsed.application_status || '-' }}</el-tag>
+          <el-tag :type="statusTagType">
+            {{ normalized.application_status || parsed.application_status || '-' }}
+          </el-tag>
         </el-descriptions-item>
         <el-descriptions-item :label="$t('decodePlatform.dataType')">
           {{ normalized.data_type || parsed.data_type || '-' }}
@@ -87,8 +116,15 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <div class="fields-group-label">{{ $t('decodePlatform.sectionApproval') }}</div>
-      <el-descriptions :column="1" border size="small" class="provenance-desc">
+      <div class="fields-group-label">
+        {{ $t('decodePlatform.sectionApproval') }}
+      </div>
+      <el-descriptions
+        :column="1"
+        border
+        size="small"
+        class="provenance-desc"
+      >
         <el-descriptions-item :label="$t('decodePlatform.approver1')">
           {{ normalized.approver_1 || parsed.approver_1 || '-' }}
         </el-descriptions-item>
@@ -109,8 +145,15 @@
         </el-descriptions-item>
       </el-descriptions>
 
-      <div class="fields-group-label">{{ $t('decodePlatform.sectionOther') }}</div>
-      <el-descriptions :column="1" border size="small" class="provenance-desc">
+      <div class="fields-group-label">
+        {{ $t('decodePlatform.sectionOther') }}
+      </div>
+      <el-descriptions
+        :column="1"
+        border
+        size="small"
+        class="provenance-desc"
+      >
         <el-descriptions-item :label="$t('decodePlatform.submittedAt')">
           {{ normalized.submitted_at || parsed.submitted_at || '-' }}
         </el-descriptions-item>
@@ -125,13 +168,21 @@
 
     <!-- ③ 原始数据：签名（HashText）+ QR 原文折叠 -->
     <section class="raw-section">
-      <h5 class="section-title">{{ $t('decodePlatform.rawDataTitle') }}</h5>
-      <div v-if="signature" class="signature-row">
+      <h5 class="section-title">
+        {{ $t('decodePlatform.rawDataTitle') }}
+      </h5>
+      <div
+        v-if="signature"
+        class="signature-row"
+      >
         <span class="signature-label">{{ $t('decodePlatform.signature') }}</span>
         <HashText :value="signature" />
       </div>
       <el-collapse v-if="qrRaw">
-        <el-collapse-item :title="$t('decodePlatform.qrRawContent')" name="qrraw">
+        <el-collapse-item
+          :title="$t('decodePlatform.qrRawContent')"
+          name="qrraw"
+        >
           <el-input
             :model-value="qrRaw"
             type="textarea"

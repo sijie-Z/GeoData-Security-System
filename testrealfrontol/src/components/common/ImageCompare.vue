@@ -10,7 +10,13 @@
       @pointerup="onPointerUp"
       @pointerleave="onPointerUp"
     >
-      <img v-if="afterSrc" :src="afterSrc" class="img-compare__img" :alt="afterLabel" draggable="false" />
+      <img
+        v-if="afterSrc"
+        :src="afterSrc"
+        class="img-compare__img"
+        :alt="afterLabel"
+        draggable="false"
+      >
       <div
         v-if="beforeSrc"
         class="img-compare__clip"
@@ -18,12 +24,20 @@
           ? { clipPath: `inset(0 ${100 - position}% 0 0)` }
           : { opacity: position / 100 }"
       >
-        <img :src="beforeSrc" class="img-compare__img" :alt="beforeLabel" draggable="false" />
+        <img
+          :src="beforeSrc"
+          class="img-compare__img"
+          :alt="beforeLabel"
+          draggable="false"
+        >
       </div>
 
       <!-- 卷帘把手（role=slider，键盘可达） -->
       <template v-if="mode === 'wipe' && beforeSrc">
-        <div class="img-compare__divider" :style="{ left: position + '%' }" />
+        <div
+          class="img-compare__divider"
+          :style="{ left: position + '%' }"
+        />
         <div
           class="img-compare__handle"
           role="slider"
@@ -45,34 +59,76 @@
       </template>
 
       <!-- 角标：标注嵌入前/后（可配置） -->
-      <span v-if="beforeSrc" class="img-compare__tag is-before">{{ beforeLabel }}</span>
-      <span v-if="afterSrc" class="img-compare__tag is-after">{{ afterLabel }}</span>
+      <span
+        v-if="beforeSrc"
+        class="img-compare__tag is-before"
+      >{{ beforeLabel }}</span>
+      <span
+        v-if="afterSrc"
+        class="img-compare__tag is-after"
+      >{{ afterLabel }}</span>
     </div>
 
     <!-- 并排模式（默认，保持既有外观） -->
-    <div v-else class="img-compare__side" :style="{ '--stage-h': height }">
+    <div
+      v-else
+      class="img-compare__side"
+      :style="{ '--stage-h': height }"
+    >
       <div class="img-compare__pane">
-        <div class="img-compare__pane-head">{{ beforeLabel }}</div>
+        <div class="img-compare__pane-head">
+          {{ beforeLabel }}
+        </div>
         <div class="img-compare__pane-body">
-          <img v-if="beforeSrc" :src="beforeSrc" class="img-compare__img" :alt="beforeLabel" draggable="false" />
-          <span v-else class="img-compare__missing">—</span>
+          <img
+            v-if="beforeSrc"
+            :src="beforeSrc"
+            class="img-compare__img"
+            :alt="beforeLabel"
+            draggable="false"
+          >
+          <span
+            v-else
+            class="img-compare__missing"
+          >—</span>
         </div>
       </div>
       <div class="img-compare__pane">
-        <div class="img-compare__pane-head">{{ afterLabel }}</div>
+        <div class="img-compare__pane-head">
+          {{ afterLabel }}
+        </div>
         <div class="img-compare__pane-body">
-          <img v-if="afterSrc" :src="afterSrc" class="img-compare__img" :alt="afterLabel" draggable="false" />
-          <span v-else class="img-compare__missing">—</span>
+          <img
+            v-if="afterSrc"
+            :src="afterSrc"
+            class="img-compare__img"
+            :alt="afterLabel"
+            draggable="false"
+          >
+          <span
+            v-else
+            class="img-compare__missing"
+          >—</span>
         </div>
       </div>
     </div>
 
     <!-- 控制行：模式 + 位置（存百分比） -->
     <div class="img-compare__bar">
-      <el-radio-group v-model="mode" size="small" :disabled="!beforeSrc || !afterSrc">
-        <el-radio-button value="side">{{ $t('common.imgCompare.side') }}</el-radio-button>
-        <el-radio-button value="wipe">{{ $t('common.imgCompare.wipe') }}</el-radio-button>
-        <el-radio-button value="opacity">{{ $t('common.imgCompare.opacity') }}</el-radio-button>
+      <el-radio-group
+        v-model="mode"
+        size="small"
+        :disabled="!beforeSrc || !afterSrc"
+      >
+        <el-radio-button value="side">
+          {{ $t('common.imgCompare.side') }}
+        </el-radio-button>
+        <el-radio-button value="wipe">
+          {{ $t('common.imgCompare.wipe') }}
+        </el-radio-button>
+        <el-radio-button value="opacity">
+          {{ $t('common.imgCompare.opacity') }}
+        </el-radio-button>
       </el-radio-group>
       <template v-if="mode !== 'side'">
         <el-slider
@@ -143,7 +199,7 @@ const onPointerMove = (e) => {
 const onPointerUp = () => {
   dragging = false
 }
-let el = null
+const el = null
 
 const nudge = (delta) => {
   position.value = Math.min(100, Math.max(0, position.value + delta))

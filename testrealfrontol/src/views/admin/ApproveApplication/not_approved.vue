@@ -1,8 +1,14 @@
 <template>
   <div class="approval-page">
-    <PageHeader :title="$t('approval.firstReviewTitle')" :subtitle="$t('approval.firstReviewDescription')" />
+    <PageHeader
+      :title="$t('approval.firstReviewTitle')"
+      :subtitle="$t('approval.firstReviewDescription')"
+    />
 
-    <el-card class="table-card" shadow="hover">
+    <el-card
+      class="table-card"
+      shadow="hover"
+    >
       <ListShell
         :empty="!loading && data.list.length === 0"
         empty-variant="never"
@@ -11,29 +17,109 @@
         :pagination="{ page, pageSize, total, layout: 'prev, pager, next, jumper, total' }"
         @page-change="pageChanged"
       >
-        <template v-if="isAdm1" #filters>
+        <template
+          v-if="isAdm1"
+          #filters
+        >
           <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
-            <el-button size="small" type="primary" :disabled="selectedIds.length===0" @click="batchReview('pass')">{{ $t('approval.batchApprove') }}</el-button>
+            <el-button
+              size="small"
+              type="primary"
+              :disabled="selectedIds.length===0"
+              @click="batchReview('pass')"
+            >
+              {{ $t('approval.batchApprove') }}
+            </el-button>
           </TipWrap>
           <TipWrap :reason="selectedIds.length===0 ? $t('common.disabledReason.selectItems') : ''">
-            <el-button size="small" :disabled="selectedIds.length===0" @click="batchReview('fail')">{{ $t('approval.batchReject') }}</el-button>
+            <el-button
+              size="small"
+              :disabled="selectedIds.length===0"
+              @click="batchReview('fail')"
+            >
+              {{ $t('approval.batchReject') }}
+            </el-button>
           </TipWrap>
           <span class="batch-tip">{{ $t('approval.selectedCount', { count: selectedIds.length }) }}</span>
         </template>
-        <el-table :data="data.list" border stripe v-loading="loading" class="approval-table" @selection-change="onSelectionChange">
-          <el-table-column type="selection" width="50" align="center" />
-          <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
-          <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="120" show-overflow-tooltip />
-          <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
-          <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="110" align="center" />
-          <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="100" align="center" />
-          <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="160" show-overflow-tooltip />
+        <el-table
+          v-loading="loading"
+          :data="data.list"
+          border
+          stripe
+          class="approval-table"
+          @selection-change="onSelectionChange"
+        >
+          <el-table-column
+            type="selection"
+            width="50"
+            align="center"
+          />
+          <el-table-column
+            prop="id"
+            :label="$t('approval.applyId')"
+            width="90"
+            align="center"
+          />
+          <el-table-column
+            prop="data_alias"
+            :label="$t('approval.dataName')"
+            min-width="120"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="data_id"
+            :label="$t('approval.dataId')"
+            width="100"
+            align="center"
+          />
+          <el-table-column
+            prop="applicant_user_number"
+            :label="$t('approval.applicantId')"
+            width="110"
+            align="center"
+          />
+          <el-table-column
+            prop="applicant_name"
+            :label="$t('approval.applicantName')"
+            width="100"
+            align="center"
+          />
+          <el-table-column
+            prop="reason"
+            :label="$t('approval.applyReason')"
+            min-width="160"
+            show-overflow-tooltip
+          />
 
-          <el-table-column :label="$t('approval.operation')" width="200" align="center" fixed="right">
+          <el-table-column
+            :label="$t('approval.operation')"
+            width="200"
+            align="center"
+            fixed="right"
+          >
             <template #default="scope">
-              <el-button size="small" type="primary" @click="pass(scope.row)">{{ $t('approval.approve') }}</el-button>
-              <el-button size="small" @click="fail(scope.row)">{{ $t('approval.reject') }}</el-button>
-              <el-button size="small" :icon="ChatDotSquare" circle type="primary" :title="$t('approval.contactApplicant')" @click="contactApplicant(scope.row)" />
+              <el-button
+                size="small"
+                type="primary"
+                @click="pass(scope.row)"
+              >
+                {{ $t('approval.approve') }}
+              </el-button>
+              <el-button
+                size="small"
+                @click="fail(scope.row)"
+              >
+                {{ $t('approval.reject') }}
+              </el-button>
+              <el-button
+                size="small"
+                :icon="ChatDotSquare"
+                circle
+                type="primary"
+                :title="$t('approval.contactApplicant')"
+                @click="contactApplicant(scope.row)"
+              />
             </template>
           </el-table-column>
         </el-table>
@@ -78,7 +164,6 @@ const isAdm1 = computed(() => {
 const data=reactive({
   list:[]
 })
-const keyword = ref('');
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
@@ -195,8 +280,7 @@ const fail = async (row) => {
       user_number: userNumber.value
     };
 
-    let failResult;
-    failResult = await rejectApplication('adm1', requestData);
+    const failResult = await rejectApplication('adm1', requestData);
 
     if (!failResult.data.status) {
       ElMessage.error(failResult.data.msg);

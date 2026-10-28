@@ -1,16 +1,32 @@
 <template>
   <div class="log-viewer-page">
-    <PageHeader :title="$t('adminLogViewer.title')" :subtitle="$t('adminLogViewer.description')" />
+    <PageHeader
+      :title="$t('adminLogViewer.title')"
+      :subtitle="$t('adminLogViewer.description')"
+    />
 
-    <el-card class="log-card density-compact" shadow="hover">
+    <el-card
+      class="log-card density-compact"
+      shadow="hover"
+    >
       <template #header>
         <div class="card-header">
           <span class="card-title">{{ $t('adminLogViewer.logList') }}</span>
           <div class="card-header-actions">
-            <el-button :icon="Download" :loading="exporting" @click="exportLogs">
+            <el-button
+              :icon="Download"
+              :loading="exporting"
+              @click="exportLogs"
+            >
               {{ $t('adminLogViewer.exportCsv') }}
             </el-button>
-            <el-button :icon="RefreshRight" circle @click="fetchLogs" :loading="loading" :title="$t('adminLogViewer.refresh')" />
+            <el-button
+              :icon="RefreshRight"
+              circle
+              :loading="loading"
+              :title="$t('adminLogViewer.refresh')"
+              @click="fetchLogs"
+            />
           </div>
         </div>
       </template>
@@ -61,44 +77,131 @@
             style="width: 200px;"
             @change="handleFilterSearch"
           >
-            <el-option :label="$t('adminLogViewer.allTypes')" value="" />
-            <el-option :label="$t('adminLogViewer.userLogin')" value="登录" />
-            <el-option :label="$t('adminLogViewer.submitDataRequest')" value="申请提交" />
-            <el-option :label="$t('adminLogViewer.approveDataRequest')" value="一审通过" />
-            <el-option :label="$t('adminLogViewer.generateWatermark')" value="生成水印" />
-            <el-option :label="$t('adminLogViewer.embedWatermark')" value="嵌入水印" />
-            <el-option :label="$t('adminLogViewer.extractWatermark')" value="提取水印" />
-            <el-option :label="$t('adminLogViewer.downloadData')" value="下载数据" />
-            <el-option :label="$t('adminLogViewer.withdrawApplication')" value="撤回申请" />
-            <el-option :label="$t('adminLogViewer.recallProposal')" value="回收提议创建" />
-            <el-option :label="$t('adminLogViewer.recallVote')" value="回收投票" />
+            <el-option
+              :label="$t('adminLogViewer.allTypes')"
+              value=""
+            />
+            <el-option
+              :label="$t('adminLogViewer.userLogin')"
+              value="登录"
+            />
+            <el-option
+              :label="$t('adminLogViewer.submitDataRequest')"
+              value="申请提交"
+            />
+            <el-option
+              :label="$t('adminLogViewer.approveDataRequest')"
+              value="一审通过"
+            />
+            <el-option
+              :label="$t('adminLogViewer.generateWatermark')"
+              value="生成水印"
+            />
+            <el-option
+              :label="$t('adminLogViewer.embedWatermark')"
+              value="嵌入水印"
+            />
+            <el-option
+              :label="$t('adminLogViewer.extractWatermark')"
+              value="提取水印"
+            />
+            <el-option
+              :label="$t('adminLogViewer.downloadData')"
+              value="下载数据"
+            />
+            <el-option
+              :label="$t('adminLogViewer.withdrawApplication')"
+              value="撤回申请"
+            />
+            <el-option
+              :label="$t('adminLogViewer.recallProposal')"
+              value="回收提议创建"
+            />
+            <el-option
+              :label="$t('adminLogViewer.recallVote')"
+              value="回收投票"
+            />
           </el-select>
-          <el-button type="primary" :icon="Search" @click="handleFilterSearch">{{ $t('adminLogViewer.search') }}</el-button>
-          <el-button :icon="RefreshLeft" @click="resetFilters">{{ $t('adminLogViewer.reset') }}</el-button>
+          <el-button
+            type="primary"
+            :icon="Search"
+            @click="handleFilterSearch"
+          >
+            {{ $t('adminLogViewer.search') }}
+          </el-button>
+          <el-button
+            :icon="RefreshLeft"
+            @click="resetFilters"
+          >
+            {{ $t('adminLogViewer.reset') }}
+          </el-button>
         </template>
 
         <el-table
+          v-loading="loading"
           :data="logList"
           border
           stripe
-          v-loading="loading"
           class="log-table"
           style="width: 100%"
         >
-          <el-table-column type="index" label="#" width="56" align="center" />
-          <el-table-column prop="timestamp" :label="$t('adminLogViewer.timestamp')" width="172" sortable />
-          <el-table-column prop="user_number" :label="$t('adminLogViewer.userNumber')" width="120" show-overflow-tooltip />
-          <el-table-column prop="username" :label="$t('adminLogViewer.operator')" width="110" show-overflow-tooltip />
-          <el-table-column prop="ip_address" :label="$t('adminLogViewer.ipAddress')" width="130" show-overflow-tooltip />
-          <el-table-column prop="action" :label="$t('adminLogViewer.actionType')" width="130" show-overflow-tooltip />
-          <el-table-column prop="status" :label="$t('adminLogViewer.status')" width="88" align="center">
+          <el-table-column
+            type="index"
+            label="#"
+            width="56"
+            align="center"
+          />
+          <el-table-column
+            prop="timestamp"
+            :label="$t('adminLogViewer.timestamp')"
+            width="172"
+            sortable
+          />
+          <el-table-column
+            prop="user_number"
+            :label="$t('adminLogViewer.userNumber')"
+            width="120"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="username"
+            :label="$t('adminLogViewer.operator')"
+            width="110"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="ip_address"
+            :label="$t('adminLogViewer.ipAddress')"
+            width="130"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="action"
+            :label="$t('adminLogViewer.actionType')"
+            width="130"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="status"
+            :label="$t('adminLogViewer.status')"
+            width="88"
+            align="center"
+          >
             <template #default="scope">
-              <el-tag :type="scope.row.status === '成功' ? 'success' : 'danger'" size="small" effect="plain" round>
+              <el-tag
+                :type="scope.row.status === '成功' ? 'success' : 'danger'"
+                size="small"
+                effect="plain"
+                round
+              >
                 {{ scope.row.status }}
               </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('adminLogViewer.details')" min-width="240">
+          <el-table-column
+            :label="$t('adminLogViewer.details')"
+            min-width="240"
+          >
             <template #default="scope">
               <pre class="details-cell">{{ formatDetails(scope.row.details) }}</pre>
             </template>

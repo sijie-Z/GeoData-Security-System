@@ -90,46 +90,52 @@ import HomeSide from "@/components/employee/home/HomeSide.vue";
  });
  </script>
 
- <template>
-   <div class="employee-home-layout">
-     <HomeHeader
-       :is-side-collapse="isSideCollapse"
-       :is-mobile="isMobile"
-       :drawer-open="isDrawerOpen"
-       @toggle-sidebar="toggleSideCollapse"
-     />
+<template>
+  <div class="employee-home-layout">
+    <HomeHeader
+      :is-side-collapse="isSideCollapse"
+      :is-mobile="isMobile"
+      :drawer-open="isDrawerOpen"
+      @toggle-sidebar="toggleSideCollapse"
+    />
 
-     <div class="main-content-area">
-       <div
-         v-if="isMobile && isDrawerOpen"
-         class="sidebar-mask"
-         aria-hidden="true"
-         @click="closeDrawer"
-       ></div>
+    <div class="main-content-area">
+      <div
+        v-if="isMobile && isDrawerOpen"
+        class="sidebar-mask"
+        aria-hidden="true"
+        @click="closeDrawer"
+      />
 
-       <HomeSide
-         :is-collapse="isMobile ? false : isSideCollapse"
-         :class="{ 'drawer-open': isMobile && isDrawerOpen }"
-       />
+      <HomeSide
+        :is-collapse="isMobile ? false : isSideCollapse"
+        :class="{ 'drawer-open': isMobile && isDrawerOpen }"
+      />
 
-       <!-- 主内容地标（<main>）：axe landmark-one-main；tabindex=0 让纵向溢出时可键盘聚焦滚动 -->
-       <main
-         :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]"
-         tabindex="0"
-       >
-         <router-view v-slot="{ Component }">
-           <transition name="page-fade" mode="out-in">
-             <keep-alive :include="['EmployeeDashboard', 'EmployeeDataViewing', 'EmployeeNotifications']">
-               <div :key="$route.path" style="height: 100%;">
-                 <component :is="Component" />
-               </div>
-             </keep-alive>
-           </transition>
-         </router-view>
-       </main>
-     </div>
-   </div>
- </template>
+      <!-- 主内容地标（<main>）：axe landmark-one-main；tabindex=0 让纵向溢出时可键盘聚焦滚动 -->
+      <main
+        :class="['content-panel', { 'content-panel-expanded': isSideCollapse }]"
+        tabindex="0"
+      >
+        <router-view v-slot="{ Component }">
+          <transition
+            name="page-fade"
+            mode="out-in"
+          >
+            <keep-alive :include="['EmployeeDashboard', 'EmployeeDataViewing', 'EmployeeNotifications']">
+              <div
+                :key="$route.path"
+                style="height: 100%;"
+              >
+                <component :is="Component" />
+              </div>
+            </keep-alive>
+          </transition>
+        </router-view>
+      </main>
+    </div>
+  </div>
+</template>
 
  <style scoped>
  .employee-home-layout {

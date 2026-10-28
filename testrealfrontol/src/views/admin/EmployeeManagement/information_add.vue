@@ -283,7 +283,12 @@ const resetForm = () => {
 <template>
   <div class="page-container">
     <PageHeader :title="$t('employeeMgmt.addNewEmployee')">
-      <el-button :icon="Back" @click="handleBack">{{ $t('employeeMgmt.back') }}</el-button>
+      <el-button
+        :icon="Back"
+        @click="handleBack"
+      >
+        {{ $t('employeeMgmt.back') }}
+      </el-button>
     </PageHeader>
     <el-divider />
     <div class="form-wrapper">
@@ -294,60 +299,133 @@ const resetForm = () => {
         label-width="100px"
         style="max-width: 700px;"
       >
-        <h2 class="form-section-title">{{ $t('employeeMgmt.basicInfo') }}</h2>
+        <h2 class="form-section-title">
+          {{ $t('employeeMgmt.basicInfo') }}
+        </h2>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item :label="$t('employeeMgmt.employeeNumber')" prop="employee_number">
-              <el-input v-model="formData.employee_number" :placeholder="$t('employeeMgmt.employeeNumberPlaceholder')" />
+            <el-form-item
+              :label="$t('employeeMgmt.employeeNumber')"
+              prop="employee_number"
+            >
+              <el-input
+                v-model="formData.employee_number"
+                :placeholder="$t('employeeMgmt.employeeNumberPlaceholder')"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('employeeMgmt.name')" prop="name">
-              <el-input v-model="formData.name" :placeholder="$t('employeeMgmt.namePlaceholder')" />
+            <el-form-item
+              :label="$t('employeeMgmt.name')"
+              prop="name"
+            >
+              <el-input
+                v-model="formData.name"
+                :placeholder="$t('employeeMgmt.namePlaceholder')"
+              />
             </el-form-item>
           </el-col>
         </el-row>
         <el-row :gutter="20">
           <el-col :span="12">
-            <el-form-item :label="$t('employeeMgmt.jobNumber')" prop="job_number">
-              <el-input v-model="formData.job_number" :placeholder="$t('employeeMgmt.jobNumberPlaceholder')" />
+            <el-form-item
+              :label="$t('employeeMgmt.jobNumber')"
+              prop="job_number"
+            >
+              <el-input
+                v-model="formData.job_number"
+                :placeholder="$t('employeeMgmt.jobNumberPlaceholder')"
+              />
             </el-form-item>
           </el-col>
           <el-col :span="12">
-            <el-form-item :label="$t('employeeMgmt.phoneNumber')" prop="phone_number">
-              <el-input v-model="formData.phone_number" :placeholder="$t('employeeMgmt.phonePlaceholder')" />
+            <el-form-item
+              :label="$t('employeeMgmt.phoneNumber')"
+              prop="phone_number"
+            >
+              <el-input
+                v-model="formData.phone_number"
+                :placeholder="$t('employeeMgmt.phonePlaceholder')"
+              />
             </el-form-item>
           </el-col>
         </el-row>
-        <el-form-item :label="$t('employeeMgmt.idNumber')" prop="id_number">
-          <el-input v-model="formData.id_number" :placeholder="$t('employeeMgmt.idNumberPlaceholder')" />
+        <el-form-item
+          :label="$t('employeeMgmt.idNumber')"
+          prop="id_number"
+        >
+          <el-input
+            v-model="formData.id_number"
+            :placeholder="$t('employeeMgmt.idNumberPlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="$t('employeeMgmt.address')" prop="address">
-          <el-input v-model="formData.address" type="textarea" :rows="2" :placeholder="$t('employeeMgmt.addressPlaceholder')" />
+        <el-form-item
+          :label="$t('employeeMgmt.address')"
+          prop="address"
+        >
+          <el-input
+            v-model="formData.address"
+            type="textarea"
+            :rows="2"
+            :placeholder="$t('employeeMgmt.addressPlaceholder')"
+          />
         </el-form-item>
 
-        <h2 class="form-section-title">{{ $t('employeeMgmt.accountAndSecurity') }}</h2>
-        <el-form-item :label="$t('employeeMgmt.initialPassword')" prop="password">
-          <el-input v-model="formData.password" type="password" show-password :placeholder="$t('employeeMgmt.passwordPlaceholder')" />
+        <h2 class="form-section-title">
+          {{ $t('employeeMgmt.accountAndSecurity') }}
+        </h2>
+        <el-form-item
+          :label="$t('employeeMgmt.initialPassword')"
+          prop="password"
+        >
+          <el-input
+            v-model="formData.password"
+            type="password"
+            show-password
+            :placeholder="$t('employeeMgmt.passwordPlaceholder')"
+          />
         </el-form-item>
 
-        <h2 class="form-section-title">{{ $t('employeeMgmt.employeePhoto') }}</h2>
-        <el-form-item :label="$t('employeeMgmt.uploadPhoto')" prop="photo">
+        <h2 class="form-section-title">
+          {{ $t('employeeMgmt.employeePhoto') }}
+        </h2>
+        <el-form-item
+          :label="$t('employeeMgmt.uploadPhoto')"
+          prop="photo"
+        >
           <el-upload
-            v-model:file-list="photoFileList" action="#" list-type="picture-card"
-            :limit="1" :auto-upload="false" :on-change="handleFileChange"
-            :on-remove="handleRemove" @exceed="handleExceed">
+            v-model:file-list="photoFileList"
+            action="#"
+            list-type="picture-card"
+            :limit="1"
+            :auto-upload="false"
+            :on-change="handleFileChange"
+            :on-remove="handleRemove"
+            @exceed="handleExceed"
+          >
             <el-icon><PlusIcon /></el-icon>
             <!-- axe aria-command-name：图标触发区补屏幕阅读器可读文本（视觉隐藏） -->
             <span class="sr-only">{{ $t('employeeMgmt.uploadPhoto') }}</span>
-            <template #tip><div class="el-upload__tip">{{ $t('employeeMgmt.uploadPhotoTip') }}</div></template>
+            <template #tip>
+              <div class="el-upload__tip">
+                {{ $t('employeeMgmt.uploadPhotoTip') }}
+              </div>
+            </template>
           </el-upload>
         </el-form-item>
 
         <el-divider />
         <el-form-item>
-          <el-button type="primary" :loading="submitLoading" @click="submitForm">{{ $t('employeeMgmt.confirmAdd') }}</el-button>
-          <el-button @click="resetForm">{{ $t('employeeMgmt.resetAll') }}</el-button>
+          <el-button
+            type="primary"
+            :loading="submitLoading"
+            @click="submitForm"
+          >
+            {{ $t('employeeMgmt.confirmAdd') }}
+          </el-button>
+          <el-button @click="resetForm">
+            {{ $t('employeeMgmt.resetAll') }}
+          </el-button>
         </el-form-item>
       </el-form>
     </div>

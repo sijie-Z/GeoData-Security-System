@@ -106,8 +106,19 @@ onBeforeUnmount(() => {
 <template>
   <div class="page-container">
     <PageHeader :title="$t('employeeMgmt.employeeInfoList')">
-      <el-button :icon="Plus" type="primary" @click="handleAdd">{{ $t('employeeMgmt.addNewEmployee') }}</el-button>
-      <el-button :icon="Refresh" circle :aria-label="$t('common.refresh')" @click="handleRefresh" />
+      <el-button
+        :icon="Plus"
+        type="primary"
+        @click="handleAdd"
+      >
+        {{ $t('employeeMgmt.addNewEmployee') }}
+      </el-button>
+      <el-button
+        :icon="Refresh"
+        circle
+        :aria-label="$t('common.refresh')"
+        @click="handleRefresh"
+      />
     </PageHeader>
     <el-divider class="header-divider" />
     <ListShell
@@ -117,24 +128,87 @@ onBeforeUnmount(() => {
       :empty-title="$t('employeeMgmt.noEmployeeInfo')"
       :empty-description="$t('common.noDataDesc')"
     >
-      <el-table :data="state.employeeList" v-loading="loading" style="width: 100%" stripe table-layout="auto">
-        <el-table-column :label="$t('employeeMgmt.photo')" width="80" align="center" fixed>
+      <el-table
+        v-loading="loading"
+        :data="state.employeeList"
+        style="width: 100%"
+        stripe
+        table-layout="auto"
+      >
+        <el-table-column
+          :label="$t('employeeMgmt.photo')"
+          width="80"
+          align="center"
+          fixed
+        >
           <template #default="scope">
             <!-- axe image-alt：头像补可访问名，优先员工姓名，缺失时退回“照片”列名 -->
-            <el-avatar :size="40" :src="scope.row.photo" :alt="scope.row.name || $t('employeeMgmt.photo')"><el-icon><UserIcon /></el-icon></el-avatar>
+            <el-avatar
+              :size="40"
+              :src="scope.row.photo"
+              :alt="scope.row.name || $t('employeeMgmt.photo')"
+            >
+              <el-icon><UserIcon /></el-icon>
+            </el-avatar>
           </template>
         </el-table-column>
-        <el-table-column prop="employee_number" :label="$t('employeeMgmt.employeeNumber')" width="180" sortable />
-        <el-table-column prop="name" :label="$t('employeeMgmt.name')" width="120" />
-        <el-table-column prop="job_number" :label="$t('employeeMgmt.jobNumber')" width="150" sortable />
-        <el-table-column prop="id_number" :label="$t('employeeMgmt.idNumber')" width="180" />
-        <el-table-column prop="phone_number" :label="$t('employeeMgmt.phoneNumber')" width="180" />
-        <el-table-column prop="address" :label="$t('employeeMgmt.address')" min-width="250" show-overflow-tooltip />
-        <el-table-column :label="$t('employeeMgmt.actions')" width="150" align="center" fixed="right">
+        <el-table-column
+          prop="employee_number"
+          :label="$t('employeeMgmt.employeeNumber')"
+          width="180"
+          sortable
+        />
+        <el-table-column
+          prop="name"
+          :label="$t('employeeMgmt.name')"
+          width="120"
+        />
+        <el-table-column
+          prop="job_number"
+          :label="$t('employeeMgmt.jobNumber')"
+          width="150"
+          sortable
+        />
+        <el-table-column
+          prop="id_number"
+          :label="$t('employeeMgmt.idNumber')"
+          width="180"
+        />
+        <el-table-column
+          prop="phone_number"
+          :label="$t('employeeMgmt.phoneNumber')"
+          width="180"
+        />
+        <el-table-column
+          prop="address"
+          :label="$t('employeeMgmt.address')"
+          min-width="250"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          :label="$t('employeeMgmt.actions')"
+          width="150"
+          align="center"
+          fixed="right"
+        >
           <template #default="scope">
             <!-- 【新增】为编辑按钮绑定点击事件 -->
-            <el-button link type="primary" size="small" @click="handleEdit(scope.row)">{{ $t('employeeMgmt.edit') }}</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(scope.row)">{{ $t('employeeMgmt.delete') }}</el-button>
+            <el-button
+              link
+              type="primary"
+              size="small"
+              @click="handleEdit(scope.row)"
+            >
+              {{ $t('employeeMgmt.edit') }}
+            </el-button>
+            <el-button
+              link
+              type="danger"
+              size="small"
+              @click="handleDelete(scope.row)"
+            >
+              {{ $t('employeeMgmt.delete') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>

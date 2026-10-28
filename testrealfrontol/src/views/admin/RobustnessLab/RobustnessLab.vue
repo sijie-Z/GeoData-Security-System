@@ -20,27 +20,48 @@
 <template>
   <div class="robustness-lab fade-in">
     <!-- ① 页头 -->
-    <div id="lab-head" class="page-header">
+    <div
+      id="lab-head"
+      class="page-header"
+    >
       <div class="page-header-text">
         <h1>{{ $t('robustnessLab.title') }}</h1>
-        <p class="subtitle">{{ subtitleText }}</p>
+        <p class="subtitle">
+          {{ subtitleText }}
+        </p>
       </div>
       <div class="page-header-actions">
-        <el-button :icon="ChatDotRound" @click="openTour">
+        <el-button
+          :icon="ChatDotRound"
+          @click="openTour"
+        >
           {{ $t('robustnessLab.tourReplay') }}
         </el-button>
-        <el-button :icon="Refresh" :loading="runsLoading && detailLoading" @click="refreshAll">
+        <el-button
+          :icon="Refresh"
+          :loading="runsLoading && detailLoading"
+          @click="refreshAll"
+        >
           {{ $t('robustnessLab.refreshBtn') }}
         </el-button>
       </div>
     </div>
 
     <!-- ② Hero KPI 带（数据从当前 run rows 推导；无 run 时空态；扫描 run 用曲线视图代替） -->
-    <section v-if="!isSweepRun" id="lab-kpi" class="kpi-band" :aria-label="$t('robustnessLab.kpiAria')">
+    <section
+      v-if="!isSweepRun"
+      id="lab-kpi"
+      class="kpi-band"
+      :aria-label="$t('robustnessLab.kpiAria')"
+    >
       <div class="kpi-card">
         <span class="kpi-label">
           {{ $t('robustnessLab.kpiBaselineLabel') }}
-          <el-tooltip :content="$t('robustnessLab.metricNcShort')" placement="top" :show-after="120">
+          <el-tooltip
+            :content="$t('robustnessLab.metricNcShort')"
+            placement="top"
+            :show-after="120"
+          >
             <span
               ref="kpiGlossaryAnchor"
               class="info-dot kpi-dot"
@@ -56,11 +77,22 @@
         <span class="kpi-note">{{ baselineNoteText }}</span>
       </div>
 
-      <div v-for="(scheme, i) in kpiPair" :key="scheme" class="kpi-card">
+      <div
+        v-for="(scheme, i) in kpiPair"
+        :key="scheme"
+        class="kpi-card"
+      >
         <span class="kpi-label">
           {{ schemeLabel(scheme) }}
-          <el-tooltip :content="$t(`robustnessLab.schemeDesc.${scheme}`)" placement="top" :show-after="120">
-            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
+          <el-tooltip
+            :content="$t(`robustnessLab.schemeDesc.${scheme}`)"
+            placement="top"
+            :show-after="120"
+          >
+            <span
+              class="info-dot"
+              tabindex="0"
+            ><el-icon :size="13"><InfoFilled /></el-icon></span>
           </el-tooltip>
         </span>
         <span class="kpi-value mono-num">{{ schemeValueText(i) }}</span>
@@ -70,42 +102,76 @@
       <div class="kpi-card is-win">
         <span class="kpi-label">
           {{ $t('robustnessLab.kpiWinLabel') }}
-          <el-tooltip :content="kpiWinDescText" placement="top" :show-after="120">
-            <span class="info-dot" tabindex="0"><el-icon :size="13"><InfoFilled /></el-icon></span>
+          <el-tooltip
+            :content="kpiWinDescText"
+            placement="top"
+            :show-after="120"
+          >
+            <span
+              class="info-dot"
+              tabindex="0"
+            ><el-icon :size="13"><InfoFilled /></el-icon></span>
           </el-tooltip>
         </span>
         <span class="kpi-value mono-num">{{ winValueText }}</span>
         <span class="kpi-note">{{ winNoteText }}</span>
       </div>
     </section>
-    <p v-if="!isSweepRun && !kpi" class="kpi-empty">
+    <p
+      v-if="!isSweepRun && !kpi"
+      class="kpi-empty"
+    >
       {{ $t('robustnessLab.kpiEmpty') }} · {{ $t('robustnessLab.kpiEmptyHint') }}
     </p>
 
     <!-- ③ 发起实验 + 历史运行 -->
     <div class="control-grid">
-      <el-card id="lab-run" shadow="never" class="lab-card run-card">
-        <h2 class="card-title">{{ $t('robustnessLab.runTitle') }}</h2>
+      <el-card
+        id="lab-run"
+        shadow="never"
+        class="lab-card run-card"
+      >
+        <h2 class="card-title">
+          {{ $t('robustnessLab.runTitle') }}
+        </h2>
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.kindLabel') }}</label>
-          <el-radio-group v-model="runKind" class="kind-segment">
-            <el-radio-button value="vector">{{ $t('robustnessLab.kind.vector') }}</el-radio-button>
-            <el-radio-button value="raster">{{ $t('robustnessLab.kind.raster') }}</el-radio-button>
+          <el-radio-group
+            v-model="runKind"
+            class="kind-segment"
+          >
+            <el-radio-button value="vector">
+              {{ $t('robustnessLab.kind.vector') }}
+            </el-radio-button>
+            <el-radio-button value="raster">
+              {{ $t('robustnessLab.kind.raster') }}
+            </el-radio-button>
           </el-radio-group>
         </div>
 
         <!-- 实验模式：单点矩阵（现行为）/ 强度扫描（WAVES 式梯度 → 检出率曲线） -->
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.modeLabel') }}</label>
-          <el-radio-group v-model="runMode" class="kind-segment">
-            <el-radio-button value="matrix">{{ $t('robustnessLab.mode.matrix') }}</el-radio-button>
-            <el-radio-button value="sweep">{{ $t('robustnessLab.mode.sweep') }}</el-radio-button>
+          <el-radio-group
+            v-model="runMode"
+            class="kind-segment"
+          >
+            <el-radio-button value="matrix">
+              {{ $t('robustnessLab.mode.matrix') }}
+            </el-radio-button>
+            <el-radio-button value="sweep">
+              {{ $t('robustnessLab.mode.sweep') }}
+            </el-radio-button>
           </el-radio-group>
         </div>
         <template v-if="runMode === 'sweep'">
-          <p class="form-hint">{{ $t('robustnessLab.sweepHint') }}</p>
-          <p class="form-hint">{{ $t('robustnessLab.sweepYHint') }}</p>
+          <p class="form-hint">
+            {{ $t('robustnessLab.sweepHint') }}
+          </p>
+          <p class="form-hint">
+            {{ $t('robustnessLab.sweepYHint') }}
+          </p>
         </template>
 
         <template v-if="runKind === 'vector'">
@@ -140,14 +206,29 @@
               placeholder="data_id"
             />
           </div>
-          <p class="form-hint">{{ $t('robustnessLab.dataIdHint') }}</p>
+          <p class="form-hint">
+            {{ $t('robustnessLab.dataIdHint') }}
+          </p>
         </template>
-        <p v-else class="form-hint is-kind">{{ $t('robustnessLab.hostLineRaster') }}</p>
+        <p
+          v-else
+          class="form-hint is-kind"
+        >
+          {{ $t('robustnessLab.hostLineRaster') }}
+        </p>
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.schemesLabel') }}</label>
-          <el-checkbox-group v-model="selectedSchemes" class="check-group">
-            <el-checkbox v-for="s in kindSchemeOptions" :key="s" :value="s" class="check-item">
+          <el-checkbox-group
+            v-model="selectedSchemes"
+            class="check-group"
+          >
+            <el-checkbox
+              v-for="s in kindSchemeOptions"
+              :key="s"
+              :value="s"
+              class="check-item"
+            >
               {{ schemeLabel(s) }}
             </el-checkbox>
           </el-checkbox-group>
@@ -155,8 +236,16 @@
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.attacksLabel') }}</label>
-          <el-checkbox-group v-model="selectedAttacks" class="check-group">
-            <el-checkbox v-for="a in kindAttackOptions" :key="a" :value="a" class="check-item">
+          <el-checkbox-group
+            v-model="selectedAttacks"
+            class="check-group"
+          >
+            <el-checkbox
+              v-for="a in kindAttackOptions"
+              :key="a"
+              :value="a"
+              class="check-item"
+            >
               {{ attackLabel(a, runKind) }}
             </el-checkbox>
           </el-checkbox-group>
@@ -164,11 +253,22 @@
 
         <div class="form-row">
           <label class="form-label">{{ $t('robustnessLab.trialsLabel') }}</label>
-          <el-select v-model="selectedTrials" class="trials-select" :aria-label="$t('robustnessLab.trialsLabel')">
-            <el-option v-for="n in trialOptions" :key="n" :label="String(n)" :value="n" />
+          <el-select
+            v-model="selectedTrials"
+            class="trials-select"
+            :aria-label="$t('robustnessLab.trialsLabel')"
+          >
+            <el-option
+              v-for="n in trialOptions"
+              :key="n"
+              :label="String(n)"
+              :value="n"
+            />
           </el-select>
         </div>
-        <p class="form-hint">{{ $t('robustnessLab.trialsHint') }}</p>
+        <p class="form-hint">
+          {{ $t('robustnessLab.trialsHint') }}
+        </p>
 
         <el-button
           type="primary"
@@ -181,8 +281,14 @@
         </el-button>
       </el-card>
 
-      <el-card id="lab-history" shadow="never" class="lab-card history-card">
-        <h2 class="card-title">{{ $t('robustnessLab.historyTitle') }}</h2>
+      <el-card
+        id="lab-history"
+        shadow="never"
+        class="lab-card history-card"
+      >
+        <h2 class="card-title">
+          {{ $t('robustnessLab.historyTitle') }}
+        </h2>
         <el-table
           v-loading="runsLoading"
           :data="runs"
@@ -193,62 +299,120 @@
           :row-class-name="historyRowClass"
           @row-click="onRunRowClick"
         >
-          <el-table-column :label="$t('robustnessLab.colRunId')" min-width="130">
+          <el-table-column
+            :label="$t('robustnessLab.colRunId')"
+            min-width="130"
+          >
             <template #default="{ row }">
-              <HashText :value="row.run_id" :head="8" :tail="4" />
+              <HashText
+                :value="row.run_id"
+                :head="8"
+                :tail="4"
+              />
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colKind')" width="76" align="center">
+          <el-table-column
+            :label="$t('robustnessLab.colKind')"
+            width="76"
+            align="center"
+          >
             <template #default="{ row }">
-              <span class="kind-badge" :class="`is-${historyKind(row)}`">
+              <span
+                class="kind-badge"
+                :class="`is-${historyKind(row)}`"
+              >
                 {{ $t(`robustnessLab.kind.${historyKind(row)}`) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colMode')" width="76" align="center">
+          <el-table-column
+            :label="$t('robustnessLab.colMode')"
+            width="76"
+            align="center"
+          >
             <template #default="{ row }">
-              <span class="mode-badge" :class="`is-${historyMode(row)}`">
+              <span
+                class="mode-badge"
+                :class="`is-${historyMode(row)}`"
+              >
                 {{ $t(`robustnessLab.modeBadge.${historyMode(row)}`) }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colDataRef')" min-width="100">
+          <el-table-column
+            :label="$t('robustnessLab.colDataRef')"
+            min-width="100"
+          >
             <template #default="{ row }">
               <span class="mono-text">{{ row.data_ref }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colCreatedAt')" min-width="150">
+          <el-table-column
+            :label="$t('robustnessLab.colCreatedAt')"
+            min-width="150"
+          >
             <template #default="{ row }">
               <span class="mono-text">{{ formatTime(row.created_at) }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colProgress')" width="90" align="right">
+          <el-table-column
+            :label="$t('robustnessLab.colProgress')"
+            width="90"
+            align="right"
+          >
             <template #default="{ row }">
               <span class="mono-text">{{ row.done }}/{{ row.total }}</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('robustnessLab.colStatus')" width="110" align="center">
+          <el-table-column
+            :label="$t('robustnessLab.colStatus')"
+            width="110"
+            align="center"
+          >
             <template #default="{ row }">
-              <span class="status-badge" :class="runStatusClass(row)">
-                <i v-if="runStatusClass(row) === 'is-running'" class="pulse-dot"></i>
+              <span
+                class="status-badge"
+                :class="runStatusClass(row)"
+              >
+                <i
+                  v-if="runStatusClass(row) === 'is-running'"
+                  class="pulse-dot"
+                />
                 {{ runStatusText(row) }}
               </span>
             </template>
           </el-table-column>
         </el-table>
-        <p class="panel-foot">{{ $t('robustnessLab.trialsHint') }}</p>
+        <p class="panel-foot">
+          {{ $t('robustnessLab.trialsHint') }}
+        </p>
       </el-card>
     </div>
 
     <!-- ④ 实验是怎么做的（四步流程图解 + 实验设置 checklist） -->
-    <el-card id="lab-how" shadow="never" class="lab-card how-card">
+    <el-card
+      id="lab-how"
+      shadow="never"
+      class="lab-card how-card"
+    >
       <div class="panel-head">
-        <h2 class="card-title inline-title">{{ $t('robustnessLab.howTitle') }}</h2>
+        <h2 class="card-title inline-title">
+          {{ $t('robustnessLab.howTitle') }}
+        </h2>
         <span class="head-note">{{ $t('robustnessLab.howSubtitle') }}</span>
       </div>
       <div class="flow">
-        <template v-for="(node, i) in flowNodes" :key="node.name">
-          <el-icon v-if="i > 0" class="flow-arrow" :size="16"><Right /></el-icon>
+        <template
+          v-for="(node, i) in flowNodes"
+          :key="node.name"
+        >
+          <el-icon
+            v-if="i > 0"
+            class="flow-arrow"
+            :size="16"
+          >
+            <Right />
+          </el-icon>
           <div class="flow-node">
             <span class="flow-icon"><el-icon :size="17"><component :is="node.icon" /></el-icon></span>
             <div class="flow-text">
@@ -259,39 +423,71 @@
         </template>
       </div>
       <div class="setup-grid">
-        <div v-for="item in setupItems" :key="item.label" class="setup-item">
+        <div
+          v-for="item in setupItems"
+          :key="item.label"
+          class="setup-item"
+        >
           <span class="setup-label">{{ item.label }}</span>
           <span class="setup-text">
             {{ item.text }}
-            <code v-if="item.code" class="setup-code">{{ item.code }}</code>
+            <code
+              v-if="item.code"
+              class="setup-code"
+            >{{ item.code }}</code>
           </span>
         </div>
       </div>
     </el-card>
 
     <!-- ⑤ 结果矩阵（+ ⑥ 对比结论卡 + ⑦ 导出/刷新） -->
-    <el-card id="lab-matrix" v-loading="detailLoading" shadow="never" class="lab-card matrix-card">
+    <el-card
+      id="lab-matrix"
+      v-loading="detailLoading"
+      shadow="never"
+      class="lab-card matrix-card"
+    >
       <template v-if="runMeta">
         <div class="matrix-head">
           <div class="matrix-meta">
             <h2 class="card-title inline-title">
               {{ isSweepRun ? $t('robustnessLab.sweepTitle') : $t('robustnessLab.matrixTitle') }}
             </h2>
-            <HashText :value="runMeta.run_id" :head="8" :tail="4" />
+            <HashText
+              :value="runMeta.run_id"
+              :head="8"
+              :tail="4"
+            />
             <span class="meta-sep">·</span>
             <span class="mono-text">{{ runMeta.data_ref }}</span>
             <span class="meta-sep">·</span>
             <span class="mono-text">{{ formatTime(runMeta.created_at) }}</span>
           </div>
           <div class="matrix-actions">
-            <div v-if="!matrixDone" class="progress-inline">
-              <el-progress :percentage="progressPct" :stroke-width="8" :show-text="false" class="progress-bar" />
+            <div
+              v-if="!matrixDone"
+              class="progress-inline"
+            >
+              <el-progress
+                :percentage="progressPct"
+                :stroke-width="8"
+                :show-text="false"
+                class="progress-bar"
+              />
               <span class="mono-text progress-text">{{ runMeta.done }}/{{ runMeta.total }}</span>
             </div>
-            <el-button size="small" :icon="Download" @click="exportJson">
+            <el-button
+              size="small"
+              :icon="Download"
+              @click="exportJson"
+            >
               {{ $t('robustnessLab.exportBtn') }}
             </el-button>
-            <el-button size="small" :icon="Refresh" @click="loadRun(runMeta.run_id)">
+            <el-button
+              size="small"
+              :icon="Refresh"
+              @click="loadRun(runMeta.run_id)"
+            >
               {{ $t('robustnessLab.refreshBtn') }}
             </el-button>
           </div>
@@ -304,41 +500,79 @@
             <span>{{ $t('robustnessLab.sweepSubtitle') }}</span>
           </p>
           <div class="sweep-grid">
-            <div v-for="attack in sweepAttacks" :key="attack" class="sweep-card">
+            <div
+              v-for="attack in sweepAttacks"
+              :key="attack"
+              class="sweep-card"
+            >
               <div class="sweep-card-head">
                 <span class="sweep-attack-name">{{ attackLabel(attack) }}</span>
                 <span class="sweep-card-note mono-num">
                   {{ $t('robustnessLab.sweepCardMeta', { trials: runMeta.trials }) }}
                 </span>
               </div>
-              <v-chart class="sweep-chart" :option="sweepOption(attack)" :autoresize="{ throttle: 160 }" />
-              <p v-if="sweepErrorCount(attack)" class="sweep-anomaly mono-num">
+              <v-chart
+                class="sweep-chart"
+                :option="sweepOption(attack)"
+                :autoresize="{ throttle: 160 }"
+              />
+              <p
+                v-if="sweepErrorCount(attack)"
+                class="sweep-anomaly mono-num"
+              >
                 {{ $t('robustnessLab.sweepCardAnomalies', { n: sweepErrorCount(attack) }) }}
               </p>
             </div>
           </div>
 
           <!-- 扫描结论卡：崩塌点摘要 = 首个档内成功率 < 0.5 的档位（无则全档存活），每方案一行 -->
-          <div id="lab-collapse" class="verdict-card" :class="{ 'is-ready': matrixDone }">
+          <div
+            id="lab-collapse"
+            class="verdict-card"
+            :class="{ 'is-ready': matrixDone }"
+          >
             <div class="verdict-main">
               <span class="verdict-icon"><el-icon :size="18"><TrendCharts /></el-icon></span>
               <div class="verdict-text">
-                <h3 class="verdict-title">{{ $t('robustnessLab.collapseTitle') }}</h3>
+                <h3 class="verdict-title">
+                  {{ $t('robustnessLab.collapseTitle') }}
+                </h3>
                 <template v-if="matrixDone">
-                  <div v-for="line in collapseLines" :key="line.scheme" class="collapse-line">
+                  <div
+                    v-for="line in collapseLines"
+                    :key="line.scheme"
+                    class="collapse-line"
+                  >
                     <p class="verdict-line">
-                      <span class="collapse-scheme" :class="`is-${line.scheme}`">{{ line.name }}</span>
-                      <span v-if="line.tierIndex === null" class="collapse-alive">
+                      <span
+                        class="collapse-scheme"
+                        :class="`is-${line.scheme}`"
+                      >{{ line.name }}</span>
+                      <span
+                        v-if="line.tierIndex === null"
+                        class="collapse-alive"
+                      >
                         {{ $t('robustnessLab.collapseAllAlive') }}
                       </span>
-                      <span v-else class="collapse-hit">
+                      <span
+                        v-else
+                        class="collapse-hit"
+                      >
                         {{ $t('robustnessLab.collapseAt', { tier: line.tierIndex + 1, rate: line.rateText }) }}
                       </span>
                     </p>
-                    <p v-if="line.detail" class="collapse-detail">{{ line.detail }}</p>
+                    <p
+                      v-if="line.detail"
+                      class="collapse-detail"
+                    >
+                      {{ line.detail }}
+                    </p>
                   </div>
                 </template>
-                <p v-else class="verdict-line is-muted">
+                <p
+                  v-else
+                  class="verdict-line is-muted"
+                >
                   {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
                 </p>
               </div>
@@ -348,185 +582,261 @@
 
         <!-- 单点矩阵 run：行=方案 列=攻击 的结果矩阵（原视图） -->
         <template v-else>
-        <p class="matrix-subtitle">
-          <span>{{ $t('robustnessLab.matrixSubtitle') }}</span>
-          <el-tooltip :content="$t('robustnessLab.metricNcShort')" placement="top" :show-after="100">
-            <span
-              ref="glossaryAnchor"
-              class="info-dot glossary-dot"
-              role="button"
-              tabindex="0"
-              :aria-label="$t('robustnessLab.metricGlossaryTitle')"
+          <p class="matrix-subtitle">
+            <span>{{ $t('robustnessLab.matrixSubtitle') }}</span>
+            <el-tooltip
+              :content="$t('robustnessLab.metricNcShort')"
+              placement="top"
+              :show-after="100"
             >
-              <el-icon :size="13"><InfoFilled /></el-icon>
-            </span>
-          </el-tooltip>
-        </p>
-        <el-popover
-          :virtual-ref="glossaryAnchor"
-          virtual-triggering
-          trigger="click"
-          :width="420"
-          popper-class="glossary-popper"
-        >
-          <template #title>
-            <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
-          </template>
-          <MetricGlossary />
-        </el-popover>
-        <el-popover
-          :virtual-ref="kpiGlossaryAnchor"
-          virtual-triggering
-          trigger="click"
-          :width="420"
-          popper-class="glossary-popper"
-        >
-          <template #title>
-            <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
-          </template>
-          <MetricGlossary />
-        </el-popover>
-
-        <el-table
-          :data="matrixRows"
-          class="matrix-table"
-          :row-class-name="matrixRowClass"
-          :row-style="matrixRowStyle"
-        >
-          <el-table-column :label="$t('robustnessLab.colScheme')" width="190" fixed>
-            <template #default="{ row }">
-              <span class="scheme-name" :class="`is-${row.scheme}`">
-                {{ schemeLabel(row.scheme) }}
+              <span
+                ref="glossaryAnchor"
+                class="info-dot glossary-dot"
+                role="button"
+                tabindex="0"
+                :aria-label="$t('robustnessLab.metricGlossaryTitle')"
+              >
+                <el-icon :size="13"><InfoFilled /></el-icon>
               </span>
-            </template>
-          </el-table-column>
-          <el-table-column
-            v-for="(attack, idx) in matrixAttacks"
-            :key="attack"
-            align="right"
-            min-width="118"
+            </el-tooltip>
+          </p>
+          <el-popover
+            :virtual-ref="glossaryAnchor"
+            virtual-triggering
+            trigger="click"
+            :width="420"
+            popper-class="glossary-popper"
           >
-            <!-- 攻击词典：列头 hover 卡（机制 + 参数 + 查看代码） -->
-            <template #header>
-              <el-popover
-                placement="bottom"
-                trigger="hover"
-                :width="340"
-                :show-after="140"
-                :hide-after="120"
-                popper-class="attack-head-popper"
-              >
-                <template #reference>
-                  <span class="th-label">
-                    {{ attackLabel(attack) }}
-                    <el-icon class="th-info" :size="12"><InfoFilled /></el-icon>
-                  </span>
-                </template>
-                <div class="attack-head-card">
-                  <p class="ah-desc">{{ attackDescFor(attack) }}</p>
-                  <div class="ah-foot">
-                    <span v-if="metaParamsFor(attack)" class="ah-params mono-text">
-                      {{ formatMetaParams(metaParamsFor(attack)) }}
-                    </span>
-                    <el-button
-                      class="attack-code-link"
-                      size="small"
-                      text
-                      type="primary"
-                      @click="openAttackCode(attack)"
-                    >
-                      {{ $t('robustnessLab.codeBtn') }}
-                    </el-button>
-                  </div>
-                </div>
-              </el-popover>
+            <template #title>
+              <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
             </template>
-            <template #default="{ row }">
-              <el-tooltip
-                v-if="row.cells[idx] && cellHasResult(row.cells[idx])"
-                placement="top"
-                effect="dark"
-                :show-after="120"
-              >
-                <template #content>
-                  <div class="cell-tip">
-                    <div class="tip-attack-desc">{{ attackDescFor(attack) }}</div>
-                    <template v-if="cellMultiTrial(row.cells[idx])">
-                      <div>{{ $t('robustnessLab.tipMeanNc') }}: {{ formatMeanNc(row.cells[idx]) }}</div>
-                      <div>{{ $t('robustnessLab.tipStdNc') }}: {{ formatStdNc(row.cells[idx]) }}</div>
-                      <template v-for="r in row.cells[idx].rows" :key="r.trial ?? 0">
-                        <div class="tip-trial-line">
-                          {{ $t('robustnessLab.tipTrial', { n: r.trial ?? 1 }) }}:
-                          {{ trialResultText(r) }} · {{ formatParams(r.attack_params) }}
-                        </div>
-                        <div v-if="r.error" class="tip-trial-error">{{ r.error }}</div>
-                      </template>
-                    </template>
-                    <template v-else>
-                      <div>{{ $t('robustnessLab.tipParams') }}: {{ formatParams(cellSingleRow(row.cells[idx]).attack_params) }}</div>
-                      <div>BER: {{ formatBer(cellSingleRow(row.cells[idx]).ber) }}</div>
-                      <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(cellSingleRow(row.cells[idx]).duration_ms) }}</div>
-                      <div v-if="cellSingleRow(row.cells[idx]).error" class="tip-trial-error">
-                        {{ $t('robustnessLab.tipError') }}: {{ cellSingleRow(row.cells[idx]).error }}
-                      </div>
-                    </template>
-                    <div class="tip-metric-hint">{{ $t('robustnessLab.metricNcShort') }}</div>
-                    <div class="tip-metric-hint">{{ $t('robustnessLab.metricBerShort') }}</div>
-                  </div>
-                </template>
-                <span class="cell-value" :class="cellClass(row.cells[idx])">
-                  {{ cellText(row.cells[idx]) }}
-                  <i v-if="cellImproved(row.scheme, attack)" class="cell-up">↑</i>
+            <MetricGlossary />
+          </el-popover>
+          <el-popover
+            :virtual-ref="kpiGlossaryAnchor"
+            virtual-triggering
+            trigger="click"
+            :width="420"
+            popper-class="glossary-popper"
+          >
+            <template #title>
+              <span class="glossary-title">{{ $t('robustnessLab.metricGlossaryTitle') }}</span>
+            </template>
+            <MetricGlossary />
+          </el-popover>
+
+          <el-table
+            :data="matrixRows"
+            class="matrix-table"
+            :row-class-name="matrixRowClass"
+            :row-style="matrixRowStyle"
+          >
+            <el-table-column
+              :label="$t('robustnessLab.colScheme')"
+              width="190"
+              fixed
+            >
+              <template #default="{ row }">
+                <span
+                  class="scheme-name"
+                  :class="`is-${row.scheme}`"
+                >
+                  {{ schemeLabel(row.scheme) }}
                 </span>
-              </el-tooltip>
-              <span v-else class="cell-value is-pending">{{ $t('robustnessLab.cellPending') }}</span>
-            </template>
-          </el-table-column>
-        </el-table>
-
-        <p class="footnote">
-          <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
-          <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.methodBoundaryRaster') : $t('robustnessLab.methodBoundary') }}</span>
-        </p>
-        <p class="footnote">
-          <el-icon class="footnote-icon" :size="14"><InfoFilled /></el-icon>
-          <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.matrixFootnoteRaster') : $t('robustnessLab.matrixFootnote') }}</span>
-        </p>
-
-        <!-- ⑥ 对比结论卡（自动生成，数字来自数据） -->
-        <div id="lab-verdict" class="verdict-card" :class="{ 'is-ready': verdictReady }">
-          <div class="verdict-main">
-            <span class="verdict-icon"><el-icon :size="18"><Medal /></el-icon></span>
-            <div class="verdict-text">
-              <h3 class="verdict-title">{{ $t('robustnessLab.verdictTitle') }}</h3>
-              <template v-if="verdictReady">
-                <p v-for="(sentence, i) in verdictSentences" :key="i" class="verdict-line">{{ sentence }}</p>
               </template>
-              <p v-else-if="!verdictComparable" class="verdict-line is-muted">
-                {{ runMeta.kind === 'raster' ? $t('robustnessLab.verdictNotComparableRaster') : $t('robustnessLab.verdictNotComparable') }}
-              </p>
-              <p v-else class="verdict-line is-muted">
-                {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
-              </p>
+            </el-table-column>
+            <el-table-column
+              v-for="(attack, idx) in matrixAttacks"
+              :key="attack"
+              align="right"
+              min-width="118"
+            >
+              <!-- 攻击词典：列头 hover 卡（机制 + 参数 + 查看代码） -->
+              <template #header>
+                <el-popover
+                  placement="bottom"
+                  trigger="hover"
+                  :width="340"
+                  :show-after="140"
+                  :hide-after="120"
+                  popper-class="attack-head-popper"
+                >
+                  <template #reference>
+                    <span class="th-label">
+                      {{ attackLabel(attack) }}
+                      <el-icon
+                        class="th-info"
+                        :size="12"
+                      ><InfoFilled /></el-icon>
+                    </span>
+                  </template>
+                  <div class="attack-head-card">
+                    <p class="ah-desc">
+                      {{ attackDescFor(attack) }}
+                    </p>
+                    <div class="ah-foot">
+                      <span
+                        v-if="metaParamsFor(attack)"
+                        class="ah-params mono-text"
+                      >
+                        {{ formatMetaParams(metaParamsFor(attack)) }}
+                      </span>
+                      <el-button
+                        class="attack-code-link"
+                        size="small"
+                        text
+                        type="primary"
+                        @click="openAttackCode(attack)"
+                      >
+                        {{ $t('robustnessLab.codeBtn') }}
+                      </el-button>
+                    </div>
+                  </div>
+                </el-popover>
+              </template>
+              <template #default="{ row }">
+                <el-tooltip
+                  v-if="row.cells[idx] && cellHasResult(row.cells[idx])"
+                  placement="top"
+                  effect="dark"
+                  :show-after="120"
+                >
+                  <template #content>
+                    <div class="cell-tip">
+                      <div class="tip-attack-desc">
+                        {{ attackDescFor(attack) }}
+                      </div>
+                      <template v-if="cellMultiTrial(row.cells[idx])">
+                        <div>{{ $t('robustnessLab.tipMeanNc') }}: {{ formatMeanNc(row.cells[idx]) }}</div>
+                        <div>{{ $t('robustnessLab.tipStdNc') }}: {{ formatStdNc(row.cells[idx]) }}</div>
+                        <template
+                          v-for="r in row.cells[idx].rows"
+                          :key="r.trial ?? 0"
+                        >
+                          <div class="tip-trial-line">
+                            {{ $t('robustnessLab.tipTrial', { n: r.trial ?? 1 }) }}:
+                            {{ trialResultText(r) }} · {{ formatParams(r.attack_params) }}
+                          </div>
+                          <div
+                            v-if="r.error"
+                            class="tip-trial-error"
+                          >
+                            {{ r.error }}
+                          </div>
+                        </template>
+                      </template>
+                      <template v-else>
+                        <div>{{ $t('robustnessLab.tipParams') }}: {{ formatParams(cellSingleRow(row.cells[idx]).attack_params) }}</div>
+                        <div>BER: {{ formatBer(cellSingleRow(row.cells[idx]).ber) }}</div>
+                        <div>{{ $t('robustnessLab.tipDuration') }}: {{ formatDuration(cellSingleRow(row.cells[idx]).duration_ms) }}</div>
+                        <div
+                          v-if="cellSingleRow(row.cells[idx]).error"
+                          class="tip-trial-error"
+                        >
+                          {{ $t('robustnessLab.tipError') }}: {{ cellSingleRow(row.cells[idx]).error }}
+                        </div>
+                      </template>
+                      <div class="tip-metric-hint">
+                        {{ $t('robustnessLab.metricNcShort') }}
+                      </div>
+                      <div class="tip-metric-hint">
+                        {{ $t('robustnessLab.metricBerShort') }}
+                      </div>
+                    </div>
+                  </template>
+                  <span
+                    class="cell-value"
+                    :class="cellClass(row.cells[idx])"
+                  >
+                    {{ cellText(row.cells[idx]) }}
+                    <i
+                      v-if="cellImproved(row.scheme, attack)"
+                      class="cell-up"
+                    >↑</i>
+                  </span>
+                </el-tooltip>
+                <span
+                  v-else
+                  class="cell-value is-pending"
+                >{{ $t('robustnessLab.cellPending') }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+
+          <p class="footnote">
+            <el-icon
+              class="footnote-icon"
+              :size="14"
+            >
+              <InfoFilled />
+            </el-icon>
+            <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.methodBoundaryRaster') : $t('robustnessLab.methodBoundary') }}</span>
+          </p>
+          <p class="footnote">
+            <el-icon
+              class="footnote-icon"
+              :size="14"
+            >
+              <InfoFilled />
+            </el-icon>
+            <span>{{ runMeta.kind === 'raster' ? $t('robustnessLab.matrixFootnoteRaster') : $t('robustnessLab.matrixFootnote') }}</span>
+          </p>
+
+          <!-- ⑥ 对比结论卡（自动生成，数字来自数据） -->
+          <div
+            id="lab-verdict"
+            class="verdict-card"
+            :class="{ 'is-ready': verdictReady }"
+          >
+            <div class="verdict-main">
+              <span class="verdict-icon"><el-icon :size="18"><Medal /></el-icon></span>
+              <div class="verdict-text">
+                <h3 class="verdict-title">
+                  {{ $t('robustnessLab.verdictTitle') }}
+                </h3>
+                <template v-if="verdictReady">
+                  <p
+                    v-for="(sentence, i) in verdictSentences"
+                    :key="i"
+                    class="verdict-line"
+                  >
+                    {{ sentence }}
+                  </p>
+                </template>
+                <p
+                  v-else-if="!verdictComparable"
+                  class="verdict-line is-muted"
+                >
+                  {{ runMeta.kind === 'raster' ? $t('robustnessLab.verdictNotComparableRaster') : $t('robustnessLab.verdictNotComparable') }}
+                </p>
+                <p
+                  v-else
+                  class="verdict-line is-muted"
+                >
+                  {{ $t('robustnessLab.verdictPending', { done: runMeta.done, total: runMeta.total }) }}
+                </p>
+              </div>
+            </div>
+            <div
+              v-if="verdictComparable"
+              class="verdict-stat"
+            >
+              <span class="verdict-stat-label">{{ $t('robustnessLab.verdictStatLabel') }}</span>
+              <span class="verdict-stat-value mono-num">
+                {{ verdictStatA }} <i>→</i> {{ verdictStatB }}
+              </span>
+            </div>
+            <div class="verdict-tags">
+              <span
+                v-for="item in verdictItems"
+                :key="item.attack"
+                class="verdict-tag"
+                :class="`is-${item.kind}`"
+              >
+                {{ attackLabel(item.attack) }} · {{ tagText(item.kind) }}
+              </span>
             </div>
           </div>
-          <div v-if="verdictComparable" class="verdict-stat">
-            <span class="verdict-stat-label">{{ $t('robustnessLab.verdictStatLabel') }}</span>
-            <span class="verdict-stat-value mono-num">
-              {{ verdictStatA }} <i>→</i> {{ verdictStatB }}
-            </span>
-          </div>
-          <div class="verdict-tags">
-            <span
-              v-for="item in verdictItems"
-              :key="item.attack"
-              class="verdict-tag"
-              :class="`is-${item.kind}`"
-            >
-              {{ attackLabel(item.attack) }} · {{ tagText(item.kind) }}
-            </span>
-          </div>
-        </div>
         </template>
       </template>
       <EmptyState
@@ -545,22 +855,39 @@
       class="code-drawer"
       destroy-on-close
     >
-      <div v-loading="codeDrawer.loading" class="code-drawer-body">
+      <div
+        v-loading="codeDrawer.loading"
+        class="code-drawer-body"
+      >
         <template v-if="drawerEntry">
           <div class="code-meta">
             <span class="code-params-label">{{ $t('robustnessLab.codeParamsLabel') }}</span>
             <span class="code-params mono-text">{{ formatMetaParams(drawerEntry.params_default) }}</span>
           </div>
           <AttackCodeViewer :code="drawerEntry.code" />
-          <p class="code-note">{{ $t('robustnessLab.codeNote') }}</p>
-          <p class="code-note">{{ $t('robustnessLab.codeAnchorHint') }}</p>
+          <p class="code-note">
+            {{ $t('robustnessLab.codeNote') }}
+          </p>
+          <p class="code-note">
+            {{ $t('robustnessLab.codeAnchorHint') }}
+          </p>
         </template>
-        <p v-else-if="codeDrawer.error" class="code-error">{{ $t('robustnessLab.codeLoadFailed') }}</p>
+        <p
+          v-else-if="codeDrawer.error"
+          class="code-error"
+        >
+          {{ $t('robustnessLab.codeLoadFailed') }}
+        </p>
       </div>
     </el-drawer>
 
     <!-- 首入引导 ElTour（6 步，localStorage tour:v1:lab；遮罩=纯视觉聚焦层，不拦交互） -->
-    <el-tour v-model="tourOpen" :mask="tourMask" @close="markTourSeen" @finish="markTourSeen">
+    <el-tour
+      v-model="tourOpen"
+      :mask="tourMask"
+      @close="markTourSeen"
+      @finish="markTourSeen"
+    >
       <template #indicators="{ current, total }">
         <span
           v-for="i in total"
@@ -568,7 +895,11 @@
           class="el-tour-indicator"
           :class="{ 'is-active': i - 1 === current }"
         />
-        <button type="button" class="el-tour-skip" @click="closeTour">
+        <button
+          type="button"
+          class="el-tour-skip"
+          @click="closeTour"
+        >
           {{ $t('robustnessLab.tourSkip') }}
         </button>
       </template>

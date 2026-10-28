@@ -6,7 +6,11 @@
   · 配色只消费 design-system.css 的 CSS 变量（深浅主题自动切换，不写死色值）。
 -->
 <template>
-  <div ref="root" class="code-viewer" :style="{ '--cv-gutter-ch': gutterCh }">
+  <div
+    ref="root"
+    class="code-viewer"
+    :style="{ '--cv-gutter-ch': gutterCh }"
+  >
     <div
       v-for="(line, i) in lines"
       :id="`L${i + 1}`"
@@ -19,9 +23,15 @@
         :href="`#L${i + 1}`"
         :title="$t('robustnessLab.codeAnchorHint')"
         @click.prevent="jumpToLine(i + 1)"
-        >{{ i + 1 }}</a
-      >
-      <code class="cv-code" v-html="line"></code>
+      >{{ i + 1 }}</a>
+      <!-- Safe: `line` is highlight.js output of the bundled static attack source,
+           never user input. -->
+      <!-- eslint-disable vue/no-v-html -->
+      <code
+        class="cv-code"
+        v-html="line"
+      />
+      <!-- eslint-enable vue/no-v-html -->
     </div>
   </div>
 </template>

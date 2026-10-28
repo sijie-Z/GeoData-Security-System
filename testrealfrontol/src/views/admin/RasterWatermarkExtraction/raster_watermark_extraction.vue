@@ -1,10 +1,20 @@
 <template>
   <div class="watermark-extraction-container">
-    <el-alert :title="$t('rasterWmExtract.currentRole')" type="info" :closable="false" style="margin-bottom: 12px;" />
+    <el-alert
+      :title="$t('rasterWmExtract.currentRole')"
+      type="info"
+      :closable="false"
+      style="margin-bottom: 12px;"
+    />
     <!-- 页面标题区域 -->
     <div class="page-header">
       <div class="header-icon">
-        <el-icon size="32" color="var(--accent-9)"><Document /></el-icon>
+        <el-icon
+          size="32"
+          color="var(--accent-9)"
+        >
+          <Document />
+        </el-icon>
       </div>
       <div class="header-content">
         <h1>{{ $t('rasterWmExtract.pageTitle') }}</h1>
@@ -16,19 +26,46 @@
 
     <!-- 操作步骤指示器 -->
     <div class="step-indicator">
-      <div class="step-item" :class="{ active: currentStep >= 1, completed: currentStep > 1 }">
-        <div class="step-number">1</div>
-        <div class="step-text">{{ $t('rasterWmExtract.step1') }}</div>
+      <div
+        class="step-item"
+        :class="{ active: currentStep >= 1, completed: currentStep > 1 }"
+      >
+        <div class="step-number">
+          1
+        </div>
+        <div class="step-text">
+          {{ $t('rasterWmExtract.step1') }}
+        </div>
       </div>
-      <div class="step-line" :class="{ active: currentStep >= 2 }"></div>
-      <div class="step-item" :class="{ active: currentStep >= 2, completed: currentStep > 2 }">
-        <div class="step-number">2</div>
-        <div class="step-text">{{ $t('rasterWmExtract.step2') }}</div>
+      <div
+        class="step-line"
+        :class="{ active: currentStep >= 2 }"
+      />
+      <div
+        class="step-item"
+        :class="{ active: currentStep >= 2, completed: currentStep > 2 }"
+      >
+        <div class="step-number">
+          2
+        </div>
+        <div class="step-text">
+          {{ $t('rasterWmExtract.step2') }}
+        </div>
       </div>
-      <div class="step-line" :class="{ active: currentStep >= 3 }"></div>
-      <div class="step-item" :class="{ active: currentStep >= 3 }">
-        <div class="step-number">3</div>
-        <div class="step-text">{{ $t('rasterWmExtract.step3') }}</div>
+      <div
+        class="step-line"
+        :class="{ active: currentStep >= 3 }"
+      />
+      <div
+        class="step-item"
+        :class="{ active: currentStep >= 3 }"
+      >
+        <div class="step-number">
+          3
+        </div>
+        <div class="step-text">
+          {{ $t('rasterWmExtract.step3') }}
+        </div>
       </div>
     </div>
 
@@ -52,7 +89,9 @@
             <el-icon><Key /></el-icon>
           </template>
         </el-input>
-        <div class="input-tip">{{ $t('rasterWmExtract.dataIdTip') }}</div>
+        <div class="input-tip">
+          {{ $t('rasterWmExtract.dataIdTip') }}
+        </div>
       </div>
 
       <!-- 文件上传区域 -->
@@ -61,7 +100,10 @@
           <el-icon><Upload /></el-icon>
           <span>{{ $t('rasterWmExtract.uploadRasterFile') }}</span>
         </div>
-        <div class="upload-guard" @click="onUploadAreaClick">
+        <div
+          class="upload-guard"
+          @click="onUploadAreaClick"
+        >
           <el-upload
             class="upload-area"
             drag
@@ -76,10 +118,19 @@
             :disabled="!dataIdInput"
           >
             <div class="upload-content">
-              <el-icon class="upload-icon" size="48"><UploadFilled /></el-icon>
+              <el-icon
+                class="upload-icon"
+                size="48"
+              >
+                <UploadFilled />
+              </el-icon>
               <div class="upload-text">
-                <div class="main-text">{{ $t('rasterWmExtract.dragOrClick') }} <em>{{ $t('rasterWmExtract.clickToUpload') }}</em></div>
-                <div class="sub-text">{{ $t('rasterWmExtract.supportedFormats') }}</div>
+                <div class="main-text">
+                  {{ $t('rasterWmExtract.dragOrClick') }} <em>{{ $t('rasterWmExtract.clickToUpload') }}</em>
+                </div>
+                <div class="sub-text">
+                  {{ $t('rasterWmExtract.supportedFormats') }}
+                </div>
               </div>
             </div>
           </el-upload>
@@ -88,12 +139,18 @@
     </div>
 
     <!-- 水印比对结果展示区 -->
-    <el-card v-if="comparisonResult.isReady" class="comparison-card">
+    <el-card
+      v-if="comparisonResult.isReady"
+      class="comparison-card"
+    >
       <template #header>
         <div class="card-header">
           <el-icon><Check /></el-icon>
           <span>{{ $t('rasterWmExtract.comparisonResult') }}</span>
-          <el-tag :type="comparisonResult.isMatch ? 'success' : 'danger'" size="small">
+          <el-tag
+            :type="comparisonResult.isMatch ? 'success' : 'danger'"
+            size="small"
+          >
             {{ comparisonResult.isMatch ? $t('rasterWmExtract.verifyPass') : $t('rasterWmExtract.verifyFail') }}
           </el-tag>
         </div>
@@ -110,8 +167,13 @@
 
         <div class="comparison-info">
           <div class="nc-value-display">
-            <div class="nc-label">{{ $t('rasterWmExtract.ncLabel') }}</div>
-            <div class="nc-value" :class="{ high: comparisonResult.ncValue >= 0.95, medium: comparisonResult.ncValue >= 0.8, low: comparisonResult.ncValue < 0.8 }">
+            <div class="nc-label">
+              {{ $t('rasterWmExtract.ncLabel') }}
+            </div>
+            <div
+              class="nc-value"
+              :class="{ high: comparisonResult.ncValue >= 0.95, medium: comparisonResult.ncValue >= 0.8, low: comparisonResult.ncValue < 0.8 }"
+            >
               {{ comparisonResult.ncValue?.toFixed(4) || '0.0000' }}
             </div>
           </div>
@@ -127,31 +189,48 @@
         </div>
       </div>
 
-      <div class="result-message" :class="{ success: comparisonResult.isMatch, danger: !comparisonResult.isMatch }">
+      <div
+        class="result-message"
+        :class="{ success: comparisonResult.isMatch, danger: !comparisonResult.isMatch }"
+      >
         <el-icon size="20">
           <Check v-if="comparisonResult.isMatch" />
           <Warning v-else />
         </el-icon>
         <div class="result-text">
-          <div class="result-title">{{ comparisonResult.isMatch ? $t('rasterWmExtract.verifyPass') : $t('rasterWmExtract.verifyFail') }}</div>
+          <div class="result-title">
+            {{ comparisonResult.isMatch ? $t('rasterWmExtract.verifyPass') : $t('rasterWmExtract.verifyFail') }}
+          </div>
           <div class="result-desc">
             {{ comparisonResult.isMatch ? $t('rasterWmExtract.matchSuccess') : $t('rasterWmExtract.matchFail') }}
           </div>
         </div>
       </div>
 
-      <div v-if="recoveredBase64" class="recovered-pane">
+      <div
+        v-if="recoveredBase64"
+        class="recovered-pane"
+      >
         <div class="watermark-header">
           <el-icon><Document /></el-icon>
           <span>{{ $t('rasterWmExtract.recoveredOriginal') }}</span>
         </div>
         <div class="watermark-content">
-          <WatermarkImage :src="`data:image/png;base64,${recoveredBase64}`" :alt="$t('rasterWmExtract.recoveredOriginal')" fit="contain" class="watermark-image" />
+          <WatermarkImage
+            :src="`data:image/png;base64,${recoveredBase64}`"
+            :alt="$t('rasterWmExtract.recoveredOriginal')"
+            fit="contain"
+            class="watermark-image"
+          />
         </div>
       </div>
     </el-card>
 
-    <el-card v-if="decodedInfo" class="comparison-card" style="margin-top: 16px;">
+    <el-card
+      v-if="decodedInfo"
+      class="comparison-card"
+      style="margin-top: 16px;"
+    >
       <template #header>
         <div class="card-header">
           <el-icon><Search /></el-icon>
@@ -167,7 +246,11 @@
       />
     </el-card>
 
-    <el-card v-if="decodedInfo" class="comparison-card" style="margin-top: 16px;">
+    <el-card
+      v-if="decodedInfo"
+      class="comparison-card"
+      style="margin-top: 16px;"
+    >
       <template #header>
         <div class="card-header">
           <el-icon><Search /></el-icon>
@@ -180,26 +263,70 @@
         :closable="false"
         style="margin-bottom: 10px;"
       />
-      <el-descriptions :column="2" border>
-        <el-descriptions-item :label="$t('rasterWmExtract.applicationId')">{{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.applicationNumber')">{{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.applicationStatus')">{{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.dataType')">{{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.applicant')">{{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.applicantId')">{{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver1')">{{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver1Id')">{{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver1Time')">{{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver2')">{{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver2Id')">{{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.approver2Time')">{{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.submittedAt')">{{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.generatedAt')">{{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.purpose')">{{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.usageScope')">{{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.securityLevel')">{{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.customTag')">{{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}</el-descriptions-item>
-        <el-descriptions-item :label="$t('rasterWmExtract.reason')" :span="2">{{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}</el-descriptions-item>
+      <el-descriptions
+        :column="2"
+        border
+      >
+        <el-descriptions-item :label="$t('rasterWmExtract.applicationId')">
+          {{ decodedInfo.normalized?.id || decodedInfo.parsed?.id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.applicationNumber')">
+          {{ decodedInfo.normalized?.application_number || decodedInfo.parsed?.application_number || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.applicationStatus')">
+          {{ decodedInfo.normalized?.application_status || decodedInfo.parsed?.application_status || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.dataType')">
+          {{ decodedInfo.normalized?.data_type || decodedInfo.parsed?.data_type || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.applicant')">
+          {{ decodedInfo.normalized?.applicant || decodedInfo.parsed?.applicant || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.applicantId')">
+          {{ decodedInfo.normalized?.applicant_id || decodedInfo.parsed?.applicant_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver1')">
+          {{ decodedInfo.normalized?.approver_1 || decodedInfo.parsed?.approver_1 || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver1Id')">
+          {{ decodedInfo.normalized?.approver_1_id || decodedInfo.parsed?.approver_1_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver1Time')">
+          {{ decodedInfo.normalized?.approver_1_time || decodedInfo.parsed?.approver_1_time || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver2')">
+          {{ decodedInfo.normalized?.approver_2 || decodedInfo.parsed?.approver_2 || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver2Id')">
+          {{ decodedInfo.normalized?.approver_2_id || decodedInfo.parsed?.approver_2_id || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.approver2Time')">
+          {{ decodedInfo.normalized?.approver_2_time || decodedInfo.parsed?.approver_2_time || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.submittedAt')">
+          {{ decodedInfo.normalized?.submitted_at || decodedInfo.parsed?.submitted_at || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.generatedAt')">
+          {{ decodedInfo.normalized?.generated_at || decodedInfo.parsed?.generated_at || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.purpose')">
+          {{ decodedInfo.normalized?.purpose || decodedInfo.parsed?.purpose || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.usageScope')">
+          {{ decodedInfo.normalized?.usage_scope || decodedInfo.parsed?.usage_scope || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.securityLevel')">
+          {{ decodedInfo.normalized?.security_level || decodedInfo.parsed?.security_level || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item :label="$t('rasterWmExtract.customTag')">
+          {{ decodedInfo.normalized?.custom_tag || decodedInfo.parsed?.custom_tag || '-' }}
+        </el-descriptions-item>
+        <el-descriptions-item
+          :label="$t('rasterWmExtract.reason')"
+          :span="2"
+        >
+          {{ decodedInfo.normalized?.reason || decodedInfo.parsed?.reason || '-' }}
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
   </div>

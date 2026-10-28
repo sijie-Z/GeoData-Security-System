@@ -16,42 +16,58 @@
     >
       <el-menu-item index="/employee">
         <el-icon><HomeFilled /></el-icon>
-        <template #title>{{ $t('sidebar.employee.dashboard') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.dashboard') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/data_viewing">
         <el-icon><View /></el-icon>
-        <template #title>{{ $t('sidebar.employee.dataCatalog') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.dataCatalog') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/data_application">
         <el-icon><EditPen /></el-icon>
-        <template #title>{{ $t('sidebar.employee.myApplications') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.myApplications') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/data_download">
         <el-icon><Download /></el-icon>
-        <template #title>{{ $t('sidebar.employee.myDownloads') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.myDownloads') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/operation_history">
         <el-icon><Clock /></el-icon>
-        <template #title>{{ $t('sidebar.employee.operationHistory') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.operationHistory') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/notifications">
         <el-icon><Bell /></el-icon>
-        <template #title>{{ $t('sidebar.employee.myNotifications') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.myNotifications') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/chat">
         <el-icon><ChatDotRound /></el-icon>
-        <template #title>{{ $t('sidebar.employee.onlineChat') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.onlineChat') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/employee/apply_admin">
         <el-icon><UserFilled /></el-icon>
-        <template #title>{{ $t('sidebar.employee.applyAdmin') }}</template>
+        <template #title>
+          {{ $t('sidebar.employee.applyAdmin') }}
+        </template>
       </el-menu-item>
     </el-menu>
   </nav>

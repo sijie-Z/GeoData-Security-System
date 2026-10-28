@@ -1,25 +1,52 @@
 <template>
   <!-- ⓘ 指标解释：悬浮出一句话 tooltip，点击弹 420px 详解卡（定义/公式/阈值色条/口径注） -->
-  <el-tooltip :content="tip" placement="top" :show-after="150" :hide-after="0">
+  <el-tooltip
+    :content="tip"
+    placement="top"
+    :show-after="150"
+    :hide-after="0"
+  >
     <span class="glossary-help">
-      <el-popover trigger="click" :width="420" placement="bottom-start">
+      <el-popover
+        trigger="click"
+        :width="420"
+        placement="bottom-start"
+      >
         <template #reference>
-          <el-icon class="glossary-help__icon" :size="14"><InfoFilled /></el-icon>
+          <el-icon
+            class="glossary-help__icon"
+            :size="14"
+          ><InfoFilled /></el-icon>
         </template>
 
         <div class="glossary-card">
-          <div v-if="title" class="glossary-card__title">{{ title }}</div>
-          <p v-if="desc" class="glossary-card__desc">{{ desc }}</p>
+          <div
+            v-if="title"
+            class="glossary-card__title"
+          >{{ title }}</div>
+          <p
+            v-if="desc"
+            class="glossary-card__desc"
+          >{{ desc }}</p>
 
-          <div v-if="formula" class="glossary-card__section">
+          <div
+            v-if="formula"
+            class="glossary-card__section"
+          >
             <span class="glossary-card__label">{{ formulaLabel }}</span>
             <code class="glossary-card__formula">{{ formula }}</code>
           </div>
 
-          <div v-if="scale" class="glossary-card__section">
+          <div
+            v-if="scale"
+            class="glossary-card__section"
+          >
             <span class="glossary-card__label">{{ thresholdLabel }}</span>
             <div class="glossary-scale">
-              <div class="glossary-scale__bar" :style="{ background: scale.gradient }">
+              <div
+                class="glossary-scale__bar"
+                :style="{ background: scale.gradient }"
+              >
                 <span
                   v-for="mk in scale.markers"
                   :key="mk.label"
@@ -37,7 +64,10 @@
             </div>
           </div>
 
-          <div v-if="caveat" class="glossary-card__caveat">{{ caveat }}</div>
+          <div
+            v-if="caveat"
+            class="glossary-card__caveat"
+          >{{ caveat }}</div>
         </div>
       </el-popover>
     </span>

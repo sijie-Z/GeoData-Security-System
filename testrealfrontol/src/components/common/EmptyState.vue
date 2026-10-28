@@ -5,8 +5,15 @@
     role="status"
   >
     <div class="empty-2col__text">
-      <p class="empty-2col__title">{{ title }}</p>
-      <p v-if="description" class="empty-2col__desc">{{ description }}</p>
+      <p class="empty-2col__title">
+        {{ title }}
+      </p>
+      <p
+        v-if="description"
+        class="empty-2col__desc"
+      >
+        {{ description }}
+      </p>
       <el-button
         v-if="ctaText"
         class="empty-2col__cta"
@@ -18,12 +25,41 @@
         {{ ctaText }}
       </el-button>
     </div>
-    <div class="empty-2col__art" aria-hidden="true">
+    <div
+      class="empty-2col__art"
+      aria-hidden="true"
+    >
       <slot name="art">
-        <svg class="empty-2col__svg" viewBox="0 0 120 96" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="17" y="16" width="86" height="64" rx="8" stroke="currentColor" stroke-width="1.5" stroke-dasharray="5 4" />
-          <path d="M34 64l15-18 10 12 9-10 18 20" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
-          <circle cx="45" cy="34" r="5" stroke="currentColor" stroke-width="1.5" />
+        <svg
+          class="empty-2col__svg"
+          viewBox="0 0 120 96"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <rect
+            x="17"
+            y="16"
+            width="86"
+            height="64"
+            rx="8"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-dasharray="5 4"
+          />
+          <path
+            d="M34 64l15-18 10 12 9-10 18 20"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle
+            cx="45"
+            cy="34"
+            r="5"
+            stroke="currentColor"
+            stroke-width="1.5"
+          />
         </svg>
       </slot>
     </div>

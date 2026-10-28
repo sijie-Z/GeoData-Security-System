@@ -1,12 +1,26 @@
 <template>
   <div class="decode-platform">
-    <PageHeader :title="$t('decodePlatform.title')" :subtitle="$t('decodePlatform.subtitle')" />
+    <PageHeader
+      :title="$t('decodePlatform.title')"
+      :subtitle="$t('decodePlatform.subtitle')"
+    />
 
-    <el-tabs v-model="activeTab" type="border-card" class="platform-tabs">
+    <el-tabs
+      v-model="activeTab"
+      type="border-card"
+      class="platform-tabs"
+    >
       <!-- Tab 1: 直接解码 QR 码（主要） -->
-      <el-tab-pane :label="$t('decodePlatform.qrDecodeTab')" name="qr">
+      <el-tab-pane
+        :label="$t('decodePlatform.qrDecodeTab')"
+        name="qr"
+      >
         <div class="tab-content">
-          <el-alert type="info" :closable="false" style="margin-bottom: 20px;">
+          <el-alert
+            type="info"
+            :closable="false"
+            style="margin-bottom: 20px;"
+          >
             {{ $t('decodePlatform.qrDecodeHint') }}
           </el-alert>
 
@@ -42,12 +56,16 @@
                   :on-change="onQRFileChange"
                   :on-remove="onQRFileRemove"
                 >
-                  <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+                  <el-icon class="el-icon--upload">
+                    <UploadFilled />
+                  </el-icon>
                   <div class="el-upload__text">
                     {{ $t('decodePlatform.dragQRHere') }} <em>{{ $t('decodePlatform.clickToUpload') }}</em>
                   </div>
                   <template #tip>
-                    <div class="el-upload__tip">{{ $t('decodePlatform.qrFormatTip') }}</div>
+                    <div class="el-upload__tip">
+                      {{ $t('decodePlatform.qrFormatTip') }}
+                    </div>
                   </template>
                 </el-upload>
               </el-card>
@@ -56,40 +74,85 @@
 
           <div class="action-bar">
             <TipWrap :reason="(!qrText && !qrFile) ? $t('common.disabledReason.qrInput') : ''">
-              <el-button type="primary" size="large" :loading="qrDecoding" :disabled="!qrText && !qrFile" @click="decodeQR">
-                <el-icon style="margin-right: 4px;"><Search /></el-icon>
+              <el-button
+                type="primary"
+                size="large"
+                :loading="qrDecoding"
+                :disabled="!qrText && !qrFile"
+                @click="decodeQR"
+              >
+                <el-icon style="margin-right: 4px;">
+                  <Search />
+                </el-icon>
                 {{ $t('decodePlatform.decodeQRBtn') }}
               </el-button>
             </TipWrap>
-            <el-button size="large" @click="resetQR">
+            <el-button
+              size="large"
+              @click="resetQR"
+            >
               {{ $t('decodePlatform.reset') }}
             </el-button>
           </div>
 
           <!-- QR 解码结果 -->
-          <div v-if="qrResult" class="qr-result-section">
-            <QRProvenanceCard :decoded-info="qrDecodedInfo" :verify-passed="qrVerifyPassed" :signature-ok="qrSignatureOk" />
+          <div
+            v-if="qrResult"
+            class="qr-result-section"
+          >
+            <QRProvenanceCard
+              :decoded-info="qrDecodedInfo"
+              :verify-passed="qrVerifyPassed"
+              :signature-ok="qrSignatureOk"
+            />
           </div>
         </div>
       </el-tab-pane>
 
       <!-- Tab 2: 文件溯源（保留现有流程） -->
-      <el-tab-pane :label="$t('decodePlatform.fileTraceTab')" name="file">
+      <el-tab-pane
+        :label="$t('decodePlatform.fileTraceTab')"
+        name="file"
+      >
         <div class="tab-content">
-          <el-alert type="warning" :closable="false" style="margin-bottom: 20px;">
+          <el-alert
+            type="warning"
+            :closable="false"
+            style="margin-bottom: 20px;"
+          >
             {{ $t('decodePlatform.fileTraceHint') }}
           </el-alert>
 
-          <el-steps :active="currentStep" finish-status="success" align-center class="steps-bar">
-            <el-step :title="$t('decodePlatform.step1Title')" :description="$t('decodePlatform.step1Desc')" />
-            <el-step :title="$t('decodePlatform.step2Title')" :description="$t('decodePlatform.step2Desc')" />
-            <el-step :title="$t('decodePlatform.step3Title')" :description="$t('decodePlatform.step3Desc')" />
+          <el-steps
+            :active="currentStep"
+            finish-status="success"
+            align-center
+            class="steps-bar"
+          >
+            <el-step
+              :title="$t('decodePlatform.step1Title')"
+              :description="$t('decodePlatform.step1Desc')"
+            />
+            <el-step
+              :title="$t('decodePlatform.step2Title')"
+              :description="$t('decodePlatform.step2Desc')"
+            />
+            <el-step
+              :title="$t('decodePlatform.step3Title')"
+              :description="$t('decodePlatform.step3Desc')"
+            />
           </el-steps>
 
           <!-- Step 1: 输入申请编号 -->
-          <el-card v-show="currentStep === 0" class="step-card" shadow="hover">
+          <el-card
+            v-show="currentStep === 0"
+            class="step-card"
+            shadow="hover"
+          >
             <div class="step-content">
-              <el-icon class="step-icon"><Search /></el-icon>
+              <el-icon class="step-icon">
+                <Search />
+              </el-icon>
               <h3>{{ $t('decodePlatform.enterAppId') }}</h3>
               <el-input
                 v-model="applicationId"
@@ -101,7 +164,12 @@
               />
               <div class="step-actions">
                 <TipWrap :reason="!applicationId ? $t('common.disabledReason.enterApplicationId') : ''">
-                  <el-button type="primary" size="large" :disabled="!applicationId" @click="goToStep2">
+                  <el-button
+                    type="primary"
+                    size="large"
+                    :disabled="!applicationId"
+                    @click="goToStep2"
+                  >
                     {{ $t('decodePlatform.next') }}
                   </el-button>
                 </TipWrap>
@@ -110,11 +178,19 @@
           </el-card>
 
           <!-- Step 2: 上传文件 -->
-          <el-card v-show="currentStep === 1" class="step-card" shadow="hover">
+          <el-card
+            v-show="currentStep === 1"
+            class="step-card"
+            shadow="hover"
+          >
             <div class="step-content">
-              <el-icon class="step-icon"><UploadFilled /></el-icon>
+              <el-icon class="step-icon">
+                <UploadFilled />
+              </el-icon>
               <h3>{{ $t('decodePlatform.uploadTitle') }}</h3>
-              <p class="upload-hint">{{ $t('decodePlatform.uploadHint') }}</p>
+              <p class="upload-hint">
+                {{ $t('decodePlatform.uploadHint') }}
+              </p>
               <el-upload
                 class="trace-uploader"
                 drag
@@ -123,18 +199,33 @@
                 :auto-upload="false"
                 :on-change="onFileChange"
               >
-                <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+                <el-icon class="el-icon--upload">
+                  <UploadFilled />
+                </el-icon>
                 <div class="el-upload__text">
                   {{ $t('decodePlatform.dragOrClick') }} <em>{{ $t('decodePlatform.clickToUpload') }}</em>
                 </div>
                 <template #tip>
-                  <div class="el-upload__tip">{{ $t('decodePlatform.formatTip') }}</div>
+                  <div class="el-upload__tip">
+                    {{ $t('decodePlatform.formatTip') }}
+                  </div>
                 </template>
               </el-upload>
               <div class="step-actions">
-                <el-button size="large" @click="currentStep = 0">{{ $t('decodePlatform.prev') }}</el-button>
+                <el-button
+                  size="large"
+                  @click="currentStep = 0"
+                >
+                  {{ $t('decodePlatform.prev') }}
+                </el-button>
                 <TipWrap :reason="!selectedFile ? $t('common.disabledReason.selectFile') : ''">
-                  <el-button type="primary" size="large" :loading="extracting" :disabled="!selectedFile" @click="doExtract">
+                  <el-button
+                    type="primary"
+                    size="large"
+                    :loading="extracting"
+                    :disabled="!selectedFile"
+                    @click="doExtract"
+                  >
                     {{ $t('decodePlatform.extractBtn') }}
                   </el-button>
                 </TipWrap>
@@ -143,10 +234,22 @@
           </el-card>
 
           <!-- Step 3: 溯源结果 -->
-          <el-card v-show="currentStep === 2" class="step-card" shadow="hover">
+          <el-card
+            v-show="currentStep === 2"
+            class="step-card"
+            shadow="hover"
+          >
             <div class="step-content results-content">
-              <div v-if="extracting" class="extracting-overlay">
-                <el-icon class="spin-icon motion-loop" :size="48"><Loading /></el-icon>
+              <div
+                v-if="extracting"
+                class="extracting-overlay"
+              >
+                <el-icon
+                  class="spin-icon motion-loop"
+                  :size="48"
+                >
+                  <Loading />
+                </el-icon>
                 <p>{{ $t('decodePlatform.extracting') }}</p>
               </div>
 
@@ -160,12 +263,21 @@
               />
 
               <template v-if="resultData">
-                <div class="verify-banner" :class="verifyPassed ? 'verify-pass' : 'verify-fail'">
-                  <el-icon :size="32"><CircleCheckFilled v-if="verifyPassed" /><CircleCloseFilled v-else /></el-icon>
+                <div
+                  class="verify-banner"
+                  :class="verifyPassed ? 'verify-pass' : 'verify-fail'"
+                >
+                  <el-icon :size="32">
+                    <CircleCheckFilled v-if="verifyPassed" /><CircleCloseFilled v-else />
+                  </el-icon>
                   <div>
                     <h3>{{ verifyPassed ? $t('decodePlatform.verifyPass') : $t('decodePlatform.verifyFail') }}</h3>
-                    <p v-if="verifyPassed">{{ $t('decodePlatform.verifyPassDesc') }}</p>
-                    <p v-else>{{ $t('decodePlatform.verifyFailDesc') }}</p>
+                    <p v-if="verifyPassed">
+                      {{ $t('decodePlatform.verifyPassDesc') }}
+                    </p>
+                    <p v-else>
+                      {{ $t('decodePlatform.verifyFailDesc') }}
+                    </p>
                   </div>
                 </div>
 
@@ -178,10 +290,17 @@
                         :src="`data:image/png;base64,${watermarkBase64}`"
                         fit="contain"
                       />
-                      <EmptyState v-else compact variant="never" :title="$t('decodePlatform.noWatermark')" />
+                      <EmptyState
+                        v-else
+                        compact
+                        variant="never"
+                        :title="$t('decodePlatform.noWatermark')"
+                      />
                     </div>
                     <template v-if="recoveredBase64">
-                      <h4 style="margin-top: 16px;">{{ $t('decodePlatform.recoveredImage') }}</h4>
+                      <h4 style="margin-top: 16px;">
+                        {{ $t('decodePlatform.recoveredImage') }}
+                      </h4>
                       <div class="watermark-img-box">
                         <WatermarkImage
                           :src="`data:image/png;base64,${recoveredBase64}`"
@@ -192,20 +311,46 @@
                   </div>
 
                   <div class="provenance-panel">
-                    <QRProvenanceCard :decoded-info="decodedInfo" :verify-passed="verifyPassed" :signature-ok="signatureOk" :nc-value="ncValue" />
+                    <QRProvenanceCard
+                      :decoded-info="decodedInfo"
+                      :verify-passed="verifyPassed"
+                      :signature-ok="signatureOk"
+                      :nc-value="ncValue"
+                    />
                   </div>
                 </div>
 
                 <!-- §5.16 分发链水位图：申请→审批→交付→下载（缺失虚线断链；点击节点高亮分享） -->
-                <div v-if="chainSteps.length" class="chain-panel">
+                <div
+                  v-if="chainSteps.length"
+                  class="chain-panel"
+                >
                   <h4>{{ $t('decodePlatform.chainTitle') }}</h4>
-                  <DeliveryChain :steps="chainSteps" :highlight="highlightKey" @select="onChainSelect" />
+                  <DeliveryChain
+                    :steps="chainSteps"
+                    :highlight="highlightKey"
+                    @select="onChainSelect"
+                  />
                 </div>
               </template>
 
-              <div class="step-actions" style="margin-top: 24px;">
-                <el-button size="large" @click="resetAll">{{ $t('decodePlatform.resetAll') }}</el-button>
-                <el-button type="primary" size="large" @click="currentStep = 1">{{ $t('decodePlatform.reUpload') }}</el-button>
+              <div
+                class="step-actions"
+                style="margin-top: 24px;"
+              >
+                <el-button
+                  size="large"
+                  @click="resetAll"
+                >
+                  {{ $t('decodePlatform.resetAll') }}
+                </el-button>
+                <el-button
+                  type="primary"
+                  size="large"
+                  @click="currentStep = 1"
+                >
+                  {{ $t('decodePlatform.reUpload') }}
+                </el-button>
               </div>
             </div>
           </el-card>
@@ -363,8 +508,6 @@ onMounted(() => {
 const watermarkBase64 = computed(() => resultData.value?.watermark_base64 || '')
 const recoveredBase64 = computed(() => resultData.value?.recovered_base64 || '')
 const decodedInfo = computed(() => resultData.value?.data?.decoded_info || null)
-const normalized = computed(() => decodedInfo.value?.normalized || {})
-const parsed = computed(() => decodedInfo.value?.parsed || {})
 const verify = computed(() => decodedInfo.value?.verify || {})
 const verifyPassed = computed(() => verify.value?.digest_ok !== false && verify.value?.signature_ok !== false)
 const signatureOk = computed(() => verify.value?.signature_ok !== false)

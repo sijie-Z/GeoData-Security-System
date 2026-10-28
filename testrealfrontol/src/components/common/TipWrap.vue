@@ -6,7 +6,10 @@
     :show-after="120"
     :hide-after="0"
   >
-    <span class="disabled-tip-wrap" :class="{ 'is-block': block }"><slot /></span>
+    <span
+      class="disabled-tip-wrap"
+      :class="{ 'is-block': block }"
+    ><slot /></span>
   </el-tooltip>
 </template>
 

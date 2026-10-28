@@ -17,7 +17,9 @@
     >
       <el-menu-item index="/admin">
         <el-icon><HomeFilled /></el-icon>
-        <template #title>{{ $t('sidebar.admin.dashboard') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.dashboard') }}
+        </template>
       </el-menu-item>
 
       <el-sub-menu index="approval">
@@ -25,11 +27,21 @@
           <el-icon><DocumentChecked /></el-icon>
           <span>{{ $t('sidebar.admin.approval') }}</span>
         </template>
-        <el-menu-item index="/admin/approve_application/not_approved">{{ $t('sidebar.admin.firstReview') }}</el-menu-item>
-        <el-menu-item index="/admin/approve_application/approved">{{ $t('sidebar.admin.secondReview') }}</el-menu-item>
-        <el-menu-item index="/admin/approve_application/dual_channel">{{ $t('sidebar.admin.dualChannel') }}</el-menu-item>
-        <el-menu-item index="/admin/recall">{{ $t('sidebar.admin.dataRecall') }}</el-menu-item>
-        <el-menu-item index="/admin/admin-application">{{ $t('sidebar.admin.adminAppApproval') }}</el-menu-item>
+        <el-menu-item index="/admin/approve_application/not_approved">
+          {{ $t('sidebar.admin.firstReview') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/approve_application/approved">
+          {{ $t('sidebar.admin.secondReview') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/approve_application/dual_channel">
+          {{ $t('sidebar.admin.dualChannel') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/recall">
+          {{ $t('sidebar.admin.dataRecall') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/admin-application">
+          {{ $t('sidebar.admin.adminAppApproval') }}
+        </el-menu-item>
       </el-sub-menu>
 
       <!-- 水印菜单（后端 API 已有角色限制，前端全部显示） -->
@@ -39,42 +51,68 @@
           <span>{{ $t('sidebar.admin.watermark') }}</span>
         </template>
         <el-sub-menu index="vector-wm">
-          <template #title>{{ $t('sidebar.admin.vectorData') }}</template>
-          <el-menu-item index="/admin/watermark_generation">{{ $t('sidebar.admin.generate') }}</el-menu-item>
-          <el-menu-item index="/admin/watermark_embedding">{{ $t('sidebar.admin.embed') }}</el-menu-item>
-          <el-menu-item index="/admin/watermark_extraction">{{ $t('sidebar.admin.extract') }}</el-menu-item>
+          <template #title>
+            {{ $t('sidebar.admin.vectorData') }}
+          </template>
+          <el-menu-item index="/admin/watermark_generation">
+            {{ $t('sidebar.admin.generate') }}
+          </el-menu-item>
+          <el-menu-item index="/admin/watermark_embedding">
+            {{ $t('sidebar.admin.embed') }}
+          </el-menu-item>
+          <el-menu-item index="/admin/watermark_extraction">
+            {{ $t('sidebar.admin.extract') }}
+          </el-menu-item>
         </el-sub-menu>
         <el-sub-menu index="raster-wm">
-          <template #title>{{ $t('sidebar.admin.rasterData') }}</template>
-          <el-menu-item index="/admin/raster_watermark_generation">{{ $t('sidebar.admin.generate') }}</el-menu-item>
-          <el-menu-item index="/admin/raster_watermark_embedding">{{ $t('sidebar.admin.embed') }}</el-menu-item>
-          <el-menu-item index="/admin/raster_watermark_extraction">{{ $t('sidebar.admin.extract') }}</el-menu-item>
+          <template #title>
+            {{ $t('sidebar.admin.rasterData') }}
+          </template>
+          <el-menu-item index="/admin/raster_watermark_generation">
+            {{ $t('sidebar.admin.generate') }}
+          </el-menu-item>
+          <el-menu-item index="/admin/raster_watermark_embedding">
+            {{ $t('sidebar.admin.embed') }}
+          </el-menu-item>
+          <el-menu-item index="/admin/raster_watermark_extraction">
+            {{ $t('sidebar.admin.extract') }}
+          </el-menu-item>
         </el-sub-menu>
       </el-sub-menu>
 
       <el-menu-item index="/admin/traceability">
         <el-icon><Aim /></el-icon>
-        <template #title>{{ $t('sidebar.admin.traceability') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.traceability') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/admin/watermark-quality">
         <el-icon><DataAnalysis /></el-icon>
-        <template #title>{{ $t('sidebar.admin.watermarkQuality') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.watermarkQuality') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/admin/forensics">
         <el-icon><Search /></el-icon>
-        <template #title>{{ $t('sidebar.admin.forensics') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.forensics') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/admin/anchors">
         <el-icon><Stamp /></el-icon>
-        <template #title>{{ $t('sidebar.admin.anchorCenter') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.anchorCenter') }}
+        </template>
       </el-menu-item>
 
       <el-menu-item index="/admin/robustness">
         <el-icon><Cpu /></el-icon>
-        <template #title>{{ $t('sidebar.admin.robustnessLab') }}</template>
+        <template #title>
+          {{ $t('sidebar.admin.robustnessLab') }}
+        </template>
       </el-menu-item>
 
       <el-sub-menu index="data">
@@ -82,9 +120,15 @@
           <el-icon><Folder /></el-icon>
           <span>{{ $t('sidebar.admin.dataMgmt') }}</span>
         </template>
-        <el-menu-item index="/admin/data/upload">{{ $t('sidebar.admin.dataUpload') }}</el-menu-item>
-        <el-menu-item index="/admin/data/raster-upload">{{ $t('sidebar.admin.rasterUpload') }}</el-menu-item>
-        <el-menu-item index="/admin/data/manage">{{ $t('adminDataManage.title') || '数据管理' }}</el-menu-item>
+        <el-menu-item index="/admin/data/upload">
+          {{ $t('sidebar.admin.dataUpload') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/data/raster-upload">
+          {{ $t('sidebar.admin.rasterUpload') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/data/manage">
+          {{ $t('adminDataManage.title') || '数据管理' }}
+        </el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu index="employee">
@@ -92,9 +136,15 @@
           <el-icon><User /></el-icon>
           <span>{{ $t('sidebar.admin.employeeMgmt') }}</span>
         </template>
-        <el-menu-item index="/admin/employee_management/information_list">{{ $t('sidebar.admin.employeeList') }}</el-menu-item>
-        <el-menu-item index="/admin/employee_management/information_add">{{ $t('sidebar.admin.addEmployee') }}</el-menu-item>
-        <el-menu-item index="/admin/system/chat">{{ $t('sidebar.admin.onlineChat') }}</el-menu-item>
+        <el-menu-item index="/admin/employee_management/information_list">
+          {{ $t('sidebar.admin.employeeList') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/employee_management/information_add">
+          {{ $t('sidebar.admin.addEmployee') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/system/chat">
+          {{ $t('sidebar.admin.onlineChat') }}
+        </el-menu-item>
       </el-sub-menu>
 
       <el-sub-menu index="system">
@@ -102,10 +152,18 @@
           <el-icon><Setting /></el-icon>
           <span>{{ $t('sidebar.admin.systemSettings') }}</span>
         </template>
-        <el-menu-item index="/admin/logs">{{ $t('sidebar.admin.operationLogs') }}</el-menu-item>
-        <el-menu-item index="/admin/system/announcements">{{ $t('sidebar.admin.systemAnnouncement') }}</el-menu-item>
-        <el-menu-item index="/admin/system/notifications">{{ $t('sidebar.admin.messageSend') }}</el-menu-item>
-        <el-menu-item index="/admin/guide">{{ $t('sidebar.admin.guide') }}</el-menu-item>
+        <el-menu-item index="/admin/logs">
+          {{ $t('sidebar.admin.operationLogs') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/system/announcements">
+          {{ $t('sidebar.admin.systemAnnouncement') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/system/notifications">
+          {{ $t('sidebar.admin.messageSend') }}
+        </el-menu-item>
+        <el-menu-item index="/admin/guide">
+          {{ $t('sidebar.admin.guide') }}
+        </el-menu-item>
       </el-sub-menu>
     </el-menu>
   </nav>

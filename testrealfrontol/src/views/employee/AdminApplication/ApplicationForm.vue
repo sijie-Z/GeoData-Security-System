@@ -1,37 +1,72 @@
 <template>
   <div class="admin-application-page">
     <div class="page-header">
-      <h1 class="page-title">{{ $t('empAdminApp.title') }}</h1>
-      <p class="page-desc">{{ $t('empAdminApp.description') }}</p>
+      <h1 class="page-title">
+        {{ $t('empAdminApp.title') }}
+      </h1>
+      <p class="page-desc">
+        {{ $t('empAdminApp.description') }}
+      </p>
     </div>
 
-    <el-card class="eligibility-card" shadow="hover" v-loading="checkingEligibility">
-      <div class="eligibility-content" v-if="eligibility">
-        <div v-if="eligibility.eligible" class="eligible">
-          <el-icon class="success-icon"><CircleCheckFilled /></el-icon>
+    <el-card
+      v-loading="checkingEligibility"
+      class="eligibility-card"
+      shadow="hover"
+    >
+      <div
+        v-if="eligibility"
+        class="eligibility-content"
+      >
+        <div
+          v-if="eligibility.eligible"
+          class="eligible"
+        >
+          <el-icon class="success-icon">
+            <CircleCheckFilled />
+          </el-icon>
           <div class="eligibility-text">
             <h2>{{ $t('empAdminApp.eligible') }}</h2>
             <p>{{ $t('empAdminApp.daysRegistered', { days: eligibility.days_registered }) }}</p>
           </div>
         </div>
-        <div v-else class="not-eligible">
-          <el-icon class="warning-icon"><WarningFilled /></el-icon>
+        <div
+          v-else
+          class="not-eligible"
+        >
+          <el-icon class="warning-icon">
+            <WarningFilled />
+          </el-icon>
           <div class="eligibility-text">
             <h2>{{ $t('empAdminApp.notEligible') }}</h2>
             <p>{{ eligibility.reason }}</p>
-            <p v-if="eligibility.days_needed">{{ $t('empAdminApp.daysNeeded', { days: eligibility.days_needed }) }}</p>
+            <p v-if="eligibility.days_needed">
+              {{ $t('empAdminApp.daysNeeded', { days: eligibility.days_needed }) }}
+            </p>
           </div>
         </div>
       </div>
     </el-card>
 
     <!-- Application Form -->
-    <el-card class="form-card" shadow="hover" v-if="eligibility?.eligible">
+    <el-card
+      v-if="eligibility?.eligible"
+      class="form-card"
+      shadow="hover"
+    >
       <template #header>
         <span>{{ $t('empAdminApp.fillForm') }}</span>
       </template>
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="100px">
-        <el-form-item :label="$t('empAdminApp.reasonLabel')" prop="reason">
+      <el-form
+        ref="formRef"
+        :model="form"
+        :rules="rules"
+        label-width="100px"
+      >
+        <el-form-item
+          :label="$t('empAdminApp.reasonLabel')"
+          prop="reason"
+        >
           <el-input
             v-model="form.reason"
             type="textarea"
@@ -42,7 +77,11 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="submitApplication" :loading="submitting">
+          <el-button
+            type="primary"
+            :loading="submitting"
+            @click="submitApplication"
+          >
             {{ $t('empAdminApp.submit') }}
           </el-button>
         </el-form-item>
@@ -50,25 +89,59 @@
     </el-card>
 
     <!-- My Applications History -->
-    <el-card class="history-card" shadow="hover">
+    <el-card
+      class="history-card"
+      shadow="hover"
+    >
       <template #header>
         <span>{{ $t('empAdminApp.myApplications') }}</span>
       </template>
-      <el-table :data="myApplications" v-loading="loadingHistory" :empty-text="$t('empAdminApp.noApplications')">
-        <el-table-column prop="id" :label="$t('empAdminApp.applicationId')" width="100" />
-        <el-table-column prop="status_text" :label="$t('empAdminApp.status')" width="120">
+      <el-table
+        v-loading="loadingHistory"
+        :data="myApplications"
+        :empty-text="$t('empAdminApp.noApplications')"
+      >
+        <el-table-column
+          prop="id"
+          :label="$t('empAdminApp.applicationId')"
+          width="100"
+        />
+        <el-table-column
+          prop="status_text"
+          :label="$t('empAdminApp.status')"
+          width="120"
+        >
           <template #default="scope">
-            <el-tag :type="getStatusType(scope.row.status)">{{ scope.row.status_text }}</el-tag>
+            <el-tag :type="getStatusType(scope.row.status)">
+              {{ scope.row.status_text }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="approval_ratio" :label="$t('empAdminApp.approvalRatio')" width="100">
+        <el-table-column
+          prop="approval_ratio"
+          :label="$t('empAdminApp.approvalRatio')"
+          width="100"
+        >
           <template #default="scope">
             <span>{{ scope.row.approval_ratio }}%</span>
           </template>
         </el-table-column>
-        <el-table-column prop="total_votes" :label="$t('empAdminApp.totalVotes')" width="100" />
-        <el-table-column prop="created_at" :label="$t('empAdminApp.applicationTime')" width="160" />
-        <el-table-column prop="reason" :label="$t('empAdminApp.reasonColumn')" min-width="200" show-overflow-tooltip />
+        <el-table-column
+          prop="total_votes"
+          :label="$t('empAdminApp.totalVotes')"
+          width="100"
+        />
+        <el-table-column
+          prop="created_at"
+          :label="$t('empAdminApp.applicationTime')"
+          width="160"
+        />
+        <el-table-column
+          prop="reason"
+          :label="$t('empAdminApp.reasonColumn')"
+          min-width="200"
+          show-overflow-tooltip
+        />
       </el-table>
     </el-card>
   </div>

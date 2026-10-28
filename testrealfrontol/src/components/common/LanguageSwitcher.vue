@@ -1,15 +1,24 @@
 <template>
-  <el-dropdown @command="handleSwitch" trigger="click">
+  <el-dropdown
+    trigger="click"
+    @command="handleSwitch"
+  >
     <el-button text>
       <el-icon><Switch /></el-icon>
       <span style="margin-left: 4px">{{ currentLabel }}</span>
     </el-button>
     <template #dropdown>
       <el-dropdown-menu>
-        <el-dropdown-item command="zh-CN" :class="{ active: locale === 'zh-CN' }">
+        <el-dropdown-item
+          command="zh-CN"
+          :class="{ active: locale === 'zh-CN' }"
+        >
           中文
         </el-dropdown-item>
-        <el-dropdown-item command="en-US" :class="{ active: locale === 'en-US' }">
+        <el-dropdown-item
+          command="en-US"
+          :class="{ active: locale === 'en-US' }"
+        >
           English
         </el-dropdown-item>
       </el-dropdown-menu>

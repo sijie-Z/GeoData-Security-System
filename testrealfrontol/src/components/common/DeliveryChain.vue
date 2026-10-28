@@ -14,7 +14,11 @@
       <!-- 左：操作树 -->
       <div class="dc-tree">
         <span class="dc-node" />
-        <span v-if="i < rows.length - 1" class="dc-line" :class="{ 'is-broken': row.status === 'missing' }" />
+        <span
+          v-if="i < rows.length - 1"
+          class="dc-line"
+          :class="{ 'is-broken': row.status === 'missing' }"
+        />
       </div>
 
       <!-- 右：水位条 -->
@@ -31,10 +35,23 @@
             :class="{ 'is-first': i === 0 }"
             :style="{ left: row.left + '%', width: row.width + '%' }"
           />
-          <div v-else-if="row.status === 'missing'" class="dc-bar is-missing" :style="{ left: row.left + '%' }" />
-          <div v-else-if="row.status === 'pending'" class="dc-bar is-pending" :style="{ left: row.left + '%' }" />
+          <div
+            v-else-if="row.status === 'missing'"
+            class="dc-bar is-missing"
+            :style="{ left: row.left + '%' }"
+          />
+          <div
+            v-else-if="row.status === 'pending'"
+            class="dc-bar is-pending"
+            :style="{ left: row.left + '%' }"
+          />
         </div>
-        <div v-if="row.status === 'missing'" class="dc-missing">{{ $t('common.deliveryChain.missing') }}</div>
+        <div
+          v-if="row.status === 'missing'"
+          class="dc-missing"
+        >
+          {{ $t('common.deliveryChain.missing') }}
+        </div>
       </div>
     </div>
   </div>

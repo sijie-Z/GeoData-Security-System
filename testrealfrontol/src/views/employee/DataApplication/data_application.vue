@@ -1,25 +1,60 @@
 <template>
-  <el-card class="page-container" shadow="never">
+  <el-card
+    class="page-container"
+    shadow="never"
+  >
     <!-- 顶部标题和操作区 -->
     <template #header>
       <div class="card-header">
         <h1>{{ $t('empDataApp.title') }}</h1>
-        <el-button :icon="Refresh" circle :aria-label="$t('common.refresh')" @click="get_applications" />
+        <el-button
+          :icon="Refresh"
+          circle
+          :aria-label="$t('common.refresh')"
+          @click="get_applications"
+        />
       </div>
     </template>
 
     <!-- 表格区域 -->
-    <el-table :data="data.list" style="width: 100%" stripe v-loading="loading">
-      <el-table-column prop="id" :label="$t('empDataApp.applicationId')" width="100" align="center">
-         <template #default="{ row }">
+    <el-table
+      v-loading="loading"
+      :data="data.list"
+      style="width: 100%"
+      stripe
+    >
+      <el-table-column
+        prop="id"
+        :label="$t('empDataApp.applicationId')"
+        width="100"
+        align="center"
+      >
+        <template #default="{ row }">
           <strong>#{{ row.id }}</strong>
         </template>
       </el-table-column>
-      <el-table-column prop="data_alias" :label="$t('empDataApp.applicationDataName')" show-overflow-tooltip />
-      <el-table-column prop="data_id" :label="$t('empDataApp.vectorDataId')" width="120" align="center"/>
-      <el-table-column prop="reason" :label="$t('empDataApp.applicationReason')" show-overflow-tooltip />
+      <el-table-column
+        prop="data_alias"
+        :label="$t('empDataApp.applicationDataName')"
+        show-overflow-tooltip
+      />
+      <el-table-column
+        prop="data_id"
+        :label="$t('empDataApp.vectorDataId')"
+        width="120"
+        align="center"
+      />
+      <el-table-column
+        prop="reason"
+        :label="$t('empDataApp.applicationReason')"
+        show-overflow-tooltip
+      />
 
-      <el-table-column :label="$t('empDataApp.firstReviewStatus')" width="120" align="center">
+      <el-table-column
+        :label="$t('empDataApp.firstReviewStatus')"
+        width="120"
+        align="center"
+      >
         <template #default="{ row }">
           <el-tag :type="getStatusTagType(row.first_statu)">
             {{ getStatusText(row.first_statu) }}
@@ -27,10 +62,16 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('empDataApp.secondReviewStatus')" width="120" align="center">
+      <el-table-column
+        :label="$t('empDataApp.secondReviewStatus')"
+        width="120"
+        align="center"
+      >
         <template #default="{ row }">
           <div v-if="row.first_statu === false">
-            <el-tag type="info">{{ $t('empDataApp.notStarted') }}</el-tag>
+            <el-tag type="info">
+              {{ $t('empDataApp.notStarted') }}
+            </el-tag>
           </div>
           <div v-else>
             <el-tag :type="getStatusTagType(row.second_statu)">
@@ -40,15 +81,35 @@
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('empDataApp.actions')" width="180" align="center">
+      <el-table-column
+        :label="$t('empDataApp.actions')"
+        width="180"
+        align="center"
+      >
         <template #default="{ row }">
-          <el-button type="primary" link size="small" @click="openLifecycle(row)">{{ $t('empDataApp.viewDetails') }}</el-button>
+          <el-button
+            type="primary"
+            link
+            size="small"
+            @click="openLifecycle(row)"
+          >
+            {{ $t('empDataApp.viewDetails') }}
+          </el-button>
           <el-button
             v-if="row.first_statu === null && !row.is_recalled"
-            type="danger" link size="small"
+            type="danger"
+            link
+            size="small"
             @click="handleWithdraw(row)"
-          >{{ $t('empDataApp.withdraw') || '撤回' }}</el-button>
-          <el-tag v-if="row.is_recalled" type="info" size="small" effect="plain">
+          >
+            {{ $t('empDataApp.withdraw') || '撤回' }}
+          </el-button>
+          <el-tag
+            v-if="row.is_recalled"
+            type="info"
+            size="small"
+            effect="plain"
+          >
             {{ $t('empDataApp.recalled') || '已撤回' }}
           </el-tag>
         </template>
@@ -74,7 +135,10 @@
       size="520px"
       destroy-on-close
     >
-      <ApplicationLifecycle v-if="selectedAppId" :application-id="selectedAppId" />
+      <ApplicationLifecycle
+        v-if="selectedAppId"
+        :application-id="selectedAppId"
+      />
     </el-drawer>
   </el-card>
 </template>

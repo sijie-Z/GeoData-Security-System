@@ -1,14 +1,23 @@
 <template>
   <el-popover
+    v-model:visible="showPopover"
     placement="bottom-end"
     :width="360"
     trigger="click"
-    v-model:visible="showPopover"
   >
     <template #reference>
-      <div class="notification-bell" @click="markAllAsRead">
-        <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-          <el-icon :size="20"><Bell /></el-icon>
+      <div
+        class="notification-bell"
+        @click="markAllAsRead"
+      >
+        <el-badge
+          :value="unreadCount"
+          :hidden="unreadCount === 0"
+          :max="99"
+        >
+          <el-icon :size="20">
+            <Bell />
+          </el-icon>
         </el-badge>
       </div>
     </template>
@@ -16,15 +25,33 @@
     <div class="notification-panel">
       <div class="panel-header">
         <span class="panel-title">{{ $t('notification.center') }}</span>
-        <el-button type="primary" link size="small" @click="goToChat" v-if="unreadMessages > 0">
+        <el-button
+          v-if="unreadMessages > 0"
+          type="primary"
+          link
+          size="small"
+          @click="goToChat"
+        >
           {{ $t('notification.newMessages', { count: unreadMessages }) }}
         </el-button>
       </div>
 
-      <el-tabs v-model="activeTab" class="notification-tabs">
-        <el-tab-pane :label="$t('notification.messages')" name="messages">
-          <div class="notification-list" v-loading="loading">
-            <div v-if="messageNotifications.length === 0" class="empty-state">
+      <el-tabs
+        v-model="activeTab"
+        class="notification-tabs"
+      >
+        <el-tab-pane
+          :label="$t('notification.messages')"
+          name="messages"
+        >
+          <div
+            v-loading="loading"
+            class="notification-list"
+          >
+            <div
+              v-if="messageNotifications.length === 0"
+              class="empty-state"
+            >
               {{ $t('notification.noMessages') }}
             </div>
             <div
@@ -34,22 +61,39 @@
               :class="{ unread: item.unread_count > 0 }"
               @click="goToMessage(item)"
             >
-              <div class="avatar">{{ (item.peer_name || item.peer_number || '?').charAt(0) }}</div>
+              <div class="avatar">
+                {{ (item.peer_name || item.peer_number || '?').charAt(0) }}
+              </div>
               <div class="content">
                 <div class="item-header">
                   <span class="sender">{{ item.peer_name || item.peer_number }}</span>
                   <span class="time">{{ formatTime(item.last_time) }}</span>
                 </div>
-                <div class="preview">{{ item.last_message || $t('notification.clickToView') }}</div>
+                <div class="preview">
+                  {{ item.last_message || $t('notification.clickToView') }}
+                </div>
               </div>
-              <el-badge v-if="item.unread_count > 0" :value="item.unread_count" class="item-badge" />
+              <el-badge
+                v-if="item.unread_count > 0"
+                :value="item.unread_count"
+                class="item-badge"
+              />
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane :label="$t('notification.systemNotifications')" name="system">
-          <div class="notification-list" v-loading="loading">
-            <div v-if="systemNotifications.length === 0" class="empty-state">
+        <el-tab-pane
+          :label="$t('notification.systemNotifications')"
+          name="system"
+        >
+          <div
+            v-loading="loading"
+            class="notification-list"
+          >
+            <div
+              v-if="systemNotifications.length === 0"
+              class="empty-state"
+            >
               {{ $t('notification.noSystemNotifications') }}
             </div>
             <div
@@ -59,17 +103,28 @@
               :class="{ unread: !item.read }"
               @click="handleSystemNotification(item); markAsRead(item)"
             >
-              <div class="icon-wrapper" :class="item.type || 'info'">
-                <el-icon v-if="item.type === 'approval'"><DocumentChecked /></el-icon>
-                <el-icon v-else-if="item.type === 'recall'"><Warning /></el-icon>
-                <el-icon v-else><Bell /></el-icon>
+              <div
+                class="icon-wrapper"
+                :class="item.type || 'info'"
+              >
+                <el-icon v-if="item.type === 'approval'">
+                  <DocumentChecked />
+                </el-icon>
+                <el-icon v-else-if="item.type === 'recall'">
+                  <Warning />
+                </el-icon>
+                <el-icon v-else>
+                  <Bell />
+                </el-icon>
               </div>
               <div class="content">
                 <div class="item-header">
                   <span class="sender">{{ item.title }}</span>
                   <span class="time">{{ formatTime(item.created_at) }}</span>
                 </div>
-                <div class="preview">{{ item.content }}</div>
+                <div class="preview">
+                  {{ item.content }}
+                </div>
               </div>
             </div>
           </div>
@@ -174,7 +229,7 @@ const goToChat = () => {
   }
 }
 
-const goToMessage = (item) => {
+const goToMessage = () => {
   showPopover.value = false
   const role = userStore.currentUser?.role
   if (role === 'admin') {

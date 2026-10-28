@@ -1,165 +1,283 @@
 <template>
-  <div class="employee-dashboard" :aria-busy="loading">
+  <div
+    class="employee-dashboard"
+    :aria-busy="loading"
+  >
     <template v-if="loading">
       <!-- hero 位：与 .hero 同骨架（3 行 + 右侧 2 按钮块） -->
       <section class="hero glass">
         <div>
-          <div class="sk-line sk-hero-title motion-shimmer"></div>
-          <div class="sk-line sk-hero-sub motion-shimmer"></div>
-          <div class="sk-line sk-hero-meta motion-shimmer"></div>
+          <div class="sk-line sk-hero-title motion-shimmer" />
+          <div class="sk-line sk-hero-sub motion-shimmer" />
+          <div class="sk-line sk-hero-meta motion-shimmer" />
         </div>
         <div class="hero-actions">
-          <div class="sk-btn motion-shimmer"></div>
-          <div class="sk-btn motion-shimmer"></div>
+          <div class="sk-btn motion-shimmer" />
+          <div class="sk-btn motion-shimmer" />
         </div>
       </section>
 
       <!-- KPI 位：真实 .kpi-grid + .kpi.glass（标签线 + 数值线） -->
       <section class="kpi-grid">
-        <div v-for="n in 4" :key="n" class="kpi glass sk-pin">
-          <div class="sk-line sk-kpi-label motion-shimmer"></div>
-          <div class="sk-line sk-kpi-value motion-shimmer"></div>
+        <div
+          v-for="n in 4"
+          :key="n"
+          class="kpi glass sk-pin"
+        >
+          <div class="sk-line sk-kpi-label motion-shimmer" />
+          <div class="sk-line sk-kpi-value motion-shimmer" />
         </div>
       </section>
 
       <!-- 图表行位：1 宽图 + 2 小图（与 .chart / .chart.small 同高） -->
       <section class="grid">
-        <el-card class="glass" shadow="never">
-          <template #header><div class="panel-header"><div class="sk-line sk-h3 sk-h3-with-tag motion-shimmer"></div></div></template>
-          <div class="chart sk-block motion-shimmer"></div>
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <div class="sk-line sk-h3 sk-h3-with-tag motion-shimmer" />
+            </div>
+          </template>
+          <div class="chart sk-block motion-shimmer" />
         </el-card>
-        <el-card class="glass" shadow="never">
-          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
-          <div class="chart small sk-block motion-shimmer"></div>
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <div class="sk-line sk-h3 motion-shimmer" />
+            </div>
+          </template>
+          <div class="chart small sk-block motion-shimmer" />
         </el-card>
-        <el-card class="glass" shadow="never">
-          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
-          <div class="chart small sk-block motion-shimmer"></div>
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <div class="sk-line sk-h3 motion-shimmer" />
+            </div>
+          </template>
+          <div class="chart small sk-block motion-shimmer" />
         </el-card>
       </section>
 
       <!-- 快捷入口 + 公告行位（3 动作块 + 5 行公告线） -->
       <section class="grid">
-        <el-card class="glass" shadow="never">
-          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <div class="sk-line sk-h3 motion-shimmer" />
+            </div>
+          </template>
           <div class="action-grid">
-            <div v-for="n in 3" :key="n" class="action-card sk-action-card">
-              <div class="sk-line sk-action-b motion-shimmer"></div>
-              <div class="sk-line sk-action-s motion-shimmer"></div>
+            <div
+              v-for="n in 3"
+              :key="n"
+              class="action-card sk-action-card"
+            >
+              <div class="sk-line sk-action-b motion-shimmer" />
+              <div class="sk-line sk-action-s motion-shimmer" />
             </div>
           </div>
         </el-card>
-        <el-card class="glass" shadow="never">
-          <template #header><div class="panel-header"><div class="sk-line sk-h3 motion-shimmer"></div></div></template>
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <div class="sk-line sk-h3 motion-shimmer" />
+            </div>
+          </template>
           <div class="announcement-list">
-            <div v-for="n in 5" :key="n" class="announcement-item sk-ann-row">
-              <div class="sk-line sk-ann-line1 motion-shimmer"></div>
-              <div class="sk-line sk-ann-line2 motion-shimmer"></div>
+            <div
+              v-for="n in 5"
+              :key="n"
+              class="announcement-item sk-ann-row"
+            >
+              <div class="sk-line sk-ann-line1 motion-shimmer" />
+              <div class="sk-line sk-ann-line2 motion-shimmer" />
             </div>
           </div>
         </el-card>
       </section>
     </template>
     <template v-else>
-    <section class="hero glass">
-      <div>
-        <h1>{{ $t('empDashboard.title') }} · {{ greeting }}，{{ userStore.user_name || $t('empDashboard.defaultEmployee') }}</h1>
-        <p>{{ $t('empDashboard.subtitle') }}</p>
-        <div class="meta">{{ $t('empDashboard.todayVisits') }}：{{ todayVisits }} · {{ $t('empDashboard.lastLogin') }}：{{ lastLoginTime }}</div>
-      </div>
-      <div class="hero-actions">
-        <el-button type="primary" @click="refreshNow">{{ $t('empDashboard.refreshData') }}</el-button>
-        <el-button @click="goTo('/employee/data_viewing')">{{ $t('empDashboard.enterDataCatalog') }}</el-button>
-      </div>
-    </section>
-
-    <section class="kpi-grid motion-stagger">
-      <div class="kpi glass">
-        <span>{{ $t('empDashboard.totalApplications') }}</span>
-        <h2>{{ metrics.totalApplications }}</h2>
-      </div>
-      <div class="kpi glass warn">
-        <span>{{ $t('empDashboard.pendingApplications') }}</span>
-        <h2>{{ metrics.pendingApplications }}</h2>
-      </div>
-      <div class="kpi glass ok">
-        <span>{{ $t('empDashboard.downloadableData') }}</span>
-        <h2>{{ metrics.downloadableData }}</h2>
-      </div>
-      <div class="kpi glass info">
-        <span>{{ $t('empDashboard.myDownloads') }}</span>
-        <h2>{{ metrics.myDownloads }}</h2>
-      </div>
-    </section>
-
-    <section class="grid">
-      <el-card class="glass" shadow="never">
-        <template #header>
-          <div class="panel-header">
-            <h3>{{ $t('empDashboard.trendTitle') }}</h3>
-            <el-tag type="info" effect="light">{{ $t('empDashboard.dbAggregation') }}</el-tag>
-          </div>
-        </template>
-        <v-chart
-          class="chart"
-          :option="trendOption"
-          :autoresize="{ throttle: 160 }"
-        />
-      </el-card>
-
-      <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.statusDistribution') }}</h3></div></template>
-        <v-chart
-          class="chart small"
-          :option="statusOption"
-          :autoresize="{ throttle: 160 }"
-        />
-      </el-card>
-
-      <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.dataTypePreference') }}</h3></div></template>
-        <v-chart
-          class="chart small"
-          :option="dataTypeOption"
-          :autoresize="{ throttle: 160 }"
-        />
-      </el-card>
-    </section>
-
-    <section class="grid">
-      <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.quickActions') }}</h3></div></template>
-        <div class="action-grid">
-          <div class="action-card" @click="goTo('/employee/data_viewing')">
-            <b>{{ $t('empDashboard.dataCatalog') }}</b>
-            <span>{{ $t('empDashboard.browseResources') }}</span>
-          </div>
-          <div class="action-card" @click="goTo('/employee/data_application')">
-            <b>{{ $t('empDashboard.myApplications') }}</b>
-            <span>{{ $t('empDashboard.viewProgress') }}</span>
-          </div>
-          <div class="action-card" @click="goTo('/employee/data_download')">
-            <b>{{ $t('empDashboard.approvedDownloads') }}</b>
-            <span>{{ $t('empDashboard.getAuthorizedData') }}</span>
+      <section class="hero glass">
+        <div>
+          <h1>{{ $t('empDashboard.title') }} · {{ greeting }}，{{ userStore.user_name || $t('empDashboard.defaultEmployee') }}</h1>
+          <p>{{ $t('empDashboard.subtitle') }}</p>
+          <div class="meta">
+            {{ $t('empDashboard.todayVisits') }}：{{ todayVisits }} · {{ $t('empDashboard.lastLogin') }}：{{ lastLoginTime }}
           </div>
         </div>
-      </el-card>
+        <div class="hero-actions">
+          <el-button
+            type="primary"
+            @click="refreshNow"
+          >
+            {{ $t('empDashboard.refreshData') }}
+          </el-button>
+          <el-button @click="goTo('/employee/data_viewing')">
+            {{ $t('empDashboard.enterDataCatalog') }}
+          </el-button>
+        </div>
+      </section>
 
-      <el-card class="glass" shadow="never">
-        <template #header><div class="panel-header"><h3>{{ $t('empDashboard.systemAnnouncements') }}</h3></div></template>
-        <div v-if="announcements.length === 0" class="empty">{{ $t('empDashboard.noAnnouncements') }}</div>
-        <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
-        <div v-else class="announcement-list" tabindex="0" :aria-label="$t('empDashboard.systemAnnouncements')">
-          <div v-for="a in announcements" :key="a.id" class="announcement-item">
-            <div>
-              <b>{{ a.title }}</b>
-              <p>{{ a.content }}</p>
+      <section class="kpi-grid motion-stagger">
+        <div class="kpi glass">
+          <span>{{ $t('empDashboard.totalApplications') }}</span>
+          <h2>{{ metrics.totalApplications }}</h2>
+        </div>
+        <div class="kpi glass warn">
+          <span>{{ $t('empDashboard.pendingApplications') }}</span>
+          <h2>{{ metrics.pendingApplications }}</h2>
+        </div>
+        <div class="kpi glass ok">
+          <span>{{ $t('empDashboard.downloadableData') }}</span>
+          <h2>{{ metrics.downloadableData }}</h2>
+        </div>
+        <div class="kpi glass info">
+          <span>{{ $t('empDashboard.myDownloads') }}</span>
+          <h2>{{ metrics.myDownloads }}</h2>
+        </div>
+      </section>
+
+      <section class="grid">
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <h3>{{ $t('empDashboard.trendTitle') }}</h3>
+              <el-tag
+                type="info"
+                effect="light"
+              >
+                {{ $t('empDashboard.dbAggregation') }}
+              </el-tag>
             </div>
-            <small>{{ a.created_at }}</small>
+          </template>
+          <v-chart
+            class="chart"
+            :option="trendOption"
+            :autoresize="{ throttle: 160 }"
+          />
+        </el-card>
+
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <h3>{{ $t('empDashboard.statusDistribution') }}</h3>
+            </div>
+          </template>
+          <v-chart
+            class="chart small"
+            :option="statusOption"
+            :autoresize="{ throttle: 160 }"
+          />
+        </el-card>
+
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <h3>{{ $t('empDashboard.dataTypePreference') }}</h3>
+            </div>
+          </template>
+          <v-chart
+            class="chart small"
+            :option="dataTypeOption"
+            :autoresize="{ throttle: 160 }"
+          />
+        </el-card>
+      </section>
+
+      <section class="grid">
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <h3>{{ $t('empDashboard.quickActions') }}</h3>
+            </div>
+          </template>
+          <div class="action-grid">
+            <div
+              class="action-card"
+              @click="goTo('/employee/data_viewing')"
+            >
+              <b>{{ $t('empDashboard.dataCatalog') }}</b>
+              <span>{{ $t('empDashboard.browseResources') }}</span>
+            </div>
+            <div
+              class="action-card"
+              @click="goTo('/employee/data_application')"
+            >
+              <b>{{ $t('empDashboard.myApplications') }}</b>
+              <span>{{ $t('empDashboard.viewProgress') }}</span>
+            </div>
+            <div
+              class="action-card"
+              @click="goTo('/employee/data_download')"
+            >
+              <b>{{ $t('empDashboard.approvedDownloads') }}</b>
+              <span>{{ $t('empDashboard.getAuthorizedData') }}</span>
+            </div>
           </div>
-        </div>
-      </el-card>
-    </section>
+        </el-card>
+
+        <el-card
+          class="glass"
+          shadow="never"
+        >
+          <template #header>
+            <div class="panel-header">
+              <h3>{{ $t('empDashboard.systemAnnouncements') }}</h3>
+            </div>
+          </template>
+          <div
+            v-if="announcements.length === 0"
+            class="empty"
+          >
+            {{ $t('empDashboard.noAnnouncements') }}
+          </div>
+          <!-- axe scrollable-region-focusable：滚动区需可聚焦（tabindex=0 + 可访问名） -->
+          <div
+            v-else
+            class="announcement-list"
+            tabindex="0"
+            :aria-label="$t('empDashboard.systemAnnouncements')"
+          >
+            <div
+              v-for="a in announcements"
+              :key="a.id"
+              class="announcement-item"
+            >
+              <div>
+                <b>{{ a.title }}</b>
+                <p>{{ a.content }}</p>
+              </div>
+              <small>{{ a.created_at }}</small>
+            </div>
+          </div>
+        </el-card>
+      </section>
     </template>
   </div>
 </template>

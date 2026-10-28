@@ -82,7 +82,7 @@ const logout = async () => {
  <script setup>
  import { ref, computed, onMounted, nextTick, watch } from 'vue';
  import { useUserStore } from "@/stores/userStore";
- import { useRouter, useRoute } from "vue-router";
+ import { useRouter } from "vue-router";
  import { useI18n } from 'vue-i18n';
  import { ElMessage } from "element-plus";
  import {
@@ -99,13 +99,12 @@ const { isDark, toggleTheme } = useTheme();
  
  const userStore = useUserStore();
  const router = useRouter();
- const route = useRoute();
  
  const userNumber = computed(() => userStore.userNumber);
  const userName = computed(() => userStore.userName);
  const avatarUrl = ref('');
 
- const props = defineProps({
+ defineProps({
    isSideCollapse: Boolean,
    isMobile: Boolean,
    drawerOpen: Boolean
@@ -208,66 +207,110 @@ const { isDark, toggleTheme } = useTheme();
  };
  </script>
  
- <template>
-   <header class="employee-header">
-     <div class="header-left">
-       <el-button
-         :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
-         class="toggle-sidebar-button"
-         text
-         :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
-         :aria-expanded="isMobile ? drawerOpen : undefined"
-         @click="toggleSidebar"
-       />
-       <!-- 使用新的维基风格地理空间logo -->
-     <img src="@/components/icons/geo-wiki-logo.svg" alt="Logo" class="wiki-logo" />
-       <span class="system-title">{{ $t('header.systemTitle') }}</span>
-     </div>
+<template>
+  <header class="employee-header">
+    <div class="header-left">
+      <el-button
+        :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
+        class="toggle-sidebar-button"
+        text
+        :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
+        :aria-expanded="isMobile ? drawerOpen : undefined"
+        @click="toggleSidebar"
+      />
+      <!-- 使用新的维基风格地理空间logo -->
+      <img
+        src="@/components/icons/geo-wiki-logo.svg"
+        alt="Logo"
+        class="wiki-logo"
+      >
+      <span class="system-title">{{ $t('header.systemTitle') }}</span>
+    </div>
  
-     <div class="header-right">
-       <LanguageSwitcher />
-       <el-button
-         class="theme-toggle-button"
-         text
-         :icon="isDark ? Sunny : Moon"
-         :title="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
-         :aria-label="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
-         @click="toggleTheme"
-       />
-       <NotificationCenter />
-       <el-menu
-         class="header-nav-menu"
-         mode="horizontal"
-         :ellipsis="false"
-         :router="true"
-         :default-active="$route.path"
-       >
-         <el-menu-item index="/employee">{{ $t('header.home') }}</el-menu-item>
-         <el-menu-item index="/employee/data_viewing">{{ $t('header.dataCatalog') }}</el-menu-item>
-         <el-menu-item index="/employee/data_application">{{ $t('header.myApplications') }}</el-menu-item>
-         <el-menu-item index="/employee/data_download">{{ $t('header.dataDownload') }}</el-menu-item>
-       </el-menu>
+    <div class="header-right">
+      <LanguageSwitcher />
+      <el-button
+        class="theme-toggle-button"
+        text
+        :icon="isDark ? Sunny : Moon"
+        :title="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+        :aria-label="isDark ? $t('header.switchToLight') : $t('header.switchToDark')"
+        @click="toggleTheme"
+      />
+      <NotificationCenter />
+      <el-menu
+        class="header-nav-menu"
+        mode="horizontal"
+        :ellipsis="false"
+        :router="true"
+        :default-active="$route.path"
+      >
+        <el-menu-item index="/employee">
+          {{ $t('header.home') }}
+        </el-menu-item>
+        <el-menu-item index="/employee/data_viewing">
+          {{ $t('header.dataCatalog') }}
+        </el-menu-item>
+        <el-menu-item index="/employee/data_application">
+          {{ $t('header.myApplications') }}
+        </el-menu-item>
+        <el-menu-item index="/employee/data_download">
+          {{ $t('header.dataDownload') }}
+        </el-menu-item>
+      </el-menu>
  
-       <el-dropdown trigger="click" @command="handleCommand">
-         <span class="el-dropdown-link user-info-dropdown">
-           <el-avatar :size="36" :src="avatarUrl" class="user-avatar" @error="handleAvatarError">
-             <img src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg" alt="默认头像" />
-           </el-avatar>
-           <span class="user-name">{{ userName || $t('header.employee') }}</span>
-           <el-icon class="el-icon--right"><arrow-down /></el-icon>
-         </span>
-         <template #dropdown>
-           <el-dropdown-menu>
-             <el-dropdown-item command="profile" :icon="UserFilled">{{ $t('header.profile') }}</el-dropdown-item>
-             <el-dropdown-item command="help" :icon="QuestionFilled">{{ $t('header.systemHelp') }}</el-dropdown-item>
-             <el-dropdown-item command="about" :icon="InfoFilled">{{ $t('header.aboutSystem') }}</el-dropdown-item>
-             <el-dropdown-item divided command="logout" :icon="SwitchButton">{{ $t('header.logout') }}</el-dropdown-item>
-           </el-dropdown-menu>
-         </template>
-       </el-dropdown>
-     </div>
-   </header>
- </template>
+      <el-dropdown
+        trigger="click"
+        @command="handleCommand"
+      >
+        <span class="el-dropdown-link user-info-dropdown">
+          <el-avatar
+            :size="36"
+            :src="avatarUrl"
+            class="user-avatar"
+            @error="handleAvatarError"
+          >
+            <img
+              src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg"
+              alt="默认头像"
+            >
+          </el-avatar>
+          <span class="user-name">{{ userName || $t('header.employee') }}</span>
+          <el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </span>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item
+              command="profile"
+              :icon="UserFilled"
+            >
+              {{ $t('header.profile') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="help"
+              :icon="QuestionFilled"
+            >
+              {{ $t('header.systemHelp') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              command="about"
+              :icon="InfoFilled"
+            >
+              {{ $t('header.aboutSystem') }}
+            </el-dropdown-item>
+            <el-dropdown-item
+              divided
+              command="logout"
+              :icon="SwitchButton"
+            >
+              {{ $t('header.logout') }}
+            </el-dropdown-item>
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+    </div>
+  </header>
+</template>
  
  <style scoped>
  .employee-header {

@@ -1,18 +1,32 @@
 <template>
   <div class="chat-page">
-    <el-card class="chat-card" shadow="hover">
+    <el-card
+      class="chat-card"
+      shadow="hover"
+    >
       <template #header>
         <div class="chat-header">
           <h1>{{ $t('adminChat.title') }}</h1>
-          <el-button type="primary" @click="showUserList = true" :icon="Plus">{{ $t('adminChat.selectContact') }}</el-button>
+          <el-button
+            type="primary"
+            :icon="Plus"
+            @click="showUserList = true"
+          >
+            {{ $t('adminChat.selectContact') }}
+          </el-button>
         </div>
       </template>
 
       <div class="chat-layout">
         <!-- 会话列表 -->
         <aside class="conversation-list">
-          <div class="list-header">{{ $t('adminChat.recentConversations') }}</div>
-          <div class="conversations" v-loading="loadingConversations">
+          <div class="list-header">
+            {{ $t('adminChat.recentConversations') }}
+          </div>
+          <div
+            v-loading="loadingConversations"
+            class="conversations"
+          >
             <div
               v-for="item in conversations"
               :key="`${item.peer_role}-${item.peer_number}`"
@@ -20,25 +34,51 @@
               :class="{ active: activePeer && activePeer.peer_number === item.peer_number && activePeer.peer_role === item.peer_role }"
               @click="selectConversation(item)"
             >
-              <div class="avatar">{{ (item.peer_name || item.peer_number || '?').charAt(0) }}</div>
-              <div class="info">
-                <div class="name">{{ item.peer_name || item.peer_number }}</div>
-                <div class="preview">{{ item.last_message || $t('adminChat.clickToChat') }}</div>
+              <div class="avatar">
+                {{ (item.peer_name || item.peer_number || '?').charAt(0) }}
               </div>
-              <el-badge v-if="item.unread_count > 0" :value="item.unread_count" />
+              <div class="info">
+                <div class="name">
+                  {{ item.peer_name || item.peer_number }}
+                </div>
+                <div class="preview">
+                  {{ item.last_message || $t('adminChat.clickToChat') }}
+                </div>
+              </div>
+              <el-badge
+                v-if="item.unread_count > 0"
+                :value="item.unread_count"
+              />
             </div>
-            <div v-if="conversations.length === 0 && !loadingConversations" class="no-session">
+            <div
+              v-if="conversations.length === 0 && !loadingConversations"
+              class="no-session"
+            >
               <p>{{ $t('adminChat.noConversations') }}</p>
-              <el-button type="primary" size="small" @click="showUserList = true">{{ $t('adminChat.startChat') }}</el-button>
+              <el-button
+                type="primary"
+                size="small"
+                @click="showUserList = true"
+              >
+                {{ $t('adminChat.startChat') }}
+              </el-button>
             </div>
           </div>
         </aside>
 
         <!-- 聊天区域 -->
         <section class="chat-area">
-          <div v-if="!activePeer" class="empty-chat">
+          <div
+            v-if="!activePeer"
+            class="empty-chat"
+          >
             <el-empty :description="$t('adminChat.selectContactToChat')">
-              <el-button type="primary" @click="showUserList = true">{{ $t('adminChat.selectContact') }}</el-button>
+              <el-button
+                type="primary"
+                @click="showUserList = true"
+              >
+                {{ $t('adminChat.selectContact') }}
+              </el-button>
             </el-empty>
           </div>
 
@@ -47,20 +87,45 @@
             <div class="chat-top-bar">
               <div class="peer-info">
                 <span class="peer-name">{{ activePeer.peer_name || activePeer.peer_number }}</span>
-                <el-tag size="small" :type="activePeer.peer_role === 'admin' ? 'warning' : 'success'">
+                <el-tag
+                  size="small"
+                  :type="activePeer.peer_role === 'admin' ? 'warning' : 'success'"
+                >
                   {{ activePeer.peer_role === 'admin' ? $t('adminChat.admin') : $t('adminChat.employee') }}
                 </el-tag>
               </div>
-              <el-button size="small" @click="loadMessages" :loading="loadingMessages">{{ $t('adminChat.refresh') }}</el-button>
+              <el-button
+                size="small"
+                :loading="loadingMessages"
+                @click="loadMessages"
+              >
+                {{ $t('adminChat.refresh') }}
+              </el-button>
             </div>
 
             <!-- 消息列表 -->
-            <div class="messages" ref="messageBoxRef" v-loading="loadingMessages">
-              <div v-for="msg in messages" :key="msg.id" class="msg-item" :class="{ me: msg.is_me }">
-                <div class="bubble">{{ msg.content }}</div>
-                <div class="time">{{ msg.created_at }}</div>
+            <div
+              ref="messageBoxRef"
+              v-loading="loadingMessages"
+              class="messages"
+            >
+              <div
+                v-for="msg in messages"
+                :key="msg.id"
+                class="msg-item"
+                :class="{ me: msg.is_me }"
+              >
+                <div class="bubble">
+                  {{ msg.content }}
+                </div>
+                <div class="time">
+                  {{ msg.created_at }}
+                </div>
               </div>
-              <div v-if="messages.length === 0 && !loadingMessages" class="no-msg">
+              <div
+                v-if="messages.length === 0 && !loadingMessages"
+                class="no-msg"
+              >
                 <p>{{ $t('adminChat.noMessages') }}</p>
                 <p>{{ $t('adminChat.sendFirstMessage') }}</p>
               </div>
@@ -77,7 +142,12 @@
               />
               <div class="input-actions">
                 <TipWrap :reason="!messageText.trim() ? $t('common.disabledReason.enterMessage') : ''">
-                  <el-button type="primary" @click="sendMessage" :loading="sending" :disabled="!messageText.trim()">
+                  <el-button
+                    type="primary"
+                    :loading="sending"
+                    :disabled="!messageText.trim()"
+                    @click="sendMessage"
+                  >
                     {{ $t('adminChat.send') }}
                   </el-button>
                 </TipWrap>
@@ -89,27 +159,83 @@
     </el-card>
 
     <!-- 用户选择对话框 -->
-    <el-dialog v-model="showUserList" :title="$t('adminChat.selectContact')" width="600px" destroy-on-close>
-      <el-input v-model="userSearchKeyword" :placeholder="$t('adminChat.searchUser')" clearable style="margin-bottom: 16px" />
+    <el-dialog
+      v-model="showUserList"
+      :title="$t('adminChat.selectContact')"
+      width="600px"
+      destroy-on-close
+    >
+      <el-input
+        v-model="userSearchKeyword"
+        :placeholder="$t('adminChat.searchUser')"
+        clearable
+        style="margin-bottom: 16px"
+      />
       <el-tabs v-model="userListTab">
-        <el-tab-pane :label="$t('adminChat.employeeList')" name="employees">
-          <el-table :data="filteredEmployees" max-height="400" v-loading="loadingUsers">
-            <el-table-column prop="employee_number" :label="$t('adminChat.number')" width="120" />
-            <el-table-column prop="name" :label="$t('adminChat.name')" />
-            <el-table-column :label="$t('adminChat.action')" width="100">
+        <el-tab-pane
+          :label="$t('adminChat.employeeList')"
+          name="employees"
+        >
+          <el-table
+            v-loading="loadingUsers"
+            :data="filteredEmployees"
+            max-height="400"
+          >
+            <el-table-column
+              prop="employee_number"
+              :label="$t('adminChat.number')"
+              width="120"
+            />
+            <el-table-column
+              prop="name"
+              :label="$t('adminChat.name')"
+            />
+            <el-table-column
+              :label="$t('adminChat.action')"
+              width="100"
+            >
               <template #default="scope">
-                <el-button type="primary" size="small" @click="startChat(scope.row, 'employee')">{{ $t('adminChat.chat') }}</el-button>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="startChat(scope.row, 'employee')"
+                >
+                  {{ $t('adminChat.chat') }}
+                </el-button>
               </template>
             </el-table-column>
           </el-table>
         </el-tab-pane>
-        <el-tab-pane :label="$t('adminChat.adminList')" name="admins">
-          <el-table :data="filteredAdmins" max-height="400" v-loading="loadingUsers">
-            <el-table-column prop="adm_number" :label="$t('adminChat.number')" width="120" />
-            <el-table-column prop="name" :label="$t('adminChat.name')" />
-            <el-table-column :label="$t('adminChat.action')" width="100">
+        <el-tab-pane
+          :label="$t('adminChat.adminList')"
+          name="admins"
+        >
+          <el-table
+            v-loading="loadingUsers"
+            :data="filteredAdmins"
+            max-height="400"
+          >
+            <el-table-column
+              prop="adm_number"
+              :label="$t('adminChat.number')"
+              width="120"
+            />
+            <el-table-column
+              prop="name"
+              :label="$t('adminChat.name')"
+            />
+            <el-table-column
+              :label="$t('adminChat.action')"
+              width="100"
+            >
               <template #default="scope">
-                <el-button type="primary" size="small" @click="startChat(scope.row, 'admin')">{{ $t('adminChat.chat') }}</el-button>
+                <el-button
+                  type="primary"
+                  size="small"
+                  @click="startChat(scope.row, 'admin')"
+                >
+                  {{ $t('adminChat.chat') }}
+                </el-button>
               </template>
             </el-table-column>
           </el-table>

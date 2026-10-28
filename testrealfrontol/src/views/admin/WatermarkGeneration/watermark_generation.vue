@@ -1,24 +1,73 @@
 <template>
   <div class="watermark-generation-page">
     <div class="page-header">
-      <h1 class="page-title">{{ $t('wmGen.pageTitle') }}</h1>
-      <p class="page-desc">{{ $t('wmGen.pageDesc') }}</p>
+      <h1 class="page-title">
+        {{ $t('wmGen.pageTitle') }}
+      </h1>
+      <p class="page-desc">
+        {{ $t('wmGen.pageDesc') }}
+      </p>
     </div>
 
-    <el-card class="table-card" shadow="hover">
-      <el-table :data="data.list" border stripe v-loading="loading" :empty-text="$t('wmGen.emptyText')">
-        <el-table-column prop="id" :label="$t('wmGen.colApplicationId')" width="90" />
-        <el-table-column prop="data_alias" :label="$t('wmGen.colDataName')" min-width="140" />
-        <el-table-column prop="data_id" :label="$t('wmGen.colDataId')" width="120" />
-        <el-table-column prop="applicant_user_number" :label="$t('wmGen.colApplicantNo')" width="120" />
-        <el-table-column prop="applicant_name" :label="$t('wmGen.colApplicantName')" width="120" />
-        <el-table-column :label="$t('wmGen.colFirstStatus')" width="100" align="center">
-          <template #default="scope">{{ getStatusText(scope.row.first_statu) }}</template>
+    <el-card
+      class="table-card"
+      shadow="hover"
+    >
+      <el-table
+        v-loading="loading"
+        :data="data.list"
+        border
+        stripe
+        :empty-text="$t('wmGen.emptyText')"
+      >
+        <el-table-column
+          prop="id"
+          :label="$t('wmGen.colApplicationId')"
+          width="90"
+        />
+        <el-table-column
+          prop="data_alias"
+          :label="$t('wmGen.colDataName')"
+          min-width="140"
+        />
+        <el-table-column
+          prop="data_id"
+          :label="$t('wmGen.colDataId')"
+          width="120"
+        />
+        <el-table-column
+          prop="applicant_user_number"
+          :label="$t('wmGen.colApplicantNo')"
+          width="120"
+        />
+        <el-table-column
+          prop="applicant_name"
+          :label="$t('wmGen.colApplicantName')"
+          width="120"
+        />
+        <el-table-column
+          :label="$t('wmGen.colFirstStatus')"
+          width="100"
+          align="center"
+        >
+          <template #default="scope">
+            {{ getStatusText(scope.row.first_statu) }}
+          </template>
         </el-table-column>
-        <el-table-column :label="$t('wmGen.colSecondStatus')" width="100" align="center">
-          <template #default="scope">{{ getStatusText(scope.row.second_statu) }}</template>
+        <el-table-column
+          :label="$t('wmGen.colSecondStatus')"
+          width="100"
+          align="center"
+        >
+          <template #default="scope">
+            {{ getStatusText(scope.row.second_statu) }}
+          </template>
         </el-table-column>
-        <el-table-column :label="$t('wmGen.colWatermark')" width="100" align="center">
+        <el-table-column
+          :label="$t('wmGen.colWatermark')"
+          width="100"
+          align="center"
+        >
           <template #default="scope">
             <WatermarkImage
               v-if="scope.row.qrcode"
@@ -27,13 +76,32 @@
               fit="cover"
               style="width: 72px; height: 72px; border-radius: 6px;"
             />
-            <span v-else style="color:var(--text-tertiary, #909399);">{{ $t('wmGen.notGenerated') }}</span>
+            <span
+              v-else
+              style="color:var(--text-tertiary, #909399);"
+            >{{ $t('wmGen.notGenerated') }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('wmGen.colAction')" width="240" align="center" fixed="right">
+        <el-table-column
+          :label="$t('wmGen.colAction')"
+          width="240"
+          align="center"
+          fixed="right"
+        >
           <template #default="scope">
-            <el-button size="small" @click="openMapDialog(scope.row)">{{ $t('wmGen.mapPreview') }}</el-button>
-            <el-button size="small" type="primary" @click="openRequestDialog(scope.row)">{{ $t('wmGen.generateWatermark') }}</el-button>
+            <el-button
+              size="small"
+              @click="openMapDialog(scope.row)"
+            >
+              {{ $t('wmGen.mapPreview') }}
+            </el-button>
+            <el-button
+              size="small"
+              type="primary"
+              @click="openRequestDialog(scope.row)"
+            >
+              {{ $t('wmGen.generateWatermark') }}
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -55,67 +123,178 @@
       :close-on-click-modal="false"
       :title="$t('wmGen.generateWatermark')"
     >
-      <el-form ref="requestFormRef" :model="requestInformation" :rules="rules" label-width="110px" class="gen-form">
-        <el-divider content-position="left">{{ $t('wmGen.sectionBasic') }}</el-divider>
+      <el-form
+        ref="requestFormRef"
+        :model="requestInformation"
+        :rules="rules"
+        label-width="110px"
+        class="gen-form"
+      >
+        <el-divider content-position="left">
+          {{ $t('wmGen.sectionBasic') }}
+        </el-divider>
         <div class="form-row">
-          <el-form-item :label="$t('wmGen.formApplicationId')" prop="application_id" class="form-half">
-            <el-input v-model="requestInformation.application_id" readonly />
+          <el-form-item
+            :label="$t('wmGen.formApplicationId')"
+            prop="application_id"
+            class="form-half"
+          >
+            <el-input
+              v-model="requestInformation.application_id"
+              readonly
+            />
           </el-form-item>
-          <el-form-item :label="$t('wmGen.formDataId')" prop="data_id" class="form-half">
-            <el-input v-model="requestInformation.data_id" readonly />
+          <el-form-item
+            :label="$t('wmGen.formDataId')"
+            prop="data_id"
+            class="form-half"
+          >
+            <el-input
+              v-model="requestInformation.data_id"
+              readonly
+            />
           </el-form-item>
         </div>
-        <el-form-item :label="$t('wmGen.formDataName')" prop="data_alias">
-          <el-input v-model="requestInformation.data_alias" readonly />
+        <el-form-item
+          :label="$t('wmGen.formDataName')"
+          prop="data_alias"
+        >
+          <el-input
+            v-model="requestInformation.data_alias"
+            readonly
+          />
         </el-form-item>
 
-        <el-divider content-position="left">{{ $t('wmGen.sectionApplicant') }}</el-divider>
+        <el-divider content-position="left">
+          {{ $t('wmGen.sectionApplicant') }}
+        </el-divider>
         <div class="form-row">
-          <el-form-item :label="$t('wmGen.formApplicantName')" prop="applicant_name" class="form-half">
-            <el-input v-model="requestInformation.applicant_name" readonly />
+          <el-form-item
+            :label="$t('wmGen.formApplicantName')"
+            prop="applicant_name"
+            class="form-half"
+          >
+            <el-input
+              v-model="requestInformation.applicant_name"
+              readonly
+            />
           </el-form-item>
-          <el-form-item :label="$t('wmGen.formApplicantNo')" prop="applicant_user_number" class="form-half">
-            <el-input v-model="requestInformation.applicant_user_number" readonly />
+          <el-form-item
+            :label="$t('wmGen.formApplicantNo')"
+            prop="applicant_user_number"
+            class="form-half"
+          >
+            <el-input
+              v-model="requestInformation.applicant_user_number"
+              readonly
+            />
           </el-form-item>
         </div>
 
-        <el-divider content-position="left">{{ $t('wmGen.sectionReviewers') }}</el-divider>
+        <el-divider content-position="left">
+          {{ $t('wmGen.sectionReviewers') }}
+        </el-divider>
         <div class="form-row">
-          <el-form-item :label="$t('wmGen.formAdm1')" class="form-half">
-            <el-input :model-value="requestInformation.adm1_name || '—'" readonly />
+          <el-form-item
+            :label="$t('wmGen.formAdm1')"
+            class="form-half"
+          >
+            <el-input
+              :model-value="requestInformation.adm1_name || '—'"
+              readonly
+            />
           </el-form-item>
-          <el-form-item :label="$t('wmGen.formAdm2')" class="form-half">
-            <el-input :model-value="requestInformation.adm2_name || '—'" readonly />
+          <el-form-item
+            :label="$t('wmGen.formAdm2')"
+            class="form-half"
+          >
+            <el-input
+              :model-value="requestInformation.adm2_name || '—'"
+              readonly
+            />
           </el-form-item>
         </div>
         <el-form-item :label="$t('wmGen.formGenTime')">
-          <el-input :model-value="requestInformation.generation_time || '—'" readonly />
+          <el-input
+            :model-value="requestInformation.generation_time || '—'"
+            readonly
+          />
         </el-form-item>
 
-        <el-divider content-position="left">{{ $t('wmGen.sectionOptional') }}</el-divider>
-        <el-form-item :label="$t('wmGen.formReason')" prop="reason">
-          <el-input v-model="requestInformation.reason" type="textarea" :rows="2" :placeholder="$t('wmGen.reasonPlaceholder')" />
+        <el-divider content-position="left">
+          {{ $t('wmGen.sectionOptional') }}
+        </el-divider>
+        <el-form-item
+          :label="$t('wmGen.formReason')"
+          prop="reason"
+        >
+          <el-input
+            v-model="requestInformation.reason"
+            type="textarea"
+            :rows="2"
+            :placeholder="$t('wmGen.reasonPlaceholder')"
+          />
         </el-form-item>
-        <el-form-item :label="$t('wmGen.formPurpose')" prop="purpose">
-          <el-input v-model="requestInformation.purpose" type="textarea" :rows="2" :placeholder="$t('wmGen.purposePlaceholder')" />
+        <el-form-item
+          :label="$t('wmGen.formPurpose')"
+          prop="purpose"
+        >
+          <el-input
+            v-model="requestInformation.purpose"
+            type="textarea"
+            :rows="2"
+            :placeholder="$t('wmGen.purposePlaceholder')"
+          />
         </el-form-item>
         <div class="form-row">
-          <el-form-item :label="$t('wmGen.formUsageScope')" prop="usage_scope" class="form-half">
-            <el-input v-model="requestInformation.usage_scope" :placeholder="$t('wmGen.scopePlaceholder')" />
+          <el-form-item
+            :label="$t('wmGen.formUsageScope')"
+            prop="usage_scope"
+            class="form-half"
+          >
+            <el-input
+              v-model="requestInformation.usage_scope"
+              :placeholder="$t('wmGen.scopePlaceholder')"
+            />
           </el-form-item>
-          <el-form-item :label="$t('wmGen.formSecurityLevel')" prop="security_level" class="form-half">
-            <el-select v-model="requestInformation.security_level" style="width:100%;" :placeholder="$t('wmGen.selectPlaceholder')">
-              <el-option :label="$t('wmGen.levelNormal')" value="normal" />
-              <el-option :label="$t('wmGen.levelInternal')" value="internal" />
-              <el-option :label="$t('wmGen.levelSensitive')" value="sensitive" />
+          <el-form-item
+            :label="$t('wmGen.formSecurityLevel')"
+            prop="security_level"
+            class="form-half"
+          >
+            <el-select
+              v-model="requestInformation.security_level"
+              style="width:100%;"
+              :placeholder="$t('wmGen.selectPlaceholder')"
+            >
+              <el-option
+                :label="$t('wmGen.levelNormal')"
+                value="normal"
+              />
+              <el-option
+                :label="$t('wmGen.levelInternal')"
+                value="internal"
+              />
+              <el-option
+                :label="$t('wmGen.levelSensitive')"
+                value="sensitive"
+              />
             </el-select>
           </el-form-item>
         </div>
-        <el-form-item :label="$t('wmGen.formCustomTag')" prop="custom_tag">
-          <el-input v-model="requestInformation.custom_tag" :placeholder="$t('wmGen.tagPlaceholder')" />
+        <el-form-item
+          :label="$t('wmGen.formCustomTag')"
+          prop="custom_tag"
+        >
+          <el-input
+            v-model="requestInformation.custom_tag"
+            :placeholder="$t('wmGen.tagPlaceholder')"
+          />
         </el-form-item>
 
-        <el-divider content-position="left">{{ $t('wmGen.sectionQrPreview') }}</el-divider>
+        <el-divider content-position="left">
+          {{ $t('wmGen.sectionQrPreview') }}
+        </el-divider>
         <el-form-item>
           <div class="qr-preview-area">
             <WatermarkImage
@@ -125,17 +304,34 @@
               fit="contain"
               style="width: 140px; height: 140px; border: 1px solid var(--border-color, #e5e7eb); border-radius: 8px;"
             />
-            <span v-else style="color:var(--text-tertiary, #909399);">{{ $t('wmGen.qrPreviewAfter') }}</span>
-            <div v-if="generatedQrcode" class="qr-meta">
-              <p v-if="generatedQrVersion">{{ $t('wmGen.version') }} V{{ generatedQrVersion }}</p>
-              <p v-if="generatedSignature">{{ $t('wmGen.signature') }} {{ generatedSignature }}</p>
+            <span
+              v-else
+              style="color:var(--text-tertiary, #909399);"
+            >{{ $t('wmGen.qrPreviewAfter') }}</span>
+            <div
+              v-if="generatedQrcode"
+              class="qr-meta"
+            >
+              <p v-if="generatedQrVersion">
+                {{ $t('wmGen.version') }} V{{ generatedQrVersion }}
+              </p>
+              <p v-if="generatedSignature">
+                {{ $t('wmGen.signature') }} {{ generatedSignature }}
+              </p>
             </div>
           </div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="requestDataVisible=false">{{ $t('wmGen.cancel') }}</el-button>
-        <el-button type="primary" @click="generate">{{ $t('wmGen.confirmGenerate') }}</el-button>
+        <el-button @click="requestDataVisible=false">
+          {{ $t('wmGen.cancel') }}
+        </el-button>
+        <el-button
+          type="primary"
+          @click="generate"
+        >
+          {{ $t('wmGen.confirmGenerate') }}
+        </el-button>
       </template>
     </el-dialog>
 
@@ -148,34 +344,78 @@
       @closed="destroyMapView"
     >
       <div class="map-toolbar">
-        <el-input v-model="mapSearchKeyword" clearable :placeholder="$t('wmGen.mapSearchPlaceholder')" style="width: 320px" @keyup.enter="searchMap">
+        <el-input
+          v-model="mapSearchKeyword"
+          clearable
+          :placeholder="$t('wmGen.mapSearchPlaceholder')"
+          style="width: 320px"
+          @keyup.enter="searchMap"
+        >
           <template #prefix>
             <el-icon><Search /></el-icon>
           </template>
         </el-input>
-        <el-button type="primary" @click="searchMap">{{ $t('wmGen.searchLocation') }}</el-button>
-        <el-button @click="goInitialExtent">{{ $t('wmGen.resetView') }}</el-button>
-        <el-button @click="clearSearchResult">{{ $t('wmGen.clearLocation') }}</el-button>
+        <el-button
+          type="primary"
+          @click="searchMap"
+        >
+          {{ $t('wmGen.searchLocation') }}
+        </el-button>
+        <el-button @click="goInitialExtent">
+          {{ $t('wmGen.resetView') }}
+        </el-button>
+        <el-button @click="clearSearchResult">
+          {{ $t('wmGen.clearLocation') }}
+        </el-button>
       </div>
       <div class="map-dialog-layout">
         <div class="map-pane">
-          <div ref="mapContainer" class="map-container"></div>
-          <div v-if="mapLoading" class="map-loading-overlay">
-            <el-icon class="is-loading" :size="32"><Loading /></el-icon>
+          <div
+            ref="mapContainer"
+            class="map-container"
+          />
+          <div
+            v-if="mapLoading"
+            class="map-loading-overlay"
+          >
+            <el-icon
+              class="is-loading"
+              :size="32"
+            >
+              <Loading />
+            </el-icon>
             <span style="margin-top: 8px; color: var(--text-secondary, #6b7280); font-size: 14px;">{{ $t('wmGen.mapLoadingText') }}</span>
           </div>
-          <div v-if="!selectedMapRow.data_url" class="map-placeholder">
+          <div
+            v-if="!selectedMapRow.data_url"
+            class="map-placeholder"
+          >
             <el-empty :description="$t('wmGen.mapEmptyDesc')" />
           </div>
         </div>
         <div class="info-pane">
-          <el-descriptions :column="1" border size="small">
-            <el-descriptions-item :label="$t('wmGen.descApplicationId')">{{ selectedMapRow.id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('wmGen.descDataName')">{{ selectedMapRow.data_alias }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('wmGen.descDataId')">{{ selectedMapRow.data_id }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('wmGen.descApplicant')">{{ selectedMapRow.applicant_name }} ({{ selectedMapRow.applicant_user_number }})</el-descriptions-item>
+          <el-descriptions
+            :column="1"
+            border
+            size="small"
+          >
+            <el-descriptions-item :label="$t('wmGen.descApplicationId')">
+              {{ selectedMapRow.id }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descDataName')">
+              {{ selectedMapRow.data_alias }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descDataId')">
+              {{ selectedMapRow.data_id }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('wmGen.descApplicant')">
+              {{ selectedMapRow.applicant_name }} ({{ selectedMapRow.applicant_user_number }})
+            </el-descriptions-item>
             <el-descriptions-item :label="$t('wmGen.descMapServiceUrl')">
-              <span class="url-text" :title="selectedMapRow.data_url">{{ selectedMapRow.data_url || '—' }}</span>
+              <span
+                class="url-text"
+                :title="selectedMapRow.data_url"
+              >{{ selectedMapRow.data_url || '—' }}</span>
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -331,8 +571,8 @@ let mapInitSeq = 0;       // sequence counter to cancel stale init calls
 const destroyMapView = () => {
   mapInitSeq++; // invalidate any in-flight initializeMap
   if (olMap) {
-    try { olMap.setTarget(null) } catch (_) {}
-    try { olMap.dispose() } catch (_) {}
+    try { olMap.setTarget(null) } catch (_) { /* best-effort teardown */ }
+    try { olMap.dispose() } catch (_) { /* best-effort teardown */ }
     olMap = null;
   }
   markerSource = null;
@@ -439,8 +679,6 @@ const initializeMap = async (dataUrl) => {
     const { XYZ, OSM, Vector: VectorSource } = olSource;
     const { ScaleLine, defaults: defaultControls } = olControl;
     const { default: VectorLayer } = await import('ol/layer/Vector');
-    const { default: Feature } = await import('ol/Feature');
-    const { default: Point } = await import('ol/geom/Point');
     const { Style, Fill, Stroke, Circle: CircleStyle } = await import('ol/style');
 
     // Base layers: Tianditu only when a key is configured; without a key OSM is

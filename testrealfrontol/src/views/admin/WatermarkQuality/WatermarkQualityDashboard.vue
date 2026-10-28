@@ -1,46 +1,92 @@
 <template>
   <div class="watermark-quality-dashboard">
     <div class="page-header">
-      <div class="page-header-left" :ref="setTourEl('header')">
+      <div
+        :ref="setTourEl('header')"
+        class="page-header-left"
+      >
         <h1>{{ $t('watermarkQuality.title') }}</h1>
         <p class="subtitle">
           {{ $t('watermarkQuality.subtitle') }}
-          <span v-if="verificationWindowText" class="subtitle-meta">{{
+          <span
+            v-if="verificationWindowText"
+            class="subtitle-meta"
+          >{{
             $t('watermarkQuality.dataWindow', { range: verificationWindowText })
           }}</span>
         </p>
       </div>
       <div class="page-header-actions">
-        <el-button :icon="Guide" @click="startTour">
+        <el-button
+          :icon="Guide"
+          @click="startTour"
+        >
           {{ $t('watermarkQuality.replayTour') }}
         </el-button>
-        <el-button type="primary" :icon="Refresh" :loading="globalLoading" @click="refreshAll">
+        <el-button
+          type="primary"
+          :icon="Refresh"
+          :loading="globalLoading"
+          @click="refreshAll"
+        >
           {{ $t('common.refresh') }}
         </el-button>
       </div>
     </div>
 
     <!-- ═══════════ 区一 · Hero 统计带（8 KPI · 联排细线网格 · 数字滚动） ═══════════ -->
-    <div class="hero-band" :ref="setTourEl('hero')">
+    <div
+      :ref="setTourEl('hero')"
+      class="hero-band"
+    >
       <div class="kpi-grid">
-        <div v-for="card in kpiCards" :key="card.key" class="kpi-card">
+        <div
+          v-for="card in kpiCards"
+          :key="card.key"
+          class="kpi-card"
+        >
           <!-- 状态点：纯视觉增强，语义已在 meta 文案中（aria 隐藏） -->
-          <span v-if="card.status" class="kpi-dot" :class="`kpi-dot--${card.status}`" aria-hidden="true" />
+          <span
+            v-if="card.status"
+            class="kpi-dot"
+            :class="`kpi-dot--${card.status}`"
+            aria-hidden="true"
+          />
           <div class="kpi-label-row">
-            <el-icon class="kpi-icon" :size="13"><component :is="card.icon" /></el-icon>
+            <el-icon
+              class="kpi-icon"
+              :size="13"
+            >
+              <component :is="card.icon" />
+            </el-icon>
             <span class="kpi-label">{{ card.label }}</span>
             <GlossaryHelp v-bind="glossary[card.help]" />
           </div>
-          <div class="kpi-value">{{ kpiText(card) }}</div>
-          <div v-if="card.meta" class="kpi-meta" :title="card.meta">{{ card.meta }}</div>
+          <div class="kpi-value">
+            {{ kpiText(card) }}
+          </div>
+          <div
+            v-if="card.meta"
+            class="kpi-meta"
+            :title="card.meta"
+          >
+            {{ card.meta }}
+          </div>
         </div>
       </div>
     </div>
 
     <!-- ═══════════ 区二 · 图表画廊（ECharts · 全部真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="verifLoading">
+    <el-card
+      v-loading="verifLoading"
+      class="section-card"
+      shadow="never"
+    >
       <template #header>
-        <div class="card-header" :ref="setTourEl('gallery')">
+        <div
+          :ref="setTourEl('gallery')"
+          class="card-header"
+        >
           <span class="section-title">{{ $t('watermarkQuality.analyticsGallery') }}</span>
         </div>
       </template>
@@ -57,11 +103,25 @@
               <span class="chart-sub">{{ $t('watermarkQuality.ncHistogramSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasHistogram" class="chart-holder" :option="ncHistogramOption" :autoresize="{ throttle: 160 }" />
-          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+          <v-chart
+            v-if="hasHistogram"
+            class="chart-holder"
+            :option="ncHistogramOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <EmptyState
+            v-else
+            compact
+            variant="never"
+            :title="$t('common.noData')"
+            :description="$t('common.noDataDesc')"
+          />
         </div>
 
-        <div class="chart-box" v-loading="trendLoading">
+        <div
+          v-loading="trendLoading"
+          class="chart-box"
+        >
           <div class="chart-head">
             <div class="chart-head-left">
               <span class="chart-title-row">
@@ -70,14 +130,34 @@
               </span>
               <span class="chart-sub">{{ $t('watermarkQuality.ncTrendSub', { days: 30 }) }}</span>
             </div>
-            <el-radio-group v-model="trendDataType" size="small">
-              <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
-              <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
-              <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
+            <el-radio-group
+              v-model="trendDataType"
+              size="small"
+            >
+              <el-radio-button value="">
+                {{ $t('watermarkQuality.allTypes') }}
+              </el-radio-button>
+              <el-radio-button value="vector">
+                {{ $t('watermarkQuality.vectorLabel') }}
+              </el-radio-button>
+              <el-radio-button value="raster">
+                {{ $t('watermarkQuality.rasterLabel') }}
+              </el-radio-button>
             </el-radio-group>
           </div>
-          <v-chart v-if="hasTrend" class="chart-holder" :option="ncTrendOption" :autoresize="{ throttle: 160 }" />
-          <EmptyState v-else compact :variant="trendDataType ? 'filtered' : 'never'" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+          <v-chart
+            v-if="hasTrend"
+            class="chart-holder"
+            :option="ncTrendOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <EmptyState
+            v-else
+            compact
+            :variant="trendDataType ? 'filtered' : 'never'"
+            :title="$t('common.noData')"
+            :description="$t('common.noDataDesc')"
+          />
         </div>
 
         <div class="chart-box chart-box--wide">
@@ -90,8 +170,19 @@
               <span class="chart-sub">{{ $t('watermarkQuality.algoBreakdownSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasAlgo" class="chart-holder" :option="algoBreakdownOption" :autoresize="{ throttle: 160 }" />
-          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+          <v-chart
+            v-if="hasAlgo"
+            class="chart-holder"
+            :option="algoBreakdownOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <EmptyState
+            v-else
+            compact
+            variant="never"
+            :title="$t('common.noData')"
+            :description="$t('common.noDataDesc')"
+          />
         </div>
 
         <div class="chart-box">
@@ -104,11 +195,25 @@
               <span class="chart-sub">{{ $t('watermarkQuality.verificationShareSub') }}</span>
             </div>
           </div>
-          <v-chart v-if="hasShare" class="chart-holder" :option="verificationShareOption" :autoresize="{ throttle: 160 }" />
-          <EmptyState v-else compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+          <v-chart
+            v-if="hasShare"
+            class="chart-holder"
+            :option="verificationShareOption"
+            :autoresize="{ throttle: 160 }"
+          />
+          <EmptyState
+            v-else
+            compact
+            variant="never"
+            :title="$t('common.noData')"
+            :description="$t('common.noDataDesc')"
+          />
         </div>
 
-        <div class="chart-box" v-loading="dLoading">
+        <div
+          v-loading="dLoading"
+          class="chart-box"
+        >
           <div class="chart-head">
             <div class="chart-head-left">
               <span class="chart-title-row">
@@ -121,57 +226,118 @@
             </div>
           </div>
           <div class="donut-wrap">
-            <v-chart v-if="hasDelivery" class="chart-holder" :option="deliveryHealthOption" :autoresize="{ throttle: 160 }" />
-            <div v-if="hasDelivery" class="donut-center">
+            <v-chart
+              v-if="hasDelivery"
+              class="chart-holder"
+              :option="deliveryHealthOption"
+              :autoresize="{ throttle: 160 }"
+            />
+            <div
+              v-if="hasDelivery"
+              class="donut-center"
+            >
               <span class="donut-center-value">{{ dStats?.total ?? '—' }}</span>
               <span class="donut-center-label">{{ $t('watermarkQuality.centerDeliveries') }}</span>
               <span class="donut-center-sub">
                 {{ $t('watermarkQuality.centerDownloaded') }} {{ dStats?.downloaded_count ?? '—' }}
               </span>
             </div>
-            <EmptyState v-if="!hasDelivery && !dLoading" compact variant="never" :title="$t('common.noData')" :description="$t('common.noDataDesc')" />
+            <EmptyState
+              v-if="!hasDelivery && !dLoading"
+              compact
+              variant="never"
+              :title="$t('common.noData')"
+              :description="$t('common.noDataDesc')"
+            />
           </div>
         </div>
       </div>
     </el-card>
 
     <!-- ═══════════ 区三 · 算法能力矩阵（基准真数据） ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="benchLoading">
+    <el-card
+      v-loading="benchLoading"
+      class="section-card"
+      shadow="never"
+    >
       <template #header>
-        <div class="card-header" :ref="setTourEl('matrix')">
+        <div
+          :ref="setTourEl('matrix')"
+          class="card-header"
+        >
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.capabilityMatrix') }}</span>
             <GlossaryHelp v-bind="glossary.matrix" />
-            <span v-if="benchSnapshotTime" class="state-chip state-chip--neutral">
+            <span
+              v-if="benchSnapshotTime"
+              class="state-chip state-chip--neutral"
+            >
               {{ $t('watermarkQuality.benchSnapshot') }} · {{ benchSnapshotTime }}
             </span>
           </div>
         </div>
       </template>
-      <p class="matrix-legend">{{ $t('watermarkQuality.matrixSub') }}</p>
+      <p class="matrix-legend">
+        {{ $t('watermarkQuality.matrixSub') }}
+      </p>
 
-      <el-table :data="matrixAttacks" stripe style="width: 100%" :empty-text="$t('common.noData')">
-        <el-table-column :label="$t('watermarkQuality.attackCol')" min-width="140" fixed>
+      <el-table
+        :data="matrixAttacks"
+        stripe
+        style="width: 100%"
+        :empty-text="$t('common.noData')"
+      >
+        <el-table-column
+          :label="$t('watermarkQuality.attackCol')"
+          min-width="140"
+          fixed
+        >
           <template #default="{ row }">
             <span class="attack-name">{{ row }}</span>
           </template>
         </el-table-column>
-        <el-table-column v-for="alg in matrixAlgos" :key="alg" :label="alg" align="center">
-          <el-table-column :label="$t('watermarkQuality.ncValue')" width="96" align="right">
+        <el-table-column
+          v-for="alg in matrixAlgos"
+          :key="alg"
+          :label="alg"
+          align="center"
+        >
+          <el-table-column
+            :label="$t('watermarkQuality.ncValue')"
+            width="96"
+            align="right"
+          >
             <template #default="{ row }">
-              <span class="nc-cell" :class="ncCellClass(cellOf(row, alg)?.nc)">
+              <span
+                class="nc-cell"
+                :class="ncCellClass(cellOf(row, alg)?.nc)"
+              >
                 {{ cellOf(row, alg)?.nc != null ? cellOf(row, alg).nc.toFixed(4) : '—' }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.decodeCol')" width="78" align="center">
+          <el-table-column
+            :label="$t('watermarkQuality.decodeCol')"
+            width="78"
+            align="center"
+          >
             <template #default="{ row }">
-              <span v-if="cellOf(row, alg)?.decode_success === true" class="decode-ok">✓</span>
-              <span v-else-if="cellOf(row, alg)" class="decode-bad">✗</span>
+              <span
+                v-if="cellOf(row, alg)?.decode_success === true"
+                class="decode-ok"
+              >✓</span>
+              <span
+                v-else-if="cellOf(row, alg)"
+                class="decode-bad"
+              >✗</span>
               <span v-else>—</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.recoveryPsnrCol')" width="110" align="right">
+          <el-table-column
+            :label="$t('watermarkQuality.recoveryPsnrCol')"
+            width="110"
+            align="right"
+          >
             <template #default="{ row }">
               {{ cellOf(row, alg)?.recovery_psnr != null ? cellOf(row, alg).recovery_psnr.toFixed(1) : '—' }}
             </template>
@@ -182,48 +348,102 @@
       <!-- 嵌入质量总览（无攻击基线） -->
       <div class="sub-section">
         <!-- axe heading-order：页内仅有 h1，h4 与 h1 跨两级；实测 axe 规则 h1→h3 仍判 -2 跳级，故用 h2 -->
-        <h2 class="sub-title">{{ $t('watermarkQuality.stegoOverview') }}</h2>
-        <el-table :data="benchSummaries" stripe size="small" style="width: 100%" :empty-text="$t('common.noData')" :row-class-name="benchRowClass">
-          <el-table-column prop="algorithm" :label="$t('watermarkQuality.algoName')" width="110" />
-          <el-table-column :label="$t('watermarkQuality.wmBitCount')" width="110" align="right">
-            <template #default="{ row }">{{ row.wm_bit_count ?? '—' }}</template>
+        <h2 class="sub-title">
+          {{ $t('watermarkQuality.stegoOverview') }}
+        </h2>
+        <el-table
+          :data="benchSummaries"
+          stripe
+          size="small"
+          style="width: 100%"
+          :empty-text="$t('common.noData')"
+          :row-class-name="benchRowClass"
+        >
+          <el-table-column
+            prop="algorithm"
+            :label="$t('watermarkQuality.algoName')"
+            width="110"
+          />
+          <el-table-column
+            :label="$t('watermarkQuality.wmBitCount')"
+            width="110"
+            align="right"
+          >
+            <template #default="{ row }">
+              {{ row.wm_bit_count ?? '—' }}
+            </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.stegoPsnr')" width="120" align="right">
+          <el-table-column
+            :label="$t('watermarkQuality.stegoPsnr')"
+            width="120"
+            align="right"
+          >
             <template #default="{ row }">
               <span :style="{ color: psnrColor(row.stego_psnr), fontWeight: 'var(--font-weight-semibold)' }">
                 {{ row.stego_psnr != null ? row.stego_psnr + ' dB' : '—' }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column label="SSIM" width="110" align="right">
+          <el-table-column
+            label="SSIM"
+            width="110"
+            align="right"
+          >
             <template #default="{ row }">
               {{ row.stego_ssim != null ? row.stego_ssim.toFixed(5) : '—' }}
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.baselineNc')" width="110" align="right">
+          <el-table-column
+            :label="$t('watermarkQuality.baselineNc')"
+            width="110"
+            align="right"
+          >
             <template #default="{ row }">
-              <span v-if="row.baseline_nc != null" class="state-chip" :class="ncChipClass(row.baseline_nc)">
+              <span
+                v-if="row.baseline_nc != null"
+                class="state-chip"
+                :class="ncChipClass(row.baseline_nc)"
+              >
                 {{ row.baseline_nc.toFixed(4) }}
               </span>
               <span v-else>—</span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.baselineBer')" width="110" align="right">
+          <el-table-column
+            :label="$t('watermarkQuality.baselineBer')"
+            width="110"
+            align="right"
+          >
             <template #default="{ row }">
               {{ row.baseline_ber != null ? row.baseline_ber.toFixed(4) : '—' }}
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.recovery')" width="100">
+          <el-table-column
+            :label="$t('watermarkQuality.recovery')"
+            width="100"
+          >
             <template #default="{ row }">
-              <span class="state-chip" :class="row.recovery_perfect ? 'state-chip--success' : 'state-chip--danger'">
+              <span
+                class="state-chip"
+                :class="row.recovery_perfect ? 'state-chip--success' : 'state-chip--danger'"
+              >
                 {{ row.recovery_perfect ? $t('watermarkQuality.perfect') : $t('watermarkQuality.broken') }}
               </span>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('watermarkQuality.colStatus')" min-width="120">
+          <el-table-column
+            :label="$t('watermarkQuality.colStatus')"
+            min-width="120"
+          >
             <template #default="{ row }">
-              <span v-if="row.embed_error" class="state-chip state-chip--danger">{{ $t('watermarkQuality.embedFailed') }}</span>
-              <span v-else class="decode-ok">✓</span>
+              <span
+                v-if="row.embed_error"
+                class="state-chip state-chip--danger"
+              >{{ $t('watermarkQuality.embedFailed') }}</span>
+              <span
+                v-else
+                class="decode-ok"
+              >✓</span>
             </template>
           </el-table-column>
         </el-table>
@@ -243,7 +463,9 @@
           </div>
           <span class="state-chip state-chip--warning">{{ $t('watermarkQuality.dqimBadge') }}</span>
         </div>
-        <p class="dqim-desc">{{ $t('watermarkQuality.dqimDesc') }}</p>
+        <p class="dqim-desc">
+          {{ $t('watermarkQuality.dqimDesc') }}
+        </p>
         <div class="dqim-stats">
           <div class="dqim-stat">
             <span class="dqim-stat-value">{{ $t('watermarkQuality.dqimStatTranslationValue') }}</span>
@@ -258,7 +480,11 @@
     </el-card>
 
     <!-- ═══════════ 区四 · 证据链健康度 ═══════════ -->
-    <el-card class="section-card" shadow="never" v-loading="dLoading">
+    <el-card
+      v-loading="dLoading"
+      class="section-card"
+      shadow="never"
+    >
       <template #header>
         <div class="card-header">
           <div class="card-header-left">
@@ -268,10 +494,20 @@
         </div>
       </template>
 
-      <el-row :gutter="16" class="chain-top">
-        <el-col :xs="24" :sm="8" :md="7">
+      <el-row
+        :gutter="16"
+        class="chain-top"
+      >
+        <el-col
+          :xs="24"
+          :sm="8"
+          :md="7"
+        >
           <div class="chain-ring-box">
-            <div class="chain-ring" :style="chainRingStyle">
+            <div
+              class="chain-ring"
+              :style="chainRingStyle"
+            >
               <div class="chain-ring-inner">
                 <span class="chain-ring-value">{{ chainPct }}%</span>
                 <span class="chain-ring-label">{{ $t('watermarkQuality.chainValid') }}</span>
@@ -282,7 +518,11 @@
             </div>
           </div>
         </el-col>
-        <el-col :xs="24" :sm="16" :md="17">
+        <el-col
+          :xs="24"
+          :sm="16"
+          :md="17"
+        >
           <div class="chain-anchor-box">
             <span class="chain-anchor-title">{{ $t('watermarkQuality.chainAnchorState') }}</span>
             <div class="anchor-chips">
@@ -303,7 +543,9 @@
         </el-col>
       </el-row>
 
-      <h2 class="sub-title">{{ $t('watermarkQuality.chainRecentTitle') }}</h2>
+      <h2 class="sub-title">
+        {{ $t('watermarkQuality.chainRecentTitle') }}
+      </h2>
       <el-table
         :data="recentDeliveries"
         stripe
@@ -314,39 +556,85 @@
         :row-class-name="deliveryRowClass"
         @row-click="goForensics"
       >
-        <el-table-column :label="$t('watermarkQuality.colDeliveryUuid')" min-width="140">
+        <el-table-column
+          :label="$t('watermarkQuality.colDeliveryUuid')"
+          min-width="140"
+        >
           <template #default="{ row }">
             <!-- 行内可聚焦链接：保留整行点击的同时提供键盘可达路径（Enter/Space → 取证页） -->
-            <button type="button" class="row-link mono" :title="row.uuid" @click.stop="goForensics">{{ shortUuid(row.uuid) }}</button>
+            <button
+              type="button"
+              class="row-link mono"
+              :title="row.uuid"
+              @click.stop="goForensics"
+            >
+              {{ shortUuid(row.uuid) }}
+            </button>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.colFid')" min-width="150">
-          <template #default="{ row }"><span class="mono">{{ row.fid_short || '—' }}</span></template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.colUser')" width="120">
-          <template #default="{ row }">{{ row.user_number || '—' }}</template>
-        </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.colStatus')" width="110">
+        <el-table-column
+          :label="$t('watermarkQuality.colFid')"
+          min-width="150"
+        >
           <template #default="{ row }">
-            <span class="state-chip" :class="statusChipClass(row.status)">{{ row.status }}</span>
+            <span class="mono">{{ row.fid_short || '—' }}</span>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('watermarkQuality.colTime')" width="180">
-          <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
+        <el-table-column
+          :label="$t('watermarkQuality.colUser')"
+          width="120"
+        >
+          <template #default="{ row }">
+            {{ row.user_number || '—' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('watermarkQuality.colStatus')"
+          width="110"
+        >
+          <template #default="{ row }">
+            <span
+              class="state-chip"
+              :class="statusChipClass(row.status)"
+            >{{ row.status }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column
+          :label="$t('watermarkQuality.colTime')"
+          width="180"
+        >
+          <template #default="{ row }">
+            {{ formatDate(row.created_at) }}
+          </template>
         </el-table-column>
       </el-table>
     </el-card>
 
     <!-- ═══════════ 验证记录（分页表格 · data_type + 时间范围筛选） ═══════════ -->
-    <el-card class="section-card records-card" shadow="never">
+    <el-card
+      class="section-card records-card"
+      shadow="never"
+    >
       <template #header>
-        <div class="card-header" :ref="setTourEl('records')">
+        <div
+          :ref="setTourEl('records')"
+          class="card-header"
+        >
           <div class="card-header-left">
             <span class="section-title">{{ $t('watermarkQuality.records') }}</span>
-            <el-radio-group v-model="dataTypeFilter" size="small">
-              <el-radio-button value="">{{ $t('watermarkQuality.allTypes') }}</el-radio-button>
-              <el-radio-button value="vector">{{ $t('watermarkQuality.vectorLabel') }}</el-radio-button>
-              <el-radio-button value="raster">{{ $t('watermarkQuality.rasterLabel') }}</el-radio-button>
+            <el-radio-group
+              v-model="dataTypeFilter"
+              size="small"
+            >
+              <el-radio-button value="">
+                {{ $t('watermarkQuality.allTypes') }}
+              </el-radio-button>
+              <el-radio-button value="vector">
+                {{ $t('watermarkQuality.vectorLabel') }}
+              </el-radio-button>
+              <el-radio-button value="raster">
+                {{ $t('watermarkQuality.rasterLabel') }}
+              </el-radio-button>
             </el-radio-group>
           </div>
           <div class="card-header-right">
@@ -361,7 +649,12 @@
               unlink-panels
               style="width: 250px"
             />
-            <el-button type="primary" :icon="Refresh" @click="fetchRecords" :loading="loading">
+            <el-button
+              type="primary"
+              :icon="Refresh"
+              :loading="loading"
+              @click="fetchRecords"
+            >
               {{ $t('common.refresh') }}
             </el-button>
           </div>
@@ -369,40 +662,81 @@
       </template>
 
       <el-table
-        :data="records"
         v-loading="loading"
+        :data="records"
         stripe
         style="width: 100%"
         :empty-text="$t('common.noData')"
       >
-        <el-table-column prop="id" label="ID" width="70" align="right" class-name="tnum-id" />
-        <el-table-column :label="$t('watermarkQuality.dataType')" width="100">
+        <el-table-column
+          prop="id"
+          label="ID"
+          width="70"
+          align="right"
+          class-name="tnum-id"
+        />
+        <el-table-column
+          :label="$t('watermarkQuality.dataType')"
+          width="100"
+        >
           <template #default="{ row }">
-            <span v-if="row.data_type === 'vector'" class="state-chip state-chip--info">
+            <span
+              v-if="row.data_type === 'vector'"
+              class="state-chip state-chip--info"
+            >
               <el-icon class="state-chip__icon"><MapLocation /></el-icon>{{ $t('watermarkQuality.vectorLabel') }}
             </span>
-            <span v-else-if="row.data_type === 'raster'" class="state-chip state-chip--success">
+            <span
+              v-else-if="row.data_type === 'raster'"
+              class="state-chip state-chip--success"
+            >
               <el-icon class="state-chip__icon"><Picture /></el-icon>{{ $t('watermarkQuality.rasterLabel') }}
             </span>
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column prop="nc_value" :label="$t('watermarkQuality.ncValue')" width="110" align="right">
+        <el-table-column
+          prop="nc_value"
+          :label="$t('watermarkQuality.ncValue')"
+          width="110"
+          align="right"
+        >
           <template #default="{ row }">
-            <span v-if="row.nc_value != null" class="state-chip" :class="ncChipClass(row.nc_value)">
+            <span
+              v-if="row.nc_value != null"
+              class="state-chip"
+              :class="ncChipClass(row.nc_value)"
+            >
               {{ row.nc_value.toFixed(4) }}
             </span>
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="verified_by" :label="$t('watermarkQuality.verifiedBy')" width="150" />
-        <el-table-column prop="verified_at" :label="$t('watermarkQuality.verifiedAt')" width="170">
-          <template #default="{ row }">{{ formatDate(row.verified_at) }}</template>
+        <el-table-column
+          prop="verified_by"
+          :label="$t('watermarkQuality.verifiedBy')"
+          width="150"
+        />
+        <el-table-column
+          prop="verified_at"
+          :label="$t('watermarkQuality.verifiedAt')"
+          width="170"
+        >
+          <template #default="{ row }">
+            {{ formatDate(row.verified_at) }}
+          </template>
         </el-table-column>
-        <el-table-column prop="ip_address" :label="$t('watermarkQuality.ipAddress')" width="130" />
+        <el-table-column
+          prop="ip_address"
+          :label="$t('watermarkQuality.ipAddress')"
+          width="130"
+        />
       </el-table>
 
-      <div class="pagination-wrapper" v-if="total > pageSize">
+      <div
+        v-if="total > pageSize"
+        class="pagination-wrapper"
+      >
         <el-pagination
           v-model:current-page="currentPage"
           :page-size="pageSize"
@@ -414,17 +748,37 @@
     </el-card>
 
     <!-- ═══════════ 区五 · 质量指标说明（阈值可视化小卡） ═══════════ -->
-    <el-card class="section-card" shadow="never">
-      <template #header><span class="section-title" :ref="setTourEl('metrics')">{{ $t('watermarkQuality.metricsExplained') }}</span></template>
+    <el-card
+      class="section-card"
+      shadow="never"
+    >
+      <template #header>
+        <span
+          :ref="setTourEl('metrics')"
+          class="section-title"
+        >{{ $t('watermarkQuality.metricsExplained') }}</span>
+      </template>
       <el-row :gutter="16">
-        <el-col v-for="m in metricCards" :key="m.tag" :xs="24" :sm="12" :lg="6">
+        <el-col
+          v-for="m in metricCards"
+          :key="m.tag"
+          :xs="24"
+          :sm="12"
+          :lg="6"
+        >
           <div class="metric-item">
             <div class="metric-header">
-              <span class="state-chip" :class="metricChipClass(m.type)">{{ m.tag }}</span>
+              <span
+                class="state-chip"
+                :class="metricChipClass(m.type)"
+              >{{ m.tag }}</span>
               <span class="metric-range">{{ m.range }}</span>
             </div>
             <div class="metric-bar">
-              <div class="metric-bar-track" :style="{ background: m.gradient }"></div>
+              <div
+                class="metric-bar-track"
+                :style="{ background: m.gradient }"
+              />
               <div
                 v-for="mk in m.markers"
                 :key="mk.value"
@@ -439,7 +793,9 @@
               <span>{{ m.scaleLabels[1] }}</span>
               <span>{{ m.scaleLabels[2] }}</span>
             </div>
-            <p class="metric-desc">{{ m.desc }}</p>
+            <p class="metric-desc">
+              {{ m.desc }}
+            </p>
           </div>
         </el-col>
       </el-row>
@@ -453,25 +809,55 @@
       @close="onTourClose"
       @finish="onTourClose"
     >
-      <template #indicators="{ current, total }">
+      <template #indicators="{ current, total: totalIndicators }">
         <span
-          v-for="i in total"
+          v-for="i in totalIndicators"
           :key="i"
           class="el-tour-indicator"
           :class="{ 'is-active': i - 1 === current }"
         />
-        <button type="button" class="el-tour-skip" @click="closeTour">
+        <button
+          type="button"
+          class="el-tour-skip"
+          @click="closeTour"
+        >
           {{ $t('watermarkQuality.tourSkip') }}
         </button>
       </template>
       <!-- 首步：总览引入。锚定 KPI 带 + placement=top，气泡整体悬在 KPI 数据之上
            （bottom 恒定贴在 KPI 上沿，任何文案行数/语言都不会盖住 KPI 数值） -->
-      <el-tour-step :target="() => tourEls.hero" placement="top" :title="$t('watermarkQuality.tourStep1Title')" :description="$t('watermarkQuality.tourStep1Desc')" />
-      <el-tour-step :target="() => tourEls.hero" :title="$t('watermarkQuality.tourStep2Title')" :description="$t('watermarkQuality.tourStep2Desc')" />
-      <el-tour-step :target="() => tourEls.gallery" :title="$t('watermarkQuality.tourStep3Title')" :description="$t('watermarkQuality.tourStep3Desc')" />
-      <el-tour-step :target="() => tourEls.matrix" :title="$t('watermarkQuality.tourStep4Title')" :description="$t('watermarkQuality.tourStep4Desc')" />
-      <el-tour-step :target="() => tourEls.metrics" placement="bottom-start" :title="$t('watermarkQuality.tourStep5Title')" :description="$t('watermarkQuality.tourStep5Desc')" />
-      <el-tour-step :target="() => tourEls.records" :title="$t('watermarkQuality.tourStep6Title')" :description="$t('watermarkQuality.tourStep6Desc')" />
+      <el-tour-step
+        :target="() => tourEls.hero"
+        placement="top"
+        :title="$t('watermarkQuality.tourStep1Title')"
+        :description="$t('watermarkQuality.tourStep1Desc')"
+      />
+      <el-tour-step
+        :target="() => tourEls.hero"
+        :title="$t('watermarkQuality.tourStep2Title')"
+        :description="$t('watermarkQuality.tourStep2Desc')"
+      />
+      <el-tour-step
+        :target="() => tourEls.gallery"
+        :title="$t('watermarkQuality.tourStep3Title')"
+        :description="$t('watermarkQuality.tourStep3Desc')"
+      />
+      <el-tour-step
+        :target="() => tourEls.matrix"
+        :title="$t('watermarkQuality.tourStep4Title')"
+        :description="$t('watermarkQuality.tourStep4Desc')"
+      />
+      <el-tour-step
+        :target="() => tourEls.metrics"
+        placement="bottom-start"
+        :title="$t('watermarkQuality.tourStep5Title')"
+        :description="$t('watermarkQuality.tourStep5Desc')"
+      />
+      <el-tour-step
+        :target="() => tourEls.records"
+        :title="$t('watermarkQuality.tourStep6Title')"
+        :description="$t('watermarkQuality.tourStep6Desc')"
+      />
     </el-tour>
   </div>
 </template>

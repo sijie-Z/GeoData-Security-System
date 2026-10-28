@@ -1,8 +1,14 @@
 <template>
   <div class="approval-page">
-    <PageHeader :title="$t('approval.secondReviewTitle')" :subtitle="$t('approval.secondReviewDescription')" />
+    <PageHeader
+      :title="$t('approval.secondReviewTitle')"
+      :subtitle="$t('approval.secondReviewDescription')"
+    />
 
-    <el-card class="table-card" shadow="hover">
+    <el-card
+      class="table-card"
+      shadow="hover"
+    >
       <ListShell
         :empty="!loading && filteredList.length === 0"
         :empty-variant="filters.keyword ? 'filtered' : 'never'"
@@ -12,27 +18,88 @@
         @page-change="pageChanged"
       >
         <template #filters>
-          <el-input v-model="filters.keyword" :placeholder="$t('approval.searchPlaceholder')" clearable style="width: 300px;" />
+          <el-input
+            v-model="filters.keyword"
+            :placeholder="$t('approval.searchPlaceholder')"
+            clearable
+            style="width: 300px;"
+          />
         </template>
 
-        <el-table :data="filteredList" border stripe v-loading="loading" class="approval-table">
-          <el-table-column prop="id" :label="$t('approval.applyId')" width="90" align="center" />
-          <el-table-column prop="data_alias" :label="$t('approval.dataName')" min-width="140" show-overflow-tooltip />
-          <el-table-column prop="data_id" :label="$t('approval.dataId')" width="100" align="center" />
-          <el-table-column prop="applicant_user_number" :label="$t('approval.applicantId')" width="130" align="center" />
-          <el-table-column prop="applicant_name" :label="$t('approval.applicantName')" width="110" align="center" />
-          <el-table-column prop="reason" :label="$t('approval.applyReason')" min-width="180" show-overflow-tooltip />
+        <el-table
+          v-loading="loading"
+          :data="filteredList"
+          border
+          stripe
+          class="approval-table"
+        >
+          <el-table-column
+            prop="id"
+            :label="$t('approval.applyId')"
+            width="90"
+            align="center"
+          />
+          <el-table-column
+            prop="data_alias"
+            :label="$t('approval.dataName')"
+            min-width="140"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            prop="data_id"
+            :label="$t('approval.dataId')"
+            width="100"
+            align="center"
+          />
+          <el-table-column
+            prop="applicant_user_number"
+            :label="$t('approval.applicantId')"
+            width="130"
+            align="center"
+          />
+          <el-table-column
+            prop="applicant_name"
+            :label="$t('approval.applicantName')"
+            width="110"
+            align="center"
+          />
+          <el-table-column
+            prop="reason"
+            :label="$t('approval.applyReason')"
+            min-width="180"
+            show-overflow-tooltip
+          />
 
-          <el-table-column :label="$t('approval.firstReviewStatus')" width="100" align="center">
+          <el-table-column
+            :label="$t('approval.firstReviewStatus')"
+            width="100"
+            align="center"
+          >
             <template #default="scope">
               {{ getStatusText(scope.row.first_statu) }}
             </template>
           </el-table-column>
 
-          <el-table-column :label="$t('approval.operation')" width="230" align="center" fixed="right">
+          <el-table-column
+            :label="$t('approval.operation')"
+            width="230"
+            align="center"
+            fixed="right"
+          >
             <template #default="scope">
-              <el-button size="small" type="primary" @click="review(scope.row, true)">{{ $t('approval.secondReviewApprove') }}</el-button>
-              <el-button size="small" @click="review(scope.row, false)">{{ $t('approval.secondReviewReject') }}</el-button>
+              <el-button
+                size="small"
+                type="primary"
+                @click="review(scope.row, true)"
+              >
+                {{ $t('approval.secondReviewApprove') }}
+              </el-button>
+              <el-button
+                size="small"
+                @click="review(scope.row, false)"
+              >
+                {{ $t('approval.secondReviewReject') }}
+              </el-button>
             </template>
           </el-table-column>
         </el-table>

@@ -1,10 +1,20 @@
 <template>
   <div class="forensics-page">
-    <PageHeader :title="$t('forensics.title')" :subtitle="$t('forensics.subtitle')" />
+    <PageHeader
+      :title="$t('forensics.title')"
+      :subtitle="$t('forensics.subtitle')"
+    />
 
-    <el-tabs v-model="activeTab" type="border-card" class="forensics-tabs">
+    <el-tabs
+      v-model="activeTab"
+      type="border-card"
+      class="forensics-tabs"
+    >
       <!-- Tab 1: 交付台账 -->
-      <el-tab-pane :label="$t('forensics.tabDeliveries')" name="deliveries">
+      <el-tab-pane
+        :label="$t('forensics.tabDeliveries')"
+        name="deliveries"
+      >
         <div class="tab-content">
           <div class="query-bar">
             <span class="query-label">{{ $t('forensics.applicationIdLabel') }}</span>
@@ -45,7 +55,12 @@
               :end-placeholder="$t('forensics.filterTimeEnd')"
               class="query-range"
             />
-            <el-button type="primary" :icon="Search" :loading="deliveriesLoading" @click="queryDeliveries">
+            <el-button
+              type="primary"
+              :icon="Search"
+              :loading="deliveriesLoading"
+              @click="queryDeliveries"
+            >
               {{ $t('forensics.queryBtn') }}
             </el-button>
           </div>
@@ -59,50 +74,108 @@
             :row-class-name="deliveryRowClass"
             @row-click="openDeliveryDetail"
           >
-            <el-table-column :label="$t('forensics.colUuidShort')" width="110">
-              <template #default="{ row }"><span class="font-mono">{{ short(row.uuid, 8) }}</span></template>
-            </el-table-column>
-            <el-table-column prop="user_number" :label="$t('forensics.colUser')" width="140" />
-            <el-table-column :label="$t('forensics.colFidShort')" width="150">
-              <template #default="{ row }"><span class="font-mono">{{ short(row.fid_short || row.fingerprint_id, 12) }}</span></template>
-            </el-table-column>
-            <el-table-column :label="$t('forensics.colStatus')" width="120">
+            <el-table-column
+              :label="$t('forensics.colUuidShort')"
+              width="110"
+            >
               <template #default="{ row }">
-                <el-tag v-if="row.status" size="small" :type="statusTagType(row.status)">{{ row.status }}</el-tag>
+                <span class="font-mono">{{ short(row.uuid, 8) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="user_number"
+              :label="$t('forensics.colUser')"
+              width="140"
+            />
+            <el-table-column
+              :label="$t('forensics.colFidShort')"
+              width="150"
+            >
+              <template #default="{ row }">
+                <span class="font-mono">{{ short(row.fid_short || row.fingerprint_id, 12) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="$t('forensics.colStatus')"
+              width="120"
+            >
+              <template #default="{ row }">
+                <el-tag
+                  v-if="row.status"
+                  size="small"
+                  :type="statusTagType(row.status)"
+                >
+                  {{ row.status }}
+                </el-tag>
                 <span v-else>—</span>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('forensics.colArtifactRoot')" min-width="150">
-              <template #default="{ row }"><span class="font-mono">{{ short(row.artifact_root, 12) }}</span></template>
-            </el-table-column>
-            <el-table-column :label="$t('forensics.colChain')" width="90" align="center">
+            <el-table-column
+              :label="$t('forensics.colArtifactRoot')"
+              min-width="150"
+            >
               <template #default="{ row }">
-                <el-tag v-if="row.chain" size="small" :type="row.chain.valid ? 'success' : 'danger'">
+                <span class="font-mono">{{ short(row.artifact_root, 12) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column
+              :label="$t('forensics.colChain')"
+              width="90"
+              align="center"
+            >
+              <template #default="{ row }">
+                <el-tag
+                  v-if="row.chain"
+                  size="small"
+                  :type="row.chain.valid ? 'success' : 'danger'"
+                >
                   {{ row.chain.valid ? '✓' : '✗' }}
                 </el-tag>
                 <span v-else>—</span>
               </template>
             </el-table-column>
-            <el-table-column :label="$t('forensics.colAnchor')" width="110">
+            <el-table-column
+              :label="$t('forensics.colAnchor')"
+              width="110"
+            >
               <template #default="{ row }">
-                <el-tag v-if="row.anchor?.status" size="small" :type="statusTagType(row.anchor.status)">
+                <el-tag
+                  v-if="row.anchor?.status"
+                  size="small"
+                  :type="statusTagType(row.anchor.status)"
+                >
                   {{ row.anchor.status }}
                 </el-tag>
                 <span v-else>—</span>
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" :label="$t('forensics.colCreatedAt')" width="175" />
-            <el-table-column :label="$t('forensics.colDownloaded')" width="100" align="center">
-              <template #default="{ row }">{{ row.downloaded ? $t('forensics.yes') : $t('forensics.no') }}</template>
+            <el-table-column
+              prop="created_at"
+              :label="$t('forensics.colCreatedAt')"
+              width="175"
+            />
+            <el-table-column
+              :label="$t('forensics.colDownloaded')"
+              width="100"
+              align="center"
+            >
+              <template #default="{ row }">
+                {{ row.downloaded ? $t('forensics.yes') : $t('forensics.no') }}
+              </template>
             </el-table-column>
           </el-table>
         </div>
       </el-tab-pane>
 
       <!-- Tab 2: 泄漏取证 -->
-      <el-tab-pane :label="$t('forensics.tabForensics')" name="forensics">
+      <el-tab-pane
+        :label="$t('forensics.tabForensics')"
+        name="forensics"
+      >
         <div class="tab-content">
-          <h4 class="section-label">{{ $t('forensics.uploadTitle') }}</h4>
+          <h4 class="section-label">
+            {{ $t('forensics.uploadTitle') }}
+          </h4>
           <el-upload
             class="forensics-uploader"
             drag
@@ -112,58 +185,113 @@
             :on-change="onFileChange"
             :on-remove="onFileRemove"
           >
-            <el-icon class="el-icon--upload"><UploadFilled /></el-icon>
+            <el-icon class="el-icon--upload">
+              <UploadFilled />
+            </el-icon>
             <div class="el-upload__text">
               {{ $t('forensics.dragOrClick') }} <em>{{ $t('forensics.clickToUpload') }}</em>
             </div>
             <template #tip>
-              <div class="el-upload__tip">{{ $t('forensics.formatTip') }}</div>
+              <div class="el-upload__tip">
+                {{ $t('forensics.formatTip') }}
+              </div>
             </template>
           </el-upload>
 
           <div class="qr-text-block">
-            <div class="section-label">{{ $t('forensics.qrTextLabel') }}</div>
-            <el-input v-model="qrText" type="textarea" :rows="3" :placeholder="$t('forensics.qrTextPlaceholder')" />
+            <div class="section-label">
+              {{ $t('forensics.qrTextLabel') }}
+            </div>
+            <el-input
+              v-model="qrText"
+              type="textarea"
+              :rows="3"
+              :placeholder="$t('forensics.qrTextPlaceholder')"
+            />
           </div>
 
           <div class="action-bar">
-            <el-button type="primary" :icon="CircleCheck" :loading="verifying" @click="doVerify">
+            <el-button
+              type="primary"
+              :icon="CircleCheck"
+              :loading="verifying"
+              @click="doVerify"
+            >
               {{ $t('forensics.verifyBtn') }}
             </el-button>
-            <el-button type="danger" :icon="Aim" :loading="tracing" @click="doTrace">
+            <el-button
+              type="danger"
+              :icon="Aim"
+              :loading="tracing"
+              @click="doTrace"
+            >
               {{ $t('forensics.traceBtn') }}
             </el-button>
           </div>
 
-          <div v-if="result" class="result-area">
+          <div
+            v-if="result"
+            class="result-area"
+          >
             <!-- found + v2 -->
             <template v-if="result.found && result.watermark_version === 2">
-              <div class="verify-banner" :class="verifyPassed ? 'verify-pass' : 'verify-fail'">
+              <div
+                class="verify-banner"
+                :class="verifyPassed ? 'verify-pass' : 'verify-fail'"
+              >
                 <h3>{{ verifyPassed ? $t('forensics.verifyPassTitle') : $t('forensics.verifyFailTitle') }}</h3>
-                <p v-if="result.msg">{{ result.msg }}</p>
+                <p v-if="result.msg">
+                  {{ result.msg }}
+                </p>
               </div>
 
-              <el-descriptions :column="2" border size="small" class="result-desc">
+              <el-descriptions
+                :column="2"
+                border
+                size="small"
+                class="result-desc"
+              >
                 <el-descriptions-item :label="$t('forensics.resultFid')">
                   <HashText :value="result.fid || result.fid_short" />
                 </el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultDeliveryUuid')">{{ short(result.delivery_uuid, 8) }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultDataAlias')">{{ result.data_alias || '—' }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultDataType')">{{ result.data_type || '—' }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultIssuedAt')">{{ result.issued_at || '—' }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultArtifactRootMatch')">{{ matchText(result.artifact_root_match) }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultDeliveryUuid')">
+                  {{ short(result.delivery_uuid, 8) }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultDataAlias')">
+                  {{ result.data_alias || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultDataType')">
+                  {{ result.data_type || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultIssuedAt')">
+                  {{ result.issued_at || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultArtifactRootMatch')">
+                  {{ matchText(result.artifact_root_match) }}
+                </el-descriptions-item>
                 <el-descriptions-item :label="$t('forensics.fieldArtifactRoot')">
                   <HashText :value="result.artifact_root" />
                 </el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultChainLength')">{{ (result.chain && result.chain.length !== undefined && result.chain.length !== null) ? result.chain.length : '—' }}</el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultChainLength')">
+                  {{ (result.chain && result.chain.length !== undefined && result.chain.length !== null) ? result.chain.length : '—' }}
+                </el-descriptions-item>
               </el-descriptions>
 
               <!-- trace 结果：红色高亮定位卡 -->
-              <div v-if="isTrace && result.provenance" class="locate-card">
-                <h3 class="locate-title">{{ $t('forensics.locateTitle') }}</h3>
-                <p class="locate-line">{{ locateText }}</p>
+              <div
+                v-if="isTrace && result.provenance"
+                class="locate-card"
+              >
+                <h3 class="locate-title">
+                  {{ $t('forensics.locateTitle') }}
+                </h3>
+                <p class="locate-line">
+                  {{ locateText }}
+                </p>
 
-                <h4 class="locate-subtitle">{{ $t('forensics.approvalChainTitle') }}</h4>
+                <h4 class="locate-subtitle">
+                  {{ $t('forensics.approvalChainTitle') }}
+                </h4>
                 <el-timeline v-if="(result.provenance.approvals || []).length > 0">
                   <el-timeline-item
                     v-for="(item, idx) in result.provenance.approvals"
@@ -174,27 +302,53 @@
                     <div class="approval-line">
                       <strong>{{ item.stage || '—' }}</strong>
                       <span v-if="item.name"> · {{ item.name }}</span>
-                      <span v-if="item.comment" class="approval-comment"> · {{ item.comment }}</span>
+                      <span
+                        v-if="item.comment"
+                        class="approval-comment"
+                      > · {{ item.comment }}</span>
                     </div>
                   </el-timeline-item>
                 </el-timeline>
-                <EmptyState v-else compact variant="never" :title="$t('forensics.noRecords')" />
+                <EmptyState
+                  v-else
+                  compact
+                  variant="never"
+                  :title="$t('forensics.noRecords')"
+                />
 
-                <h4 class="locate-subtitle">{{ $t('forensics.downloadRecordsTitle') }}</h4>
+                <h4 class="locate-subtitle">
+                  {{ $t('forensics.downloadRecordsTitle') }}
+                </h4>
                 <el-table
                   v-if="(result.provenance.downloads || []).length > 0"
                   :data="result.provenance.downloads"
                   size="small"
                   stripe
                 >
-                  <el-table-column prop="user_number" :label="$t('forensics.downloadUser')" />
-                  <el-table-column prop="time" :label="$t('forensics.downloadTime')" />
-                  <el-table-column prop="ip" :label="$t('forensics.downloadIp')" />
+                  <el-table-column
+                    prop="user_number"
+                    :label="$t('forensics.downloadUser')"
+                  />
+                  <el-table-column
+                    prop="time"
+                    :label="$t('forensics.downloadTime')"
+                  />
+                  <el-table-column
+                    prop="ip"
+                    :label="$t('forensics.downloadIp')"
+                  />
                   <el-table-column :label="$t('forensics.downloadDelivery')">
-                    <template #default="{ row }">{{ short(row.delivery_uuid, 8) }}</template>
+                    <template #default="{ row }">
+                      {{ short(row.delivery_uuid, 8) }}
+                    </template>
                   </el-table-column>
                 </el-table>
-                <EmptyState v-else compact variant="never" :title="$t('forensics.noRecords')" />
+                <EmptyState
+                  v-else
+                  compact
+                  variant="never"
+                  :title="$t('forensics.noRecords')"
+                />
               </div>
             </template>
 
@@ -203,23 +357,46 @@
               <div class="verify-banner verify-warn">
                 <h3>{{ $t('forensics.v1Title') }}</h3>
                 <p>{{ $t('forensics.v1Hint') }}</p>
-                <p v-if="result.msg">{{ result.msg }}</p>
+                <p v-if="result.msg">
+                  {{ result.msg }}
+                </p>
               </div>
-              <el-descriptions :column="2" border size="small" class="result-desc">
-                <el-descriptions-item :label="$t('forensics.resultDataAlias')">{{ result.data_alias || '—' }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultDataType')">{{ result.data_type || '—' }}</el-descriptions-item>
-                <el-descriptions-item :label="$t('forensics.resultIssuedAt')">{{ result.issued_at || '—' }}</el-descriptions-item>
-                <el-descriptions-item v-if="result.provenance" :label="$t('forensics.applicantName')">
+              <el-descriptions
+                :column="2"
+                border
+                size="small"
+                class="result-desc"
+              >
+                <el-descriptions-item :label="$t('forensics.resultDataAlias')">
+                  {{ result.data_alias || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultDataType')">
+                  {{ result.data_type || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item :label="$t('forensics.resultIssuedAt')">
+                  {{ result.issued_at || '—' }}
+                </el-descriptions-item>
+                <el-descriptions-item
+                  v-if="result.provenance"
+                  :label="$t('forensics.applicantName')"
+                >
                   {{ result.provenance.applicant_name || '—' }}
                 </el-descriptions-item>
-                <el-descriptions-item v-if="result.provenance" :label="$t('forensics.applicantNumber')">
+                <el-descriptions-item
+                  v-if="result.provenance"
+                  :label="$t('forensics.applicantNumber')"
+                >
                   {{ result.provenance.applicant_number || '—' }}
                 </el-descriptions-item>
               </el-descriptions>
             </template>
 
             <!-- 未检测到证据 / 未知版本（容错） -->
-            <el-card v-else shadow="never" class="result-empty-card">
+            <el-card
+              v-else
+              shadow="never"
+              class="result-empty-card"
+            >
               <el-result
                 icon="info"
                 :title="result.found ? $t('forensics.verifyFailTitle') : $t('forensics.notFoundTitle')"
@@ -228,14 +405,23 @@
             </el-card>
           </div>
 
-          <p class="disclaimer">{{ $t('forensics.disclaimer') }}</p>
+          <p class="disclaimer">
+            {{ $t('forensics.disclaimer') }}
+          </p>
         </div>
       </el-tab-pane>
     </el-tabs>
 
     <!-- 交付详情 dialog：① 摘要卡 → ② 字段明细 → ③ 事件链（时间线卡片）→ ④ 证据与锚定 -->
-    <el-dialog v-model="detailVisible" :title="$t('forensics.detailTitle')" width="780px">
-      <div v-loading="detailLoading" class="detail-body">
+    <el-dialog
+      v-model="detailVisible"
+      :title="$t('forensics.detailTitle')"
+      width="780px"
+    >
+      <div
+        v-loading="detailLoading"
+        class="detail-body"
+      >
         <template v-if="detail">
           <!-- ① 摘要卡：交付号 / 用户 / FID / 状态大 tag / 产物根 -->
           <section class="summary-card">
@@ -253,7 +439,10 @@
               >
                 {{ detail.status }}
               </el-tag>
-              <span v-else class="summary-status-empty">—</span>
+              <span
+                v-else
+                class="summary-status-empty"
+              >—</span>
             </div>
             <div class="summary-grid">
               <div class="summary-item">
@@ -272,42 +461,90 @@
           </section>
 
           <!-- ①.5 分发链水位图（§5.16）：左操作树 + 右时长条；缺失虚线断链；点击节点高亮分享 -->
-          <h4 class="detail-section-title">{{ $t('forensics.chainTitle') }}</h4>
-          <DeliveryChain :steps="chainSteps" :highlight="highlightKey" @select="onChainSelect" />
+          <h4 class="detail-section-title">
+            {{ $t('forensics.chainTitle') }}
+          </h4>
+          <DeliveryChain
+            :steps="chainSteps"
+            :highlight="highlightKey"
+            @select="onChainSelect"
+          />
 
           <!-- ② 字段明细 -->
-          <h4 class="detail-section-title">{{ $t('forensics.fieldDetailsTitle') }}</h4>
-          <el-descriptions :column="2" border size="small">
-            <el-descriptions-item :label="$t('forensics.fieldApplicationId')">{{ detail.application_id != null ? detail.application_id : '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldDataId')">{{ detail.data_id || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldDataType')">{{ detail.data_type || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldAlgorithm')">{{ detail.algorithm || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldFidShort')">{{ detail.fid_short || '—' }}</el-descriptions-item>
+          <h4 class="detail-section-title">
+            {{ $t('forensics.fieldDetailsTitle') }}
+          </h4>
+          <el-descriptions
+            :column="2"
+            border
+            size="small"
+          >
+            <el-descriptions-item :label="$t('forensics.fieldApplicationId')">
+              {{ detail.application_id != null ? detail.application_id : '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldDataId')">
+              {{ detail.data_id || '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldDataType')">
+              {{ detail.data_type || '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldAlgorithm')">
+              {{ detail.algorithm || '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldFidShort')">
+              {{ detail.fid_short || '—' }}
+            </el-descriptions-item>
             <el-descriptions-item :label="$t('forensics.fieldDownloaded')">
               {{ detail.downloaded ? $t('forensics.yes') : $t('forensics.no') }}
             </el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldCreatedAt')">{{ detail.created_at || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldReadyAt')">{{ detail.ready_at || '—' }}</el-descriptions-item>
-            <el-descriptions-item :label="$t('forensics.fieldCompletedAt')" :span="2">{{ detail.completed_at || '—' }}</el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldCreatedAt')">
+              {{ detail.created_at || '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item :label="$t('forensics.fieldReadyAt')">
+              {{ detail.ready_at || '—' }}
+            </el-descriptions-item>
+            <el-descriptions-item
+              :label="$t('forensics.fieldCompletedAt')"
+              :span="2"
+            >
+              {{ detail.completed_at || '—' }}
+            </el-descriptions-item>
           </el-descriptions>
 
           <!-- ③ 事件链：DFIR 风格时间线卡片（左侧类型色标圆点 + 竖连线） -->
-          <h4 class="detail-section-title">{{ $t('forensics.eventsTitle') }}</h4>
-          <div v-if="(detail.events || []).length > 0" class="event-timeline">
+          <h4 class="detail-section-title">
+            {{ $t('forensics.eventsTitle') }}
+          </h4>
+          <div
+            v-if="(detail.events || []).length > 0"
+            class="event-timeline"
+          >
             <div
               v-for="(ev, idx) in detail.events"
               :key="ev.seq != null ? ev.seq : idx"
               class="event-item"
             >
               <div class="event-rail">
-                <span class="event-dot" :class="eventTypeClass(ev.event_type)"></span>
-                <span v-if="idx < detail.events.length - 1" class="event-rail-line"></span>
+                <span
+                  class="event-dot"
+                  :class="eventTypeClass(ev.event_type)"
+                />
+                <span
+                  v-if="idx < detail.events.length - 1"
+                  class="event-rail-line"
+                />
               </div>
               <div class="event-card">
                 <div class="event-card-head">
-                  <span class="event-type-tag" :class="eventTypeClass(ev.event_type)">{{ ev.event_type || '—' }}</span>
+                  <span
+                    class="event-type-tag"
+                    :class="eventTypeClass(ev.event_type)"
+                  >{{ ev.event_type || '—' }}</span>
                   <span class="event-seq">#{{ ev.seq != null ? ev.seq : idx }}</span>
-                  <span v-if="ev.kid" class="event-kid">kid {{ ev.kid }}</span>
+                  <span
+                    v-if="ev.kid"
+                    class="event-kid"
+                  >kid {{ ev.kid }}</span>
                   <span class="event-time">{{ ev.ts || '' }}</span>
                 </div>
                 <div class="event-card-body">
@@ -316,13 +553,23 @@
               </div>
             </div>
           </div>
-          <EmptyState v-else compact variant="never" :title="$t('forensics.noEvents')" />
+          <EmptyState
+            v-else
+            compact
+            variant="never"
+            :title="$t('forensics.noEvents')"
+          />
 
           <!-- ④ 证据与锚定：链校验 + 锚定卡（provider 徽章 + Merkle 根 + 批次） -->
-          <h4 class="detail-section-title">{{ $t('forensics.evidenceAnchorTitle') }}</h4>
+          <h4 class="detail-section-title">
+            {{ $t('forensics.evidenceAnchorTitle') }}
+          </h4>
           <div class="evidence-block">
             <div class="chain-line">
-              <el-tag v-if="detail.chain" :type="detail.chain.valid ? 'success' : 'danger'">
+              <el-tag
+                v-if="detail.chain"
+                :type="detail.chain.valid ? 'success' : 'danger'"
+              >
                 {{ detail.chain.valid ? $t('forensics.chainValid') : $t('forensics.chainInvalid') }}
               </el-tag>
               <span v-else>—</span>
@@ -334,9 +581,20 @@
 
             <div class="anchor-card">
               <div class="anchor-card-head">
-                <span v-if="anchorProviderLabel" class="anchor-badge" :class="anchorBadgeClass">{{ anchorProviderLabel }}</span>
-                <span v-else class="anchor-badge is-plain">{{ $t('forensics.anchorProvider') }}</span>
-                <el-tag v-if="detail.anchor?.status" size="small" :type="statusTagType(detail.anchor.status)">
+                <span
+                  v-if="anchorProviderLabel"
+                  class="anchor-badge"
+                  :class="anchorBadgeClass"
+                >{{ anchorProviderLabel }}</span>
+                <span
+                  v-else
+                  class="anchor-badge is-plain"
+                >{{ $t('forensics.anchorProvider') }}</span>
+                <el-tag
+                  v-if="detail.anchor?.status"
+                  size="small"
+                  :type="statusTagType(detail.anchor.status)"
+                >
                   {{ detail.anchor.status }}
                 </el-tag>
               </div>
@@ -348,12 +606,22 @@
                 <span class="summary-label">{{ $t('forensics.anchorRootHex') }}</span>
                 <HashText :value="detail.anchor?.root_hex" />
               </div>
-              <p v-if="detail.anchor?.error" class="anchor-error">{{ detail.anchor.error }}</p>
+              <p
+                v-if="detail.anchor?.error"
+                class="anchor-error"
+              >
+                {{ detail.anchor.error }}
+              </p>
             </div>
           </div>
 
           <div class="dialog-actions">
-            <el-button type="primary" :icon="Link" :loading="buildingAnchor" @click="buildAnchor">
+            <el-button
+              type="primary"
+              :icon="Link"
+              :loading="buildingAnchor"
+              @click="buildAnchor"
+            >
               {{ $t('forensics.buildAnchorBtn') }}
             </el-button>
           </div>

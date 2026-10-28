@@ -1,17 +1,32 @@
 <template>
-  <div class="lifecycle-container" v-loading="loading">
-    <el-empty v-if="!loading && !detail" :description="$t('lifecycle.noData')" />
+  <div
+    v-loading="loading"
+    class="lifecycle-container"
+  >
+    <el-empty
+      v-if="!loading && !detail"
+      :description="$t('lifecycle.noData')"
+    />
 
     <template v-if="detail">
       <!-- Header summary -->
       <div class="lifecycle-header">
         <div class="header-left">
           <h3>{{ $t('lifecycle.appId') }}: #{{ detail.id }}</h3>
-          <el-tag :type="statusTagType" effect="dark" size="large">{{ statusText }}</el-tag>
+          <el-tag
+            :type="statusTagType"
+            effect="dark"
+            size="large"
+          >
+            {{ statusText }}
+          </el-tag>
         </div>
         <div class="header-right">
           <span class="data-type-tag">
-            <el-tag :type="detail.data_type === 'vector' ? 'primary' : 'success'" size="small">
+            <el-tag
+              :type="detail.data_type === 'vector' ? 'primary' : 'success'"
+              size="small"
+            >
               {{ detail.data_type === 'vector' ? $t('lifecycle.vector') : $t('lifecycle.raster') }}
             </el-tag>
           </span>
@@ -29,10 +44,20 @@
           :icon="Document"
           :size="'large'"
         >
-          <el-card shadow="never" class="timeline-card">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
             <h4>{{ $t('lifecycle.submitted') }}</h4>
-            <p class="timeline-desc">{{ $t('lifecycle.applicant') }}: <strong>{{ detail.applicant_name }}</strong> ({{ detail.applicant_user_number }})</p>
-            <p class="timeline-desc" v-if="detail.reason">{{ $t('lifecycle.reason') }}: {{ detail.reason }}</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.applicant') }}: <strong>{{ detail.applicant_name }}</strong> ({{ detail.applicant_user_number }})
+            </p>
+            <p
+              v-if="detail.reason"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.reason') }}: {{ detail.reason }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -45,13 +70,22 @@
           :icon="detail.first_statu ? CircleCheck : CircleClose"
           :size="'large'"
         >
-          <el-card shadow="never" class="timeline-card">
-            <h4>{{ $t('lifecycle.firstReview') }}
-              <el-tag :type="detail.first_statu ? 'success' : 'danger'" size="small">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
+            <h4>
+              {{ $t('lifecycle.firstReview') }}
+              <el-tag
+                :type="detail.first_statu ? 'success' : 'danger'"
+                size="small"
+              >
                 {{ detail.first_statu ? $t('lifecycle.passed') : $t('lifecycle.rejected') }}
               </el-tag>
             </h4>
-            <p class="timeline-desc">{{ $t('lifecycle.reviewer') }}: {{ detail.adm1_name || '-' }} ({{ detail.adm1_user_number || '-' }})</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.reviewer') }}: {{ detail.adm1_name || '-' }} ({{ detail.adm1_user_number || '-' }})
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -62,11 +96,22 @@
           color="var(--border-strong)"
           :size="'normal'"
         >
-          <el-card shadow="never" class="timeline-card pending-card">
-            <h4>{{ $t('lifecycle.firstReview') }}
-              <el-tag type="warning" size="small">{{ $t('lifecycle.pending') }}</el-tag>
+          <el-card
+            shadow="never"
+            class="timeline-card pending-card"
+          >
+            <h4>
+              {{ $t('lifecycle.firstReview') }}
+              <el-tag
+                type="warning"
+                size="small"
+              >
+                {{ $t('lifecycle.pending') }}
+              </el-tag>
             </h4>
-            <p class="timeline-desc">{{ $t('lifecycle.awaitingFirstReview') }}</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.awaitingFirstReview') }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -79,13 +124,22 @@
           :icon="detail.second_statu ? CircleCheck : CircleClose"
           :size="'large'"
         >
-          <el-card shadow="never" class="timeline-card">
-            <h4>{{ $t('lifecycle.secondReview') }}
-              <el-tag :type="detail.second_statu ? 'success' : 'danger'" size="small">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
+            <h4>
+              {{ $t('lifecycle.secondReview') }}
+              <el-tag
+                :type="detail.second_statu ? 'success' : 'danger'"
+                size="small"
+              >
                 {{ detail.second_statu ? $t('lifecycle.passed') : $t('lifecycle.rejected') }}
               </el-tag>
             </h4>
-            <p class="timeline-desc">{{ $t('lifecycle.reviewer') }}: {{ detail.adm2_name || '-' }} ({{ detail.adm2_user_number || '-' }})</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.reviewer') }}: {{ detail.adm2_name || '-' }} ({{ detail.adm2_user_number || '-' }})
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -96,11 +150,22 @@
           color="var(--border-strong)"
           :size="'normal'"
         >
-          <el-card shadow="never" class="timeline-card pending-card">
-            <h4>{{ $t('lifecycle.secondReview') }}
-              <el-tag type="warning" size="small">{{ $t('lifecycle.pending') }}</el-tag>
+          <el-card
+            shadow="never"
+            class="timeline-card pending-card"
+          >
+            <h4>
+              {{ $t('lifecycle.secondReview') }}
+              <el-tag
+                type="warning"
+                size="small"
+              >
+                {{ $t('lifecycle.pending') }}
+              </el-tag>
             </h4>
-            <p class="timeline-desc">{{ $t('lifecycle.awaitingSecondReview') }}</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.awaitingSecondReview') }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -113,11 +178,29 @@
           :icon="Picture"
           :size="'normal'"
         >
-          <el-card shadow="never" class="timeline-card">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
             <h4>{{ $t('lifecycle.watermarkGenerated') }}</h4>
-            <p class="timeline-desc" v-if="detail.purpose">{{ $t('lifecycle.purpose') }}: {{ detail.purpose }}</p>
-            <p class="timeline-desc" v-if="detail.security_level">{{ $t('lifecycle.securityLevel') }}: {{ detail.security_level }}</p>
-            <p class="timeline-desc" v-if="detail.qr_version">{{ $t('lifecycle.qrVersion') }}: V{{ detail.qr_version }}</p>
+            <p
+              v-if="detail.purpose"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.purpose') }}: {{ detail.purpose }}
+            </p>
+            <p
+              v-if="detail.security_level"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.securityLevel') }}: {{ detail.security_level }}
+            </p>
+            <p
+              v-if="detail.qr_version"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.qrVersion') }}: V{{ detail.qr_version }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -129,9 +212,14 @@
           :icon="Stamp"
           :size="'normal'"
         >
-          <el-card shadow="never" class="timeline-card">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
             <h4>{{ $t('lifecycle.watermarkEmbedded') }}</h4>
-            <p class="timeline-desc">{{ $t('lifecycle.dataProtected') }}</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.dataProtected') }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -145,10 +233,20 @@
           :icon="Download"
           :size="'normal'"
         >
-          <el-card shadow="never" class="timeline-card">
+          <el-card
+            shadow="never"
+            class="timeline-card"
+          >
             <h4>{{ $t('lifecycle.downloaded') }}</h4>
-            <p class="timeline-desc">{{ $t('lifecycle.downloadedBy') }}: {{ dl.download_user_number }}</p>
-            <p class="timeline-desc" v-if="dl.filename">{{ $t('lifecycle.filename') }}: {{ dl.filename }}</p>
+            <p class="timeline-desc">
+              {{ $t('lifecycle.downloadedBy') }}: {{ dl.download_user_number }}
+            </p>
+            <p
+              v-if="dl.filename"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.filename') }}: {{ dl.filename }}
+            </p>
           </el-card>
         </el-timeline-item>
 
@@ -161,17 +259,34 @@
           :icon="WarningFilled"
           :size="'large'"
         >
-          <el-card shadow="never" class="timeline-card recall-card">
-            <h4>{{ $t('lifecycle.recalled') }}
-              <el-tag type="warning" size="small">{{ $t('lifecycle.dataRevoked') }}</el-tag>
+          <el-card
+            shadow="never"
+            class="timeline-card recall-card"
+          >
+            <h4>
+              {{ $t('lifecycle.recalled') }}
+              <el-tag
+                type="warning"
+                size="small"
+              >
+                {{ $t('lifecycle.dataRevoked') }}
+              </el-tag>
             </h4>
-            <p class="timeline-desc" v-if="detail.recall_reason">{{ $t('lifecycle.recallReason') }}: {{ detail.recall_reason }}</p>
+            <p
+              v-if="detail.recall_reason"
+              class="timeline-desc"
+            >
+              {{ $t('lifecycle.recallReason') }}: {{ detail.recall_reason }}
+            </p>
           </el-card>
         </el-timeline-item>
       </el-timeline>
 
       <!-- Watermark signature info (if available) -->
-      <div v-if="detail.qr_signature" class="signature-section">
+      <div
+        v-if="detail.qr_signature"
+        class="signature-section"
+      >
         <el-divider />
         <div class="sig-row">
           <el-icon><Lock /></el-icon>

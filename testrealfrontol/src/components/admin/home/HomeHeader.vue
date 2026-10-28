@@ -29,7 +29,7 @@ const displayLabel = computed(() => {
   return `${name} (${roleText})`;
 });
 
-const props = defineProps({
+defineProps({
   isSideCollapse: Boolean,
   isMobile: Boolean,
   drawerOpen: Boolean
@@ -83,23 +83,38 @@ const logout = async () => {
   <header class="admin-header">
     <div class="header-left">
       <el-button
-          :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
-          class="toggle-sidebar-button"
-          text
-          :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
-          :aria-expanded="isMobile ? drawerOpen : undefined"
-          @click="toggleSidebar"
+        :icon="isMobile ? Menu : (isSideCollapse ? Expand : Fold)"
+        class="toggle-sidebar-button"
+        text
+        :aria-label="isMobile ? (drawerOpen ? $t('header.closeMenu') : $t('header.openMenu')) : $t('header.toggleSidebar')"
+        :aria-expanded="isMobile ? drawerOpen : undefined"
+        @click="toggleSidebar"
       />
       <div class="logo-container">
-        <img src="@/components/icons/geo-wiki-logo.svg" alt="Logo" class="wiki-logo" />
-        <span class="logo-text" v-if="!isSideCollapse">{{ $t('header.systemTitle') }}</span>
+        <img
+          src="@/components/icons/geo-wiki-logo.svg"
+          alt="Logo"
+          class="wiki-logo"
+        >
+        <span
+          v-if="!isSideCollapse"
+          class="logo-text"
+        >{{ $t('header.systemTitle') }}</span>
       </div>
       <div class="return-home">
-        <router-link :to="{ name: 'AdminDashboard' }" class="return-link">{{ $t('header.dashboard') }}</router-link>
+        <router-link
+          :to="{ name: 'AdminDashboard' }"
+          class="return-link"
+        >
+          {{ $t('header.dashboard') }}
+        </router-link>
       </div>
     </div>
 
-    <div class="header-right" v-if="userNumber">
+    <div
+      v-if="userNumber"
+      class="header-right"
+    >
       <LanguageSwitcher />
       <el-button
         class="theme-toggle-button"
@@ -114,7 +129,13 @@ const logout = async () => {
         <el-icon><UserFilled /></el-icon>
         <span>{{ displayLabel }}</span>
       </div>
-      <el-button type="danger" :icon="SwitchButton" circle @click="logout" :title="$t('header.logout')"></el-button>
+      <el-button
+        type="danger"
+        :icon="SwitchButton"
+        circle
+        :title="$t('header.logout')"
+        @click="logout"
+      />
     </div>
   </header>
 </template>

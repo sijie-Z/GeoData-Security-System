@@ -2,147 +2,343 @@
 <!-- 栅格数据水印生成界面 -->
 
 <template>
-    <div>
-      <PageHeader :title="$t('rasterWmGen.pageTitle')" />
-      <!-- 水印生成申请表格 -->
-      <el-table :data="data.list" border>
-        <el-table-column prop="id" :label="$t('rasterWmGen.colApplicationId')" width="85" />
-        <el-table-column prop="data_alias" :label="$t('rasterWmGen.colDataName')" width="85"/>
-        <el-table-column prop="data_id" :label="$t('rasterWmGen.colRasterDataId')" width="110"/>
-        <el-table-column prop="applicant_user_number" :label="$t('rasterWmGen.colApplicantNo')" width="100"/>
-        <el-table-column prop="applicant_name" :label="$t('rasterWmGen.colApplicantName')" width="100"/>
-        <el-table-column prop="adm1_name" :label="$t('rasterWmGen.colAdm1Name')" width="120"/>
-        <el-table-column prop="adm2_name" :label="$t('rasterWmGen.colAdm2Name')" width="120"/>
-
-        <el-table-column :label="$t('rasterWmGen.colFirstStatus')" width="100">
-          <template v-slot="scope">
-            {{ getStatusText(scope.row.first_statu) }}
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmGen.colSecondStatus')" width="100">
-          <template v-slot="scope">
-            <div v-if="!scope.row.first_statu">
-              {{ getStatusText(null) }}
-            </div>
-            <div v-else>
-              {{ getStatusText(scope.row.second_statu) }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmGen.colWatermark')">
-          <template #default="scope">
-            <div class="qr-image-wrapper">
-              <WatermarkImage class="qr-code-image"
-                :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
-                :alt="$t('rasterWmGen.colWatermark')"
-                fit="cover"
-                style="width: 72px; height: 72px;"
-              />
-              <span v-if="!scope.row.qrcode" class="qr-empty-text">—</span>
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="$t('rasterWmGen.colAction')" width="122.5">
-          <template v-slot="scope">
-            <el-button size="small" type="primary" @click="openRequestDialog(scope.row)">{{ $t('rasterWmGen.generateWatermark') }}</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-
-    <!-- 分页组件 -->
-    <div>
-      <el-pagination
-        v-model:current-page="page"
-        v-model:page-size="pageSize"
-        :total="total"
-        layout="prev, pager, next, jumper, total"
-        @current-change="pageChanged"
-        class="view-pagination"
-      />
-    </div>
-
-    <!-- 水印生成表单弹窗 -->
-    <el-dialog
-      v-model="requestDataVisible"
-      width="550px"
-      :before-close="(done)=>handleClose('request',done)"
-      :show-close="true"
-      :close-on-click-modal="false"
-      class="custom-watermark-dialog"
-      :title="$t('rasterWmGen.requestDialogTitle')"
+  <div>
+    <PageHeader :title="$t('rasterWmGen.pageTitle')" />
+    <!-- 水印生成申请表格 -->
+    <el-table
+      :data="data.list"
+      border
     >
-      <el-form ref="requestFormRef" :model="requestInformation" status-icon :rules="rules" label-position="left" label-width="90px">
-        <el-divider content-position="left" class="section-divider">{{ $t('rasterWmGen.sectionWatermarkInfo') }}</el-divider>
-        <el-form-item :label="$t('rasterWmGen.formApplicationId')" prop="application_id" required>
-          <el-input v-model="requestInformation.application_id" :placeholder="$t('rasterWmGen.placeholderFillApplicationId')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formDataId')" prop="data_id">
-          <el-input v-model="requestInformation.data_id" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formDataName')" prop="data_alias">
-          <el-input v-model="requestInformation.data_alias" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formApplicantName')" prop="applicant_name">
-          <el-input v-model="requestInformation.applicant_name" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formEmployeeNo')" prop="applicant_user_number">
-          <el-input v-model="requestInformation.applicant_user_number" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formAdm1')" prop="adm1_name">
-          <el-input v-model="requestInformation.adm1_name" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formAdm2')" prop="adm2_name">
-          <el-input v-model="requestInformation.adm2_name" :placeholder="$t('rasterWmGen.placeholderFill')" disabled/>
-        </el-form-item>
-        <el-form-item :label="$t('rasterWmGen.formGenerateTime')" prop="now">
-          <el-input v-model="requestInformation.now" :placeholder="$t('rasterWmGen.placeholderAutoFill')" disabled/>
-        </el-form-item>
+      <el-table-column
+        prop="id"
+        :label="$t('rasterWmGen.colApplicationId')"
+        width="85"
+      />
+      <el-table-column
+        prop="data_alias"
+        :label="$t('rasterWmGen.colDataName')"
+        width="85"
+      />
+      <el-table-column
+        prop="data_id"
+        :label="$t('rasterWmGen.colRasterDataId')"
+        width="110"
+      />
+      <el-table-column
+        prop="applicant_user_number"
+        :label="$t('rasterWmGen.colApplicantNo')"
+        width="100"
+      />
+      <el-table-column
+        prop="applicant_name"
+        :label="$t('rasterWmGen.colApplicantName')"
+        width="100"
+      />
+      <el-table-column
+        prop="adm1_name"
+        :label="$t('rasterWmGen.colAdm1Name')"
+        width="120"
+      />
+      <el-table-column
+        prop="adm2_name"
+        :label="$t('rasterWmGen.colAdm2Name')"
+        width="120"
+      />
 
-        <el-divider content-position="left" class="section-divider">{{ $t('rasterWmGen.sectionDataOptions') }}</el-divider>
-        <el-form-item :label="$t('rasterWmGen.formDataType')" prop="data_format">
-          <el-select v-model="requestInformation.data_format" :placeholder="$t('rasterWmGen.placeholderSelect')" style="width: 100%;">
-            <!-- 栅格数据格式选项 -->
-            <el-option label="GeoTIFF" value="geotiff"></el-option>
-            <el-option label="JPEG" value="jpeg"></el-option>
-            <el-option label="PNG" value="png"></el-option>
-            <el-option label="Grid" value="grid"></el-option>
-          </el-select>
-        </el-form-item>
+      <el-table-column
+        :label="$t('rasterWmGen.colFirstStatus')"
+        width="100"
+      >
+        <template #default="scope">
+          {{ getStatusText(scope.row.first_statu) }}
+        </template>
+      </el-table-column>
 
-        <el-form-item :label="$t('rasterWmGen.formResolution')" prop="resolution">
-          <el-select v-model="requestInformation.resolution" :placeholder="$t('rasterWmGen.placeholderSelect')" style="width: 100%;">
-            <el-option :label="$t('rasterWmGen.resolutionAuto')" value="auto"></el-option>
-            <el-option :label="$t('rasterWmGen.resolution10m')" value="10m"></el-option>
-            <el-option :label="$t('rasterWmGen.resolution30m')" value="30m"></el-option>
-          </el-select>
-        </el-form-item>
-
-        <el-divider content-position="left" class="section-divider">{{ $t('rasterWmGen.sectionPaths') }}</el-divider>
-        <el-form-item :label="$t('rasterWmGen.formInputPath')" prop="input_path">
-          <div style="display: flex; align-items: center; width: 100%;">
-            <el-input v-model="requestInformation.input_path" :placeholder="$t('rasterWmGen.placeholderFill')" style="flex-grow: 1; margin-right: 10px;"/>
-            <el-button type="primary" size="small">{{ $t('rasterWmGen.browse') }}</el-button>
+      <el-table-column
+        :label="$t('rasterWmGen.colSecondStatus')"
+        width="100"
+      >
+        <template #default="scope">
+          <div v-if="!scope.row.first_statu">
+            {{ getStatusText(null) }}
           </div>
-        </el-form-item>
-
-        <el-form-item :label="$t('rasterWmGen.formOutputPath')" prop="output_path">
-          <div style="display: flex; align-items: center; width: 100%;">
-            <el-input v-model="requestInformation.output_path" :placeholder="$t('rasterWmGen.placeholderFill')" style="flex-grow: 1; margin-right: 10px;"/>
-            <el-button type="primary" size="small">{{ $t('rasterWmGen.browse') }}</el-button>
+          <div v-else>
+            {{ getStatusText(scope.row.second_statu) }}
           </div>
-        </el-form-item>
+        </template>
+      </el-table-column>
 
-        <el-form-item>
-          <el-button type="primary" @click="generate" :loading="generating">{{ $t('rasterWmGen.confirmGenerate') }}</el-button>
-          <el-button @click="resetForm">{{ $t('rasterWmGen.reset') }}</el-button>
-        </el-form-item>
-      </el-form>
-    </el-dialog>
-  </template>
+      <el-table-column :label="$t('rasterWmGen.colWatermark')">
+        <template #default="scope">
+          <div class="qr-image-wrapper">
+            <WatermarkImage
+              class="qr-code-image"
+              :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
+              :alt="$t('rasterWmGen.colWatermark')"
+              fit="cover"
+              style="width: 72px; height: 72px;"
+            />
+            <span
+              v-if="!scope.row.qrcode"
+              class="qr-empty-text"
+            >—</span>
+          </div>
+        </template>
+      </el-table-column>
+
+      <el-table-column
+        :label="$t('rasterWmGen.colAction')"
+        width="122.5"
+      >
+        <template #default="scope">
+          <el-button
+            size="small"
+            type="primary"
+            @click="openRequestDialog(scope.row)"
+          >
+            {{ $t('rasterWmGen.generateWatermark') }}
+          </el-button>
+        </template>
+      </el-table-column>
+    </el-table>
+  </div>
+
+  <!-- 分页组件 -->
+  <div>
+    <el-pagination
+      v-model:current-page="page"
+      v-model:page-size="pageSize"
+      :total="total"
+      layout="prev, pager, next, jumper, total"
+      class="view-pagination"
+      @current-change="pageChanged"
+    />
+  </div>
+
+  <!-- 水印生成表单弹窗 -->
+  <el-dialog
+    v-model="requestDataVisible"
+    width="550px"
+    :before-close="(done)=>handleClose('request',done)"
+    :show-close="true"
+    :close-on-click-modal="false"
+    class="custom-watermark-dialog"
+    :title="$t('rasterWmGen.requestDialogTitle')"
+  >
+    <el-form
+      ref="requestFormRef"
+      :model="requestInformation"
+      status-icon
+      :rules="rules"
+      label-position="left"
+      label-width="90px"
+    >
+      <el-divider
+        content-position="left"
+        class="section-divider"
+      >
+        {{ $t('rasterWmGen.sectionWatermarkInfo') }}
+      </el-divider>
+      <el-form-item
+        :label="$t('rasterWmGen.formApplicationId')"
+        prop="application_id"
+        required
+      >
+        <el-input
+          v-model="requestInformation.application_id"
+          :placeholder="$t('rasterWmGen.placeholderFillApplicationId')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formDataId')"
+        prop="data_id"
+      >
+        <el-input
+          v-model="requestInformation.data_id"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formDataName')"
+        prop="data_alias"
+      >
+        <el-input
+          v-model="requestInformation.data_alias"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formApplicantName')"
+        prop="applicant_name"
+      >
+        <el-input
+          v-model="requestInformation.applicant_name"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formEmployeeNo')"
+        prop="applicant_user_number"
+      >
+        <el-input
+          v-model="requestInformation.applicant_user_number"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formAdm1')"
+        prop="adm1_name"
+      >
+        <el-input
+          v-model="requestInformation.adm1_name"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formAdm2')"
+        prop="adm2_name"
+      >
+        <el-input
+          v-model="requestInformation.adm2_name"
+          :placeholder="$t('rasterWmGen.placeholderFill')"
+          disabled
+        />
+      </el-form-item>
+      <el-form-item
+        :label="$t('rasterWmGen.formGenerateTime')"
+        prop="now"
+      >
+        <el-input
+          v-model="requestInformation.now"
+          :placeholder="$t('rasterWmGen.placeholderAutoFill')"
+          disabled
+        />
+      </el-form-item>
+
+      <el-divider
+        content-position="left"
+        class="section-divider"
+      >
+        {{ $t('rasterWmGen.sectionDataOptions') }}
+      </el-divider>
+      <el-form-item
+        :label="$t('rasterWmGen.formDataType')"
+        prop="data_format"
+      >
+        <el-select
+          v-model="requestInformation.data_format"
+          :placeholder="$t('rasterWmGen.placeholderSelect')"
+          style="width: 100%;"
+        >
+          <!-- 栅格数据格式选项 -->
+          <el-option
+            label="GeoTIFF"
+            value="geotiff"
+          />
+          <el-option
+            label="JPEG"
+            value="jpeg"
+          />
+          <el-option
+            label="PNG"
+            value="png"
+          />
+          <el-option
+            label="Grid"
+            value="grid"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item
+        :label="$t('rasterWmGen.formResolution')"
+        prop="resolution"
+      >
+        <el-select
+          v-model="requestInformation.resolution"
+          :placeholder="$t('rasterWmGen.placeholderSelect')"
+          style="width: 100%;"
+        >
+          <el-option
+            :label="$t('rasterWmGen.resolutionAuto')"
+            value="auto"
+          />
+          <el-option
+            :label="$t('rasterWmGen.resolution10m')"
+            value="10m"
+          />
+          <el-option
+            :label="$t('rasterWmGen.resolution30m')"
+            value="30m"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-divider
+        content-position="left"
+        class="section-divider"
+      >
+        {{ $t('rasterWmGen.sectionPaths') }}
+      </el-divider>
+      <el-form-item
+        :label="$t('rasterWmGen.formInputPath')"
+        prop="input_path"
+      >
+        <div style="display: flex; align-items: center; width: 100%;">
+          <el-input
+            v-model="requestInformation.input_path"
+            :placeholder="$t('rasterWmGen.placeholderFill')"
+            style="flex-grow: 1; margin-right: 10px;"
+          />
+          <el-button
+            type="primary"
+            size="small"
+          >
+            {{ $t('rasterWmGen.browse') }}
+          </el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item
+        :label="$t('rasterWmGen.formOutputPath')"
+        prop="output_path"
+      >
+        <div style="display: flex; align-items: center; width: 100%;">
+          <el-input
+            v-model="requestInformation.output_path"
+            :placeholder="$t('rasterWmGen.placeholderFill')"
+            style="flex-grow: 1; margin-right: 10px;"
+          />
+          <el-button
+            type="primary"
+            size="small"
+          >
+            {{ $t('rasterWmGen.browse') }}
+          </el-button>
+        </div>
+      </el-form-item>
+
+      <el-form-item>
+        <el-button
+          type="primary"
+          :loading="generating"
+          @click="generate"
+        >
+          {{ $t('rasterWmGen.confirmGenerate') }}
+        </el-button>
+        <el-button @click="resetForm">
+          {{ $t('rasterWmGen.reset') }}
+        </el-button>
+      </el-form-item>
+    </el-form>
+  </el-dialog>
+</template>
 
   <script setup>
   import { reactive, ref, onMounted, watch, nextTick } from 'vue';

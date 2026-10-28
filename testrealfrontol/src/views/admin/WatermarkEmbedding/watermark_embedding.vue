@@ -1,45 +1,120 @@
 <template>
   <div>
     <PageHeader :title="$t('wmEmbed.pageTitle')" />
-    <div class="data-type-tabs" style="margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+    <div
+      class="data-type-tabs"
+      style="margin-bottom: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap;"
+    >
       <span class="data-type-label">{{ $t('wmEmbed.dataTypeLabel') }}</span>
-      <div v-if="hasRasterData" class="algo-block">
+      <div
+        v-if="hasRasterData"
+        class="algo-block"
+      >
         <div class="algo-row">
           <span class="algo-label">{{ $t('wmEmbed.algorithm') || 'Algorithm' }}:</span>
-          <el-select v-model="selectedAlgorithm" size="small" style="width: 180px;">
-            <el-option label="LSB (Reversible)" value="lsb" />
-            <el-option label="DWT (Frequency)" value="dwt" />
-            <el-option label="Histogram Shift" value="histogram" />
-            <el-option :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant, needs large image)'" value="blind" />
-            <el-option :label="$t('wmEmbed.algorithmIwDct') || 'IW-DCT (needs large image)'" value="iw_dct" />
+          <el-select
+            v-model="selectedAlgorithm"
+            size="small"
+            style="width: 180px;"
+          >
+            <el-option
+              label="LSB (Reversible)"
+              value="lsb"
+            />
+            <el-option
+              label="DWT (Frequency)"
+              value="dwt"
+            />
+            <el-option
+              label="Histogram Shift"
+              value="histogram"
+            />
+            <el-option
+              :label="$t('wmEmbed.algorithmBlind') || 'Blind (crop-resistant, needs large image)'"
+              value="blind"
+            />
+            <el-option
+              :label="$t('wmEmbed.algorithmIwDct') || 'IW-DCT (needs large image)'"
+              value="iw_dct"
+            />
           </el-select>
-          <el-tooltip :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'" placement="top">
-            <el-icon style="color: var(--text-3); cursor: help;"><QuestionFilled /></el-icon>
+          <el-tooltip
+            :content="$t('wmEmbed.algorithmTip') || 'LSB: reversible, fragile. DWT: robust to attacks. Histogram: high capacity for concentrated images.'"
+            placement="top"
+          >
+            <el-icon style="color: var(--text-3); cursor: help;">
+              <QuestionFilled />
+            </el-icon>
           </el-tooltip>
         </div>
-        <p class="algo-host-hint">{{ $t('wmEmbed.algorithmHostHint') }}</p>
+        <p class="algo-host-hint">
+          {{ $t('wmEmbed.algorithmHostHint') }}
+        </p>
       </div>
-      <el-button type="primary" class="batch-open-btn" @click="openBatchDialog">
+      <el-button
+        type="primary"
+        class="batch-open-btn"
+        @click="openBatchDialog"
+      >
         {{ $t('wmEmbed.batchEmbed') }}
       </el-button>
     </div>
-    <el-table :data="data.list" border style="width: 100%" v-loading="loading">
-      <el-table-column prop="id" :label="$t('wmEmbed.colApplicationId')" width="82.5" />
-      <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" width="85"/>
-      <el-table-column prop="data_id" :label="$t('wmEmbed.colVectorDataId')" width="110"/>
-      <el-table-column prop="applicant_user_number" :label="$t('wmEmbed.colApplicantNo')" width="100"/>
-      <el-table-column prop="applicant_name" :label="$t('wmEmbed.colApplicantName')" width="95"/>
-      <el-table-column prop="adm1_name" :label="$t('wmEmbed.colAdm1Name')" width="110"/>
-      <el-table-column prop="adm2_name" :label="$t('wmEmbed.colAdm2Name')" width="110"/>
+    <el-table
+      v-loading="loading"
+      :data="data.list"
+      border
+      style="width: 100%"
+    >
+      <el-table-column
+        prop="id"
+        :label="$t('wmEmbed.colApplicationId')"
+        width="82.5"
+      />
+      <el-table-column
+        prop="data_alias"
+        :label="$t('wmEmbed.colDataName')"
+        width="85"
+      />
+      <el-table-column
+        prop="data_id"
+        :label="$t('wmEmbed.colVectorDataId')"
+        width="110"
+      />
+      <el-table-column
+        prop="applicant_user_number"
+        :label="$t('wmEmbed.colApplicantNo')"
+        width="100"
+      />
+      <el-table-column
+        prop="applicant_name"
+        :label="$t('wmEmbed.colApplicantName')"
+        width="95"
+      />
+      <el-table-column
+        prop="adm1_name"
+        :label="$t('wmEmbed.colAdm1Name')"
+        width="110"
+      />
+      <el-table-column
+        prop="adm2_name"
+        :label="$t('wmEmbed.colAdm2Name')"
+        width="110"
+      />
 
-      <el-table-column :label="$t('wmEmbed.colFirstStatus')" width="85">
-        <template v-slot="scope">
+      <el-table-column
+        :label="$t('wmEmbed.colFirstStatus')"
+        width="85"
+      >
+        <template #default="scope">
           {{ getStatusText(scope.row.first_statu) }}
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('wmEmbed.colSecondStatus')" width="85">
-        <template v-slot="scope">
+      <el-table-column
+        :label="$t('wmEmbed.colSecondStatus')"
+        width="85"
+      >
+        <template #default="scope">
           <div v-if="!scope.row.first_statu">
             {{ getStatusText(null) }}
           </div>
@@ -52,22 +127,49 @@
       <el-table-column :label="$t('wmEmbed.colWatermark')">
         <template #default="scope">
           <div class="qr-image-wrapper">
-            <WatermarkImage class="qr-code-image"
+            <WatermarkImage
+              class="qr-code-image"
               :src="scope.row.qrcode ? `data:image/png;base64,${scope.row.qrcode}` : ''"
               :alt="$t('wmEmbed.colWatermark')"
               fit="cover"
               style="width: 72px; height: 72px;"
             />
-            <span v-if="!scope.row.qrcode" class="qr-empty-text">{{ $t('wmEmbed.noQRCode') || '—' }}</span>
+            <span
+              v-if="!scope.row.qrcode"
+              class="qr-empty-text"
+            >{{ $t('wmEmbed.noQRCode') || '—' }}</span>
           </div>
         </template>
       </el-table-column>
 
-      <el-table-column :label="$t('wmEmbed.colAction')" width="380">
-        <template v-slot="scope">
-          <el-button size="small" type="primary" @click="openMapDialog(scope.row)">{{ $t('wmEmbed.viewOriginalData') }}</el-button>
-          <el-button size="small" type="info" @click="previewWatermark(scope.row)" :loading="previewingId === scope.row.id">{{ $t('wmEmbed.preview') || 'Preview' }}</el-button>
-          <el-button size="small" type="primary" @click="embedding_watermark(scope.row)" :loading="embeddingId === scope.row.id">{{ $t('wmEmbed.embedWatermark') }}</el-button>
+      <el-table-column
+        :label="$t('wmEmbed.colAction')"
+        width="380"
+      >
+        <template #default="scope">
+          <el-button
+            size="small"
+            type="primary"
+            @click="openMapDialog(scope.row)"
+          >
+            {{ $t('wmEmbed.viewOriginalData') }}
+          </el-button>
+          <el-button
+            size="small"
+            type="info"
+            :loading="previewingId === scope.row.id"
+            @click="previewWatermark(scope.row)"
+          >
+            {{ $t('wmEmbed.preview') || 'Preview' }}
+          </el-button>
+          <el-button
+            size="small"
+            type="primary"
+            :loading="embeddingId === scope.row.id"
+            @click="embedding_watermark(scope.row)"
+          >
+            {{ $t('wmEmbed.embedWatermark') }}
+          </el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -79,14 +181,14 @@
       v-model:page-size="pageSize"
       :total="total"
       layout="prev, pager, next, jumper, total"
-      @current-change="pageChanged"
       class="view-pagination"
+      @current-change="pageChanged"
     />
   </div>
 
   <el-dialog
-    :title="$t('wmEmbed.vectorMapDialogTitle')"
     v-model="viewDataVisible"
+    :title="$t('wmEmbed.vectorMapDialogTitle')"
     width="72%"
     class="vector-map-dialog"
     :before-close="(done)=>handleClose('map',done)"
@@ -94,22 +196,45 @@
   >
     <div class="dialog-container vector-preview-layout">
       <div class="map-wrapper">
-        <div class="map-container" ref="mapContainer"></div>
-        <div v-if="!selectedData.data_url" class="map-placeholder">
+        <div
+          ref="mapContainer"
+          class="map-container"
+        />
+        <div
+          v-if="!selectedData.data_url"
+          class="map-placeholder"
+        >
           <el-empty :description="$t('wmEmbed.mapEmptyDesc')" />
         </div>
       </div>
       <div class="info-container">
-        <h4 class="info-title">{{ $t('wmEmbed.applicationDataInfo') }}</h4>
-        <el-descriptions :column="1" border size="small">
-          <el-descriptions-item :label="$t('wmEmbed.descDataName')">{{ selectedData.data_alias }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('wmEmbed.descDataId')">{{ selectedData.data_id }}</el-descriptions-item>
-          <el-descriptions-item :label="$t('wmEmbed.descApplicant')">{{ selectedData.applicant_name }} ({{ selectedData.applicant_user_number }})</el-descriptions-item>
+        <h4 class="info-title">
+          {{ $t('wmEmbed.applicationDataInfo') }}
+        </h4>
+        <el-descriptions
+          :column="1"
+          border
+          size="small"
+        >
+          <el-descriptions-item :label="$t('wmEmbed.descDataName')">
+            {{ selectedData.data_alias }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('wmEmbed.descDataId')">
+            {{ selectedData.data_id }}
+          </el-descriptions-item>
+          <el-descriptions-item :label="$t('wmEmbed.descApplicant')">
+            {{ selectedData.applicant_name }} ({{ selectedData.applicant_user_number }})
+          </el-descriptions-item>
           <el-descriptions-item :label="$t('wmEmbed.descMapServiceUrl')">
-            <span class="url-text" :title="selectedData.data_url">{{ selectedData.data_url || '—' }}</span>
+            <span
+              class="url-text"
+              :title="selectedData.data_url"
+            >{{ selectedData.data_url || '—' }}</span>
           </el-descriptions-item>
         </el-descriptions>
-        <p class="info-tip">{{ $t('wmEmbed.closeDialogTip') }}</p>
+        <p class="info-tip">
+          {{ $t('wmEmbed.closeDialogTip') }}
+        </p>
       </div>
     </div>
   </el-dialog>
@@ -121,19 +246,35 @@
     width="500px"
     class="preview-dialog"
   >
-    <el-descriptions :column="1" border size="small">
+    <el-descriptions
+      :column="1"
+      border
+      size="small"
+    >
       <el-descriptions-item :label="$t('wmEmbed.previewDataType') || 'Data Type'">
-        <el-tag :type="previewData.data_type === 'raster' ? 'warning' : 'primary'" effect="plain">
+        <el-tag
+          :type="previewData.data_type === 'raster' ? 'warning' : 'primary'"
+          effect="plain"
+        >
           {{ previewData.data_type }}
         </el-tag>
       </el-descriptions-item>
-      <el-descriptions-item v-if="previewData.data_type === 'vector'" :label="$t('wmEmbed.previewVertices') || 'Total Vertices'">
+      <el-descriptions-item
+        v-if="previewData.data_type === 'vector'"
+        :label="$t('wmEmbed.previewVertices') || 'Total Vertices'"
+      >
         {{ previewData.total_vertices.toLocaleString() }}
       </el-descriptions-item>
-      <el-descriptions-item v-if="previewData.data_type === 'raster'" :label="$t('wmEmbed.previewHostSize') || 'Host Image Size'">
+      <el-descriptions-item
+        v-if="previewData.data_type === 'raster'"
+        :label="$t('wmEmbed.previewHostSize') || 'Host Image Size'"
+      >
         {{ previewData.host_size ? `${previewData.host_size.width} x ${previewData.host_size.height}` : '-' }}
       </el-descriptions-item>
-      <el-descriptions-item v-if="previewData.data_type === 'raster'" :label="$t('wmEmbed.previewTotalPixels') || 'Total Pixels'">
+      <el-descriptions-item
+        v-if="previewData.data_type === 'raster'"
+        :label="$t('wmEmbed.previewTotalPixels') || 'Total Pixels'"
+      >
         {{ previewData.total_pixels.toLocaleString() }}
       </el-descriptions-item>
       <el-descriptions-item :label="$t('wmEmbed.previewWmBits') || 'Watermark Bits'">
@@ -148,7 +289,10 @@
         />
       </el-descriptions-item>
       <el-descriptions-item :label="$t('wmEmbed.previewStatus') || 'Capacity Status'">
-        <el-tag :type="previewData.sufficient ? 'success' : 'danger'" effect="dark">
+        <el-tag
+          :type="previewData.sufficient ? 'success' : 'danger'"
+          effect="dark"
+        >
           {{ previewData.sufficient ? ($t('wmEmbed.sufficient') || 'Sufficient') : ($t('wmEmbed.insufficient') || 'Insufficient') }}
         </el-tag>
       </el-descriptions-item>
@@ -163,43 +307,95 @@
     class="batch-dialog"
   >
     <!-- ① 发起视图：可选申请（已审批·已生成水印·未嵌入）+ 历史作业 -->
-    <div v-if="!batchJob" class="batch-create">
+    <div
+      v-if="!batchJob"
+      class="batch-create"
+    >
       <div class="batch-toolbar">
         <span class="batch-select-title">{{ $t('wmEmbed.batchSelectTitle') }}</span>
         <span class="batch-selected-hint">{{ $t('wmEmbed.batchSelected', { n: batchSelected.length }) }}</span>
         <div class="batch-algo-row">
           <span class="algo-label">{{ $t('wmEmbed.batchAlgorithmLabel') }}</span>
-          <el-select v-model="batchAlgorithm" size="small" style="width: 200px;">
-            <el-option label="LSB (Reversible)" value="lsb" />
-            <el-option label="DWT (Frequency)" value="dwt" />
-            <el-option label="Histogram Shift" value="histogram" />
-            <el-option :label="$t('wmEmbed.algorithmBlind')" value="blind" />
-            <el-option :label="$t('wmEmbed.algorithmIwDct')" value="iw_dct" />
+          <el-select
+            v-model="batchAlgorithm"
+            size="small"
+            style="width: 200px;"
+          >
+            <el-option
+              label="LSB (Reversible)"
+              value="lsb"
+            />
+            <el-option
+              label="DWT (Frequency)"
+              value="dwt"
+            />
+            <el-option
+              label="Histogram Shift"
+              value="histogram"
+            />
+            <el-option
+              :label="$t('wmEmbed.algorithmBlind')"
+              value="blind"
+            />
+            <el-option
+              :label="$t('wmEmbed.algorithmIwDct')"
+              value="iw_dct"
+            />
           </el-select>
         </div>
       </div>
       <el-table
+        v-loading="batchEligibleLoading"
         :data="batchEligible"
         border
         size="small"
-        v-loading="batchEligibleLoading"
         max-height="260"
         @selection-change="onBatchSelectionChange"
       >
-        <el-table-column type="selection" width="42" />
-        <el-table-column prop="id" :label="$t('wmEmbed.colApplicationId')" width="88" />
-        <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="data_id" :label="$t('wmEmbed.colVectorDataId')" width="105" />
-        <el-table-column :label="$t('wmEmbed.previewDataType')" width="88">
+        <el-table-column
+          type="selection"
+          width="42"
+        />
+        <el-table-column
+          prop="id"
+          :label="$t('wmEmbed.colApplicationId')"
+          width="88"
+        />
+        <el-table-column
+          prop="data_alias"
+          :label="$t('wmEmbed.colDataName')"
+          min-width="130"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="data_id"
+          :label="$t('wmEmbed.colVectorDataId')"
+          width="105"
+        />
+        <el-table-column
+          :label="$t('wmEmbed.previewDataType')"
+          width="88"
+        >
           <template #default="scope">
-            <el-tag size="small" effect="plain" :type="(scope.row.data_type || '').toLowerCase() === 'raster' ? 'warning' : 'primary'">
+            <el-tag
+              size="small"
+              effect="plain"
+              :type="(scope.row.data_type || '').toLowerCase() === 'raster' ? 'warning' : 'primary'"
+            >
               {{ scope.row.data_type || 'vector' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="applicant_name" :label="$t('wmEmbed.colApplicantName')" width="105" />
+        <el-table-column
+          prop="applicant_name"
+          :label="$t('wmEmbed.colApplicantName')"
+          width="105"
+        />
         <template #empty>
-          <el-empty :description="$t('wmEmbed.batchNoEligible')" :image-size="60" />
+          <el-empty
+            :description="$t('wmEmbed.batchNoEligible')"
+            :image-size="60"
+          />
         </template>
       </el-table>
       <div class="batch-actions">
@@ -215,40 +411,107 @@
       </div>
 
       <div class="batch-history">
-        <div class="batch-section-title">{{ $t('wmEmbed.batchHistoryTitle') }}</div>
-        <el-table :data="batchHistory" size="small" border v-loading="batchHistoryLoading" max-height="200">
-          <el-table-column prop="created_at" :label="$t('wmEmbed.batchCreatedAt')" width="165" />
-          <el-table-column :label="$t('wmEmbed.batchColStatus')" width="88">
+        <div class="batch-section-title">
+          {{ $t('wmEmbed.batchHistoryTitle') }}
+        </div>
+        <el-table
+          v-loading="batchHistoryLoading"
+          :data="batchHistory"
+          size="small"
+          border
+          max-height="200"
+        >
+          <el-table-column
+            prop="created_at"
+            :label="$t('wmEmbed.batchCreatedAt')"
+            width="165"
+          />
+          <el-table-column
+            :label="$t('wmEmbed.batchColStatus')"
+            width="88"
+          >
             <template #default="scope">
-              <el-tag size="small" :type="batchJobStatusType(scope.row.status)">{{ batchJobStatusText(scope.row.status) }}</el-tag>
+              <el-tag
+                size="small"
+                :type="batchJobStatusType(scope.row.status)"
+              >
+                {{ batchJobStatusText(scope.row.status) }}
+              </el-tag>
             </template>
           </el-table-column>
-          <el-table-column :label="$t('wmEmbed.batchJobCount')" width="90">
-            <template #default="scope">{{ scope.row.done }} / {{ scope.row.total }}</template>
-          </el-table-column>
-          <el-table-column prop="ok" :label="$t('wmEmbed.batchOkCount')" width="72" />
-          <el-table-column prop="fail" :label="$t('wmEmbed.batchFailCount')" width="72" />
-          <el-table-column prop="algorithm" :label="$t('wmEmbed.algorithm')" width="92" />
-          <el-table-column prop="uuid" label="UUID" min-width="130" show-overflow-tooltip />
-          <el-table-column :label="$t('wmEmbed.colAction')" width="96">
+          <el-table-column
+            :label="$t('wmEmbed.batchJobCount')"
+            width="90"
+          >
             <template #default="scope">
-              <el-button size="small" link type="primary" @click="loadBatchJob(scope.row.uuid)">
+              {{ scope.row.done }} / {{ scope.row.total }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="ok"
+            :label="$t('wmEmbed.batchOkCount')"
+            width="72"
+          />
+          <el-table-column
+            prop="fail"
+            :label="$t('wmEmbed.batchFailCount')"
+            width="72"
+          />
+          <el-table-column
+            prop="algorithm"
+            :label="$t('wmEmbed.algorithm')"
+            width="92"
+          />
+          <el-table-column
+            prop="uuid"
+            label="UUID"
+            min-width="130"
+            show-overflow-tooltip
+          />
+          <el-table-column
+            :label="$t('wmEmbed.colAction')"
+            width="96"
+          >
+            <template #default="scope">
+              <el-button
+                size="small"
+                link
+                type="primary"
+                @click="loadBatchJob(scope.row.uuid)"
+              >
                 {{ $t('wmEmbed.batchViewDetail') }}
               </el-button>
             </template>
           </el-table-column>
           <template #empty>
-            <el-empty :description="$t('wmEmbed.batchHistoryEmpty')" :image-size="48" />
+            <el-empty
+              :description="$t('wmEmbed.batchHistoryEmpty')"
+              :image-size="48"
+            />
           </template>
         </el-table>
       </div>
     </div>
 
     <!-- ② 作业详情视图：真实进度条 + 逐项结果 + 重试失败项 -->
-    <div v-else class="batch-detail" v-loading="batchDetailLoading">
+    <div
+      v-else
+      v-loading="batchDetailLoading"
+      class="batch-detail"
+    >
       <div class="batch-detail-head">
-        <el-button size="small" @click="backToBatchSelect">{{ $t('wmEmbed.batchBack') }}</el-button>
-        <el-tag size="small" :type="batchJobStatusType(batchJob.status)">{{ batchJobStatusText(batchJob.status) }}</el-tag>
+        <el-button
+          size="small"
+          @click="backToBatchSelect"
+        >
+          {{ $t('wmEmbed.batchBack') }}
+        </el-button>
+        <el-tag
+          size="small"
+          :type="batchJobStatusType(batchJob.status)"
+        >
+          {{ batchJobStatusText(batchJob.status) }}
+        </el-tag>
         <span class="batch-detail-uuid">{{ batchJob.uuid }}</span>
         <span class="batch-detail-counts">
           {{ $t('wmEmbed.batchOkCount') }} {{ batchJob.ok }} ·
@@ -257,7 +520,9 @@
         </span>
       </div>
       <div class="batch-progress-block">
-        <div class="batch-section-title">{{ $t('wmEmbed.batchProgress') }}</div>
+        <div class="batch-section-title">
+          {{ $t('wmEmbed.batchProgress') }}
+        </div>
         <el-progress
           :percentage="batchProgressPercent"
           :status="batchProgressStatus"
@@ -268,20 +533,58 @@
           :striped-flow="batchJob.status === 'running'"
         />
       </div>
-      <div class="batch-section-title">{{ $t('wmEmbed.batchResultTitle') }}</div>
-      <el-table :data="batchJob.items" size="small" border max-height="280">
-        <el-table-column prop="application_id" :label="$t('wmEmbed.colApplicationId')" width="88" />
-        <el-table-column prop="data_alias" :label="$t('wmEmbed.colDataName')" min-width="120" show-overflow-tooltip />
-        <el-table-column prop="data_type" :label="$t('wmEmbed.previewDataType')" width="90" />
-        <el-table-column :label="$t('wmEmbed.batchColStatus')" width="92">
+      <div class="batch-section-title">
+        {{ $t('wmEmbed.batchResultTitle') }}
+      </div>
+      <el-table
+        :data="batchJob.items"
+        size="small"
+        border
+        max-height="280"
+      >
+        <el-table-column
+          prop="application_id"
+          :label="$t('wmEmbed.colApplicationId')"
+          width="88"
+        />
+        <el-table-column
+          prop="data_alias"
+          :label="$t('wmEmbed.colDataName')"
+          min-width="120"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          prop="data_type"
+          :label="$t('wmEmbed.previewDataType')"
+          width="90"
+        />
+        <el-table-column
+          :label="$t('wmEmbed.batchColStatus')"
+          width="92"
+        >
           <template #default="scope">
-            <el-tag size="small" :type="batchItemStatusType(scope.row.status)">{{ batchItemStatusText(scope.row.status) }}</el-tag>
+            <el-tag
+              size="small"
+              :type="batchItemStatusType(scope.row.status)"
+            >
+              {{ batchItemStatusText(scope.row.status) }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column :label="$t('wmEmbed.batchColError')" min-width="230">
+        <el-table-column
+          :label="$t('wmEmbed.batchColError')"
+          min-width="230"
+        >
           <template #default="scope">
-            <span v-if="scope.row.error" class="batch-item-error" :title="scope.row.error">{{ scope.row.error }}</span>
-            <span v-else class="batch-item-empty">—</span>
+            <span
+              v-if="scope.row.error"
+              class="batch-item-error"
+              :title="scope.row.error"
+            >{{ scope.row.error }}</span>
+            <span
+              v-else
+              class="batch-item-empty"
+            >—</span>
           </template>
         </el-table-column>
       </el-table>
@@ -297,11 +600,9 @@
       </div>
     </div>
   </el-dialog>
-
 </template>
 
 <script setup>
-import {useUserStore} from "@/stores/userStore.js";
 import PageHeader from '@/components/common/PageHeader.vue';
 import {reactive, ref, onMounted, onBeforeUnmount, watch, nextTick, computed} from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -349,9 +650,7 @@ const data = reactive({ list: [] });
 const page = ref(1);
 const pageSize = ref(10);
 const total = ref(0);
-const dataTypeTab = ref('');
 
-const requestFormRef = ref(null);
 const viewDataVisible = ref(false);
 const mapContainer = ref(null);
 
@@ -368,11 +667,6 @@ const pageChanged = (newPage) => {
   page.value = newPage;
 };
 
-const onDataTypeChange = () => {
-  page.value = 1;
-  get_applications();
-};
-
 const getStatusText = (status) => {
   if (status === true) return t('wmEmbed.statusPassed');
   if (status === false) return t('wmEmbed.statusRejected');
@@ -381,21 +675,6 @@ const getStatusText = (status) => {
 };
 
 
-
-const initialRequestInformation = {
-  application_id: '',
-  data_name:'',
-  data_id: '',
-  data_url:'',
-  data_alias: '',
-  applicant_name: '',
-  applicant_user_number: '',
-  adm1_name: '',
-  adm2_name: '',
-  now: ''
-};
-
-const requestInformation = reactive({ ...initialRequestInformation });
 
 const get_applications = async () => {
   loading.value = true;
@@ -425,13 +704,6 @@ const get_applications = async () => {
 onMounted(() => {
   get_applications();
 });
-
-
-const resetForm = async () => {
-  Object.assign(requestInformation, { ...initialRequestInformation });
-  await nextTick();
-  requestFormRef.value?.clearValidate();
-};
 
 
 const embedding_watermark = async (row) => {
@@ -813,7 +1085,7 @@ const initializeMapView = (data_url) => {
 
 const destroyMapView = () => {
   if (mapInstance) {
-    try { mapInstance.remove() } catch (_) {}
+    try { mapInstance.remove() } catch (_) { /* best-effort teardown */ }
     mapInstance = null;
   }
 };
