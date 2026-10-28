@@ -758,8 +758,8 @@ const sendAIMessage = async () => {
     (err) => {
       const existing = conv.messages[msgIdx].content
       conv.messages[msgIdx].content = existing
-        ? existing + '\n\n⚠️ 流式响应中断'
-        : '⚠️ ' + (err.message || '响应失败，请重试')
+        ? existing + '\n\n⚠️ ' + t('empChat.streamInterrupted')
+        : '⚠️ ' + (err.message || t('empChat.responseFailed'))
       aiSending.value = false
       aiAbortController = null
       saveAIConversations()

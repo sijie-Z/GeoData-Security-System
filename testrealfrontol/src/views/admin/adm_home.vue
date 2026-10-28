@@ -4,10 +4,12 @@ import { useMediaQuery } from '@vueuse/core';
 import HomeHeader from "@/components/admin/home/HomeHeader.vue";
 import HomeSide from "@/components/admin/home/HomeSide.vue";
 import { useRouter, useRoute } from "vue-router";
+import { useI18n } from 'vue-i18n';
 import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const route = useRoute();
+const { t } = useI18n();
 
 // 折叠状态持久化：桌面端记忆到 localStorage；移动端抽屉开合不写入（见下方 watch 守卫）
 const SIDEBAR_COLLAPSE_KEY = 'ui:sidebar-collapsed:admin';
@@ -41,7 +43,7 @@ const closeDrawer = () => {
 onErrorCaptured((err, instance, info) => {
   console.error('[ErrorBoundary]', err, info);
   hasError.value = true;
-  ElMessage.error('页面加载异常，请刷新重试');
+  ElMessage.error(t('adminHome.errorToast'));
   return false; // prevent error from propagating further
 });
 
@@ -111,13 +113,17 @@ const reloadPage = () => {
           v-if="hasError"
           class="error-fallback"
         >
-          <h2>⚠️ 页面加载异常</h2>
-          <p>子组件渲染出错，请刷新页面或返回首页。</p>
+          <h2>
+            ⚠️ {{ $t('adminHome.errorTitle') }}
+          </h2>
+          <p>
+            {{ $t('adminHome.errorDesc') }}
+          </p>
           <el-button
             type="primary"
             @click="reloadPage"
           >
-            返回首页
+            {{ $t('adminHome.backHome') }}
           </el-button>
         </div>
         <router-view

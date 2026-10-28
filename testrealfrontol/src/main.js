@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import App from './App.vue'
 import router from './router'
-import ElementPlus from 'element-plus'
+import ElementPlus, { ElMessage } from 'element-plus'
 import 'element-plus/dist/index.css'
 // Element Plus 官方深色变量（html.dark 约定），须在 design-system.css 之前加载，
 // 以便后者在其基础上做品牌化覆写
@@ -21,16 +21,33 @@ const app = createApp(App)
 // 挂载前应用持久化主题（html.dark），避免深色用户首帧闪烁
 initTheme()
 
-// Global error handler — log + notify user, prevent silent white screen
+// Global error handler — log + notify user, prevent silent white screen.
+// NOTE: browser ESM has no `require`; ElMessage is imported statically above and a
+// DOM-level banner is the last-resort fallback if even ElMessage cannot render.
+const showFatalBanner = () => {
+  try {
+    if (document.getElementById('app-fatal-banner')) return
+    const banner = document.createElement('div')
+    banner.id = 'app-fatal-banner'
+    banner.setAttribute('role', 'alert')
+    banner.style.cssText =
+      'position:fixed;left:50%;top:16px;transform:translateX(-50%);z-index:99999;' +
+      'background:#b91c1c;color:#fff;padding:10px 16px;border-radius:8px;' +
+      'font:14px/1.5 system-ui,sans-serif;box-shadow:0 4px 16px rgba(0,0,0,.25)'
+    banner.textContent = i18n.global.t('common.renderError')
+    document.body.appendChild(banner)
+  } catch (_) { /* DOM unavailable (SSR / very early boot) */ }
+}
+
 app.config.errorHandler = (err, instance, info) => {
   console.error('Global error:', err)
   console.error('Component:', instance?.$options?.name || 'unknown')
   console.error('Info:', info)
-  // Show user-facing notification (if ElMessage is available)
   try {
-    const { ElMessage } = require('element-plus')
-    ElMessage.error('页面渲染出错，请刷新重试')
-  } catch (_) { /* ignore if not available */ }
+    ElMessage.error(i18n.global.t('common.renderError'))
+  } catch (_) {
+    showFatalBanner()
+  }
 }
 
 // Catch unhandled promise rejections (e.g. async onMounted failures)

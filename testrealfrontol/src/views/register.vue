@@ -42,7 +42,7 @@
                   <img
                     v-if="data.avatarUrl"
                     :src="data.avatarUrl"
-                    alt="头像预览"
+                    :alt="$t('register.avatarPreview')"
                     class="avatar-image"
                   >
                   <div

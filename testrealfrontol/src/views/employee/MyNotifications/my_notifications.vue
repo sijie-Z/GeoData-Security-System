@@ -29,7 +29,7 @@
           :icon="RefreshRight"
           circle
           :loading="loading"
-          title="刷新"
+          :title="$t('common.refresh')"
           @click="fetchList"
         />
       </div>

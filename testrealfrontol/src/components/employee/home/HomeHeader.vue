@@ -272,7 +272,7 @@ const { isDark, toggleTheme } = useTheme();
           >
             <img
               src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2646ee683b17fdunop.jpeg"
-              alt="默认头像"
+              :alt="$t('header.defaultAvatar')"
             >
           </el-avatar>
           <span class="user-name">{{ userName || $t('header.employee') }}</span>
