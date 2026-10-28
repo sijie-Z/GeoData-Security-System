@@ -51,6 +51,15 @@ commits：`2a9d833`（主体）+ `446dc21`（对抗评审收口：CRMark recover
 - **密钥默认值**：未配置 `SECRET_KEY` / `JWT_SECRET_KEY` 时每次启动生成 `secrets.token_hex` 临时密钥并打印 WARNING；Production 仍 fail-closed，TestingConfig 不受影响。`QR_SECRET_KEY` 同类处置：生产缺失或等于旧公开常量时启动 raise，dev/testing 可临时随机且 QR 往返回归通过；`docker-compose.yml` 与 `.env.example` 同步补为必填。
 - **测试**：新增 `tests/test_authz_round2.py` **81** 个安全回归用例（含参数化的员工/adm1/adm3 拒绝用例；每个修复端点"越权拒绝 + 合法放行"双用例；`test_download` 成功路径恢复为 200 + 实体内容断言）；全量 **664 passed / 0 failed**；`ruff check` + `ruff format --check` 双绿。
 
+### 波 5 · 前端工程化清理（`fix/frontend-cleanup`，本地分支，2026-10-28）
+
+- **lint 4925 → 0**：`eslint --fix` 自动修复 **4821** 条（vue/max-attributes-per-line 2109、singleline-content-newline 1312、html-indent 1080 等），人工修 **104** 条残留（no-unused-vars×20、no-empty×5、prefer-const、vue/no-template-shadow、vue/no-v-html 单点豁免）；`no-console` 调整为 allow `[error, warn]`（实测 0 条 log/info/debug 调试残留）。`npm run lint` 改为 `--max-warnings 0` 硬门禁，CI `frontend` job 自动继承。
+- **首屏减重**：`first_home.vue` 的静态 `import * as THREE` 改为挂载后动态 `import('three')`。构建产物中 `first_home` chunk 由静态依赖 `three.module`（699.49 kB）改为动态 `import()`；生产预览实测 three 请求由"与 first_home chunk 并行（4457ms，DCL 4458ms 之前）"变为"挂载后 860ms（DCL 613ms 之后）"。阻断 three 加载时旧版整页白屏，新版页面完整渲染、仅背景降级。
+- **全局错误兜底修复**：`main.js` 移除浏览器 ESM 不存在的 `require('element-plus')`（原用户提示被 try/catch 静默吞掉、永不显示）；改为静态 `ElMessage` + i18n 键 + DOM alert banner 兜底。探针实测：旧版无提示，新版正确弹出「页面渲染出错，请刷新重试」。
+- **未使用依赖清理**：移除 `@tweenjs/tween.js` / `jsonp` / `jwt-decode` / `screenfull` / `typewriter-effect` / `uuid`（全仓 grep 0 引用）；lock 经 `npm install --package-lock-only` 更新，未触碰共享 `node_modules` junction。
+- **硬编码中文 i18n**：10 处活动 UI 文案改 `$t()`（adm_home 错误边界×4、MyNotifications/OperationHistory 刷新 title、register/员工 HomeHeader 头像 alt、employee_chat 流式中断/失败提示×2），新增 8 个 zh/en 成对键；键总量 2690/2690 对齐。
+- **验证**：`npm run build` 绿；3 页浅/深 1600×1000 像素对照，`information_list` 两主题 0 差异，其余差异仅落在秒级时钟/地球弧线动画区域（同代码重复截图噪声同量级；掩掉动态区域后全 0）；axe 快扫 `/login` `/register` `/first_home` `/admin` 与基线完全一致（无新增，仅 first_home 既有 2 条 moderate）；console 0 error。
+
 ---
 
 ## [v3.0] — 2026-10-09 (Personalized Delivery, Verifiable Evidence Chain & Robustness Lab)
