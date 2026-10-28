@@ -664,6 +664,14 @@ class BatchGenerateWatermarkResource(Resource):
         # "申请不存在" per-item result as the former session.get loop.
         preload_ids = [value for value in app_ids if isinstance(value, int)]
         app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+        # The preloaded rows must survive the per-item commits: with the
+        # default expire_on_commit each commit would expire them and the next
+        # iteration would reload one row anyway (the IN query would save
+        # nothing). Rollback still expires the failed row, so error handling
+        # keeps seeing database state. Restored before returning.
+        session_impl = db.session()
+        previous_expire_on_commit = session_impl.expire_on_commit
+        session_impl.expire_on_commit = False
 
         for app_id in app_ids:
             try:
@@ -734,6 +742,7 @@ class BatchGenerateWatermarkResource(Resource):
                 results.append({"id": app_id, "success": False, "error": str(e)})
                 fail_count += 1
 
+        session_impl.expire_on_commit = previous_expire_on_commit
         return {
             "status": True,
             "results": results,
@@ -779,6 +788,14 @@ class BatchEmbedWatermarkResource(Resource):
         # "申请不存在" per-item result as the former session.get loop.
         preload_ids = [value for value in app_ids if isinstance(value, int)]
         app_map = {row.id: row for row in Application.query.filter(Application.id.in_(preload_ids)).all()}
+        # The preloaded rows must survive the per-item commits: with the
+        # default expire_on_commit each commit would expire them and the next
+        # iteration would reload one row anyway (the IN query would save
+        # nothing). Rollback still expires the failed row, so error handling
+        # keeps seeing database state. Restored before returning.
+        session_impl = db.session()
+        previous_expire_on_commit = session_impl.expire_on_commit
+        session_impl.expire_on_commit = False
 
         for app_id in app_ids:
             try:
@@ -811,6 +828,7 @@ class BatchEmbedWatermarkResource(Resource):
                 results.append({"id": app_id, "success": False, "error": str(e)})
                 fail_count += 1
 
+        session_impl.expire_on_commit = previous_expire_on_commit
         return {
             "status": True,
             "results": results,
