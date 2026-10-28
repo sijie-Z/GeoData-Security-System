@@ -43,6 +43,10 @@ def _cleanup_perf_rows(db):
     max_record = db.session.query(func.max(DownloadRecord.id)).scalar() or 0
     max_admin = db.session.query(func.max(AdmAccount.id)).scalar() or 0
     yield
+    # A test may leave a failed/pending transaction or an un-restored commit
+    # monkeypatch behind (see test_concurrent_logout_integrity_error_is_idempotent);
+    # cleanup must never raise, so roll back first and swallow a final failure.
+    db.session.rollback()
     admin_numbers = [row[0] for row in db.session.query(AdmAccount.adm_number).filter(AdmAccount.id > max_admin)]
     DownloadRecord.query.filter(DownloadRecord.id > max_record).delete(synchronize_session=False)
     EvidenceEvent.query.filter(EvidenceEvent.id > max_event).delete(synchronize_session=False)
@@ -55,7 +59,10 @@ def _cleanup_perf_rows(db):
     # The delete-account refresh test removes its account before this cleanup;
     # its info row (only this module uses the ADM- number prefix) still goes.
     AdmInfo.query.filter(AdmInfo.adm_number.like("ADM-%")).delete(synchronize_session=False)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception:  # pragma: no cover - defensive: cleanup must not fail a test
+        db.session.rollback()
 
 
 def _uniq(prefix):
@@ -439,6 +446,9 @@ def test_concurrent_logout_integrity_error_is_idempotent(client, db, auth_header
     resp = client.post("/api/logout", headers=auth_headers)
     assert resp.status_code == 200, resp.get_data(as_text=True)
     assert resp.get_json()["status"] is True
+    # Restore immediately (deterministic) instead of relying on fixture teardown
+    # ordering; the cleanup fixture's final commit must see the real commit().
+    monkeypatch.undo()
 
 
 @pytest.mark.parametrize("bad_statu", ["true", 1, None, "False", []])
