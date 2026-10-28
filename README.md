@@ -220,7 +220,7 @@ v3.0 交付与取证链路:
 <tr><td rowspan="5"><b>运维</b></td><td>Docker + docker-compose</td><td>容器化部署（可选，9 个服务）</td></tr>
 <tr><td>Prometheus + Grafana</td><td>监控 + 告警 + 可视化（2 块仪表盘）</td></tr>
 <tr><td>Loki + Promtail</td><td>日志聚合</td></tr>
-<tr><td>GitHub Actions</td><td>CI 三 job + CodeQL + gitleaks</td></tr>
+<tr><td>GitHub Actions</td><td>CI 四 job + CodeQL + gitleaks</td></tr>
 <tr><td>Ruff + ESLint + pre-commit</td><td>代码规范与 Git Hooks</td></tr>
 </table>
 
@@ -293,7 +293,7 @@ GeoData-Security-System/
 │   ├── resource/                       # API 资源（含 forensics / batch_embed / 日志与统计导出）
 │   ├── algorithm/                      # 水印算法（矢量 D-QIM/legacy；栅格 5 种；鲁棒性实验引擎）
 │   ├── utils/                          # 缓存 / 指标 / WebSocket / 限流 / 审计日志工具
-│   ├── tests/                          # Pytest 测试套件（46 个 test_*.py / 583 个用例）
+│   ├── tests/                          # Pytest 测试套件（48 个 test_*.py / 690 个用例）
 │   └── Dockerfile
 │
 ├── testrealfrontol/                    # Vue 3 前端
@@ -314,7 +314,7 @@ GeoData-Security-System/
 ├── prometheus.yml                      # Prometheus 采集配置
 ├── loki-config.yml                     # Loki 日志配置
 ├── promtail-config.yml                 # Promtail 日志采集
-├── .github/workflows/                  # CI 三 job + CodeQL + gitleaks 等 5 个工作流
+├── .github/workflows/                  # CI 四 job + CodeQL + gitleaks 等 5 个工作流
 ├── .pre-commit-config.yaml             # Pre-commit Hooks
 └── LICENSE
 ```
@@ -404,14 +404,14 @@ GeoData-Security-System/
 
 ## 质量保障
 
-- **后端测试**：`testrealend/tests/` 583 个用例（46 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
+- **后端测试**：`testrealend/tests/` 690 个用例（48 个 `test_*.py`；`pytest --collect-only` 实测；基于文件型 SQLite，无需外部数据库），覆盖指纹交付、证据链防篡改、取证定位（3 用户 E2E）、EVM 锚定（eth-tester）等核心链路
 
   ```bash
   cd testrealend
   python -m pytest
   ```
 
-- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest 硬门禁，失败即红）、`frontend`（ESLint + 构建）、`docker`（镜像构建 + 容器冒烟：app factory 路由装配 / gunicorn `/api/health` / `nginx -t`）三个 job
+- **CI 流水线**（GitHub Actions）：`backend`（Ruff + 全量 Pytest 硬门禁，失败即红）、`frontend`（ESLint + 构建）、`docker`（镜像构建 + 容器冒烟：app factory 路由装配 / gunicorn `/api/health` / `nginx -t`）、`a11y`（Playwright + axe-core 无障碍门禁，critical/serious 违规即红）四个 job
 - **安全扫描**：CodeQL（Python / JavaScript / TypeScript）+ gitleaks 密钥扫描 + OpenSSF Scorecard
 - **无障碍审计**：axe-core 全站 40 路由自动化审计（main+nav 地标 / 图标钮可访问名 / AA 对比度 / 恰一 h1）；critical 清零，全站仅余 1 处带证据链的留档项（`information_add` 上传列表，EP 上游 DOM 结构缺陷）
 - **视觉与动效验证方法学**：像素级 diff / rAF 帧剖面 / 几何断言——骨架屏、侧栏、主题令牌升级均按此验证
