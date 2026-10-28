@@ -53,11 +53,11 @@ commits：`2a9d833`（主体）+ `446dc21`（对抗评审收口：CRMark recover
 
 ### 波 6 · 后端性能与运维加固（`fix/backend-perf`，本地分支，2026-10-28）
 
-commits：`7e27f5a`（依赖上限 + 索引/迁移）、`4323ef3`（N+1 批量化）、`23d3bc6`（watermark 批量非整数 id 回退）、`fe09b30`（异常口径 + 安全小修 + 回归测试）。
+commits：`7e27f5a`（依赖上限 + 索引/迁移）、`4323ef3`（N+1 批量化）、`23d3bc6` + `de32e53` + `8733f76`（watermark 批量预取/分块与逐项 commit 保持）、`fe09b30`（异常口径 + 安全小修 + 回归测试）。
 
 - **依赖防漂移**（`7e27f5a`）：`openai>=2.44.0,<3`、`pandas>=3.0.6,<3.1`、`numpy<3`、`pillow<14`；每条附注释说明"防 CI 自动跳 major/minor，升级需专项验证"，避免下次 CI 直接装上未验证的新版本。
 - **高频查询索引**（`7e27f5a`）：`download_record` 增加 timestamp / application_id / download_user_number / data_id 索引；`download_token`、`embed_file_record`、`send_file_record` 增加 application_id 索引。`migrate_add_columns.py` 以幂等 `CREATE INDEX`（MySQL "Duplicate key name" / SQLite "already exists" 均跳过）升级既有库；SQLite 测试库由 `create_all` 自动建索引。
-- **取证交付列表 N+1**（`4323ef3`）：`GET /api/forensics/deliveries` 的 anchors、downloaded 标记、证据链事件、签名公钥改为每页各一次 IN 查询（200 条交付实测 **1002 → 6 SELECT**；响应结构与锚定/链验证语义不变）。`batch_embed_jobs` 与两个 watermark 批量端点的 `session.get` 循环改为一次 IN 预取，缺失 id 的逐项语义保持不变。
+- **取证交付列表 N+1**（`4323ef3`）：`GET /api/forensics/deliveries` 的 anchors、downloaded 标记、证据链事件、签名公钥改为每页各一次 IN 查询（200 条交付实测 **1002 → 6 SELECT**；响应结构与锚定/链验证语义不变）。`batch_embed_jobs` 与两个 watermark 批量端点的 `session.get` 循环改为一次 IN 预取（`23d3bc6`/`de32e53`；`batch_generate` 5 项实测 Application SELECT **5 → 1**），缺失 id 的逐项语义保持不变。
 - **异常口径**（`fe09b30`）：公告接口 DB 异常返回 **503** + `status:false`（不再伪 200 + 空列表）；密码校验失败关闭——含 `$` 的结构化哈希若校验异常绝不落入 legacy 明文比较（无 `$` 的旧明文仍可登录一次并自动升级为哈希）。
 - **安全小修**（`fe09b30`）：员工注册预检管理员号牌（`adm_info`/`adm_account`）、`employee_info.job_number` 与 `employee_account` 账号名冲突（原为 IntegrityError→500）；refresh 按 role claim 回查账号存在与角色一致（缺失/不符→401，无 role 的 legacy token 保持）；旧 `emp_download_zip` 补写服务端 DownloadRecord；`record_download_file` 的 data_id/data_name 以申请行为准；并发 logout 的 IntegrityError 回滚后按"已存在"处理；`re_review` / `adm3_additional_review` 严格布尔校验（非 bool→400）。
 - **测试**：新增 `tests/test_backend_perf.py` **26** 个回归用例（依赖上限、索引与迁移声明、交付列表查询数恒定性、503 口径、密码失败关闭、注册/refresh/下载审计/并发登出/严格布尔）；全量 **690 passed / 0 failed**；`ruff check` + `ruff format --check` 双绿。

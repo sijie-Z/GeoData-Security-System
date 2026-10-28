@@ -237,7 +237,7 @@ class RegisterResource(Resource):
         description: 头像
     responses:
       201: {description: 注册成功}
-      400: {description: 员工编号已存在 / 身份证号或手机号已被注册 / 缺少必填字段}
+      400: {description: 员工编号/工号/账号名已存在、编号被管理员占用、身份证号或手机号已被注册、缺少必填字段}
     """
 
     @limiter.limit("5 per minute")
